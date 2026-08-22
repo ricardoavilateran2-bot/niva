@@ -147,7 +147,7 @@ function pintar(){
     for(const p of PROPS){
       const d=document.createElement('div');d.className='card pcard';
       d.innerHTML='<div class="crow">'
-        +'<img class="cimg" loading="lazy" src="'+(p.title_image_url||'')+'" onerror="this.style.visibility='hidden'">'
+        +'<img class="cimg" loading="lazy" src="'+(p.title_image_url||'')+'" onerror="this.style.visibility=\'hidden\'">'
         +'<div class="cinfo"><div class="cname">'+(p.title||p.eb_public_id)+'</div>'
         +'<div class="cmeta">'+p.eb_public_id+' · '+(p.operation_type==='rental'?'Renta':'Venta')+'</div>'
         +'<div class="cprice">'+fmt(p.price_amount)+(p.operation_type==='rental'?' /mes':'')+'</div>'
@@ -169,7 +169,7 @@ function cardLead(l){
   const d=document.createElement('div');d.className='card';
   const fecha=l.happened_at?new Date(l.happened_at).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   d.innerHTML='<div class="crow">'
-    +'<img class="cimg" loading="lazy" src="'+(l.title_image_url||'')+'" onerror="this.style.visibility='hidden'">'
+    +'<img class="cimg" loading="lazy" src="'+(l.title_image_url||'')+'" onerror="this.style.visibility=\'hidden\'">'
     +'<div class="cinfo">'
     +'<div class="cname">'+(l.full_name||'Sin nombre')+' <span class="badge b-'+l.status+'">'+EST[l.status]+'</span>'+(l.contact_type==='agent'?' <span class="badge b-agent">ASESOR</span>':'')+'</div>'
     +'<div class="cprop">'+(l.property_title||'⚠️ Propiedad no identificada')+'</div>'
