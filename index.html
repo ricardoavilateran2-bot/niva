@@ -61,7 +61,9 @@ details p{font-size:13.5px;background:#f1f3f7;border-radius:8px;padding:8px;marg
 .psort select{flex:0 0 auto;border:1px solid #d7dbe3;border-radius:10px;padding:9px 10px;font-size:13.5px;background:#fff;font-family:inherit}
 .psort input{flex:1;min-width:160px;border:1px solid #d7dbe3;border-radius:10px;padding:9px 12px;font-size:14px}
 body[data-tab="props"] main{max-width:900px}
-.psec{margin-bottom:18px}
+.psecs{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+@media(max-width:640px){.psecs{grid-template-columns:1fr}}
+.psec{margin-bottom:0}
 .psec-h{font-size:13px;font-weight:800;letter-spacing:1.5px;color:var(--navy);padding:6px 2px;border-bottom:2px solid var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .psec-h span{background:var(--navy);color:#fff;border-radius:999px;padding:1px 9px;font-size:11.5px}
 .ptabla{background:var(--card);border-radius:12px;box-shadow:0 1px 4px rgba(15,23,42,.08);overflow:hidden}
@@ -208,6 +210,7 @@ function pintar(){
     else if(PS==='pmax')ps.sort((a,b)=>(b.price_amount??-1)-(a.price_amount??-1));
     if(!ps.length){host.innerHTML='<div class="vacio">Sin propiedades con esos filtros.</div>';return}
     const secciones=[['rental','RENTA'],['sale','VENTA']];
+    const wrapper=document.createElement('div');wrapper.className='psecs';
     for(const [op,titulo] of secciones){
       const grupo=ps.filter(p=>p.operation_type===op);
       if(!grupo.length)continue;
@@ -225,8 +228,9 @@ function pintar(){
           +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>';
         tabla.appendChild(fila);
       }
-      sec.appendChild(tabla);host.appendChild(sec);
+      sec.appendChild(tabla);wrapper.appendChild(sec);
     }
+    host.appendChild(wrapper);
     return;
   }
   let arr=TAB==='nuevos'?LEADS.filter(x=>x.status==='new'):LEADS.slice();
