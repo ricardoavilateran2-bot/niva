@@ -60,8 +60,8 @@ details p{font-size:13.5px;background:#f1f3f7;border-radius:8px;padding:8px;marg
 .psort{display:flex;gap:8px;flex-wrap:wrap}
 .psort select{flex:0 0 auto;border:1px solid #d7dbe3;border-radius:10px;padding:9px 10px;font-size:13.5px;background:#fff;font-family:inherit}
 .psort input{flex:1;min-width:160px;border:1px solid #d7dbe3;border-radius:10px;padding:9px 12px;font-size:14px}
-body[data-tab="props"] main{max-width:900px}
-.psecs{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+body[data-tab="props"] main{max-width:1280px}
+.psecs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
 @media(max-width:640px){.psecs{grid-template-columns:1fr}}
 .psec{margin-bottom:0}
 .psec-h{font-size:13px;font-weight:800;letter-spacing:1.5px;color:var(--navy);padding:6px 2px;border-bottom:2px solid var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:8px}
