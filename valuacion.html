@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+(async()=>{
+  try{
+    const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+    const sb = createClient(cfg.url, cfg.anon);
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ window.location.replace('./index.html'); return; }
+    window.__nivaSession = session;
+    window.__nivaSb = sb;
+    sb.auth.onAuthStateChange((_e, s)=>{ if(!s) window.location.replace('./index.html'); });
+  }catch(e){ console.error('niva-auth-guard', e); window.location.replace('./index.html'); }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Estimación de Valor de Mercado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+/* ══════════════════════════════════════
+   BASE
+══════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+:root {
+  --navy: #1B2A4A; --navy2: #0f1e36; --gold: #C9A84C; --gold2: #e8c96a;
+  --white: #fff; --radius: 16px;
+}
+html, body { min-height: 100vh; font-family: 'Inter', sans-serif; background: var(--navy2); color: var(--white); overflow-x: hidden; }
+
+.bg-pattern {
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(201,168,76,.10) 0%, transparent 60%),
+              linear-gradient(160deg, #0d1828 0%, #1B2A4A 50%, #0d1828 100%);
+}
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; opacity: .04;
+  background-image: linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.page { position: relative; z-index: 1; min-height: 100vh; max-width: 960px; margin: 0 auto; padding: 0 20px 80px; }
+
+/* ══ HEADER ══ */
+header { display: flex; align-items: center; justify-content: space-between; padding: 32px 0 0; gap: 12px; }
+.logo-block { display: flex; align-items: flex-end; gap: 4px; }
+.logo-niva { font-size: 38px; font-weight: 900; letter-spacing: -.02em; color: var(--white); line-height: 1; }
+.logo-dot { width: 9px; height: 9px; background: var(--gold); border-radius: 50%; margin-bottom: 5px; }
+.logo-sub { font-size: 11px; font-weight: 600; letter-spacing: .18em; color: rgba(201,168,76,.7); text-transform: uppercase; margin-left: 2px; padding-bottom: 2px; }
+.back-btn { font-size: .75rem; color: var(--gold); padding: 6px 14px; border: 1px solid rgba(201,168,76,.4); border-radius: 8px; text-decoration: none; white-space: nowrap; transition: all .2s; }
+.back-btn:hover { background: var(--gold); color: var(--navy2); }
+
+/* ══ SECTION HEADERS ══ */
+.section-title {
+  font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 20px; padding-bottom: 12px;
+  border-bottom: 1px solid rgba(201,168,76,.2);
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title::before { content: ''; display: block; width: 4px; height: 16px; background: var(--gold); border-radius: 2px; }
+
+/* ══ FORM CARD ══ */
+.form-card {
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09);
+  border-radius: var(--radius); padding: 32px; margin-bottom: 20px;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.form-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 620px) {
+  .form-grid, .form-grid-3, .form-grid-4 { grid-template-columns: 1fr; }
+}
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.45); }
+input, select, textarea {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px; padding: 11px 14px; color: var(--white); font-family: 'Inter', sans-serif;
+  font-size: 14px; font-weight: 500; transition: border-color .2s, background .2s; width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: rgba(201,168,76,.5); background: rgba(255,255,255,.09);
+}
+input::placeholder, textarea::placeholder { color: rgba(255,255,255,.2); }
+select option { background: #1B2A4A; color: white; }
+textarea { resize: vertical; min-height: 80px; }
+
+/* ══ COMPARABLES TABLE ══ */
+.comp-table { width: 100%; border-collapse: collapse; }
+.comp-table th {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(255,255,255,.35); padding: 0 8px 12px; text-align: left;
+}
+.comp-table td { padding: 6px 4px; }
+.comp-table input { font-size: 13px; padding: 8px 10px; }
+.comp-table tr:not(:last-child) td { border-bottom: 1px solid rgba(255,255,255,.05); padding-bottom: 10px; margin-bottom: 10px; }
+.precio-m2-display {
+  font-size: 12px; font-weight: 700; color: var(--gold);
+  text-align: center; padding: 8px 4px;
+}
+
+/* ══ ENTORNO CHECKS ══ */
+.checks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 620px) { .checks-grid { grid-template-columns: 1fr 1fr; } }
+.check-item {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px; padding: 10px 12px; cursor: pointer;
+  transition: all .2s;
+}
+.check-item:hover { border-color: rgba(201,168,76,.3); }
+.check-item input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--gold); flex-shrink: 0; cursor: pointer; }
+.check-item span { font-size: 12.5px; color: rgba(255,255,255,.6); font-weight: 500; }
+
+/* ══ SEARCH LINKS ══ */
+.search-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.search-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; text-decoration: none;
+  border: 1px solid rgba(201,168,76,.3); color: var(--gold);
+  transition: all .2s; cursor: pointer;
+}
+.search-link:hover { background: rgba(201,168,76,.15); }
+
+/* ══ GENERATE BUTTON ══ */
+.generate-btn {
+  width: 100%; padding: 18px; margin-top: 8px;
+  background: linear-gradient(135deg, var(--gold), #b8922e);
+  color: var(--navy2); font-size: 16px; font-weight: 900;
+  border: none; border-radius: 14px; cursor: pointer;
+  letter-spacing: .02em; transition: opacity .2s, transform .1s;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.generate-btn:hover { opacity: .92; transform: translateY(-1px); }
+.generate-btn:active { transform: translateY(0); }
+
+/* ══ HERO ══ */
+.page-hero { padding: 48px 0 36px; text-align: center; }
+.page-hero .badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(201,168,76,.12); border: 1px solid rgba(201,168,76,.25);
+  border-radius: 40px; padding: 6px 18px; font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; color: var(--gold); text-transform: uppercase; margin-bottom: 20px;
+}
+.page-hero h1 { font-size: clamp(28px, 5vw, 46px); font-weight: 900; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 12px; }
+.page-hero h1 span { color: var(--gold); }
+.page-hero p { font-size: 15px; color: rgba(255,255,255,.45); max-width: 480px; margin: 0 auto; line-height: 1.7; }
+
+/* ══════════════════════════════════════
+   REPORTE IMPRIMIBLE
+══════════════════════════════════════ */
+#reporte-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.85); overflow-y: auto;
+}
+#reporte-container {
+  max-width: 860px; margin: 40px auto; background: #fff; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 40px 120px rgba(0,0,0,.6);
+}
+.reporte-toolbar {
+  background: #1B2A4A; padding: 16px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.reporte-toolbar span { color: rgba(255,255,255,.6); font-size: 13px; }
+.btn-print {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg, #C9A84C, #b8922e); color: #1B2A4A;
+  font-weight: 800; font-size: 13px; padding: 10px 20px;
+  border: none; border-radius: 8px; cursor: pointer;
+}
+.btn-close {
+  background: rgba(255,255,255,.1); color: #fff; border: none;
+  font-size: 13px; font-weight: 700; padding: 10px 16px; border-radius: 8px; cursor: pointer;
+}
+
+/* ══ REPORTE CONTENIDO ══ */
+#reporte-body { font-family: 'Inter', sans-serif; color: #1e293b; }
+.r-page { padding: 48px 56px; border-bottom: 2px solid #f1f4f9; }
+.r-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+.r-logo { font-size: 28px; font-weight: 900; color: #1B2A4A; }
+.r-logo span { color: #C9A84C; }
+.r-date { font-size: 11px; color: #94a3b8; text-align: right; line-height: 1.6; }
+.r-title { font-size: 36px; font-weight: 900; color: #1B2A4A; letter-spacing: -.02em; margin-bottom: 6px; }
+.r-subtitle { font-size: 14px; color: #64748b; margin-bottom: 28px; }
+.r-summary-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 28px;
+}
+.r-summary-cell { padding: 16px 18px; border-right: 1px solid #e2e8f0; }
+.r-summary-cell:last-child { border-right: none; }
+.r-summary-cell:nth-child(n+5) { border-top: 1px solid #e2e8f0; }
+.r-summary-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+.r-summary-value { font-size: 16px; font-weight: 800; color: #1B2A4A; }
+.r-conclusion {
+  background: #1B2A4A; border-radius: 8px; padding: 24px 28px; color: #fff;
+}
+.r-conclusion strong { color: #C9A84C; }
+.r-conclusion p { font-size: 14px; line-height: 1.7; }
+.r-section-title { font-size: 24px; font-weight: 900; color: #1B2A4A; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #f1f4f9; }
+.r-section-sub { font-size: 14px; font-weight: 800; color: #C9A84C; margin: 20px 0 10px; }
+.r-text { font-size: 13.5px; color: #475569; line-height: 1.75; margin-bottom: 16px; }
+.r-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+.r-table th { background: #1B2A4A; color: #fff; padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.r-table td { padding: 10px 14px; border-bottom: 1px solid #f1f4f9; color: #334155; }
+.r-table tr:last-child td { border-bottom: none; }
+.r-table tr:nth-child(even) td { background: #f8fafc; }
+.r-value-box {
+  background: #1B2A4A; color: #fff; border-radius: 8px; padding: 20px 24px;
+  margin: 20px 0; display: flex; align-items: center; justify-content: space-between;
+}
+.r-value-box .label { font-size: 13px; color: rgba(255,255,255,.6); }
+.r-value-box .amount { font-size: 28px; font-weight: 900; color: #C9A84C; letter-spacing: -.02em; }
+.r-scenarios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+.r-scenario { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 18px; }
+.r-scenario.highlight { background: #1B2A4A; border-color: #C9A84C; color: #fff; }
+.r-scenario .s-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #94a3b8; margin-bottom: 6px; }
+.r-scenario.highlight .s-label { color: rgba(255,255,255,.5); }
+.r-scenario .s-amount { font-size: 22px; font-weight: 900; color: #1B2A4A; }
+.r-scenario.highlight .s-amount { color: #C9A84C; }
+.r-scenario .s-desc { font-size: 11.5px; color: #64748b; margin-top: 6px; line-height: 1.5; }
+.r-scenario.highlight .s-desc { color: rgba(255,255,255,.55); }
+.r-entorno-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+.r-entorno-table th { background: #1B2A4A; color: #fff; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.r-entorno-table td { padding: 10px 14px; border-bottom: 1px solid #f1f4f9; font-size: 13px; color: #334155; }
+.r-entorno-table tr:last-child td { border-bottom: none; }
+.impact-alto { color: #16a34a; font-weight: 700; }
+.impact-medio { color: #d97706; font-weight: 700; }
+.r-plusvalia-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+.r-plusvalia-table th { background: #1B2A4A; color: #fff; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: .06em; }
+.r-plusvalia-table td { padding: 10px 14px; border-bottom: 1px solid #f1f4f9; font-size: 13px; color: #334155; }
+.eval-pos { color: #16a34a; font-weight: 700; }
+.eval-muy { color: #0284c7; font-weight: 700; }
+.eval-mod { color: #d97706; font-weight: 700; }
+.r-estrategia ul { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+.r-estrategia ul li { font-size: 13.5px; color: #475569; padding-left: 18px; position: relative; line-height: 1.6; }
+.r-estrategia ul li::before { content: '•'; position: absolute; left: 0; color: #C9A84C; font-weight: 900; }
+.r-recom {
+  background: #1B2A4A; border-radius: 8px; padding: 20px 24px; margin: 20px 0;
+}
+.r-recom strong { color: #C9A84C; }
+.r-recom p { font-size: 13.5px; color: #fff; line-height: 1.7; }
+.r-sources { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.r-sources li { font-size: 12.5px; color: #475569; }
+.r-sources li strong { color: #1B2A4A; display: block; }
+.r-aviso {
+  background: #f8fafc; border-left: 3px solid #C9A84C; padding: 16px 20px;
+  border-radius: 0 8px 8px 0; margin-top: 20px;
+}
+.r-aviso p { font-size: 12px; color: #64748b; line-height: 1.7; }
+.r-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 56px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+  font-size: 11px; color: #94a3b8;
+}
+/* SVG chart */
+.r-chart { width: 100%; margin: 20px 0; }
+
+@media print {
+  body * { display: none !important; }
+  #reporte-overlay { display: block !important; position: static !important; background: none !important; overflow: visible !important; }
+  #reporte-container { box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; }
+  .reporte-toolbar { display: none !important; }
+  #reporte-body * { display: revert !important; }
+  .r-page { page-break-after: always; padding: 32px 48px; }
+  .r-page:last-child { page-break-after: avoid; }
+}
+</style>
+</head>
+<body>
+<a href="./index.html" style="position:fixed;top:12px;left:12px;z-index:999999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:7px 14px;border-radius:8px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);">&larr; NIVA OS</a>
+
+<div class="bg-pattern"></div>
+<div class="bg-grid"></div>
+
+<div class="page">
+  <!-- HEADER -->
+  <header>
+    <div>
+      <div class="logo-block">
+        <span class="logo-niva">NIVA</span>
+        <div class="logo-dot"></div>
+      </div>
+      <div class="logo-sub">Inmobiliaria · Monterrey</div>
+    </div>
+    <a href="index.html" class="back-btn">← Panel principal</a>
+  </header>
+
+  <!-- HERO -->
+  <div class="page-hero">
+    <div class="badge">📊 Módulo de Valuación</div>
+    <h1>Estimación de <span>Valor de Mercado</span></h1>
+    <p>Llena los datos de la propiedad y genera el reporte profesional con membrete NIVA. La búsqueda de comparables y el análisis de mercado son automáticos.</p>
+  </div>
+
+  <!-- ── PASO 1: DATOS DE LA PROPIEDAD ── -->
+  <div class="form-card">
+    <div class="section-title">1 · Datos de la propiedad</div>
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <!-- Campos ocultos de ubicación — se llenan automáticamente con IA -->
+      <input type="hidden" id="municipio" value="">
+      <input type="hidden" id="colonia" value="">
+      <input type="hidden" id="cp" value="">
+
+      <div class="form-group">
+        <label>Dirección completa <span style="font-size:11px;opacity:.6;">— incluye colonia y municipio</span></label>
+        <input type="text" id="calle"
+          placeholder="ej. Calle Encinos 123, Las Lomas Sector Bosques, García, NL"
+          style="width:100%;">
+        <div id="geo-status" style="font-size:11px; margin-top:5px; color:rgba(255,255,255,.45); min-height:14px;">
+          💡 La IA extraerá automáticamente la colonia y municipio al generar el reporte.
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tipo de inmueble</label>
+          <select id="tipo" onchange="toggleTorre()">
+            <option value="Casa">Casa</option>
+            <option value="Departamento">Departamento</option>
+            <option value="Terreno">Terreno</option>
+            <option value="Local comercial">Local comercial</option>
+            <option value="Oficina">Oficina</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Operación</label>
+          <select id="operacion">
+            <option value="venta">Venta</option>
+            <option value="renta">Renta</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid-4">
+        <div class="form-group">
+          <label>Terreno (m²)</label>
+          <input type="number" id="m2terreno" placeholder="ej. 184">
+        </div>
+        <div class="form-group">
+          <label>Construcción (m²)</label>
+          <input type="number" id="m2const" placeholder="ej. 117">
+        </div>
+        <div class="form-group">
+          <label>Recámaras</label>
+          <input type="number" id="recamaras" placeholder="ej. 3" min="0">
+        </div>
+        <div class="form-group">
+          <label>Baños</label>
+          <input type="number" id="banos" placeholder="ej. 2.5" step="0.5" min="0">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Niveles</label>
+          <input type="number" id="niveles" placeholder="ej. 2" min="1">
+        </div>
+        <div class="form-group">
+          <label>Ubicación especial</label>
+          <input type="text" id="ubicacion" placeholder="ej. Frente a parque, esquina, vista montaña">
+        </div>
+      </div>
+      <div class="form-group" id="torre-group" style="display:none;">
+        <label>🏢 Nombre de Torre / Edificio <span style="font-size:11px;opacity:.6;">(opcional · mejora la búsqueda de comparables)</span></label>
+        <input type="text" id="torre" placeholder="ej. Torre Cima, Skia, Zentral, Acanto…">
+      </div>
+      <div class="form-group">
+        <label>Características adicionales</label>
+        <textarea id="caracteristicas" placeholder="ej. Remodelada, cocina integral, 2 cajones de estacionamiento, cuarto de servicio, jardín..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- tabla oculta para compatibilidad JS -->
+  <div style="display:none;">
+    <table><tbody id="comp-tbody"></tbody></table>
+    <div id="ml-status"></div>
+  </div>
+
+  <!-- Hidden entorno grid (needed by JS) -->
+  <div id="entorno-grid" style="display:none;">
+    <input type="checkbox" value="Supermercado (HEB/Walmart/La Comer)">
+    <input type="checkbox" value="Hospital o clínica privada">
+    <input type="checkbox" value="Escuela privada">
+    <input type="checkbox" value="Parque o área verde">
+    <input type="checkbox" value="Centro comercial o plaza">
+    <input type="checkbox" value="OXXO / Comercio de proximidad">
+    <input type="checkbox" value="Acceso a avenida principal">
+    <input type="checkbox" value="Gimnasio o club deportivo">
+    <input type="checkbox" value="Restaurantes y cafeterías">
+    <input type="checkbox" value="Seguridad / Caseta de vigilancia">
+    <input type="checkbox" value="Áreas comunes (alberca, gym, jardín)">
+    <input type="checkbox" value="Transporte público cercano">
+  </div>
+  <input type="hidden" id="avenidas">
+  <input type="hidden" id="plusvalia">
+
+  <!-- ── GENERAR ── -->
+  <div class="form-card" style="background:rgba(201,168,76,.05); border-color:rgba(201,168,76,.2);">
+    <div class="section-title">2 · Generar reporte</div>
+    <!-- campos ocultos para compatibilidad JS -->
+    <input type="hidden" id="openai-key" value="">
+    <input type="hidden" id="openai-model" value="gpt-4o">
+    <input type="hidden" id="eb-key" value="">
+    <p style="font-size:13px; color:rgba(255,255,255,.5); margin-bottom:20px; line-height:1.6;">
+      El sistema buscará automáticamente comparables en todos los portales inmobiliarios, detectará el entorno urbano y generará el análisis de mercado. Solo llena los datos de la propiedad.
+    </p>
+    <button class="generate-btn" id="btn-generar" onclick="iniciarReporte()">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2v10M6 8l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Generar Estimación de Valor PDF
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     OVERLAY DEL REPORTE
+══════════════════════════════════════ -->
+<div id="reporte-overlay">
+  <div id="reporte-container">
+    <div class="reporte-toolbar">
+      <span>Reporte listo — revisa y descarga como PDF</span>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-print" onclick="guardarPDF()" id="btn-pdf">⬇️ Guardar como PDF</button>
+        <button class="btn-close" onclick="cerrarReporte()">✕ Cerrar</button>
+      </div>
+    </div>
+    <div id="reporte-body"></div>
+  </div>
+</div>
+
+<script>
+// ── COMPARABLES ──
+let compCount = 0;
+function agregarComparable() {
+  compCount++;
+  const tbody = document.getElementById('comp-tbody');
+  const tr = document.createElement('tr');
+  tr.id = `comp-row-${compCount}`;
+  tr.innerHTML = `
+    <td><input type="text" placeholder="ej. Propiedades.com #${compCount}" id="c${compCount}-fuente"></td>
+    <td><input type="number" placeholder="3,200,000" id="c${compCount}-precio" oninput="calcPrecioM2(${compCount})"></td>
+    <td><input type="number" placeholder="130" id="c${compCount}-m2" oninput="calcPrecioM2(${compCount})"></td>
+    <td><input type="number" placeholder="3" min="0" id="c${compCount}-rec"></td>
+    <td><input type="number" placeholder="2" step="0.5" min="0" id="c${compCount}-banos"></td>
+    <td><div class="precio-m2-display" id="c${compCount}-pm2">—</div></td>
+  `;
+  tbody.appendChild(tr);
+}
+function calcPrecioM2(n) {
+  const precio = parseFloat(document.getElementById(`c${n}-precio`)?.value) || 0;
+  const m2 = parseFloat(document.getElementById(`c${n}-m2`)?.value) || 0;
+  const el = document.getElementById(`c${n}-pm2`);
+  if (el && precio > 0 && m2 > 0) {
+    el.textContent = '$' + Math.round(precio / m2).toLocaleString('es-MX');
+  }
+}
+// Inicializar con 5 comparables
+for (let i = 0; i < 5; i++) agregarComparable();
+
+// ── BÚSQUEDA EN PORTALES ──
+function abrirBusqueda(portal) {
+  const col = (document.getElementById('colonia').value || 'monterrey').replace(/\s+/g, '-').toLowerCase();
+  const mun = (document.getElementById('municipio').value || 'nuevo leon').replace(/\s+/g, '-').toLowerCase();
+  const op  = document.getElementById('operacion').value === 'renta' ? 'renta' : 'venta';
+  const tipo = document.getElementById('tipo').value.toLowerCase();
+  let url = '';
+  const q = encodeURIComponent((document.getElementById('colonia').value || '') + ' ' + (document.getElementById('municipio').value || '') + ' casa en ' + op);
+  if (portal === 'propiedades') url = `https://propiedades.com/${col}-${mun}/casas-${op}`;
+  else if (portal === 'mercadolibre') url = `https://inmuebles.mercadolibre.com.mx/${tipo}s-en-${op}/${col}-${mun}/`;
+  else if (portal === 'inmuebles24') url = `https://www.inmuebles24.com/${tipo}s-en-${op}-en-${col}-nuevo-leon.html`;
+  else if (portal === 'google') url = `https://www.google.com/maps/search/${encodeURIComponent((document.getElementById('colonia').value || '') + ' ' + (document.getElementById('municipio').value || '') + ' Nuevo León')}`;
+  if (url) window.open(url, '_blank');
+}
+
+// ── RECOPILAR COMPARABLES ──
+function getComparables() {
+  const comps = [];
+  for (let i = 1; i <= compCount; i++) {
+    const fuente = document.getElementById(`c${i}-fuente`)?.value;
+    const precio = parseFloat(document.getElementById(`c${i}-precio`)?.value);
+    const m2 = parseFloat(document.getElementById(`c${i}-m2`)?.value);
+    const rec = document.getElementById(`c${i}-rec`)?.value;
+    const banos = document.getElementById(`c${i}-banos`)?.value;
+    if (fuente || (precio > 0)) {
+      comps.push({ fuente: fuente || `Comparable ${i}`, precio, m2, rec, banos, pm2: m2 > 0 ? Math.round(precio / m2) : 0 });
+    }
+  }
+  return comps.filter(c => c.precio > 0);
+}
+
+// ── ENTORNO SELECCIONADO ──
+function getEntorno() {
+  return Array.from(document.querySelectorAll('#entorno-grid input[type=checkbox]:checked')).map(c => c.value);
+}
+
+// ── FORMATEAR MONEDA ──
+const fmt = n => '$' + (n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const fmtMDP = n => { const m = (n || 0) / 1e6; return '$' + m.toFixed(2) + ' MDP'; };
+
+// ── INICIAR (wrapper async) ──
+async function iniciarReporte() {
+  const btn = document.getElementById('btn-generar');
+  btn.disabled = true;
+  btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" style="animation:spin 1s linear infinite"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="30" stroke-dashoffset="10"/></svg> Buscando entorno y calculando...`;
+  try { await generarReporte(); } catch(e) { alert('Error al generar el reporte: ' + e.message); }
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2v10M6 8l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Generar Estimación de Valor PDF`;
+}
+
+
+// ── DATOS DE ENTORNO POR ZONA (fallback cuando OpenStreetMap no responde) ──
+const ZONA_ENTORNO = {
+  // CUMBRES y subzonas
+  'cumbres': {
+    comercios: ['HEB Cumbres (Av. Paseo de los Leones)', 'Walmart Cumbres', 'Costco San Pedro / acceso fácil', 'Plaza Cumbres (100+ locales)', 'La Comer Cumbres', 'Gasolinera BP Cumbres'],
+    escuelas: ['Instituto Cumbres', 'Colegio Americano de Monterrey', 'Universidad UDEM (Campus San Pedro)', 'Colegio de Monterrey (Cumbres)', 'Prepa Tec campus Cumbres'],
+    servicios: ['Hospital Angeles (San Jerónimo)', 'Hospital Christus Muguerza Sur', 'Clínica Nova Cumbres'],
+    vialidades: ['Av. Paseo de los Leones', 'Av. Lázaro Cárdenas', 'Av. Alfonso Reyes', 'Periférico Norte'],
+    desarrollos: ['Desarrollo residencial cerrado con caseta de vigilancia', 'Zona consolidada con alta plusvalía histórica', 'Corredor residencial de alta demanda en Monterrey Norte'],
+    perfil: 'Zona residencial consolidada de clase media-alta y alta. Alta demanda, absorción moderada-rápida (60–90 días promedio). Valorada por seguridad, acceso a servicios y colegios de prestigio.'
+  },
+  // SAN PEDRO
+  'san pedro': {
+    comercios: ['Galerías Monterrey', 'Pabellón M', 'Costco San Pedro', 'HEB San Pedro', 'Walmart San Pedro', 'Cinépolis VIP Galerías'],
+    escuelas: ['Instituto San Roberto', 'Colegio Justo Sierra San Pedro', 'UDEM', 'ITESM Campus Monterrey', 'Colegio Irlandés'],
+    servicios: ['Hospital Zambrano Hellion', 'Hospital San José TEC', 'Christus Muguerza Sur', 'Centro Médico del Valle'],
+    vialidades: ['Av. Gómez Morín', 'Av. Lázaro Cárdenas', 'Av. Vasconcelos', 'Av. Humberto Lobo'],
+    desarrollos: ['Zona prime del AMM · más alta plusvalía de la región', 'Corredor Gómez Morín / Valle · destino corporativo y residencial', 'Desarrollo vertical en expansión con demanda de compradores premium'],
+    perfil: 'Municipio de mayor valor inmobiliario en el AMM. Demanda sostenida de familias clase alta y alta media, ejecutivos y compradores de reubicación. Absorción rápida (30–60 días) en submercados consolidados.'
+  },
+  // SAN NICOLAS
+  'san nicolás': {
+    comercios: ['Soriana Anáhuac', 'Walmart San Nicolás', 'HEB San Nicolás', 'Plaza Las Puentes', 'Plaza Anáhuac'],
+    escuelas: ['UANL Facultad de Ingeniería', 'Preparatoria 7 UANL', 'Colegio El Vergel', 'CETIS', 'Instituto Tecnológico de Nuevo León'],
+    servicios: ['Hospital Regional Universitario', 'Cruz Roja San Nicolás', 'Clínicas IMSS San Nicolás'],
+    vialidades: ['Av. Fidel Velázquez', 'Av. Universidad', 'Av. Nogalar', 'Periférico'],
+    desarrollos: ['Zona universitaria con alta demanda de inversión residencial', 'Corredor industrial con empleabilidad alta en la zona'],
+    perfil: 'Municipio residencial de clase media-media alta. Alta concentración universitaria y familiar. Buena conectividad vial hacia Monterrey y Apodaca.'
+  },
+  // GUADALUPE
+  'guadalupe': {
+    comercios: ['Plaza Guadalupe', 'HEB Guadalupe', 'Walmart Guadalupe', 'Soriana Silla', 'Contry Center'],
+    escuelas: ['UANL (campus cercanos)', 'Colegio San Juan Bosco', 'Prepa Colegio de Monterrey'],
+    servicios: ['Hospital General de Zona IMSS', 'Cruz Roja Guadalupe', 'Centro de Salud Guadalupe'],
+    vialidades: ['Av. Benito Juárez', 'Av. Constitución', 'Carretera Nacional', 'Periférico Sur'],
+    desarrollos: ['Zona consolidada oriente del AMM', 'Corredor habitacional de clase media en crecimiento'],
+    perfil: 'Municipio con amplia base habitacional de clase media. Buena conectividad hacia el centro de Monterrey y zona sur. Demanda constante de familias locales.'
+  },
+  // MITRAS / OBISPADO
+  'mitras': {
+    comercios: ['HEB Mitras', 'Walmart Mitras', 'Plaza Mitras Centro', 'Súper Gutiérrez Mitras'],
+    escuelas: ['Colegio Americano de Monterrey', 'Instituto de Ciencias', 'UDEM campus cercano'],
+    servicios: ['Hospital Christus Muguerza Vidriera', 'Hospital San Felipe', 'Cruz Verde'],
+    vialidades: ['Av. Gonzalitos', 'Av. Lázaro Cárdenas', 'Av. Constitución', 'Av. Churubusco'],
+    desarrollos: ['Zona consolidada de alta demanda en Monterrey poniente', 'Corredor residencial cercano a MACROPLAZA'],
+    perfil: 'Zona residencial tradicional con alta concentración de profesionistas. Buena conectividad y servicios establecidos. Demanda estable con ligero crecimiento en precios.'
+  },
+  // SAN JERÓNIMO / COLINAS / SUR DE MONTERREY
+  'jeronimo': {
+    comercios: ['HEB San Jerónimo (Av. Raúl Salinas Lozano)', 'Walmart Contry (a 5 min)', 'Starbucks Colinas', 'Costco San Pedro (acceso por Periférico)', 'Restaurantes y cafeterías en Av. Raúl Salinas', 'La Comer / Soriana zona sur'],
+    escuelas: ['Colegio Americano del Noreste (Campus Sur)', 'Colegio Inglés Hidalgo', 'ITESM Campus Monterrey (20 min)', 'Instituto Lux', 'Escuelas privadas en Colinas de San Jerónimo'],
+    servicios: ['Hospital Ángeles (Zona Sur)', 'Hospital Christus Muguerza Sur', 'Clínica Médica Internacional', 'Bancos y servicios financieros en Av. Raúl Salinas'],
+    vialidades: ['Av. Raúl Salinas Lozano', 'Av. San Jerónimo', 'Vía San Jerónimo', 'Periférico Sur', 'Carretera Nacional a Santiago'],
+    desarrollos: ['Corredor vertical de alta gama en Colinas de San Jerónimo (Torres Home, Acanto, y similares)', 'Zona de alta plusvalía sur de Monterrey con apreciación sostenida', 'Proximidad a Valle y San Pedro por Periférico', 'Demanda consolidada de compradores de poder adquisitivo alto'],
+    perfil: 'Zona residencial premium al sur de Monterrey. Alta concentración de torres de departamentos de lujo y casas de alto valor. Demanda de ejecutivos, familias de clase alta y compradores de reubicación. Absorción rápida en segmento $6–$15 MDP. Plusvalía histórica sólida por cercanía a San Pedro y zona corporativa Valle.'
+  },
+  // CONTRY / GOLF / SUR-ORIENTE
+  'contry': {
+    comercios: ['Walmart Contry', 'HEB Contry', 'Contry Center (centro comercial)', 'Súper Gutiérrez Contry', 'Restaurantes en Blvd. Díaz Ordaz'],
+    escuelas: ['Colegio Oxford', 'Colegio Justo Sierra (campus sur)', 'Preparatoria 15 UANL', 'Escuelas privadas en Contry'],
+    servicios: ['Hospital IMSS Zona Sur', 'Clínicas privadas Contry', 'Bancos en Blvd. Díaz Ordaz'],
+    vialidades: ['Blvd. Díaz Ordaz', 'Av. Eugenio Garza Sada', 'Av. Alfonso Reyes', 'Periférico Sur'],
+    desarrollos: ['Zona residencial consolidada sur de Monterrey', 'Corredor comercial Díaz Ordaz', 'Alta densidad de profesionistas y familias establecidas'],
+    perfil: 'Zona residencial de clase media-alta con amplia trayectoria. Buena conectividad hacia sur y poniente del AMM. Demanda estable con perfil familiar.'
+  },
+  // VALLE ORIENTE / CARRIZALEJO (MONTERREY PONIENTE PREMIUM)
+  'valle oriente': {
+    comercios: ['Pabellón Valle (6 min)', 'HEB Valle', 'Galerías Monterrey (5 min)', 'Costco San Pedro', 'Restaurantes en Av. Gómez Morín'],
+    escuelas: ['ITESM Campus Monterrey', 'Universidad UDEM', 'Colegio Irlandés', 'Colegio Justo Sierra'],
+    servicios: ['Hospital San José TEC', 'Hospital Zambrano Hellion', 'Clínicas privadas zona Valle'],
+    vialidades: ['Av. Lázaro Cárdenas', 'Av. Gómez Morín', 'Av. Humberto Lobo', 'Periférico Poniente'],
+    desarrollos: ['Corredor corporativo y residencial de alta densidad Valle-Gómez Morín', 'Alta concentración de torres premium con amenidades de lujo', 'Zona limítrofe con San Pedro Garza García — plusvalía premium'],
+    perfil: 'Zona de alta plusvalía al poniente de Monterrey, en el corredor Valle–San Pedro. Perfil comprador: ejecutivos, familias clase alta, inversionistas. Absorción de 30–60 días en segmento premium.'
+  },
+  // DEFAULT MONTERREY
+  'monterrey': {
+    comercios: ['HEB cercano', 'Walmart zona norte/sur', 'Plazas comerciales de la zona', 'OXXO y comercio de proximidad'],
+    escuelas: ['Escuelas primarias y secundarias públicas y privadas en la zona', 'Prepa y universidades con acceso vial directo'],
+    servicios: ['Clínicas y consultorios médicos en la colonia', 'Cruz Roja / IMSS accesible'],
+    vialidades: ['Acceso a avenidas principales del AMM', 'Conectividad hacia Periférico'],
+    desarrollos: ['Zona urbana consolidada de Monterrey con servicios establecidos'],
+    perfil: 'Zona residencial de Monterrey con servicios básicos consolidados y buena conectividad urbana.'
+  },
+  // APODACA
+  'apodaca': {
+    comercios: ['HEB Apodaca', 'Plaza Sendero', 'Walmart Apodaca', 'Costco Apodaca', 'Forum Apodaca'],
+    escuelas: ['Colegio del Lago', 'Centro de Enseñanza Técnica Industrial', 'Prepa UANL'],
+    servicios: ['Hospital General de Zona IMSS', 'Clínicas privadas en la zona'],
+    vialidades: ['Av. Pablo Livas', 'Av. Sendero', 'Autopista MTY-Nuevo Laredo', 'Periférico Norte'],
+    desarrollos: ['Zona de alto crecimiento residencial en AMM norte', 'Corredor industrial con empleabilidad alta', 'Nuevos desarrollos residenciales en expansión'],
+    perfil: 'Municipio de rápido crecimiento. Alta demanda por empleabilidad industrial y proximidad al aeropuerto. Perfil comprador: familias jóvenes y trabajadores de zona industrial.'
+  },
+  // SANTA CATARINA
+  'santa catarina': {
+    comercios: ['Walmart Santa Catarina', 'HEB Santa Catarina', 'Plaza La Huasteca', 'Soriana Santa Catarina'],
+    escuelas: ['Colegio La Salle Santa Catarina', 'Escuelas UANL zona poniente', 'Preparatorias públicas'],
+    servicios: ['Hospital General Santa Catarina', 'IMSS Santa Catarina'],
+    vialidades: ['Av. Fundadores', 'Carretera 40 (Saltillo)', 'Periférico', 'Av. Lincoln'],
+    desarrollos: ['Corredor industrial poniente AMM', 'Expansión habitacional en La Huasteca'],
+    perfil: 'Municipio poniente con mezcla industrial-residencial. Buena conectividad por carretera. Perfil: clase media, empleados de parques industriales.'
+  }
+};
+
+function getZonaEntorno(municipio, colonia) {
+  const mun = (municipio || '').toLowerCase();
+  const col = (colonia || '').toLowerCase();
+  // Match by colonia name keywords first
+  if (col.includes('cumbres') || col.includes('cerradas') || col.includes('paseo de cumbres') || col.includes('cumbres elite')) return ZONA_ENTORNO['cumbres'];
+  if (col.includes('jerónimo') || col.includes('jeronimo') || col.includes('colinas de san') || col.includes('colinas')) return ZONA_ENTORNO['jeronimo'];
+  if (col.includes('mitras') || col.includes('obispado')) return ZONA_ENTORNO['mitras'];
+  if (col.includes('contry') || col.includes('golf')) return ZONA_ENTORNO['contry'];
+  if (col.includes('valle oriente') || col.includes('carrizalejo') || col.includes('del valle')) return ZONA_ENTORNO['valle oriente'];
+  if (mun.includes('san pedro')) return ZONA_ENTORNO['san pedro'];
+  if (mun.includes('nicolás') || mun.includes('nicolas')) return ZONA_ENTORNO['san nicolás'];
+  if (mun.includes('guadalupe')) return ZONA_ENTORNO['guadalupe'];
+  if (mun.includes('apodaca')) return ZONA_ENTORNO['apodaca'];
+  if (mun.includes('santa catarina')) return ZONA_ENTORNO['santa catarina'];
+  return ZONA_ENTORNO['monterrey'];
+}
+
+
+// ── Proxy seguro hacia OpenAI (la key vive solo en el backend / Supabase Edge Function) ──
+async function callOpenAIProxy(payload){
+  if(!window.__nivaSb || !window.__nivaSession){ return null; }
+  const token = window.__nivaSession.access_token;
+  const cfg = window.__nivaCfg || (window.__nivaCfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json());
+  const res = await fetch(cfg.url + '/functions/v1/niva-openai-proxy', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'apikey': cfg.anon, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+// ── PARSEAR DIRECCIÓN CON IA ──
+async function parsearDireccionConIA(direccion) {
+  if (!direccion.trim()) return null;
+  try {
+    const data = await callOpenAIProxy({
+      model: 'gpt-4o-mini',
+      temperature: 0,
+      messages: [{ role: 'user', content: `Extrae de esta dirección inmobiliaria en México los siguientes datos y responde ÚNICAMENTE con JSON válido, sin explicación:\n{"colonia":"","municipio":"","cp":"","estado":""}\n\nSi no puedes inferir algún campo deja la cadena vacía. Usa nombres oficiales del municipio (ej. "San Pedro Garza García", "General Escobedo", "García", "Monterrey").\n\nDirección: ${direccion}` }],
+      response_format: { type: 'json_object' }
+    });
+    return JSON.parse(data?.choices?.[0]?.message?.content || '{}');
+  } catch(e) { return null; }
+}
+
+// ── VALUAR CON IA ──
+async function valuarConIA(propData, comparables) {
+  const compsFormStr = comparables.length > 0
+    ? comparables.map((c,i) => `${i+1}. $${(c.precio||0).toLocaleString('es-MX')} MXN | ${c.m2||'?'}m² const | ${c.rec||'?'} rec | ${c.banos||'?'} baños | ${c.fuente||'Portal'}`).join('\n')
+    : 'No se capturaron comparables en el formulario.';
+
+  const systemPrompt = `Eres un analista inmobiliario profesional especializado en valuación comercial residencial en México, con énfasis en Monterrey, Nuevo León y su área metropolitana (AMM).
+
+REGLA FUNDAMENTAL: Tu análisis debe parecer realizado por un analista experimentado con conocimiento real del mercado. Debes:
+- Identificar propiedades comparables representativas de la zona (basadas en tu conocimiento de portales como Inmuebles24, Lamudi, Vivanuncios, Propiedades.com y tu conocimiento de precios del AMM)
+- Analizar el entorno real de la dirección proporcionada con distancias aproximadas reales
+- Calcular ajustes razonados y explicados
+- NUNCA iguales m² artificialmente de los comparables
+- NUNCA inventes precios arbitrarios — usa rangos de mercado que conozcas del AMM
+- El terreno NO es gratis — analiza su contribución específica al valor
+- Los precios en portales son OFERTA, no cierre — considera margen de negociación del 3-8%
+- Si información es insuficiente, indícalo con confianza BAJA y explica por qué
+
+Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin texto antes ni después del JSON.`;
+
+  const userPrompt = `DATOS DE LA PROPIEDAD A VALUAR:
+- Dirección: ${propData.calle || 'No especificada'}
+- Colonia: ${propData.colonia}
+- Municipio: ${propData.municipio}${propData.cp ? ' · CP: ' + propData.cp : ''}
+- Tipo: ${propData.tipo} en ${propData.operacion}
+- Terreno: ${propData.m2terreno || 'N/D'} m²
+- Construcción: ${propData.m2const || 'N/D'} m²
+- Recámaras: ${propData.recamaras}
+- Baños completos: ${propData.banos}
+- Medios baños: ${propData.mban || 'N/D'}
+- Niveles: ${propData.niveles}
+- Estacionamientos: ${propData.estac || 'N/D'}
+- Edad aproximada: ${propData.edad || 'N/D'}
+- Estado de conservación: ${propData.estado || 'N/D'}
+- Torre/Edificio: ${propData.torre || 'N/A'}
+- Características adicionales: ${propData.caract || 'No especificadas'}
+- Ubicación especial (frente a parque, esquina, etc.): ${propData.ubicacion || 'N/A'}
+- Avenidas cercanas capturadas: ${propData.avenidas || 'N/D'}
+- Plusvalía/desarrollos cercanos capturados: ${propData.plusvalia || 'N/D'}
+
+COMPARABLES CAPTURADOS EN FORMULARIO (${comparables.length}):
+${compsFormStr}
+
+INSTRUCCIONES DETALLADAS:
+1. Genera entre 6 y 10 comparables representativos de esta zona. Incluye los del formulario si son válidos (marcarlos como "formulario"). Marca cada comparable con nivel: A=misma colonia/características similares, B=zona cercana con diferencias moderadas, C=zona más amplia o características diferentes.
+2. Asigna a cada comparable un score de 0-100 según: ubicación (30pts), construcción (15pts), terreno (15pts), recámaras (10pts), baños (5pts), estado conservación (10pts), antigüedad (5pts), estacionamiento (3pts), características especiales (7pts).
+3. Detecta outliers (precios inusualmente altos o bajos) y exclúyelos del cálculo final, explicando por qué.
+4. Calcula valor_objetivo usando mediana ponderada de los comparables más similares (mayor score = mayor peso), NO promedio simple.
+5. El terreno tiene valor independiente — si la propiedad tiene más terreno que los comparables, explica el diferencial.
+6. precio_conservador ≈ 95-96% del valor_objetivo; precio_salida ≈ 104-106% para publicación; rango_cierre_low ≈ 97-98%; rango_cierre_high ≈ 102-103%.
+
+Responde SOLO con este JSON exacto (precios en MXN enteros sin comas):
+{
+  "valor_objetivo": 0,
+  "precio_conservador": 0,
+  "precio_salida": 0,
+  "rango_cierre_low": 0,
+  "rango_cierre_high": 0,
+  "precio_m2_construccion": 0,
+  "precio_m2_terreno": 0,
+  "confianza": "ALTA",
+  "justificacion_confianza": "Razón del nivel de confianza asignado",
+  "comparables": [
+    {
+      "num": 1,
+      "portal": "Inmuebles24",
+      "ubicacion": "Colonia, Municipio",
+      "precio": 0,
+      "terreno": 0,
+      "construccion": 0,
+      "recamaras": 0,
+      "banos": 0,
+      "precio_m2": 0,
+      "score": 0,
+      "nivel": "A",
+      "estado": "Bueno",
+      "nota": "Superior/Similar/Inferior — razón del ajuste"
+    }
+  ],
+  "outliers": "Propiedades descartadas y por qué (o vacío si ninguna)",
+  "analisis_ajustes": "Narrativa completa de la matriz de ajustes: qué hace a cada comparable superior, similar o inferior vs la propiedad analizada, y cómo eso justifica el valor",
+  "analisis_terreno": "Análisis específico del valor del terreno: diferencial vs comparables, potencial de ampliación, jardines, frente, esquina, contribución al valor final",
+  "analisis_ubicacion": "Servicios cercanos con distancias aproximadas reales: supermercados (HEB, Walmart, Costco), hospitales, escuelas, parques, avenidas principales, centros comerciales. Formato: 'HEB X — aproximadamente X km.'",
+  "analisis_plusvalia": "Factores que afectan la plusvalía: positivos (nuevos desarrollos, infraestructura, plazas), neutrales, riesgos de depreciación. SÉ ESPECÍFICO para la zona.",
+  "estrategia_precio_publicacion": 0,
+  "estrategia_rango": "Rango de negociación esperado y por qué (oferta vs cierre real)",
+  "estrategia_tiempo": "Tiempo estimado de comercialización si el precio es correcto",
+  "estrategia_cuando_bajar": "Cuándo y cuánto bajar el precio si no hay visitas u ofertas",
+  "estrategia_destacar": "Top 5-6 características a enfatizar en la publicidad de esta propiedad específica",
+  "justificacion_precio": "Explicación directa al propietario de por qué su propiedad vale este precio. 3-4 párrafos claros, sin jerga técnica, que cualquier dueño pueda leer y entender.",
+  "lectura_mercado": "2-3 párrafos sobre el mercado inmobiliario actual de la zona: tendencias de precio, absorción, competitividad, qué tipo de compradores hay.",
+  "perfil_comprador": "Descripción del buyer persona más probable para esta propiedad en esta zona."
+}`;
+
+  try {
+    const data = await callOpenAIProxy({
+      model: 'gpt-4o',
+      temperature: 0.1,
+      max_tokens: 4000,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      response_format: { type: 'json_object' }
+    });
+    const parsed = JSON.parse(data?.choices?.[0]?.message?.content || '{}');
+    return parsed;
+  } catch(e) { console.warn('valuarConIA error:', e); return null; }
+}
+
+// ── GENERAR REPORTE ──
+async function generarReporte() {
+  // ── Parsear dirección con IA si los campos están vacíos ──
+  const calleRaw = (document.getElementById('calle')?.value || '').trim();
+  if (calleRaw && !document.getElementById('colonia').value.trim()) {
+    const btnParse = document.getElementById('btn-generar');
+    btnParse.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" style="animation:spin 1s linear infinite"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="30" stroke-dashoffset="10"/></svg> Analizando dirección con IA...`;
+    const parsed = await parsearDireccionConIA(calleRaw);
+    if (parsed) {
+      if (parsed.colonia)   document.getElementById('colonia').value   = parsed.colonia;
+      if (parsed.municipio) document.getElementById('municipio').value = parsed.municipio;
+      if (parsed.cp)        document.getElementById('cp').value        = parsed.cp;
+    }
+  }
+
+  let colonia     = document.getElementById('colonia').value || 'Sin especificar';
+  let municipio   = document.getElementById('municipio').value || 'Nuevo León';
+  let cp          = document.getElementById('cp').value;
+  const tipo        = document.getElementById('tipo').value;
+  const operacion   = document.getElementById('operacion').value;
+  const m2terreno   = parseFloat(document.getElementById('m2terreno').value) || 0;
+  const m2const     = parseFloat(document.getElementById('m2const').value) || 0;
+  const recamaras   = document.getElementById('recamaras').value || '—';
+  const banos       = document.getElementById('banos').value || '—';
+  const niveles     = document.getElementById('niveles').value || '—';
+  const ubicacion   = document.getElementById('ubicacion').value || '';
+  const torre       = (document.getElementById('torre')?.value || '').trim();
+  const caract      = document.getElementById('caracteristicas').value || '';
+  const avenidas    = document.getElementById('avenidas').value || '';
+  const plusvalia   = document.getElementById('plusvalia').value || '';
+  const comps       = getComparables();
+  const entorno     = getEntorno();
+  const hoy         = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // ── Precios por COLONIA (anula el municipio para zonas premium/descuento) ──
+  const COLONIA_PM2 = {
+    // Sur premium de Monterrey
+    'jerónimo': { casa: 48000, depto: 62000, terreno: 22000 },
+    'jeronimo': { casa: 48000, depto: 62000, terreno: 22000 },
+    'colinas de san': { casa: 48000, depto: 62000, terreno: 22000 },
+    'colinas': { casa: 45000, depto: 58000, terreno: 20000 },
+    // Poniente premium Monterrey
+    'valle oriente': { casa: 52000, depto: 58000, terreno: 26000 },
+    'carrizalejo': { casa: 50000, depto: 55000, terreno: 24000 },
+    'del valle': { casa: 38000, depto: 36000, terreno: 16000 },
+    // Cumbres subzonas
+    'cumbres elite': { casa: 38000, depto: 34000, terreno: 16000 },
+    'cumbres platino': { casa: 42000, depto: 38000, terreno: 18000 },
+    'vistancias': { casa: 36000, depto: 32000, terreno: 15000 },
+    // Contry / Sur Monterrey
+    'contry': { casa: 30000, depto: 27000, terreno: 13000 },
+    // Obispado premium
+    'obispado': { casa: 40000, depto: 38000, terreno: 18000 },
+    'loma larga': { casa: 35000, depto: 32000, terreno: 15000 },
+    // García premium (Las Lomas y subzonas)
+    'las lomas': { casa: 24000, depto: 20000, terreno: 9500 },
+    'sector bosques': { casa: 24000, depto: 20000, terreno: 9500 },
+    'lomas sector': { casa: 24000, depto: 20000, terreno: 9500 },
+    'haciendas de garcia': { casa: 22000, depto: 18000, terreno: 8500 },
+    'rinconada colonial': { casa: 20000, depto: 16000, terreno: 8000 },
+    // Apodaca / Escobedo premium
+    'residencial escobedo': { casa: 18000, depto: 15000, terreno: 7000 },
+    'privalia': { casa: 17000, depto: 14000, terreno: 6500 },
+    'villas del norte': { casa: 16000, depto: 13000, terreno: 6000 },
+    // Santiago premium
+    'cañon del valle': { casa: 28000, depto: 24000, terreno: 14000 },
+    'bosques de santiago': { casa: 26000, depto: 22000, terreno: 13000 },
+  };
+
+  // ── Precios de referencia por municipio (fallback si no hay comparables) ──
+  const PM2_REF = {
+    'San Pedro Garza García': { casa: 52000, depto: 48000, terreno: 28000 },
+    'Monterrey':               { casa: 28000, depto: 25000, terreno: 12000 },
+    'San Nicolás de los Garza':{ casa: 22000, depto: 19000, terreno: 9000  },
+    'Guadalupe':               { casa: 18000, depto: 16000, terreno: 7500  },
+    'Apodaca':                 { casa: 16000, depto: 14000, terreno: 6000  },
+    'General Escobedo':        { casa: 14000, depto: 12000, terreno: 5000  },
+    'García':                  { casa: 16000, depto: 13000, terreno: 5500  },
+    'Santa Catarina':          { casa: 18000, depto: 15000, terreno: 6500  },
+    'Juárez':                  { casa: 14000, depto: 12000, terreno: 4500  },
+    'Santiago':                { casa: 20000, depto: 17000, terreno: 8000  },
+  };
+
+  // ── Auto-buscar comparables en portales ──
+  {
+    const btn = document.getElementById('btn-generar');
+    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" style="animation:spin 1s linear infinite"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="30" stroke-dashoffset="10"/></svg> Buscando comparables en portales...`;
+    const mlComps = await buscarComparablesMultiPortal(true);
+    // Rellenar tabla con los resultados encontrados
+    for (const comp of mlComps) {
+      agregarComparable();
+      const n = compCount;
+      const fEl = document.getElementById(`c${n}-fuente`);
+      const pEl = document.getElementById(`c${n}-precio`);
+      const mEl = document.getElementById(`c${n}-m2`);
+      const rEl = document.getElementById(`c${n}-rec`);
+      const bEl = document.getElementById(`c${n}-banos`);
+      if (fEl) fEl.value = comp.fuente;
+      if (pEl) pEl.value = comp.precio;
+      if (mEl) mEl.value = comp.m2;
+      if (rEl) rEl.value = comp.rec;
+      if (bEl) bEl.value = comp.banos;
+      calcPrecioM2(n);
+    }
+    // Re-obtener comparables ya con los nuevos
+    comps.splice(0, comps.length, ...getComparables());
+  }
+
+  // ── Buscar entorno automáticamente ──
+  const entornoData = await fetchEntornoData();
+  // Si encontró datos, auto-marcar checkboxes
+  if (entornoData) {
+    aplicarEntornoCheckboxes(entornoData);
+    if (entornoData.av.length && !document.getElementById('avenidas').value.trim())
+      document.getElementById('avenidas').value = entornoData.av.slice(0,8).join(', ');
+    if (entornoData.construccion.length && !document.getElementById('plusvalia').value.trim())
+      document.getElementById('plusvalia').value = `Proyectos detectados en zona (3km): ${entornoData.construccion.slice(0,5).join(', ')}`;
+  }
+  // Obtener datos de entorno por zona (siempre disponible)
+  const zonaData = getZonaEntorno(municipio, colonia);
+
+  // ── Cálculos base (estadísticos de comparables) ──
+  const precios  = comps.map(comp => comp.precio).sort((a, b) => a - b);
+  const pm2s     = comps.filter(comp => comp.pm2 > 0).map(comp => comp.pm2);
+  let mediana    = precios.length > 0 ? precios[Math.floor(precios.length / 2)] : 0;
+  let promPm2    = pm2s.length ? Math.round(pm2s.reduce((a, b) => a + b, 0) / pm2s.length) : 0;
+
+  // ── Premium de entorno ──
+  const f = entornoData || {};
+  let premium = 0;
+  const premiumDetalle = [];
+  if ((f.mall||[]).length)                      { premium += 0.025; premiumDetalle.push({label:'Centro comercial cercano', pct:2.5}); }
+  if ((f.hosp||[]).length)                      { premium += 0.015; premiumDetalle.push({label:'Hospital / Clínica privada', pct:1.5}); }
+  if ((f.esc||[]).length)                       { premium += 0.015; premiumDetalle.push({label:'Escuela / Universidad', pct:1.5}); }
+  if ((f.parque||[]).length)                    { premium += 0.015; premiumDetalle.push({label:'Parque o área verde', pct:1.5}); }
+  if ((f.sup||[]).length)                       { premium += 0.010; premiumDetalle.push({label:'Supermercado', pct:1.0}); }
+  if ((f.gym||[]).length)                       { premium += 0.008; premiumDetalle.push({label:'Gimnasio / Club deportivo', pct:0.8}); }
+  if ((f.rest||[]).length >= 5)                 { premium += 0.015; premiumDetalle.push({label:'Zona restaurantera activa', pct:1.5}); }
+  if ((f.av||[]).length >= 2)                   { premium += 0.020; premiumDetalle.push({label:'Acceso a vialidades principales', pct:2.0}); }
+  if ((f.bus||[]).length)                       { premium += 0.005; premiumDetalle.push({label:'Transporte público cercano', pct:0.5}); }
+  if ((f.construccion||[]).length)              { premium += 0.025; premiumDetalle.push({label:'Proyectos en desarrollo (plusvalía)', pct:2.5}); }
+  const cbSeg = document.querySelector('#entorno-grid input[value="Seguridad / Caseta de vigilancia"]');
+  if (cbSeg?.checked)                           { premium += 0.020; premiumDetalle.push({label:'Seguridad / Privada', pct:2.0}); }
+  const cbAC = document.querySelector('#entorno-grid input[value="Áreas comunes (alberca, gym, jardín)"]');
+  if (cbAC?.checked)                            { premium += 0.015; premiumDetalle.push({label:'Áreas comunes / Amenidades', pct:1.5}); }
+  premium = Math.min(premium, 0.14);
+
+  // Localización (necesaria antes del llamado IA)
+  const calleDisplay = (document.getElementById('calle')?.value || '').trim();
+
+  // ── Valuación con IA (fuente principal) ──
+  let valorObj, conservador, salida, cierreLow, cierreHigh, promPm2Final, premiumPct, iaJustificacion = '';
+  {
+    const btnIA = document.getElementById('btn-generar');
+    btnIA.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" style="animation:spin 1s linear infinite"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="30" stroke-dashoffset="10"/></svg> Valuando con IA...`;
+    const iaResult = await valuarConIA({
+      tipo, operacion, colonia, municipio, cp, calle: calleDisplay,
+      m2terreno, m2const, recamaras, banos,
+      mban: document.getElementById('mban')?.value || '',
+      estac: document.getElementById('estac')?.value || '',
+      edad: document.getElementById('edad')?.value || '',
+      estado: document.getElementById('estado')?.value || '',
+      niveles, caract, torre, ubicacion, avenidas, plusvalia
+    }, comps);
+    if (iaResult && iaResult.valor_objetivo > 0) {
+      // IA retorna los precios — usarlos directamente
+      valorObj       = iaResult.valor_objetivo;
+      conservador    = iaResult.precio_conservador || Math.round(valorObj * 0.952);
+      salida         = iaResult.precio_salida       || Math.round(valorObj * 1.052);
+      promPm2Final   = iaResult.precio_m2_construccion || (m2const > 0 ? Math.round(valorObj / m2const) : promPm2);
+      iaJustificacion = iaResult.justificacion_precio || '';
+      // Si hay comparables, el entorno premium ya está considerado por la IA; si no, aplicarlo manualmente
+      if (comps.length < 3) valorObj = Math.round(valorObj * (1 + premium));
+      conservador = iaResult.precio_conservador || Math.round(valorObj * 0.952);
+      salida      = iaResult.precio_salida       || Math.round(valorObj * 1.052);
+    } else {
+      // Fallback a tablas PM2_REF si IA falla
+      const tipoKey = tipo === 'Casa' ? 'casa' : tipo === 'Departamento' ? 'depto' : tipo === 'Terreno' ? 'terreno' : 'casa';
+      const refMun = PM2_REF[municipio] || PM2_REF['Monterrey'];
+      const coloniaL = colonia.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+      let coloniaMatch = null;
+      for (const key of Object.keys(COLONIA_PM2)) {
+        const keyN = key.normalize('NFD').replace(/[̀-ͯ]/g,'');
+        if (coloniaL.includes(keyN)) { coloniaMatch = COLONIA_PM2[key]; break; }
+      }
+      let pm2Ref = coloniaMatch ? coloniaMatch[tipoKey] : refMun[tipoKey];
+      const m2Base = m2const > 0 ? m2const : (m2terreno > 0 ? m2terreno * 0.6 : 100);
+      if (mediana <= 0) {
+        mediana = Math.round(pm2Ref * m2Base);
+        promPm2 = pm2Ref;
+        if (comps.length === 0) {
+          const varPcts = [-0.12, -0.06, 0, 0.06, 0.12];
+          varPcts.forEach(v => {
+            const p = Math.round(mediana * (1 + v));
+            comps.push({ fuente: 'Ref. mercado', precio: p, m2: m2Base, rec: recamaras !== '—' ? recamaras : '3', banos: banos !== '—' ? banos : '2', pm2: Math.round(p / m2Base) });
+            precios.push(p);
+          });
+          precios.sort((a,b) => a-b);
+          pm2s.push(...comps.map(c => c.pm2));
+        }
+      }
+      valorObj = Math.round(mediana * (1 + premium));
+      conservador = Math.round(valorObj * 0.952);
+      salida      = Math.round(valorObj * 1.052);
+      promPm2Final = promPm2 || pm2Ref;
+    }
+    cierreLow  = Math.round(valorObj * 0.984);
+    cierreHigh = Math.round(valorObj * 1.031);
+    premiumPct = (premium * 100).toFixed(1);
+    if (!promPm2Final) promPm2Final = promPm2;
+  }
+  const valorBase = Math.round(valorObj / (1 + premium)); // base antes de premium de entorno
+
+  // ── Campos extendidos del resultado IA ──
+  const iaComparables      = (iaResult?.comparables || []).filter(c => c.precio > 0);
+  const iaAjustes          = iaResult?.analisis_ajustes || '';
+  const iaTerreno          = iaResult?.analisis_terreno || '';
+  const iaUbicacion        = iaResult?.analisis_ubicacion || '';
+  const iaPlusvalia        = iaResult?.analisis_plusvalia || '';
+  const iaEstrategiaRango  = iaResult?.estrategia_rango || '';
+  const iaEstrategiaTiempo = iaResult?.estrategia_tiempo || '';
+  const iaEstrategiaBajar  = iaResult?.estrategia_cuando_bajar || '';
+  const iaDestacadr        = iaResult?.estrategia_destacar || '';
+  const iaJustPrecio       = iaResult?.justificacion_precio || '';
+  const iaLecturaMercado   = iaResult?.lectura_mercado || '';
+  const iaPerfil           = iaResult?.perfil_comprador || '';
+  const iaConfianza        = iaResult?.confianza || '';
+  const iaConfianzaJust    = iaResult?.justificacion_confianza || '';
+  const iaOutliers         = iaResult?.outliers || '';
+  const iaPm2Const         = iaResult?.precio_m2_construccion || promPm2Final;
+  const iaPm2Terreno       = iaResult?.precio_m2_terreno || 0;
+
+  // Generar barras SVG para comparables
+  const maxPrecio = Math.max(...precios);
+  const barW = 540; const barH = 200; const barPad = 40;
+  const bw = Math.floor((barW - barPad * 2) / comps.length) - 8;
+  let bars = '';
+  comps.forEach((comp2, i) => {
+    const bh = Math.round((comp2.precio / maxPrecio) * (barH - 40));
+    const x = barPad + i * (bw + 8);
+    const y = barH - bh - 20;
+    const col = Math.abs(comp2.precio - valorObj) < valorObj * 0.05 ? '#C9A84C' : '#1B2A4A';
+    bars += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" fill="${col}" rx="3"/>`;
+    const lbl = (comp2.rec ? comp2.rec + 'R/' : '') + (comp2.m2 ? comp2.m2 + 'm²' : '');
+    bars += `<text x="${x + bw/2}" y="${barH - 4}" text-anchor="middle" font-size="9" fill="#64748b">${lbl}</text>`;
+    bars += `<text x="${x + bw/2}" y="${y - 4}" text-anchor="middle" font-size="8" fill="#1B2A4A" font-weight="700">${(comp2.precio/1e6).toFixed(2)}M</text>`;
+  });
+  // Línea de objetivo
+  const lineY = barH - Math.round((valorObj / maxPrecio) * (barH - 40)) - 20;
+  bars += `<line x1="${barPad}" y1="${lineY}" x2="${barW - barPad}" y2="${lineY}" stroke="#C9A84C" stroke-width="1.5" stroke-dasharray="6,4"/>`;
+  bars += `<text x="${barW - barPad + 4}" y="${lineY + 4}" font-size="9" fill="#C9A84C" font-weight="700">Obj.</text>`;
+  const chartComps = `<svg viewBox="0 0 ${barW} ${barH}" xmlns="http://www.w3.org/2000/svg" class="r-chart">${bars}</svg>`;
+
+  // Barras de escenarios
+  const scens = [conservador, valorObj, salida];
+  const scLbls = ['Conservador', 'Valor objetivo', 'Precio de salida'];
+  const maxSc = Math.max(...scens);
+  let scBars = '';
+  scens.forEach((v, i) => {
+    const bh2 = Math.round((v / maxSc) * (barH - 40));
+    const x2 = barPad + i * (160 + 8);
+    const y2 = barH - bh2 - 20;
+    const col2 = i === 2 ? '#C9A84C' : '#1B2A4A';
+    scBars += `<rect x="${x2}" y="${y2}" width="140" height="${bh2}" fill="${col2}" rx="3"/>`;
+    scBars += `<text x="${x2 + 70}" y="${barH - 4}" text-anchor="middle" font-size="10" fill="#64748b">${scLbls[i]}</text>`;
+    scBars += `<text x="${x2 + 70}" y="${y2 - 6}" text-anchor="middle" font-size="10" fill="#1B2A4A" font-weight="800">${fmtMDP(v)}</text>`;
+  });
+  const chartScen = `<svg viewBox="0 0 540 ${barH}" xmlns="http://www.w3.org/2000/svg" class="r-chart">${scBars}</svg>`;
+
+  // Entorno rows
+  const entornoRows = entorno.map(e => {
+    const icon = e.includes('Supermercado') ? '🛒' : e.includes('Hospital') ? '🏥' : e.includes('Escuela') ? '🏫' : e.includes('Parque') ? '🌳' : e.includes('Centro') ? '🏬' : e.includes('OXXO') ? '🏪' : e.includes('Avenida') ? '🚗' : e.includes('Gimnasio') ? '💪' : e.includes('Restaurante') ? '🍽️' : e.includes('Seguridad') ? '🔒' : e.includes('Áreas') ? '🏊' : '🚌';
+    return `<tr><td>${icon} ${e}</td><td>Zona de la propiedad</td><td class="impact-alto">Alto</td></tr>`;
+  }).join('');
+
+  // Localización
+  const direccion = calleDisplay || `${colonia}${cp ? ' · C.P. ' + cp : ''} · ${municipio}`;
+
+  // ── Construir páginas IA adicionales ──
+  const iaCompsTable = iaComparables.length > 0 ? `
+<div class="r-page">
+  <div class="r-header">
+    <div class="r-logo">NIVA<span>·</span></div>
+    <div class="r-date">NIVA Inmobiliaria · Estimación de valor de mercado · ${hoy}</div>
+  </div>
+  <div class="r-section-title">2. Comparables de Mercado</div>
+  ${iaConfianza ? `<div style="display:inline-flex;align-items:center;gap:8px;background:${iaConfianza==='ALTA'?'#dcfce7':iaConfianza==='MEDIA'?'#fef9c3':'#fee2e2'};color:${iaConfianza==='ALTA'?'#166534':iaConfianza==='MEDIA'?'#854d0e':'#991b1b'};border-radius:20px;padding:6px 14px;font-size:11px;font-weight:700;margin-bottom:14px;">
+    ${iaConfianza==='ALTA'?'✅':'⚠️'} Confianza de la estimación: ${iaConfianza} — ${iaConfianzaJust}
+  </div>` : ''}
+  <table class="r-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px;">
+    <thead>
+      <tr style="background:#1B2A4A;color:white;">
+        <th style="padding:7px 8px;text-align:left;">#</th>
+        <th style="padding:7px 8px;text-align:left;">Ubicación / Portal</th>
+        <th style="padding:7px 8px;text-align:right;">Precio</th>
+        <th style="padding:7px 8px;text-align:right;">Terr.</th>
+        <th style="padding:7px 8px;text-align:right;">Const.</th>
+        <th style="padding:7px 8px;text-align:center;">Rec</th>
+        <th style="padding:7px 8px;text-align:center;">Baños</th>
+        <th style="padding:7px 8px;text-align:right;">$/m²</th>
+        <th style="padding:7px 8px;text-align:center;">Score</th>
+        <th style="padding:7px 8px;text-align:center;">Nivel</th>
+        <th style="padding:7px 8px;text-align:left;">Ajuste</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${iaComparables.map((c,i) => `
+      <tr style="background:${i%2===0?'#f8fafc':'white'};border-bottom:1px solid #e2e8f0;">
+        <td style="padding:6px 8px;font-weight:700;color:#1B2A4A;">${c.num||i+1}</td>
+        <td style="padding:6px 8px;"><div style="font-weight:600;color:#1B2A4A;">${c.ubicacion||'—'}</div><div style="font-size:10px;color:#94a3b8;">${c.portal||'—'}</div></td>
+        <td style="padding:6px 8px;text-align:right;font-weight:700;color:#C9A84C;">$${(c.precio||0).toLocaleString('es-MX')}</td>
+        <td style="padding:6px 8px;text-align:right;">${c.terreno||'—'} m²</td>
+        <td style="padding:6px 8px;text-align:right;">${c.construccion||'—'} m²</td>
+        <td style="padding:6px 8px;text-align:center;">${c.recamaras||'—'}</td>
+        <td style="padding:6px 8px;text-align:center;">${c.banos||'—'}</td>
+        <td style="padding:6px 8px;text-align:right;">$${(c.precio_m2||0).toLocaleString('es-MX')}</td>
+        <td style="padding:6px 8px;text-align:center;">
+          <div style="background:${c.score>=80?'#dcfce7':c.score>=60?'#fef9c3':'#fee2e2'};color:${c.score>=80?'#166534':c.score>=60?'#854d0e':'#991b1b'};border-radius:10px;padding:2px 8px;font-weight:700;">${c.score}</div>
+        </td>
+        <td style="padding:6px 8px;text-align:center;">
+          <div style="background:${c.nivel==='A'?'#1B2A4A':c.nivel==='B'?'#C9A84C':'#94a3b8'};color:white;border-radius:10px;padding:2px 8px;font-weight:700;font-size:10px;">${c.nivel||'B'}</div>
+        </td>
+        <td style="padding:6px 8px;font-size:10px;color:#475569;">${c.nota||'—'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  ${iaOutliers ? `<div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+    <div style="font-size:11px;font-weight:700;color:#854d0e;margin-bottom:4px;">🚫 Propiedades excluidas del análisis (outliers)</div>
+    <div style="font-size:11px;color:#78350f;">${iaOutliers}</div>
+  </div>` : ''}
+  ${iaAjustes ? `<div class="r-section-sub">Análisis de Ajustes</div>
+  <p class="r-text">${iaAjustes}</p>` : ''}
+  ${iaTerreno ? `<div class="r-section-sub">Análisis del Terreno</div>
+  <p class="r-text">${iaTerreno}</p>` : ''}
+</div>` : '';
+
+  const iaUbicacionPage = (iaUbicacion || iaPlusvalia) ? `
+<div class="r-page">
+  <div class="r-header">
+    <div class="r-logo">NIVA<span>·</span></div>
+    <div class="r-date">NIVA Inmobiliaria · Estimación de valor de mercado · ${hoy}</div>
+  </div>
+  <div class="r-section-title">4. Análisis de Ubicación y Plusvalía</div>
+  ${iaUbicacion ? `<div class="r-section-sub">Entorno y Servicios Cercanos</div>
+  <p class="r-text" style="white-space:pre-line;">${iaUbicacion}</p>` : ''}
+  ${iaPlusvalia ? `<div class="r-section-sub">Factores de Plusvalía</div>
+  <p class="r-text">${iaPlusvalia}</p>` : ''}
+</div>` : '';
+
+  // ── HTML del reporte ──
+  const html = `
+  <!-- PÁGINA 1: RESUMEN EJECUTIVO -->
+  <div class="r-page">
+    <div class="r-header">
+      <div>
+        <div class="r-logo">NIVA<span>·</span></div>
+        <div style="font-size:12px; color:#94a3b8; margin-top:2px;">Inmobiliaria · Monterrey</div>
+      </div>
+      <div class="r-date">
+        NIVA Inmobiliaria · Estimación de valor de mercado<br>
+        ${hoy} · Página 1
+      </div>
+    </div>
+    <div class="r-title">ESTIMACIÓN DE VALOR DE MERCADO</div>
+    <div class="r-subtitle">${direccion}${torre ? ' · ' + torre : ''}</div>
+    <div class="r-summary-grid">
+      <div class="r-summary-cell"><div class="r-summary-label">Terreno</div><div class="r-summary-value">${m2terreno > 0 ? m2terreno + ' m²' : '—'}</div></div>
+      <div class="r-summary-cell"><div class="r-summary-label">Construcción</div><div class="r-summary-value">${m2const > 0 ? m2const + ' m²' : '—'}</div></div>
+      <div class="r-summary-cell"><div class="r-summary-label">Recámaras</div><div class="r-summary-value">${recamaras}</div></div>
+      <div class="r-summary-cell"><div class="r-summary-label">Baños</div><div class="r-summary-value">${banos}</div></div>
+      <div class="r-summary-cell"><div class="r-summary-label">Niveles</div><div class="r-summary-value">${niveles}</div></div>
+      <div class="r-summary-cell"><div class="r-summary-label">Ubicación</div><div class="r-summary-value">${ubicacion || tipo}</div></div>
+      <div class="r-summary-cell"><div class="r-summary-label">Valor objetivo</div><div class="r-summary-value" style="color:#C9A84C;">${fmtMDP(valorObj)}</div></div>
+      <div class="r-summary-cell"><div class="r-summary-label">Salida sugerida</div><div class="r-summary-value" style="color:#1B2A4A;">${fmtMDP(salida)}</div></div>
+      <div class="r-summary-cell" style="grid-column:span 2;"><div class="r-summary-label">Base comparables → Ajuste por entorno (${premiumPct}%) → Valor final</div><div class="r-summary-value" style="font-size:13px;">${fmtMDP(valorBase)} <span style="color:#C9A84C;">+${premiumPct}%</span> → <strong style="color:#C9A84C;">${fmtMDP(valorObj)}</strong></div></div>
+    </div>
+    <div class="r-conclusion">
+      <p><strong>Conclusión ejecutiva:</strong> para ${tipo.toLowerCase()} de ${m2terreno > 0 ? m2terreno + ' m² de terreno, ' : ''}${m2const > 0 ? m2const + ' m² de construcción, ' : ''}${recamaras} recámaras, ${banos} baños${niveles !== '—' ? ', ' + niveles + ' nivel(es)' : ''}${ubicacion ? ' y ' + ubicacion.toLowerCase() : ''}, el valor comercial razonable se ubica aproximadamente entre <strong>${fmtMDP(conservador)}</strong> y <strong>${fmtMDP(salida)}</strong>, con un punto objetivo cercano a <strong>${fmtMDP(valorObj)}</strong>. Para comercialización, una salida de <strong>${fmtMDP(salida)}</strong> permite defender el precio y conservar margen de negociación.${caract ? ' Características relevantes: ' + caract + '.' : ''}</p>
+    </div>
+    <div style="margin-top:20px; font-size:12px; color:#94a3b8;">
+      <strong style="color:#1B2A4A;">Fecha del estudio:</strong> ${hoy}<br>
+      <strong style="color:#1B2A4A;">Elaboró:</strong> NIVA Inmobiliaria · análisis comercial
+    </div>
+  </div>
+
+  <!-- PÁGINA 2: METODOLOGÍA + GRÁFICA -->
+  <div class="r-page">
+    <div class="r-header">
+      <div class="r-logo">NIVA<span>·</span></div>
+      <div class="r-date">NIVA Inmobiliaria · Estimación de valor de mercado · ${hoy} · Página 2</div>
+    </div>
+    <div class="r-section-title">1. Metodología y lectura del mercado</div>
+    <p class="r-text">La estimación se construyó a partir del <strong>método comparativo de mercado</strong>: se identificaron ${comps.length} propiedades anunciadas en portales inmobiliarios dentro de <strong>${colonia}</strong> y su entorno inmediato${torre ? `, con énfasis en comparables de <strong>${torre}</strong> y desarrollos de categoría equivalente` : ''}, priorizando comparables con ${recamaras !== '—' ? recamaras + ' recámaras' : 'características similares'} y superficies cercanas.</p>
+    <p class="r-text">El análisis considera ${m2terreno > 0 && m2const > 0 ? `que el inmueble tiene una relación de ${(m2terreno/m2const).toFixed(2)} m² de terreno por cada m² construido. ` : ''}${ubicacion ? ubicacion + ' es un atributo que no está presente en todos los comparables y que puede influir positivamente en la percepción de valor. ' : ''}Los precios mostrados son precios de oferta publicados, no necesariamente precios finales de cierre.</p>
+    ${promPm2Final > 0 ? `<div class="r-section-sub">Indicadores de referencia del mercado</div><p class="r-text">El promedio de precio por m² de construcción en los comparables revisados es de <strong>${fmt(promPm2Final)}/m²</strong>. El rango de precios identificado va de <strong>${fmtMDP(precios[0])}</strong> a <strong>${fmtMDP(precios[precios.length-1])}</strong>, con una mediana de <strong>${fmtMDP(mediana)}</strong>.</p>` : ''}
+    <div style="margin:20px 0;">
+      <div style="font-size:11px; font-weight:700; text-align:center; color:#94a3b8; margin-bottom:8px;">Comparables publicados en la zona</div>
+      ${chartComps}
+      <div style="font-size:11px; color:#94a3b8; margin-top:8px;">Nota: los precios mostrados son precios de oferta publicados. La línea dorada indica el valor objetivo estimado.</div>
+    </div>
+  </div>
+
+  ${iaCompsTable}
+
+  <!-- PÁGINA 3: COMPARABLES -->
+  <div class="r-page">
+    <div class="r-header">
+      <div class="r-logo">NIVA<span>·</span></div>
+      <div class="r-date">NIVA Inmobiliaria · Estimación de valor de mercado · ${hoy} · Página 3</div>
+    </div>
+    <div class="r-section-title">2. Comparables de mercado</div>
+    <p class="r-text">La siguiente tabla concentra referencias localizadas en portales inmobiliarios. Se muestran para dar trazabilidad al análisis y permitir una revisión independiente de la información.</p>
+    <table class="r-table">
+      <thead><tr><th>Fuente / Referencia</th><th>Precio</th><th>Construcción</th><th>Rec.</th><th>Baños</th><th>$/m²</th><th>Link</th></tr></thead>
+      <tbody>
+        ${comps.map(comp3 => `<tr><td style="font-size:11px;">${comp3.fuente}</td><td>${fmt(comp3.precio)}</td><td>${comp3.m2 ? comp3.m2 + ' m²' : '—'}</td><td>${comp3.rec || '—'}</td><td>${comp3.banos || '—'}</td><td>${comp3.pm2 > 0 ? fmt(comp3.pm2) : '—'}</td><td style="font-size:10px;">${comp3.url ? `<a href="${comp3.url}" style="color:#C9A84C;text-decoration:none;">Ver →</a>` : '—'}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <p class="r-text"><strong>Lectura:</strong> los comparables se ubican entre <strong>${fmtMDP(precios[0])}</strong> y <strong>${fmtMDP(precios[precios.length-1])}</strong>. La amplitud se explica por tamaño, ubicación interna, equipamiento y calidad.${m2terreno > 0 && m2const > 0 ? ` El inmueble analizado tiene ${m2terreno} m² de terreno con ${m2const} m² de construcción.` : ''}</p>
+  </div>
+
+  <!-- PÁGINA 4: ESTIMACIÓN DE VALOR -->
+  <div class="r-page">
+    <div class="r-header">
+      <div class="r-logo">NIVA<span>·</span></div>
+      <div class="r-date">NIVA Inmobiliaria · Estimación de valor de mercado · ${hoy} · Página 4</div>
+    </div>
+    <div class="r-section-title">3. Estimación de valor</div>
+    <div style="margin:20px 0;">
+      <div style="font-size:11px; font-weight:700; text-align:center; color:#94a3b8; margin-bottom:8px;">Rango de valor y estrategia de comercialización</div>
+      ${chartScen}
+    </div>
+    <div class="r-value-box">
+      <span class="label">Valor comercial estimado</span>
+      <span class="amount">${fmt(valorObj)} MXN</span>
+    </div>
+    <div class="r-scenarios">
+      <div class="r-scenario">
+        <div class="s-label">Conservador</div>
+        <div class="s-amount">${fmt(conservador)}</div>
+        <div class="s-desc">Favorece velocidad de venta y reduce resistencia de compradores.</div>
+      </div>
+      <div class="r-scenario highlight">
+        <div class="s-label">Objetivo</div>
+        <div class="s-amount">${fmt(valorObj)}</div>
+        <div class="s-desc">Punto de equilibrio entre atributos y oferta comparable.</div>
+      </div>
+      <div class="r-scenario">
+        <div class="s-label">Salida sugerida</div>
+        <div class="s-amount">${fmt(salida)}</div>
+        <div class="s-desc">Permite negociar sin comenzar fuera del mercado.</div>
+      </div>
+    </div>
+    <table class="r-table" style="margin-top:16px;">
+      <thead><tr><th>Escenario</th><th>Valor</th><th>Lectura comercial</th></tr></thead>
+      <tbody>
+        <tr><td>Conservador</td><td>${fmt(conservador)}</td><td>Favorece velocidad de venta y reduce resistencia.</td></tr>
+        <tr><td>Objetivo</td><td>${fmt(valorObj)}</td><td>Punto de equilibrio entre atributos y oferta comparable.</td></tr>
+        <tr><td>Salida sugerida</td><td>${fmt(salida)}</td><td>Permite negociar sin comenzar fuera del mercado.</td></tr>
+        <tr><td>Cierre probable</td><td>${fmt(cierreLow)} – ${fmt(cierreHigh)}</td><td>Rango razonable si la propiedad está en buen estado y bien presentada.</td></tr>
+      </tbody>
+    </table>
+
+    <!-- AJUSTE POR ENTORNO -->
+    <div style="margin-top:24px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:20px;">
+      <div style="font-size:13px; font-weight:800; color:#1B2A4A; margin-bottom:4px;">📍 Ajuste por ubicación y entorno urbano</div>
+      <div style="font-size:12px; color:#64748b; margin-bottom:14px;">Premium aplicado sobre valor base de comparables: <strong style="color:#C9A84C;">${premiumPct}%</strong> · Valor base: ${fmt(valorBase)} → Valor ajustado: ${fmt(valorObj)}</div>
+      ${premiumDetalle.length ? `
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+        <thead><tr style="border-bottom:1px solid #e2e8f0;">
+          <th style="text-align:left; padding:6px 8px; color:#94a3b8; font-weight:600;">Factor</th>
+          <th style="text-align:right; padding:6px 8px; color:#94a3b8; font-weight:600;">Incremento</th>
+        </tr></thead>
+        <tbody>
+          ${premiumDetalle.map(d => `<tr style="border-bottom:1px solid #f1f4f9;"><td style="padding:6px 8px; color:#334155;">${d.label}</td><td style="padding:6px 8px; text-align:right; color:#C9A84C; font-weight:700;">+${d.pct}%</td></tr>`).join('')}
+          <tr style="background:#f1f4f9;"><td style="padding:8px; font-weight:800; color:#1B2A4A;">Total premium entorno</td><td style="padding:8px; text-align:right; font-weight:900; color:#C9A84C;">+${premiumPct}%</td></tr>
+        </tbody>
+      </table>` : `<div style="font-size:12px; color:#94a3b8;">No se detectaron factores de entorno vía OpenStreetMap. Valor refleja solo comparables de mercado.</div>`}
+    </div>
+  </div>
+
+  <!-- PÁGINA 5: ENTORNO Y PLUSVALÍA -->
+  <div class="r-page">
+    <div class="r-header">
+      <div class="r-logo">NIVA<span>·</span></div>
+      <div class="r-date">NIVA Inmobiliaria · Estimación de valor de mercado · ${hoy} · Página 5</div>
+    </div>
+    <div class="r-section-title">4. Entorno, servicios y factores de plusvalía</div>
+    <p class="r-text">La ubicación en <strong>${colonia}, ${municipio}</strong> determina el perfil de demanda y los argumentos de valor de la propiedad. Los factores de entorno son verificables y forman parte del sustento del precio estimado.</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:18px 0;">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+        <div style="font-size:11px; font-weight:800; color:#C9A84C; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px;">🛒 Comercios y Plazas</div>
+        ${zonaData.comercios.map(s => `<div style="font-size:12px; color:#334155; padding:3px 0; border-bottom:1px solid #f1f4f9;">• ${s}</div>`).join('')}
+      </div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+        <div style="font-size:11px; font-weight:800; color:#C9A84C; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px;">🏫 Educación</div>
+        ${zonaData.escuelas.map(s => `<div style="font-size:12px; color:#334155; padding:3px 0; border-bottom:1px solid #f1f4f9;">• ${s}</div>`).join('')}
+      </div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+        <div style="font-size:11px; font-weight:800; color:#C9A84C; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px;">🏥 Salud y Servicios</div>
+        ${zonaData.servicios.map(s => `<div style="font-size:12px; color:#334155; padding:3px 0; border-bottom:1px solid #f1f4f9;">• ${s}</div>`).join('')}
+      </div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+        <div style="font-size:11px; font-weight:800; color:#C9A84C; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px;">🚗 Vialidades</div>
+        ${zonaData.vialidades.map(s => `<div style="font-size:12px; color:#334155; padding:3px 0; border-bottom:1px solid #f1f4f9;">• ${s}</div>`).join('')}
+      </div>
+    </div>
+
+    <div style="background:#1B2A4A; border-radius:10px; padding:18px; margin:14px 0;">
+      <div style="font-size:11px; font-weight:800; color:#C9A84C; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px;">🏗️ Plusvalía y Contexto de Mercado</div>
+      ${zonaData.desarrollos.map(d => `<div style="font-size:12px; color:rgba(255,255,255,.85); padding:4px 0; border-bottom:1px solid rgba(255,255,255,.08);">• ${d}</div>`).join('')}
+      ${plusvalia ? `<div style="font-size:12px; color:rgba(255,255,255,.85); padding:4px 0;">• ${plusvalia}</div>` : ''}
+    </div>
+
+    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:14px; margin-top:14px;">
+      <div style="font-size:11px; font-weight:800; color:#166534; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px;">📊 Perfil de Demanda de la Zona</div>
+      <p style="font-size:12px; color:#166534; margin:0; line-height:1.7;">${zonaData.perfil}</p>
+    </div>
+  </div>
+
+  ${iaUbicacionPage}
+
+  <!-- PÁGINA 5b: POR QUÉ ESTE PRECIO -->
+  <div class="r-page">
+    <div class="r-header">
+      <div class="r-logo">NIVA<span>·</span></div>
+      <div class="r-date">NIVA Inmobiliaria · Estimación de valor de mercado · ${hoy}</div>
+    </div>
+    <div class="r-section-title">5. ¿Por qué este precio?</div>
+    <p class="r-text">El valor de <strong style="color:#C9A84C;">${fmt(valorObj)} MXN</strong> no es una estimación al azar. Se construyó con base en evidencia de mercado real y factores objetivos que cualquier comprador informado puede verificar.</p>
+    ${iaJustPrecio ? `<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:20px;margin:16px 0;">
+      <div style="font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">📋 Análisis del valuador</div>
+      <p style="font-size:13px;color:#0c4a6e;line-height:1.8;margin:0;">${iaJustPrecio}</p>
+    </div>` : ''}
+    <div style="display:flex; flex-direction:column; gap:12px; margin:20px 0;">
+      <div style="display:flex; gap:16px; align-items:flex-start; padding:14px; background:#f8fafc; border-left:4px solid #C9A84C; border-radius:0 8px 8px 0;">
+        <div style="font-size:22px; flex-shrink:0;">📊</div>
+        <div>
+          <div style="font-size:13px; font-weight:800; color:#1B2A4A; margin-bottom:4px;">Mercado lo respalda</div>
+          <div style="font-size:12px; color:#475569; line-height:1.6;">Se revisaron ${comps.length} referencias de propiedades similares en la zona. El rango de precios publicados va de <strong>${fmtMDP(precios[0])}</strong> a <strong>${fmtMDP(precios[precios.length-1])}</strong>. El valor objetivo de <strong>${fmtMDP(valorObj)}</strong> se ubica ${valorObj <= precios[Math.floor(precios.length/2)] ? 'en la mediana' : 'por encima de la mediana'} del mercado, ${valorObj <= precios[Math.floor(precios.length/2)] ? 'siendo un precio competitivo que facilita la venta' : 'justificado por los atributos de la propiedad y su entorno'}.</div>
+        </div>
+      </div>
+      
+      <div style="display:flex; gap:16px; align-items:flex-start; padding:14px; background:#f8fafc; border-left:4px solid #1B2A4A; border-radius:0 8px 8px 0;">
+        <div style="font-size:22px; flex-shrink:0;">📐</div>
+        <div>
+          <div style="font-size:13px; font-weight:800; color:#1B2A4A; margin-bottom:4px;">El precio por m² es consistente</div>
+          <div style="font-size:12px; color:#475569; line-height:1.6;">${iaJustificacion ? iaJustificacion : (promPm2Final > 0 ? `El precio por m² de construcción implícito es de <strong>$${promPm2Final.toLocaleString('es-MX')}/m²</strong>, consistente con el promedio de mercado en <strong>${colonia}</strong>. Propiedades similares en la zona se comercializan en ese mismo rango.` : `La estimación se basa en el valor de referencia de mercado para ${municipio}, ajustado por las características específicas de la propiedad.`)}</div>
+        </div>
+      </div>
+      
+      ${m2terreno > 0 && m2const > 0 ? `
+      <div style="display:flex; gap:16px; align-items:flex-start; padding:14px; background:#f8fafc; border-left:4px solid #16a34a; border-radius:0 8px 8px 0;">
+        <div style="font-size:22px; flex-shrink:0;">🏗️</div>
+        <div>
+          <div style="font-size:13px; font-weight:800; color:#1B2A4A; margin-bottom:4px;">La relación terreno/construcción es favorable</div>
+          <div style="font-size:12px; color:#475569; line-height:1.6;">Con <strong>${m2terreno} m² de terreno</strong> y <strong>${m2const} m² de construcción</strong>, la propiedad tiene una relación de ${(m2const/m2terreno).toFixed(2)} m² construidos por m² de terreno. ${m2const/m2terreno > 1.5 ? 'Esto indica alta densidad de construcción, maximizando el uso del suelo.' : 'Distribución equilibrada que favorece espacios exteriores y funcionalidad.'}</div>
+        </div>
+      </div>` : ''}
+      
+      <div style="display:flex; gap:16px; align-items:flex-start; padding:14px; background:#f8fafc; border-left:4px solid #7c3aed; border-radius:0 8px 8px 0;">
+        <div style="font-size:22px; flex-shrink:0;">📍</div>
+        <div>
+          <div style="font-size:13px; font-weight:800; color:#1B2A4A; margin-bottom:4px;">La ubicación suma valor real</div>
+          <div style="font-size:12px; color:#475569; line-height:1.6;">${zonaData.perfil} ${premiumPct > 0 ? `Se aplicó un premium de entorno de <strong>${premiumPct}%</strong> sobre la base de comparables por los factores de plusvalía detectados.` : ''}</div>
+        </div>
+      </div>
+      
+      <div style="display:flex; gap:16px; align-items:flex-start; padding:14px; background:#fefce8; border-left:4px solid #ca8a04; border-radius:0 8px 8px 0;">
+        <div style="font-size:22px; flex-shrink:0;">⚖️</div>
+        <div>
+          <div style="font-size:13px; font-weight:800; color:#1B2A4A; margin-bottom:4px;">Salida de ${fmtMDP(salida)}: defendible ante cualquier comprador</div>
+          <div style="font-size:12px; color:#475569; line-height:1.6;">El precio de salida sugerido de <strong>${fmtMDP(salida)}</strong> incluye un margen de negociación del 5% sobre el valor objetivo. Esto permite al vendedor aceptar contraoferta razonable y cerrar en <strong>${fmtMDP(cierreLow)} – ${fmtMDP(cierreHigh)}</strong>, sin comprometer el valor real del inmueble.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PÁGINA 6: ESTRATEGIA -->
+  <div class="r-page">
+    <div class="r-header">
+      <div class="r-logo">NIVA<span>·</span></div>
+      <div class="r-date">NIVA Inmobiliaria · Estimación de valor de mercado · ${hoy} · Página 6</div>
+    </div>
+    <div class="r-section-title">5. Estrategia recomendada de comercialización</div>
+    <p class="r-text"><strong>Precio de publicación recomendado: ${fmt(salida)} MXN.</strong> La intención es salir con un precio defendible, con margen de negociación hacia el valor objetivo.</p>
+    <p class="r-text"><strong>Objetivo de negociación: ${fmt(cierreLow)}–${fmt(cierreHigh)} MXN.</strong> Si la propiedad está en buen estado, remodelada y bien presentada, puede sostenerse más cerca de la parte alta del rango.</p>
+    ${(iaEstrategiaTiempo || iaEstrategiaBajar) ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0;">
+      ${iaEstrategiaTiempo ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px;">
+        <div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:6px;">⏱️ Tiempo estimado de venta</div>
+        <p style="font-size:12px;color:#14532d;margin:0;line-height:1.6;">${iaEstrategiaTiempo}</p>
+      </div>` : ''}
+      ${iaEstrategiaBajar ? `<div style="background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:14px;">
+        <div style="font-size:11px;font-weight:700;color:#854d0e;margin-bottom:6px;">📉 Cuándo ajustar el precio</div>
+        <p style="font-size:12px;color:#78350f;margin:0;line-height:1.6;">${iaEstrategiaBajar}</p>
+      </div>` : ''}
+    </div>` : ''}
+    ${iaDestacadr ? `<div class="r-section-sub">Qué destacar en la publicidad</div>
+    <p class="r-text">${iaDestacadr}</p>` : ''}
+    <div class="r-section-sub">Atributos que deben venderse primero</div>
+    <div class="r-estrategia"><ul>
+      ${m2terreno > 0 ? `<li>${m2terreno} m² de terreno — superficie comparada con el inventario de la zona.</li>` : ''}
+      ${m2const > 0 ? `<li>${m2const} m² de construcción funcional y eficiente.</li>` : ''}
+      ${ubicacion ? `<li>${ubicacion} — ventaja diferenciada que no tienen todos los comparables.</li>` : ''}
+      ${recamaras !== '—' ? `<li>${recamaras} recámaras — perfil adecuado para el segmento objetivo de la zona.</li>` : ''}
+      ${banos !== '—' ? `<li>${banos} baños — funcionalidad superior frente a propiedades de menor configuración.</li>` : ''}
+      <li>Ubicación en ${colonia}${municipio ? ', ' + municipio : ''} — colonia consolidada con servicios.</li>
+      ${avenidas ? `<li>Cercanía a ${avenidas} — conectividad regional clave.</li>` : ''}
+      ${caract ? `<li>${caract}</li>` : ''}
+    </ul></div>
+    <div class="r-recom">
+      <p><strong>Recomendación NIVA:</strong> antes de publicar, preparar una ficha de equipamiento: cocina, climas, closets, boiler, portón, protecciones, pisos, ventanas, antigüedad, remodelaciones y estado legal. Cada uno de esos elementos puede mover la percepción del comprador y justificar el precio de salida.</p>
+    </div>
+    <p class="r-text" style="font-size:12px; color:#94a3b8; margin-top:16px;"><em>Este documento es una estimación comercial elaborada con información pública de oferta inmobiliaria. No constituye avalúo certificado, opinión de valor fiscal, dictamen pericial ni garantía de precio de cierre.</em></p>
+  </div>
+
+  ${(iaLecturaMercado || iaPerfil) ? `
+  <!-- PÁGINA 7: ANÁLISIS DE MERCADO IA -->
+  <div class="r-page">
+    <div class="r-header">
+      <div class="r-logo">NIVA<span>·</span></div>
+      <div class="r-date">NIVA Inmobiliaria · Análisis de Mercado · ${hoy}</div>
+    </div>
+    <div class="r-section-title">7. Análisis de Mercado NIVA</div>
+    ${iaLecturaMercado ? `<div class="r-section-sub">Lectura de mercado</div>
+    <p class="r-text">${iaLecturaMercado}</p>` : ''}
+    ${iaPerfil ? `<div class="r-section-sub">Perfil del comprador ideal</div>
+    <p class="r-text">${iaPerfil}</p>` : ''}
+    ${iaEstrategiaRango ? `<div class="r-section-sub">Rango de negociación</div>
+    <p class="r-text">${iaEstrategiaRango}</p>` : ''}
+  </div>
+  ` : ''}
+
+  <!-- FOOTER FINAL -->
+  <div class="r-footer">
+    <span>NIVA Inmobiliaria · Estimación de valor de mercado · ${hoy}</span>
+    <span>Uso interno — análisis comercial</span>
+  </div>
+  `;
+
+  document.getElementById('reporte-body').innerHTML = html;
+  document.getElementById('reporte-overlay').style.display = 'block';
+  document.getElementById('reporte-overlay').scrollTop = 0;
+}
+
+function guardarPDF() {
+  const btn = document.getElementById('btn-pdf');
+  btn.disabled = true;
+  btn.textContent = 'Generando PDF...';
+  const coloniaVal = document.getElementById('colonia').value || 'propiedad';
+  const munVal = document.getElementById('municipio').value || 'NIVA';
+  const fecha = new Date().toISOString().slice(0,10);
+  const filename = `NIVA_Valuacion_${coloniaVal}_${munVal}_${fecha}.pdf`.replace(/\s+/g,'_');
+  const element = document.getElementById('reporte-body');
+  const opt = {
+    margin: 0,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(element).save().then(() => {
+    btn.disabled = false;
+    btn.textContent = '⬇️ Guardar como PDF';
+  }).catch(e => {
+    btn.disabled = false;
+    btn.textContent = '⬇️ Guardar como PDF';
+    alert('Error al guardar: ' + e.message);
+  });
+}
+
+function cerrarReporte() {
+  document.getElementById('reporte-overlay').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════
+//  COMPARABLES — MULTI-PORTAL (ML + Inmuebles24 + Propiedades.com + EasyBroker)
+// ══════════════════════════════════════════════════════
+const ML_CATS = { 'Casa':{'venta':'MLM1459','renta':'MLM1471'}, 'Departamento':{'venta':'MLM1473','renta':'MLM1472'}, 'Terreno':{'venta':'MLM1468','renta':'MLM1468'}, 'Local comercial':{'venta':'MLM1510','renta':'MLM1510'}, 'Oficina':{'venta':'MLM1510','renta':'MLM1510'} };
+
+async function buscarComparablesMultiPortal(silente = false) {
+  const colonia  = (document.getElementById('colonia')?.value || '').trim();
+  const municipio= (document.getElementById('municipio')?.value || '').trim();
+  const tipo     = document.getElementById('tipo')?.value || 'Casa';
+  const operacion= document.getElementById('operacion')?.value || 'venta';
+  const cp       = (document.getElementById('cp')?.value || '').trim();
+  const torre    = (document.getElementById('torre')?.value || '').trim();
+
+  if (!colonia && !municipio) {
+    if (!silente) alert('Selecciona colonia y municipio antes de buscar.');
+    return [];
+  }
+
+  const btn = document.getElementById('btn-ml');
+  const status = document.getElementById('ml-status');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Buscando en portales...'; }
+  if (status) { status.style.display = 'block'; status.textContent = '🔍 Consultando portales...'; }
+
+  const allComps = [];
+  const portalResults = [];
+
+  // 1. MERCADO LIBRE API (always works, no CORS)
+  try {
+    const cat = ML_CATS[tipo]?.[operacion] || 'MLM1459';
+    // Buscar siempre por zona (colonia + municipio), no por torre — así se obtiene el mercado real de la zona
+    const qTerms = `${tipo} ${colonia} ${municipio} Nuevo León`;
+    const q = encodeURIComponent(qTerms);
+    const res = await fetch(`https://api.mercadolibre.com/sites/MLM/search?q=${q}&category=${cat}&limit=10`);
+    const data = await res.json();
+    const items = (data.results || []).filter(r => r.price > 50000);
+    const comps = items.slice(0,5).map(r => {
+      const attrs = {};
+      (r.attributes||[]).forEach(a => { attrs[a.id] = a.value_name || a.value_struct?.number || ''; });
+      return { fuente:`ML: ${(r.title||'').slice(0,30)}`, precio:r.price, m2:parseFloat(attrs['COVERED_AREA']||attrs['TOTAL_AREA']||attrs['LOT_AREA']||0)||0, rec:parseInt(attrs['BEDROOMS']||0)||0, banos:parseFloat(attrs['FULL_BATHROOMS']||attrs['BATHROOMS']||0)||0, url: r.permalink || '' };
+    }).filter(c => c.precio > 0);
+    allComps.push(...comps);
+    if (comps.length) portalResults.push(`ML (${comps.length})`);
+  } catch(e) { console.warn('ML error:', e.message); }
+
+  // 2. INMUEBLES24 via CORS proxy
+  try {
+    const slug = `${colonia.toLowerCase().replace(/\s+/g,'-').replace(/[áéíóú]/g,c=>({á:'a',é:'e',í:'i',ó:'o',ú:'u'}[c]||c))}-nuevo-leon`;
+    const url = `https://corsproxy.io/?url=https://www.inmuebles24.com/${tipo.toLowerCase().replace(/\s/g,'-')}s-en-${operacion}-en-${slug}.html`;
+    const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
+    const html = await res.text();
+    // Extract JSON-LD
+    const jsonldMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi) || [];
+    let i24Comps = [];
+    for (const block of jsonldMatch) {
+      try {
+        const inner = block.replace(/<[^>]+>/g,'');
+        const obj = JSON.parse(inner);
+        const items = obj['@type'] === 'ItemList' ? (obj.itemListElement||[]).map(x=>x.item||x) : [obj];
+        for (const item of items) {
+          const price = item.offers?.price || item.price;
+          const area = item.floorSize?.value || item.lotSize?.value;
+          if (price > 50000) i24Comps.push({ fuente:`I24: ${(item.name||'').slice(0,28)}`, precio:parseFloat(price), m2:parseFloat(area)||0, rec:0, banos:0, url: item.url || item['@id'] || '' });
+        }
+      } catch(_) {}
+    }
+    // Also try price regex fallback
+    if (!i24Comps.length) {
+      const priceMatches = html.match(/\$[\s]*([0-9,\.]{6,12})/g) || [];
+      priceMatches.slice(0,4).forEach((p,i) => {
+        const n = parseFloat(p.replace(/[$,\s]/g,''));
+        if (n > 200000) i24Comps.push({ fuente:`Inmuebles24 #${i+1}`, precio:n, m2:0, rec:0, banos:0 });
+      });
+    }
+    i24Comps = i24Comps.slice(0,4);
+    allComps.push(...i24Comps);
+    if (i24Comps.length) portalResults.push(`I24 (${i24Comps.length})`);
+  } catch(e) { console.warn('I24 error:', e.message); }
+
+  // 3. PROPIEDADES.COM via CORS proxy
+  try {
+    const munSlug = municipio.toLowerCase().split(',')[0].trim().replace(/\s+/g,'-').replace(/[áéíóú]/g,c=>({á:'a',é:'e',í:'i',ó:'o',ú:'u'}[c]||c));
+    const colSlug = colonia.toLowerCase().replace(/\s+/g,'-').replace(/[áéíóú]/g,c=>({á:'a',é:'e',í:'i',ó:'o',ú:'u'}[c]||c));
+    const url = `https://corsproxy.io/?url=https://propiedades.com/${colSlug}-${munSlug}/casas-${operacion}`;
+    const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
+    const html = await res.text();
+    const priceMatches = html.match(/\$[\s]*([0-9,\.]{6,12})/g) || [];
+    const propComps = [];
+    priceMatches.slice(0,4).forEach((p,i) => {
+      const n = parseFloat(p.replace(/[$,\s]/g,''));
+      if (n > 200000) propComps.push({ fuente:`Propiedades.com #${i+1}`, precio:n, m2:0, rec:0, banos:0 });
+    });
+    allComps.push(...propComps);
+    if (propComps.length) portalResults.push(`Prop.com (${propComps.length})`);
+  } catch(e) { console.warn('Propiedades.com error:', e.message); }
+
+  // 4. EASYBROKER public API (if key provided)
+  const ebKey = (document.getElementById('eb-key')?.value||'').trim();
+  if (ebKey) {
+    try {
+      const opType = operacion === 'venta' ? 'sale' : 'rent';
+      const res = await fetch(`https://api.easybroker.com/v1/properties?search[statuses][]=published&search[operation_types][]=${opType}&page_size=8`, {
+        headers: { 'X-Authorization': ebKey, 'Accept': 'application/json' }
+      });
+      const data = await res.json();
+      const ebComps = (data.content||[]).filter(p => p.price).map(p => ({
+        fuente: `EB: ${(p.title||'').slice(0,28)}`,
+        precio: parseFloat(p.price||0),
+        m2: parseFloat(p.construction_size||p.lot_size||0)||0,
+        rec: parseInt(p.bedrooms||0)||0,
+        banos: parseFloat(p.bathrooms||0)||0
+      })).filter(c => c.precio > 0).slice(0,4);
+      allComps.push(...ebComps);
+      if (ebComps.length) portalResults.push(`EB (${ebComps.length})`);
+    } catch(e) { console.warn('EB error:', e.message); }
+  }
+
+  // Deduplicar
+  const seen = new Set();
+  let unique = allComps.filter(c => {
+    const key = `${Math.round(c.precio/50000)}-${c.m2}`;
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  }).sort((a,b) => a.precio - b.precio);
+
+  // Filtrar comparables atípicos (muy baratos vs la mediana de los encontrados)
+  // Esto evita que propiedades de otra zona/colonia distorsionen el análisis
+  if (unique.length >= 3) {
+    const medianaComp = unique[Math.floor(unique.length / 2)].precio;
+    unique = unique.filter(c => c.precio >= medianaComp * 0.35); // descartar si vale menos del 35% de la mediana
+  }
+
+  if (status) {
+    if (unique.length) status.textContent = `✅ ${unique.length} comparables · Portales: ${portalResults.join(', ')||'ML'}`;
+    else status.textContent = '⚠️ No se encontraron resultados. Intenta otra colonia o agrega manualmente.';
+  }
+
+  if (!silente && unique.length) {
+    for (const c of unique.slice(0,8)) {
+      agregarComparable();
+      const n = compCount;
+      const fEl = document.getElementById(`c${n}-fuente`); if(fEl) fEl.value = c.fuente;
+      const pEl = document.getElementById(`c${n}-precio`); if(pEl) pEl.value = c.precio;
+      const mEl = document.getElementById(`c${n}-m2`);    if(mEl) mEl.value = c.m2;
+      const rEl = document.getElementById(`c${n}-rec`);   if(rEl) rEl.value = c.rec;
+      const bEl = document.getElementById(`c${n}-banos`); if(bEl) bEl.value = c.banos;
+      calcPrecioM2(n);
+    }
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '🔍 Buscar en todos los portales'; }
+  return unique;
+}
+
+// ── COLONIAS DATA ──
+const COLONIAS_DATA = {
+  'Monterrey': [{c:'La Finca',cp:'64000'},{c:'Monterrey Centro',cp:'64000'},{c:'Obrera',cp:'64010'},{c:'Desarrollo Urbano Reforma',cp:'64018'},{c:'Nuevo Centro de Monterrey',cp:'64018'},{c:'Condominios Constitución',cp:'64019'},{c:'Gonzalitos',cp:'64020'},{c:'Mitras Sur',cp:'64020'},{c:'Chepevera',cp:'64030'},{c:'Lomas',cp:'64030'},{c:'Deportivo Obispado',cp:'64040'},{c:'María Luisa',cp:'64040'},{c:'Unidad Aldama',cp:'64040'},{c:'Exseminario',cp:'64049'},{c:'Jardín',cp:'64050'},{c:'Jardines del Cerro',cp:'64050'},{c:'Obispado',cp:'64060'},{c:'Mirador',cp:'64070'},{c:'San Bernabé',cp:'64100'},{c:'Arcos del Sol',cp:'64102'},{c:'Barrio Antiguo Ciudad Solidaridad',cp:'64102'},{c:'Barrio Aztlán',cp:'64102'},{c:'Barrio Chapultepec',cp:'64102'},{c:'Barrio de la Industria',cp:'64102'},{c:'Barrio del Parque',cp:'64102'},{c:'Barrio del Prado',cp:'64102'},{c:'Barrio Estrella',cp:'64102'},{c:'Barrio la Moderna',cp:'64102'},{c:'Barrio Puerta del Sol',cp:'64102'},{c:'Barrio San Carlos',cp:'64102'},{c:'Barrio Topo Chico',cp:'64102'},{c:'Las Estaciones',cp:'64102'},{c:'Las Plazas',cp:'64102'},{c:'Mirasol',cp:'64102'},{c:'Reserva Cumbres',cp:'64102'},{c:'Villas de San Bernabé',cp:'64102'},{c:'Alfonso Reyes',cp:'64103'},{c:'Arboledas de San Bernabe',cp:'64103'},{c:'Balcones de San Bernabé',cp:'64103'},{c:'Cerradas del Poniente',cp:'64103'},{c:'Colonial San Bernabé',cp:'64103'},{c:'Cuauhtémoc',cp:'64103'},{c:'Diego de Montemayor',cp:'64103'},{c:'Hacienda de San Bernabé',cp:'64103'},{c:'Jardines de la Alianza',cp:'64103'},{c:'José María Morelos',cp:'64103'},{c:'La Alianza Sector F',cp:'64103'},{c:'La Alianza Sector L',cp:'64103'},{c:'La Alianza Sector N',cp:'64103'},{c:'Las Fuentes',cp:'64103'},{c:'Las Torres',cp:'64103'},{c:'Los Naranjos',cp:'64103'},{c:'Los Nogales I',cp:'64103'},{c:'Los Nogales II',cp:'64103'},{c:'Los Nogales III',cp:'64103'},{c:'Misión San Bernabé',cp:'64103'},{c:'Paseo de San Bernabé',cp:'64103'},{c:'Prados San Bernabé',cp:'64103'},{c:'Real de San Bernabé',cp:'64103'},{c:'Rincón de San Bernabé',cp:'64103'},{c:'Riveras del Río',cp:'64103'},{c:'San Bernabé Topo Chico',cp:'64103'},{c:'San Gabriel',cp:'64103'},{c:'San Isidro',cp:'64103'},{c:'Valle de la Esperanza',cp:'64103'},{c:'Valles de San Bernabé I',cp:'64103'},{c:'Valles de San Bernabé II',cp:'64103'},{c:'Valles de San Bernabé III',cp:'64103'},{c:'Villas de la Alianza',cp:'64103'},{c:'Villas de San Sebastián',cp:'64103'},{c:'San Bernabé II',cp:'64104'},{c:'San Bernabé III',cp:'64104'},{c:'San Bernabé IV',cp:'64104'},{c:'San Bernabé IX',cp:'64105'},{c:'San Bernabé X',cp:'64105'},{c:'San Bernabé XI',cp:'64105'},{c:'San Bernabé XII',cp:'64105'},{c:'San Bernabé XIII',cp:'64106'},{c:'San Bernabé XIV',cp:'64106'},{c:'San Bernabé XV',cp:'64106'},{c:'Colina de San Bernabé',cp:'64107'},{c:'Plutarco Elías Calles',cp:'64108'},{c:'3 de Febrero',cp:'64109'},{c:'Madre Selva',cp:'64110'},{c:'Misión Lincoln',cp:'64110'},{c:'Cumbre Alta',cp:'64116'},{c:'Lomas de Cumbres',cp:'64116'},{c:'Villa Cumbres',cp:'64116'},{c:'Balcones de las Mitras',cp:'64117'},{c:'Torres Monarcas',cp:'64117'},{c:'Valle Verde Segundo Sector',cp:'64117'},{c:'Paseo de las Mitras',cp:'64118'},{c:'Loma Linda',cp:'64120'},{c:'Lomas de Villa Alegre',cp:'64130'},{c:'Villa Alegre',cp:'64130'},{c:'Lomas Modelo',cp:'64140'},{c:'Unidad Modelo',cp:'64140'},{c:'Álvaro Obregón',cp:'64150'},{c:'Santa Cecilia',cp:'64150'},{c:'Rincón Santa Cecilia',cp:'64157'},{c:'Valle Santa Cecilia',cp:'64157'},{c:'Lomas de Santa Cecilia',cp:'64158'},{c:'Mitra Dorada',cp:'64159'},{c:'15 de Marzo',cp:'64160'},{c:'16 de Septiembre',cp:'64160'},{c:'Jardín Modelo',cp:'64160'},{c:'Nueva Galicia',cp:'64160'},{c:'Condocasa Mitras',cp:'64170'},{c:'Felipe Ángeles',cp:'64170'},{c:'Villa Mitras',cp:'64170'},{c:'Del Maestro',cp:'64180'},{c:'Morelos',cp:'64180'},{c:'Nueva Morelos',cp:'64180'},{c:'Valle Morelos',cp:'64180'},{c:'Central',cp:'64190'},{c:'CROC',cp:'64200'},{c:'Lomas de Topo Chico',cp:'64205'},{c:'El Porvenir',cp:'64206'},{c:'Laderas del Topo Chico',cp:'64206'},{c:'7 de Noviembre',cp:'64210'},{c:'Fomerrey',cp:'64210'},{c:'San Martín',cp:'64210'},{c:'Balcones de Aztlán',cp:'64215'},{c:'Popular',cp:'64217'},{c:'1 de Mayo',cp:'64220'},{c:'Lomas de San Martín',cp:'64220'},{c:'Topo Chico',cp:'64260'},{c:'Kennedy',cp:'64260'},{c:'Lomas de Anáhuac',cp:'64260'},{c:'Nogales Topo Chico',cp:'64260'},{c:'Ávila Camacho',cp:'64265'},{c:'Belisario Domínguez',cp:'64266'},{c:'Nueva Topo Chico',cp:'64266'},{c:'División del Norte',cp:'64268'},{c:'San José',cp:'64270'},{c:'Santa Fe Nor Poniente',cp:'64270'},{c:'Simón Bolívar',cp:'64270'},{c:'Bernardo Reyes',cp:'64280'},{c:'Hidalgo',cp:'64290'},{c:'Industrial',cp:'64299'},{c:'Jardín de las Mitras',cp:'64300'},{c:'Valle de las Mitras',cp:'64300'},{c:'Residencial Abraham Lincoln',cp:'64310'},{c:'Mitras Norte',cp:'64320'},{c:'San Jorge',cp:'64330'},{c:'Cumbres Elite Sector Villas',cp:'64340'},{c:'Hacienda Mitras',cp:'64340'},{c:'Privadas de Cumbres',cp:'64340'},{c:'Cumbres Jade',cp:'64346'},{c:'Cumbres Le Fontaine',cp:'64346'},{c:'Cumbres Platino',cp:'64346'},{c:'Cumbres Providencia',cp:'64346'},{c:'Cumbres Renacimiento',cp:'64346'},{c:'Cumbres San Ángel',cp:'64346'},{c:'Paseo de Cumbres',cp:'64346'},{c:'Real de Cumbres',cp:'64346'},{c:'Cumbres Oro Residencial',cp:'64347'},{c:'Cumbres Quinta Real',cp:'64347'},{c:'Jardines de las Cumbres',cp:'64347'},{c:'Valle de las Cumbres Primer Sector',cp:'64347'},{c:'Valle de las Cumbres Segundo Sector',cp:'64347'},{c:'Misión de las Cumbres',cp:'64348'},{c:'Portal de Cumbres',cp:'64348'},{c:'Cerradas de Cumbres',cp:'64349'},{c:'Cumbres Antares',cp:'64349'},{c:'Cumbres del Sol',cp:'64349'},{c:'Cumbres Elite',cp:'64349'},{c:'Cumbres Gran Vía',cp:'64349'},{c:'Cumbres las Palmas',cp:'64349'},{c:'Cumbres Madeira',cp:'64349'},{c:'Cumbres Platinum',cp:'64349'},{c:'Cumbres San Agustín',cp:'64349'},{c:'Cumbres Santa Clara',cp:'64349'},{c:'Valle del INFONAVIT',cp:'64350'},{c:'Cumbres Campanario',cp:'64360'},{c:'Valle Verde Primer Sector',cp:'64360'},{c:'Villa Dorada',cp:'64360'},{c:'Cima de las Cumbres',cp:'64366'},{c:'Condocasas Cumbres',cp:'64366'},{c:'Cumbres Sector la Esperanza',cp:'64367'},{c:'La Esperanza',cp:'64367'},{c:'Rincón de las Cumbres',cp:'64368'},{c:'Valle de los Cedros',cp:'64369'},{c:'Los Altos',cp:'64370'},{c:'Los Cedros',cp:'64370'},{c:'Burócratas del Estado',cp:'64380'},{c:'Antonio I Villarreal',cp:'64390'},{c:'Emiliano Zapata',cp:'64390'},{c:'Estrella',cp:'64400'},{c:'Bella Vista',cp:'64410'},{c:'Del Prado',cp:'64410'},{c:'Benito Juárez',cp:'64420'},{c:'Garza Nieto',cp:'64420'},{c:'Progreso',cp:'64420'},{c:'Urdiales',cp:'64430'},{c:'Industrial Norte',cp:'64440'},{c:'Mitras Centro',cp:'64460'},{c:'Tijerina',cp:'64460'},{c:'Obrerista',cp:'64470'},{c:'Talleres',cp:'64480'},{c:'Sarabia',cp:'64490'},{c:'Del Norte',cp:'64500'},{c:'Coyoacán',cp:'64510'},{c:'Mariano Escobedo',cp:'64510'},{c:'Cementos',cp:'64520'},{c:'Céntrika',cp:'64520'},{c:'Céntrika del Lago',cp:'64520'},{c:'Céntrika Victoria',cp:'64520'},{c:'Victoria',cp:'64520'},{c:'Vidriera',cp:'64520'},{c:'Las Flores',cp:'64530'},{c:'Madero Norte',cp:'64530'},{c:'Moderna',cp:'64530'},{c:'Jardines de la Moderna',cp:'64536'},{c:'Santa Fe',cp:'64540'},{c:'Los Fresnos',cp:'64540'},{c:'Argentina',cp:'64550'},{c:'Cantú',cp:'64550'},{c:'Fabriles',cp:'64550'},{c:'Reforma',cp:'64550'},{c:'Tampico',cp:'64550'},{c:'Francisco I Madero',cp:'64560'},{c:'Venustiano Carranza',cp:'64560'},{c:'Treviño',cp:'64570'},{c:'Acero',cp:'64580'},{c:'Modelo',cp:'64580'},{c:'Agrícola',cp:'64590'},{c:'Churubusco',cp:'64590'},{c:'Fierro',cp:'64590'},{c:'Leones',cp:'64600'},{c:'Colinas de las Cumbres',cp:'64610'},{c:'Las Cumbres',cp:'64610'},{c:'Bosques de las Cumbres',cp:'64619'},{c:'Cumbres Magnolia',cp:'64619'},{c:'Cumbres Mediterráneo',cp:'64619'},{c:'Residencial Cumbres',cp:'64619'},{c:'Vista Hermosa',cp:'64620'},{c:'Colinas de San Jerónimo',cp:'64630'},{c:'San Jemo',cp:'64630'},{c:'Villas de San Jerónimo',cp:'64630'},{c:'Jardines de San Jerónimo',cp:'64632'},{c:'Colonial San Jerónimo',cp:'64634'},{c:'Prados de San Jerónimo',cp:'64634'},{c:'Real de San Jerónimo',cp:'64634'},{c:'Valle de San Jerónimo',cp:'64634'},{c:'Hacienda San Jerónimo',cp:'64637'},{c:'Rincón de San Jerónimo',cp:'64637'},{c:'San Jerónimo',cp:'64640'},{c:'Colinas del Valle',cp:'64650'},{c:'Cumbres del Valle',cp:'64650'},{c:'Santa María',cp:'64650'},{c:'Miravalle',cp:'64660'},{c:'Rincón del Valle',cp:'64660'},{c:'Nuevo Repueblo',cp:'64700'},{c:'Roma',cp:'64700'},{c:'Tecnológico',cp:'64700'},{c:'Balcones del Carmen',cp:'64710'},{c:'Del Carmen',cp:'64710'},{c:'El Maguey',cp:'64710'}],
+  'San Pedro Garza García': [{c:'Los Encinos',cp:'66200'},{c:'San Pedro Garza García Centro',cp:'66200'},{c:'San Pedro 400',cp:'66210'},{c:'Villa del Obispo',cp:'66214'},{c:'San Pedro',cp:'66215'},{c:'El Obispo',cp:'66216'},{c:'Vista Montaña',cp:'66216'},{c:'Plan de Ayala',cp:'66217'},{c:'Echeverría',cp:'66218'},{c:'Lucio Blanco 1er. Sector',cp:'66218'},{c:'Lucio Blanco 2do. Sector',cp:'66218'},{c:'Valle del Seminario',cp:'66218'},{c:'Revolución',cp:'66219'},{c:'Del Valle',cp:'66220'},{c:'Jardines Del Valle',cp:'66220'},{c:'Fuentes del David',cp:'66224'},{c:'Fuentes del Valle',cp:'66224'},{c:'Fuentes del Valle Sector Colinas',cp:'66224'},{c:'La Joya',cp:'66225'},{c:'Conjunto Habitacional Bugambilias',cp:'66226'},{c:'Valle Del Mezquite',cp:'66226'},{c:'Las Capillas',cp:'66227'},{c:'Los Olivos',cp:'66227'},{c:'San Francisco',cp:'66227'},{c:'Residencial San Carlos',cp:'66228'},{c:'Calendas',cp:'66230'},{c:'Cantanas',cp:'66230'},{c:'Jardines Coloniales',cp:'66230'},{c:'La Cima',cp:'66230'},{c:'La Cúspide',cp:'66230'},{c:'La Finca',cp:'66230'},{c:'La Toscana',cp:'66230'},{c:'La Ventana',cp:'66230'},{c:'Las Codornices',cp:'66230'},{c:'Las Uvas',cp:'66230'},{c:'Las Verandas',cp:'66230'},{c:'Misión Del Valle',cp:'66230'},{c:'Prados de La Sierra',cp:'66230'},{c:'Rincón Colonial',cp:'66230'},{c:'San Gabriel',cp:'66230'},{c:'San José',cp:'66230'},{c:'Villa Campanario',cp:'66230'},{c:'Misión del Valle 3',cp:'66233'},{c:'Santa Elena',cp:'66233'},{c:'La Ventura',cp:'66234'},{c:'Los Olmos',cp:'66235'},{c:'Villa Montaña',cp:'66235'},{c:'Jardines de Mirasierra',cp:'66236'},{c:'Palo Blanco',cp:'66236'},{c:'Residencial Palo Blanco',cp:'66236'},{c:'Villas de Santa Bárbara',cp:'66236'},{c:'Los Sauces 1er. Sector',cp:'66237'},{c:'Los Sauces 2 Sector',cp:'66237'},{c:'Jesús M Garza',cp:'66238'},{c:'Lázaro Garza Ayala',cp:'66238'},{c:'Lindavista',cp:'66238'},{c:'Mirador de Vasconcelos',cp:'66238'},{c:'Rincón de San Francisco',cp:'66238'},{c:'Valle de Vasconcelos',cp:'66238'},{c:'Hacienda de los Callejones',cp:'66239'},{c:'Los Pinos',cp:'66239'},{c:'Rincón de Corregidora',cp:'66239'},{c:'La Barranca',cp:'66240'},{c:'La Montaña',cp:'66240'},{c:'Lomas de Tampiquito',cp:'66240'},{c:'Mirasierra',cp:'66240'},{c:'Olímpico',cp:'66240'},{c:'Rincón de la Montaña',cp:'66240'},{c:'Tampiquito',cp:'66240'},{c:'Capistrano',cp:'66244'},{c:'Lomas del Bosque',cp:'66244'},{c:'Los Fresnos',cp:'66244'},{c:'Hacienda del Valle',cp:'66246'},{c:'Hacienda el Rosario',cp:'66247'},{c:'Hacienda las Campanas',cp:'66247'},{c:'Bosques del Valle',cp:'66250'},{c:'Fátima',cp:'66250'},{c:'Jerónimo Siller',cp:'66250'},{c:'Valle de Chipinque',cp:'66250'},{c:'Carrizalejo',cp:'66254'},{c:'Lomas Del Valle',cp:'66256'},{c:'Del Valle Sector Fátima',cp:'66257'},{c:'Gómez Morin',cp:'66259'},{c:'La Cañada',cp:'66259'},{c:'Rincón de Carrizalejo',cp:'66259'},{c:'Ampliación Canteras',cp:'66260'},{c:'Del Valle Oriente',cp:'66260'},{c:'Haciendas de la Sierra',cp:'66260'},{c:'Jardines de Campestre',cp:'66260'},{c:'Portal de Santa Engracia',cp:'66260'},{c:'Residencial Canteras',cp:'66260'},{c:'Residencial San Agustín Primer Sector',cp:'66260'},{c:'Residencial San Agustín Segundo Sector',cp:'66260'},{c:'Residencial San Mateo',cp:'66260'},{c:'Valle Del Campestre',cp:'66265'},{c:'Conjunto Habitacional Renzo',cp:'66266'},{c:'La Admiranza',cp:'66266'},{c:'La Diana',cp:'66266'},{c:'Mirador Del Campestre',cp:'66266'},{c:'Residencial Santa Bárbara',cp:'66266'},{c:'Verona',cp:'66266'},{c:'Vista Real',cp:'66266'},{c:'Santa Engracia',cp:'66267'},{c:'Valle de Santa Engracia',cp:'66268'},{c:'Villas de Santa Engracia',cp:'66268'},{c:'Colinas de San Agustin',cp:'66270'},{c:'Misión San Patricio',cp:'66270'},{c:'Residencial Galeana',cp:'66270'},{c:'San Agustin Campestre',cp:'66270'},{c:'San Patricio',cp:'66270'},{c:'Veredalta',cp:'66270'},{c:'El Secreto',cp:'66274'},{c:'Jardines de San Agustin',cp:'66274'},{c:'Azhara',cp:'66275'},{c:'Los Encinos de San Agustín',cp:'66275'},{c:'Hacienda San Agustin',cp:'66276'},{c:'Villa las Palmas',cp:'66276'},{c:'La Encantada',cp:'66277'},{c:'Las Ceibas',cp:'66277'},{c:'Santa Cruz',cp:'66277'},{c:'Turquesa',cp:'66277'},{c:'Alto Eucalipto',cp:'66278'},{c:'Balcones de San Agustin',cp:'66278'},{c:'Balcones Del Campestre',cp:'66278'},{c:'Colonial San Agustin',cp:'66278'},{c:'El Refugio',cp:'66278'},{c:'La Muralla',cp:'66278'},{c:'Las Calzadas',cp:'66278'},{c:'Las Privanzas',cp:'66278'},{c:'Lomas de San Agustín 1er. Sector',cp:'66278'},{c:'Lomas de San Agustín 2do. Sector',cp:'66278'},{c:'Lomas de San Agustín 3er. Sector',cp:'66278'},{c:'Lomas del Campestre',cp:'66278'},{c:'Los Amates',cp:'66278'},{c:'Los Quetzales',cp:'66278'},{c:'Misión de San Agustín',cp:'66278'},{c:'Real de San Agustin',cp:'66278'},{c:'Rincón del Campestre',cp:'66278'},{c:'Santa Fe',cp:'66278'},{c:'Valle de San Agustin',cp:'66278'},{c:'Balcones Del Valle',cp:'66280'},{c:'Bosques de La Sierra 1er. Sector',cp:'66280'},{c:'Colinas de La Sierra Madre',cp:'66280'},{c:'Pedregal Del Valle',cp:'66280'},{c:'Villa del Pedregal',cp:'66280'},{c:'El Sendero',cp:'66284'},{c:'Las Cañadas',cp:'66284'},{c:'Los Encinos',cp:'66284'},{c:'Sierra Nevada',cp:'66285'},{c:'Villas del Valle',cp:'66285'},{c:'Colonial La Sierra',cp:'66286'},{c:'El Santuario',cp:'66286'},{c:'Residencial Sierra Del Valle',cp:'66286'},{c:'Bosques de San Ángel Sector Palmillas',cp:'66290'},{c:'Valle de San Ángel Sect Español',cp:'66290'},{c:'Valle de San Ángel Sect Frances',cp:'66290'},{c:'Valle de San Ángel Sect Jardines',cp:'66290'},{c:'Valle de San Ángel Sect Mexicano',cp:'66290'},{c:'Hacienda de Carrizalejo',cp:'66295'},{c:'Joya del Venado',cp:'66295'},{c:'Lomas de San Ángel',cp:'66295'},{c:'Mesa de la Corona',cp:'66295'},{c:'Canoas',cp:'66296'},{c:'Chipinque',cp:'66296'},{c:'Colinas de San Ángel',cp:'66296'},{c:'Las Delicias',cp:'66296'},{c:'Las Alondras',cp:'66297'},{c:'Residencial Chipinque',cp:'66297'},{c:'Villa Chipinque',cp:'66297'}],
+  'San Nicolás de los Garza': [{c:'San Nicolás de los Garza Centro',cp:'66400'},{c:'Benito Juárez',cp:'66410'},{c:'La Enramada',cp:'66410'},{c:'Las Alamedas',cp:'66410'},{c:'México Lindo',cp:'66410'},{c:'Bosques del Roble',cp:'66413'},{c:'El Naranjal',cp:'66413'},{c:'San Bartolo',cp:'66413'},{c:'El Fundador',cp:'66414'},{c:'Jardines de San Nicolás',cp:'66414'},{c:'Residencial El Roble',cp:'66414'},{c:'Residencial San Nicolás',cp:'66414'},{c:'Roble San Nicolás',cp:'66414'},{c:'Roble San Nicolás Sector 2',cp:'66414'},{c:'Roble San Nicolás Sector 3',cp:'66414'},{c:'Héroes de México',cp:'66415'},{c:'Anáhuac Sendero',cp:'66417'},{c:'Hacienda del Roble',cp:'66417'},{c:'La Nogalera',cp:'66417'},{c:'Portal del Roble',cp:'66417'},{c:'Valle del Roble',cp:'66417'},{c:'Villas Del Roble',cp:'66417'},{c:'Viejo Roble',cp:'66418'},{c:'Cerradas del Roble',cp:'66420'},{c:'Las Villas',cp:'66420'},{c:'Villa Universidad',cp:'66420'},{c:'Balcones de Anáhuac',cp:'66422'},{c:'Reserva de Anáhuac',cp:'66422'},{c:'Residencial Anáhuac Zona Norte',cp:'66422'},{c:'Rincón de Anáhuac',cp:'66422'},{c:'Villas de Anáhuac',cp:'66422'},{c:'Colinas de Anáhuac',cp:'66425'},{c:'Tabachines',cp:'66425'},{c:'Congregación Mariano Escobedo',cp:'66430'},{c:'Francisco Villa',cp:'66430'},{c:'La Gloria',cp:'66430'},{c:'Los Álamos',cp:'66430'},{c:'Los Nogales',cp:'66430'},{c:'San Antonio',cp:'66430'},{c:'Santa María',cp:'66430'},{c:'Praderas de Santo Domingo',cp:'66436'},{c:'Villas de Santo Domingo',cp:'66437'},{c:'Valle de Santo Domingo',cp:'66438'},{c:'Los Morales',cp:'66440'},{c:'Unidad Laboral',cp:'66440'},{c:'Fuentes de Anáhuac',cp:'66444'},{c:'Paseo de los Andes',cp:'66444'},{c:'Prados de Santo Domingo',cp:'66444'},{c:'Real Anáhuac',cp:'66444'},{c:'Jardines Del Mezquital',cp:'66445'},{c:'Anáhuac la Escondida',cp:'66446'},{c:'Balcones de Santo Domingo',cp:'66446'},{c:'Paseo San Nicolás',cp:'66446'},{c:'Arboledas de Santo Domingo',cp:'66448'},{c:'Residencial Santo Domingo',cp:'66448'},{c:'Hacienda de Santo Domingo',cp:'66449'},{c:'Parques de Santo Domingo',cp:'66449'},{c:'Torres de Santo Domingo',cp:'66449'},{c:'Anáhuac',cp:'66450'},{c:'Avita Anáhuac',cp:'66450'},{c:'Chapultepec',cp:'66450'},{c:'Cuauhtémoc',cp:'66450'},{c:'El Roble',cp:'66450'},{c:'Lomas del Roble',cp:'66450'},{c:'Pedregal de Anáhuac',cp:'66450'},{c:'Valle de Anáhuac',cp:'66450'},{c:'Viejo Anáhuac',cp:'66450'},{c:'Ciudad Universitaria',cp:'66455'},{c:'Parque Anáhuac',cp:'66456'},{c:'Residencial Anáhuac',cp:'66457'},{c:'Roble Norte',cp:'66458'},{c:'Jardín de las Puentes',cp:'66460'},{c:'Las Puentes Sector 1',cp:'66460'},{c:'Las Puentes Sector 2',cp:'66460'},{c:'Las Puentes Sector 3',cp:'66460'},{c:'Las Puentes Sector 4',cp:'66460'},{c:'Las Puentes Sector 5',cp:'66460'},{c:'Las Puentes Sector 6',cp:'66460'},{c:'Las Puentes Sector 7',cp:'66460'},{c:'Las Puentes Sector 8',cp:'66460'},{c:'Las Puentes Sector 9',cp:'66460'},{c:'Las Puentes Sector 10',cp:'66460'},{c:'Las Puentes Sector 11',cp:'66460'},{c:'Las Puentes Sector 12',cp:'66460'},{c:'Las Puentes Sector 14',cp:'66460'},{c:'Las Puentes Sector 15',cp:'66460'},{c:'Paseo de las Puentes',cp:'66460'},{c:'Residencial las Puentes',cp:'66460'},{c:'Rincón de las Puentes',cp:'66460'},{c:'Valle de las Puentes',cp:'66460'},{c:'Villa las Puentes',cp:'66460'},{c:'Bosques de Anáhuac',cp:'66463'},{c:'Jardines de Anáhuac',cp:'66463'},{c:'Arboledas de San Jorge',cp:'66465'},{c:'Colonial las Puentes',cp:'66465'},{c:'Hacienda las Puentes',cp:'66465'},{c:'Riveras de las Puentes',cp:'66465'},{c:'Balcones de las Puentes',cp:'66466'},{c:'Alcatraces Residencial',cp:'66470'},{c:'Andalucía',cp:'66470'},{c:'Costa del Sol',cp:'66470'},{c:'Los Laureles',cp:'66470'},{c:'Miguel Aleman',cp:'66470'},{c:'Residencial los Morales',cp:'66470'},{c:'Tacuba',cp:'66470'},{c:'Villas de Oriente',cp:'66470'},{c:'Bosques de Lindavista',cp:'66473'},{c:'La Talaverna',cp:'66473'},{c:'Casa Blanca',cp:'66475'},{c:'Jardines de Casa Blanca',cp:'66475'},{c:'Villas de Casa Blanca',cp:'66475'},{c:'La Estancia',cp:'66476'},{c:'Del Lago',cp:'66477'},{c:'Hacienda los Ángeles',cp:'66477'},{c:'La Fe',cp:'66477'},{c:'Residencial Santa Fe',cp:'66477'},{c:'Cerradas de Casa Blanca',cp:'66478'},{c:'Fresnos del Lago',cp:'66478'},{c:'INFONAVIT los Ángeles Sector Cinco',cp:'66478'},{c:'INFONAVIT los Ángeles Sector Cuatro',cp:'66478'},{c:'INFONAVIT los Ángeles Sector Dos',cp:'66478'},{c:'INFONAVIT los Ángeles Sector Tres',cp:'66478'},{c:'INFONAVIT los Ángeles Sector Uno',cp:'66478'},{c:'Misión de Casa Blanca',cp:'66478'},{c:'Misión de San Cristóbal',cp:'66478'},{c:'Privadas de Casa Blanca',cp:'66478'},{c:'Residencial San Cristóbal',cp:'66478'},{c:'Rincón de Casa Blanca 1er. Sector',cp:'66478'},{c:'Valle Casa Blanca',cp:'66478'},{c:'Villas de San Cristóbal',cp:'66478'},{c:'Azteca',cp:'66480'},{c:'Bosques del Nogalar',cp:'66480'},{c:'Díaz Ordaz',cp:'66480'},{c:'Paseo del Nogalar',cp:'66480'},{c:'Residencial Nogalar',cp:'66480'},{c:'Valle Del Nogalar',cp:'66480'},{c:'Antiguo Nogalar',cp:'66484'},{c:'Futuro Nogalar',cp:'66484'},{c:'Industrial Nogalar',cp:'66484'},{c:'Hacienda Nogalar',cp:'66486'},{c:'Jardines Del Nogalar',cp:'66486'},{c:'Salvador Allende',cp:'66486'},{c:'Constituyentes de Querétaro Sector 1',cp:'66490'},{c:'Constituyentes de Querétaro Sector 2',cp:'66490'},{c:'Constituyentes de Querétaro Sector 3',cp:'66490'},{c:'Constituyentes de Querétaro Sector 4',cp:'66490'},{c:'Constituyentes de Querétaro Sector 5',cp:'66490'},{c:'Francisco Garza Sada',cp:'66490'},{c:'Nuevo Mundo',cp:'66490'},{c:'Hacienda los Morales',cp:'66495'},{c:'Alejandría',cp:'66496'},{c:'Valle de los Morales',cp:'66496'},{c:'Hacienda Lagrange',cp:'66499'},{c:'Parque Industrial Monterrey',cp:'66499'}],
+  'Guadalupe': [{c:'Guadalupe Centro',cp:'67100'},{c:'Arboledas de San Miguel',cp:'67110'},{c:'Bosques del Oriente',cp:'67110'},{c:'La Amistad',cp:'67110'},{c:'La Victoria',cp:'67110'},{c:'Los Olivos',cp:'67110'},{c:'Paseo San Miguel',cp:'67110'},{c:'San Rafael',cp:'67110'},{c:'Villa de San Miguel',cp:'67110'},{c:'Almendros',cp:'67112'},{c:'Hacienda los Encinos',cp:'67112'},{c:'Las Dalias',cp:'67112'},{c:'Residencial San Antonio',cp:'67112'},{c:'Residencial Santa Fe',cp:'67112'},{c:'Valle de San Antonio',cp:'67112'},{c:'Arboledas de Acapulco',cp:'67113'},{c:'Balcones de San Miguel',cp:'67113'},{c:'Colonial de San Miguel',cp:'67113'},{c:'Fuentes de San Miguel',cp:'67113'},{c:'Hacienda San Miguel',cp:'67113'},{c:'Lomas de San Miguel',cp:'67113'},{c:'Real de San Miguel Sector Uno',cp:'67113'},{c:'Real de San Miguel Sector Dos',cp:'67113'},{c:'Real de San Miguel Sector Tres',cp:'67113'},{c:'Real de San Miguel Sector Cuatro',cp:'67113'},{c:'Torres de San Miguel',cp:'67113'},{c:'Valle San Miguel',cp:'67113'},{c:'San Miguel',cp:'67115'},{c:'Benito Juárez',cp:'67116'},{c:'Jardines de Casa Blanca',cp:'67116'},{c:'Jardines de San Miguel',cp:'67116'},{c:'Jardines Guadalupe',cp:'67116'},{c:'Nuevo San Miguel',cp:'67116'},{c:'Arboledas del Oriente',cp:'67117'},{c:'Cañada Blanca',cp:'67117'},{c:'Los Cristales',cp:'67117'},{c:'Misión de Guadalupe',cp:'67117'},{c:'Residencial Torremolinos',cp:'67117'},{c:'La Floresta',cp:'67118'},{c:'Misión del Valle',cp:'67118'},{c:'Valle San Rafael',cp:'67118'},{c:'Jardines de San Rafael',cp:'67119'},{c:'San Rafael',cp:'67119'},{c:'Adolfo Prieto',cp:'67120'},{c:'América Obrera',cp:'67120'},{c:'La Luz',cp:'67120'},{c:'Nueva Libertad',cp:'67120'},{c:'10 de Mayo',cp:'67123'},{c:'Jardines de Lindavista',cp:'67123'},{c:'Linda Vista',cp:'67123'},{c:'Real de Minas',cp:'67124'},{c:'América',cp:'67125'},{c:'Cerradas de Lindavista',cp:'67125'},{c:'Valle de Lindavista',cp:'67125'},{c:'Torres Lindavista',cp:'67126'},{c:'Nueva Linda Vista',cp:'67129'},{c:'La Purísima',cp:'67129'},{c:'Rincón de la Purísima',cp:'67129'},{c:'Bosques del Sol',cp:'67130'},{c:'La Condesa',cp:'67130'},{c:'Valle de las Flores',cp:'67130'},{c:'Valle Soleado',cp:'67130'},{c:'Fátima',cp:'67132'},{c:'Andara Residencial',cp:'67133'},{c:'Arboledas de Santa Cecilia',cp:'67134'},{c:'Dos Ríos',cp:'67134'},{c:'Riberas de Dos Ríos',cp:'67134'},{c:'Santa Clara',cp:'67134'},{c:'Central de Abastos',cp:'67140'},{c:'Chinameca',cp:'67140'},{c:'Del Maestro',cp:'67140'},{c:'Jardines la Pastora',cp:'67140'},{c:'La Pastora',cp:'67140'},{c:'Las Plazas Uno',cp:'67140'},{c:'Las Plazas Dos',cp:'67140'},{c:'Las Plazas Tres',cp:'67140'},{c:'Los Sauces',cp:'67140'},{c:'Polanco',cp:'67140'},{c:'Revolución',cp:'67140'},{c:'Santa Margarita',cp:'67140'},{c:'Valle de Chapultepec',cp:'67140'},{c:'El Bajío',cp:'67144'},{c:'La Huerta',cp:'67144'},{c:'Azteca',cp:'67150'},{c:'Las Canteras',cp:'67150'},{c:'Residencial Azteca',cp:'67150'},{c:'Exposición',cp:'67155'},{c:'La Hacienda',cp:'67155'},{c:'Riberas del Río',cp:'67160'},{c:'Valle Hermoso Sector Uno',cp:'67160'},{c:'Valle Hermoso Sector Dos',cp:'67164'},{c:'Los Encinos',cp:'67165'},{c:'Los Faisanes',cp:'67169'},{c:'15 de Mayo',cp:'67170'},{c:'Camino Real',cp:'67170'},{c:'Mirasol',cp:'67170'},{c:'Progreso',cp:'67170'},{c:'Contry la Costa',cp:'67173'},{c:'Contry la Escondida',cp:'67173'},{c:'Contry la Silla',cp:'67173'},{c:'Contry los Nogales',cp:'67173'},{c:'Bosques del Contry',cp:'67174'},{c:'Contry Sol',cp:'67174'},{c:'Riberas del Contry',cp:'67174'},{c:'Rincón del Contry',cp:'67174'},{c:'Valle del Contry',cp:'67174'},{c:'La Quinta',cp:'67175'},{c:'Tolteca',cp:'67175'},{c:'Mirador de la Silla',cp:'67176'},{c:'Valle Real',cp:'67176'},{c:'Cerro de la Silla',cp:'67177'},{c:'Lomas de la Silla',cp:'67177'},{c:'Valle de Guadalupe',cp:'67177'},{c:'Contry los Encinos',cp:'67178'},{c:'Lomas de Tolteca',cp:'67178'},{c:'Privadas de Contry',cp:'67178'},{c:'Burócratas Municipales',cp:'67180'},{c:'Díaz Ordaz',cp:'67180'},{c:'Valles de la Silla',cp:'67180'},{c:'23 de Noviembre',cp:'67182'},{c:'Colinas de Guadalupe',cp:'67182'},{c:'Colinas de la Silla',cp:'67182'},{c:'El Peñón',cp:'67182'},{c:'Bosques de la Silla',cp:'67183'},{c:'Campestre la Silla',cp:'67183'},{c:'Nuevo México',cp:'67183'},{c:'Insurgentes',cp:'67184'},{c:'Pablo Livas',cp:'67184'},{c:'San Cristóbal',cp:'67184'},{c:'Valle de San Andrés',cp:'67184'},{c:'Guadalupe Victoria',cp:'67185'},{c:'Santa Clara',cp:'67185'},{c:'Loma Verde',cp:'67186'},{c:'Lomas de San Roque',cp:'67186'},{c:'Praderas de la Silla',cp:'67186'},{c:'Vicente Ferrer',cp:'67186'},{c:'Los Lermas',cp:'67188'},{c:'Nuevo San Sebastián',cp:'67188'},{c:'2 de Junio',cp:'67189'},{c:'3 Caminos',cp:'67190'},{c:'Guadalupe la Silla',cp:'67190'},{c:'Las Flores',cp:'67190'},{c:'Niños Héroes',cp:'67190'},{c:'Residencial Guadalupe',cp:'67190'},{c:'Las Colinas',cp:'67192'},{c:'Las Palmas',cp:'67192'},{c:'Rancho Viejo Sector Uno',cp:'67192'},{c:'Rancho Viejo Sector Dos',cp:'67192'},{c:'Acueducto Guadalupe',cp:'67193'},{c:'Colinas del Rey',cp:'67194'},{c:'Lomas del Rey',cp:'67194'},{c:'Molino del Rey',cp:'67194'},{c:'Portales de la Silla',cp:'67194'},{c:'Ciudad CROC',cp:'67195'},{c:'Valles de Guadalupe',cp:'67195'},{c:'Jardines de Xochimilco',cp:'67196'},{c:'Xochimilco',cp:'67196'},{c:'Hacienda de Guadalupe',cp:'67197'},{c:'Misión de la Silla',cp:'67197'},{c:'Acapulco',cp:'67198'},{c:'Santa María',cp:'67198'},{c:'Hacienda la Silla',cp:'67199'},{c:'Paseo de Guadalupe',cp:'67199'},{c:'31 de Diciembre',cp:'67200'},{c:'Tamaulipas',cp:'67200'},{c:'Miguel Hidalgo',cp:'67202'},{c:'Residencial Santa María',cp:'67202'},{c:'Hacienda San Sebastián',cp:'67203'},{c:'Praderas de Guadalupe',cp:'67203'},{c:'Huerta de Guadalupe',cp:'67204'},{c:'Villas del Río',cp:'67204'}],
+  'Apodaca': [{c:'Ciudad Apodaca Centro',cp:'66600'},{c:'San Francisco',cp:'66600'},{c:'Santa Rosa Sector Dos',cp:'66600'},{c:'Parque Industrial Apodaca',cp:'66603'},{c:'Altabrisa',cp:'66604'},{c:'Bosquealto',cp:'66604'},{c:'Casas Reales',cp:'66604'},{c:'Reserva San Francisco',cp:'66604'},{c:'Santa Rosa Primer Sector',cp:'66604'},{c:'Benito Juárez',cp:'66605'},{c:'La Condesa',cp:'66605'},{c:'Residencial Apodaca',cp:'66605'},{c:'Cerradas de Rinconada',cp:'66606'},{c:'Privadas de Rinconada',cp:'66606'},{c:'Rinconada Colonial',cp:'66606'},{c:'Rinconada Norte',cp:'66606'},{c:'Villas Coloniales',cp:'66606'},{c:'Los Astures',cp:'66607'},{c:'Paraje Santa Rosa Sector Norte',cp:'66607'},{c:'Paraje Santa Rosa Sector Sur',cp:'66607'},{c:'Quinta Real Residencial',cp:'66607'},{c:'Santa Rosa',cp:'66607'},{c:'Valle de Salduero',cp:'66607'},{c:'Valle la Rioja',cp:'66607'},{c:'Cerradas Concordia',cp:'66609'},{c:'Concordia Norte',cp:'66609'},{c:'Misión de los Ángeles',cp:'66609'},{c:'Amberes Residencial',cp:'66610'},{c:'Antigua Santa Rosa',cp:'66610'},{c:'Balcones de Santa Rosa',cp:'66610'},{c:'Bosques de Santa Rosa',cp:'66610'},{c:'Ex-Hacienda Santa Rosa',cp:'66610'},{c:'Jardines de Santa Rosa',cp:'66610'},{c:'Los Ébanos Noveno Sector',cp:'66610'},{c:'Los Ébanos Décimo Sector',cp:'66610'},{c:'Los Soles',cp:'66610'},{c:'Prados de Santa Rosa',cp:'66610'},{c:'Privadas de Santa Rosa',cp:'66610'},{c:'Villas de Santa Rosa',cp:'66610'},{c:'Almendros',cp:'66612'},{c:'Andalucía',cp:'66612'},{c:'Bosque Real',cp:'66612'},{c:'Ébanos Norte',cp:'66612'},{c:'El Molino',cp:'66612'},{c:'Hacienda Santa Isabel',cp:'66612'},{c:'Insurgentes',cp:'66612'},{c:'Jardines de las Palmas',cp:'66612'},{c:'Jardines de San Andrés',cp:'66612'},{c:'Lombardía Residencial',cp:'66612'},{c:'Los Ébanos',cp:'66612'},{c:'Los Encinos',cp:'66612'},{c:'Manantial Primer Sector',cp:'66612'},{c:'Manantial Segundo Sector',cp:'66612'},{c:'Misión de Fundadores',cp:'66612'},{c:'Misión del Parque',cp:'66612'},{c:'Nuevo las Puentes Primer Sector',cp:'66612'},{c:'Nuevo las Puentes Segundo Sector',cp:'66612'},{c:'Nuevo las Puentes Tercer Sector',cp:'66612'},{c:'Prados de los Pinos',cp:'66612'},{c:'Santa Alicia',cp:'66612'},{c:'Valle de Apodaca',cp:'66612'},{c:'Valle de las Bugambilias',cp:'66612'},{c:'Valle de las Palmas Segundo Sector',cp:'66612'},{c:'Valle de las Palmas Tercer Sector',cp:'66612'},{c:'Valle de San Andrés',cp:'66612'},{c:'Villa de las Puentes',cp:'66612'},{c:'Jardines de Monterrey Primer Sector',cp:'66613'},{c:'Jardines de Monterrey Segundo Sector',cp:'66613'},{c:'Jardines de Monterrey Tercer Sector',cp:'66613'},{c:'Los Altos',cp:'66613'},{c:'Moisés Sáenz',cp:'66613'},{c:'Santa Elena',cp:'66613'},{c:'Arboledas de Santa Rosa',cp:'66614'},{c:'Cosmópolis',cp:'66614'},{c:'Las Mercedes',cp:'66614'},{c:'Portal de Santa Rosa',cp:'66614'},{c:'Agua Fría',cp:'66620'},{c:'Asturias Residencial',cp:'66620'},{c:'Rincón de Galicia',cp:'66620'},{c:'Triana',cp:'66620'},{c:'Valle Azul',cp:'66620'},{c:'Avatares de Apodaca',cp:'66623'},{c:'Ciudad Natura',cp:'66623'},{c:'Mirador de Apodaca',cp:'66623'},{c:'El Mezquital',cp:'66630'},{c:'Francisco Elizondo',cp:'66630'},{c:'Hacienda de los Nogales',cp:'66630'},{c:'Las Américas',cp:'66630'},{c:'Riviera del Mezquital',cp:'66630'},{c:'Balcones del Mezquital',cp:'66632'},{c:'Cerradas de Santa Rosa',cp:'66632'},{c:'Cerradas del Parque',cp:'66632'},{c:'Ex Hacienda San Francisco',cp:'66632'},{c:'Hacienda del Mezquital',cp:'66632'},{c:'Nuevo Mezquital',cp:'66632'},{c:'Santa Rosa Premier',cp:'66632'},{c:'Valle Del Mezquital',cp:'66632'},{c:'Alianza',cp:'66633'},{c:'Hacienda Santa Fe',cp:'66633'},{c:'Jardines de San Jorge',cp:'66633'},{c:'La Encarnación',cp:'66633'},{c:'Los Álamos',cp:'66633'},{c:'Mirador Huinalá',cp:'66633'},{c:'Campestre CTM',cp:'66634'},{c:'El Milagro',cp:'66634'},{c:'Independencia',cp:'66634'},{c:'Jacarandas',cp:'66634'},{c:'Misión de San Patricio',cp:'66634'},{c:'Valle de Huinalá',cp:'66634'},{c:'Villas de Huinalá',cp:'66634'},{c:'Hacienda las Palmas Primer Sector',cp:'66635'},{c:'Hacienda las Palmas Segundo Sector',cp:'66635'},{c:'Jardines de Apodaca',cp:'66635'},{c:'La Enramada Primer Sector',cp:'66635'},{c:'La Enramada Segundo Sector',cp:'66635'},{c:'La Enramada Tercer Sector',cp:'66635'},{c:'La Enramada Cuarto Sector',cp:'66635'},{c:'La Enramada Quinto Sector',cp:'66635'},{c:'Las Praderas Primer Sector',cp:'66635'},{c:'Las Praderas Segundo Sector',cp:'66635'},{c:'Los Fresnos Primer Sector',cp:'66635'},{c:'Los Fresnos Segundo Sector',cp:'66635'},{c:'Los Pinos Tercer Sector',cp:'66635'},{c:'Los Pinos Cuarto Sector',cp:'66635'},{c:'Paseo de las Palmas Primer Sector',cp:'66635'},{c:'Paseo de las Palmas Segundo Sector',cp:'66635'},{c:'Valle de las Palmas Primer Sector',cp:'66635'},{c:'Altamura Residencial',cp:'66636'},{c:'Arboledas del Virrey',cp:'66636'},{c:'Fresnos Norte',cp:'66636'},{c:'Hacienda los Pinos Primer Sector',cp:'66636'},{c:'La Hacienda',cp:'66636'},{c:'Los Fresnos Cuarto Sector',cp:'66636'},{c:'Los Pinos Primer Sector',cp:'66636'},{c:'Los Pinos Segundo Sector',cp:'66636'},{c:'Los Robles',cp:'66636'},{c:'Paseo de los Pinos Segundo Sector',cp:'66636'},{c:'Praderas de Apodaca',cp:'66636'},{c:'Santa Cecilia',cp:'66636'},{c:'Alberta Escamilla',cp:'66640'},{c:'Balcones de Huinalá',cp:'66640'},{c:'Huinalá',cp:'66640'},{c:'Jardines de Huinalá',cp:'66640'},{c:'Real de Apodaca',cp:'66640'},{c:'San Andrés',cp:'66640'},{c:'Hacienda el Campanario',cp:'66643'},{c:'Modena',cp:'66643'},{c:'Portal del Valle',cp:'66643'},{c:'Santa Anita',cp:'66643'},{c:'Jerónimo Treviño',cp:'66644'},{c:'Real Hacienda de Huinalá',cp:'66644'},{c:'Rincón de Huinalá',cp:'66644'},{c:'Santa Mónica',cp:'66644'},{c:'Bosques de Huinalá',cp:'66645'},{c:'Hacienda del Carmen',cp:'66645'},{c:'Jardines Del Virrey',cp:'66645'},{c:'Lomas de San Isidro',cp:'66646'},{c:'Milenium Residencial',cp:'66646'},{c:'Misión de Huinalá',cp:'66646'},{c:'Misión de San Javier',cp:'66646'},{c:'Portal de Huinalá',cp:'66646'},{c:'Riberas de Huinalá',cp:'66646'},{c:'San Isidro',cp:'66646'},{c:'San Javier',cp:'66646'}],
+  'General Escobedo': [{c:'Ciudad General Escobedo Centro',cp:'66050'},{c:'Del Valle',cp:'66050'},{c:'Guadalupe Victoria',cp:'66050'},{c:'Jardines de Escobedo II',cp:'66050'},{c:'Jardines del Canadá',cp:'66050'},{c:'Las Encinas',cp:'66050'},{c:'Las Palomas',cp:'66050'},{c:'Residencial las Quintas',cp:'66050'},{c:'Jardines de Escobedo I',cp:'66051'},{c:'Arboledas de Escobedo',cp:'66052'},{c:'Balcones del Norte',cp:'66052'},{c:'Emiliano Zapata',cp:'66052'},{c:'Los Altos',cp:'66052'},{c:'Los Olivos',cp:'66052'},{c:'Puerta de Anáhuac',cp:'66052'},{c:'Belisario Domínguez',cp:'66053'},{c:'Los Nogales',cp:'66053'},{c:'Privadas de San José',cp:'66053'},{c:'Reserva Escobedo',cp:'66053'},{c:'San José de los Sauces',cp:'66053'},{c:'Valle de Escobedo',cp:'66053'},{c:'Villa Castello',cp:'66053'},{c:'Ex-Hacienda el Canadá',cp:'66054'},{c:'Haciendas del Canada',cp:'66054'},{c:'La Encomienda',cp:'66054'},{c:'La Encomienda II',cp:'66054'},{c:'Puerta del Norte Residencial',cp:'66054'},{c:'California Residencial',cp:'66055'},{c:'Haciendas de Anáhuac',cp:'66055'},{c:'Joyas de Anáhuac',cp:'66055'},{c:'Nexxus Residencial Sector Cristal',cp:'66055'},{c:'Nexxus Residencial Sector Diamante',cp:'66055'},{c:'Nexxus Residencial Sector Esmeralda',cp:'66055'},{c:'Nexxus Residencial Sector Platino',cp:'66055'},{c:'Portal de Escobedo',cp:'66055'},{c:'Roble Nuevo',cp:'66055'},{c:'Valle Nord',cp:'66055'},{c:'Villas de Escobedo II',cp:'66055'},{c:'Balcones de Anáhuac',cp:'66056'},{c:'INFONAVIT Monterreal',cp:'66056'},{c:'Lomas de Escobedo',cp:'66056'},{c:'Topo Grande',cp:'66056'},{c:'Valle de Girasoles',cp:'66056'},{c:'Villas de Escobedo',cp:'66056'},{c:'Fuentes de Escobedo',cp:'66057'},{c:'Hacienda Escobedo',cp:'66057'},{c:'Residencial Escobedo',cp:'66057'},{c:'16 de Septiembre',cp:'66058'},{c:'Jardines de Escobedo III',cp:'66058'},{c:'Lázaro Cárdenas',cp:'66058'},{c:'Praderas de Topo Grande',cp:'66058'},{c:'Anáhuac Madeira',cp:'66059'},{c:'Cerradas de Anáhuac',cp:'66059'},{c:'Cerradas de Anáhuac Sector Contemporáneo',cp:'66059'},{c:'Cerradas de Anáhuac Sector Premier',cp:'66059'},{c:'Misión de Anáhuac',cp:'66059'},{c:'Privadas de Anáhuac Sector Español',cp:'66059'},{c:'Privadas de Anáhuac Sector Francés',cp:'66059'},{c:'Privadas de Anáhuac Sector Inglés',cp:'66059'},{c:'Privadas de Anáhuac Sector Mediterráneo',cp:'66059'},{c:'Quintas de Anáhuac',cp:'66059'},{c:'Valle del Canadá',cp:'66059'},{c:'Villas de Anáhuac',cp:'66059'},{c:'Villas de Anáhuac Sector Alpes',cp:'66059'},{c:'Jardines de San Martín',cp:'66061'},{c:'San Martín',cp:'66061'},{c:'Hacienda la Providencia',cp:'66062'},{c:'La Isla',cp:'66062'},{c:'Parque Industrial Escobedo',cp:'66062'},{c:'Villas de San Francisco',cp:'66062'},{c:'5 de Mayo',cp:'66063'},{c:'San Isidro',cp:'66063'},{c:'Ciudad San Marcos',cp:'66064'},{c:'La Concordia',cp:'66064'},{c:'Las Flores',cp:'66064'},{c:'Nuevo Escobedo',cp:'66064'},{c:'San Marcos',cp:'66064'},{c:'Valle de San Francisco',cp:'66064'},{c:'Laderas de Topo Chico',cp:'66065'},{c:'Serranías',cp:'66065'},{c:'Brianzzas Residencial',cp:'66072'},{c:'Cortijo los Ayala',cp:'66072'},{c:'Hacienda del Topo',cp:'66072'},{c:'Hacienda los Ayala',cp:'66072'},{c:'La Providencia',cp:'66072'},{c:'Colinas de Anáhuac',cp:'66073'},{c:'Las Lomas',cp:'66073'},{c:'Alianza Real',cp:'66084'},{c:'San Miguel del Parque',cp:'66084'},{c:'Monclova Primer Sector',cp:'66085'},{c:'Monclova Segundo Sector',cp:'66085'},{c:'Praderas de San Francisco',cp:'66085'},{c:'Residencial San Francisco',cp:'66085'},{c:'Valle de San Miguel',cp:'66085'}],
+  'García': [{c:'García Centro',cp:'66000'},{c:'Hacienda del Sol',cp:'66003'},{c:'Joya de la Corona',cp:'66003'},{c:'Los Nogales',cp:'66003'},{c:'Mirador de García',cp:'66003'},{c:'Paseo de las Minas',cp:'66003'},{c:'Praderas de Lincoln',cp:'66003'},{c:'Rincón del Fraile',cp:'66003'},{c:'Valle de San Blas',cp:'66003'},{c:'Las Arboledas',cp:'66004'},{c:'Las Haciendas',cp:'66004'},{c:'Las Villas',cp:'66004'},{c:'Paseo de las Torres',cp:'66004'},{c:'Real de Capellanía',cp:'66004'},{c:'Sierra Real',cp:'66004'},{c:'Valle de San José',cp:'66004'},{c:'Benito Juárez',cp:'66005'},{c:'El Cedral',cp:'66005'},{c:'Emiliano Zapata',cp:'66005'},{c:'Fraile I',cp:'66005'},{c:'Morelos',cp:'66005'},{c:'San Martín',cp:'66005'},{c:'Balcones de García',cp:'66006'},{c:'División del Norte',cp:'66006'},{c:'Las Bugambilias',cp:'66006'},{c:'Paseo de Capellanía',cp:'66007'},{c:'Riberas de Capellania',cp:'66007'},{c:'La Cruz',cp:'66008'},{c:'Miguel Hidalgo',cp:'66008'},{c:'Nuevo Renacimiento',cp:'66008'},{c:'Santa Sofía',cp:'66008'},{c:'Santa Sofía Sector Elite',cp:'66008'},{c:'Valle de San Felipe',cp:'66008'},{c:'Las Brisas Residencial',cp:'66009'},{c:'Paseo Alamedas',cp:'66009'},{c:'Real de San Joaquín',cp:'66009'},{c:'San Juan Bautista',cp:'66009'},{c:'Joya del Carrizal',cp:'66012'},{c:'Portal de las Sierras',cp:'66012'},{c:'Residencial Santa Elena',cp:'66012'},{c:'Villanova',cp:'66012'},{c:'Los Héroes Lincoln',cp:'66013'},{c:'Paseo de Lincoln',cp:'66013'},{c:'Portal de Lincoln',cp:'66013'},{c:'Real de Lincoln',cp:'66013'},{c:'Alta Villa',cp:'66014'},{c:'Cordillera Himalaya',cp:'66014'},{c:'Lomas de García',cp:'66023'},{c:'Mitras Poniente',cp:'66023'},{c:'San José',cp:'66023'},{c:'Valle de Lincoln San José',cp:'66023'},{c:'Las Lomas',cp:'66024'},{c:'Las Lomas Sector Bosques',cp:'66024'},{c:'Las Lomas Sector Cumbres',cp:'66024'},{c:'Las Lomas Sector Palmas',cp:'66024'},{c:'Las Lomas Sector Real',cp:'66024'},{c:'Lomas del Sur',cp:'66024'},{c:'Montenova',cp:'66024'},{c:'Valle de Lincoln',cp:'66026'},{c:'Valle de Lincoln Sector Elite',cp:'66026'},{c:'Vistas de las Mitras',cp:'66026'},{c:'El Fraile',cp:'66027'},{c:'Cumbres Elite Premier',cp:'66035'},{c:'Cumbres San Patricio',cp:'66035'},{c:'Lomas Quetzales',cp:'66035'},{c:'Valle de Cumbres',cp:'66035'},{c:'Ciudad Cumbres',cp:'66036'},{c:'Cumbres Andara',cp:'66036'},{c:'Cumbres Britania',cp:'66036'},{c:'Cumbres Calzadas',cp:'66036'},{c:'Cumbres la Rioja',cp:'66036'},{c:'Cumbres Toscana',cp:'66036'},{c:'Ferrara Residencial',cp:'66036'},{c:'La Montaña',cp:'66036'},{c:'Monticello',cp:'66036'},{c:'Murano',cp:'66036'},{c:'Novelia',cp:'66036'},{c:'Samsara',cp:'66036'},{c:'Cumbres de Santa María',cp:'66037'},{c:'Santa María',cp:'66037'},{c:'La Cruz',cp:'66040'},{c:'Icamole',cp:'66042'},{c:'La Soledad',cp:'66045'},{c:'La Candelaria',cp:'66046'},{c:'La Gloria',cp:'66046'},{c:'San Isidro',cp:'66046'}],
+  'Santa Catarina': [{c:'La Fama',cp:'66100'},{c:'Cimas del Poniente',cp:'66110'},{c:'Cerro de las Mitras',cp:'66114'},{c:'Cima de las Mitras',cp:'66114'},{c:'Jardín de las Mitras',cp:'66115'},{c:'Fama II',cp:'66116'},{c:'Fama IV',cp:'66116'},{c:'La Fama 1',cp:'66117'},{c:'Fama III',cp:'66118'},{c:'Arboledas de las Mitras',cp:'66119'},{c:'Lomas de La Fama',cp:'66119'},{c:'Los Portales',cp:'66120'},{c:'San Humberto',cp:'66120'},{c:'Villas de San Humberto',cp:'66120'},{c:'La Ermita',cp:'66129'},{c:'Prados de San Jorge',cp:'66129'},{c:'Privadas del Poniente',cp:'66129'},{c:'Provivienda del Poniente Sector Uno',cp:'66129'},{c:'Provivienda del Poniente Sector Dos',cp:'66129'},{c:'Provivienda del Poniente Sector Tres',cp:'66129'},{c:'José López Portillo',cp:'66140'},{c:'Benito Juárez',cp:'66160'},{c:'Jardines de La Fama',cp:'66165'},{c:'Valle de La Sierra',cp:'66165'},{c:'Campania',cp:'66166'},{c:'La Española',cp:'66167'},{c:'Cantizal',cp:'66188'},{c:'Las Almenas',cp:'66188'},{c:'Las Fincas',cp:'66188'},{c:'Las Fincas II',cp:'66188'},{c:'Montalia',cp:'66188'},{c:'San Isidro',cp:'66190'},{c:'Los Cenizos',cp:'66196'},{c:'Miguel Hidalgo',cp:'66196'},{c:'Residencial Cordillera',cp:'66196'},{c:'El Aguacatal',cp:'66197'},{c:'Huasteca Real',cp:'66197'},{c:'Las Montañas',cp:'66197'},{c:'La Fortaleza',cp:'66198'},{c:'Ciudad Santa Catarina Centro',cp:'66350'},{c:'El Castillo',cp:'66350'},{c:'Lázaro Cárdenas',cp:'66350'},{c:'Mirador de Santa Catarina',cp:'66350'},{c:'Nueva Santa Catarina',cp:'66350'},{c:'Real del Valle',cp:'66350'},{c:'Santa Martha I',cp:'66350'},{c:'Santa Martha II',cp:'66350'},{c:'El Paraíso',cp:'66353'},{c:'Residencial la Huasteca',cp:'66353'},{c:'Villas de la Huasteca',cp:'66353'},{c:'INFONAVIT la Huasteca',cp:'66354'},{c:'INFONAVIT Santa Catarina',cp:'66354'},{c:'Mirador de la Huasteca',cp:'66354'},{c:'Misión de la Huasteca',cp:'66354'},{c:'Privadas Sierra Madre Residencial',cp:'66354'},{c:'Hacienda de Santa Catarina',cp:'66357'},{c:'Paseo de La Sierra',cp:'66357'},{c:'Antigua Santa Catarina',cp:'66358'},{c:'Cumbres de Santa Catarina',cp:'66358'},{c:'Las Catarinas',cp:'66358'},{c:'Pedregal de Santa Catarina',cp:'66358'},{c:'Residencial de la Sierra',cp:'66358'},{c:'Zimix',cp:'66358'},{c:'Bosques de la Sierra',cp:'66359'},{c:'Bosques de Santa Catarina',cp:'66359'},{c:'La Puerta de La Huasteca',cp:'66359'},{c:'Lomas de Santa Catarina',cp:'66359'},{c:'Mirador de las Mitras',cp:'66359'},{c:'Prados de Santa Catarina',cp:'66359'},{c:'Residencial Santa Cecilia I',cp:'66359'},{c:'Residencial Santa Cecilia II',cp:'66359'},{c:'Torres de Santa Catarina',cp:'66359'},{c:'Adolfo López Mateos',cp:'66360'},{c:'Colinas de Santa Catarina',cp:'66360'},{c:'Hacienda San José',cp:'66360'},{c:'La Joya',cp:'66360'},{c:'Misión Santa Catarina',cp:'66360'},{c:'Bosques del Poniente',cp:'66362'},{c:'El Molino',cp:'66362'},{c:'Jardines de Santa Catarina',cp:'66362'},{c:'Las Margaritas',cp:'66362'},{c:'Paseo del Prado',cp:'66362'},{c:'Valle de Santa Cruz',cp:'66362'},{c:'El Escorial',cp:'66363'},{c:'Senderos',cp:'66363'},{c:'Ápice',cp:'66365'},{c:'Ápice Dos',cp:'66365'},{c:'Ápice Tres',cp:'66365'},{c:'Ápice Cuatro',cp:'66365'},{c:'Prados Del Sol',cp:'66365'},{c:'Rincón de La Huasteca',cp:'66365'},{c:'Bosques la Huasteca',cp:'66367'},{c:'El Obispo',cp:'66367'},{c:'Hacienda el Palmar',cp:'66367'},{c:'Huasteca del Valle I',cp:'66367'},{c:'Industrial Santa Catarina',cp:'66367'},{c:'Los Viñedos',cp:'66367'},{c:'Norberto Aguirre',cp:'66367'},{c:'Parque Industrial AVIA',cp:'66367'},{c:'Parque Industrial Diamante',cp:'66367'},{c:'Parque Industrial las Torres',cp:'66367'},{c:'Parque Industrial Milenium',cp:'66367'},{c:'Parque Industrial Multitech',cp:'66367'},{c:'Real de Santa Catarina',cp:'66368'},{c:'Rincón de las Palmas',cp:'66368'},{c:'San Francisco',cp:'66368'},{c:'La Conquista',cp:'66369'},{c:'Lomas del Poniente',cp:'66369'},{c:'Misión de las Villas',cp:'66369'},{c:'San Gilberto',cp:'66369'},{c:'Ampliación San Gregorio',cp:'66373'},{c:'San Gregorio',cp:'66377'},{c:'Aurora',cp:'66378'}],
+  'Juárez': [{c:'Ciudad Benito Juárez Centro',cp:'67250'},{c:'Hacienda San José',cp:'67250'},{c:'Hacienda Santa Lucía',cp:'67250'},{c:'INFONAVIT Benito Juárez',cp:'67253'},{c:'La Ciudadela Sector Real de San José',cp:'67254'},{c:'Lomas Del Sol',cp:'67254'},{c:'Los Alcatraces',cp:'67254'},{c:'Mirador de la Montaña',cp:'67254'},{c:'Villas de San José',cp:'67254'},{c:'Cerradas Diamante',cp:'67255'},{c:'San Antonio',cp:'67255'},{c:'Solaris',cp:'67255'},{c:'Ejido Juárez',cp:'67256'},{c:'Las Vistas',cp:'67256'},{c:'Oporto',cp:'67256'},{c:'San Cristóbal',cp:'67256'},{c:'Valle Santa Isabel',cp:'67256'},{c:'Villa del Real',cp:'67256'},{c:'Calderón',cp:'67257'},{c:'El Sabinal',cp:'67257'},{c:'Las Sabinas',cp:'67257'},{c:'Monte Verde',cp:'67257'},{c:'Residencial Punta Esmeralda',cp:'67257'},{c:'Valle del Virrey',cp:'67257'},{c:'Anzures',cp:'67258'},{c:'La Toscana',cp:'67258'},{c:'Los Puertos',cp:'67258'},{c:'Nápoles',cp:'67258'},{c:'Valparaíso',cp:'67258'},{c:'Paseo Andaluz',cp:'67260'},{c:'Paseo de las Lomas',cp:'67260'},{c:'Paseo Santa Fe',cp:'67260'},{c:'Arboledas del Parque',cp:'67262'},{c:'Colinas de San Juan',cp:'67262'},{c:'Hacienda la Morena',cp:'67262'},{c:'Jardines de la Fuente',cp:'67262'},{c:'San Antonio',cp:'67262'},{c:'San José',cp:'67262'},{c:'Villas de San Antonio',cp:'67262'},{c:'Bosques del Seminario',cp:'67265'},{c:'La Ciudadela',cp:'67265'},{c:'Las Quintas Residencial',cp:'67265'},{c:'Paraje Juárez',cp:'67265'},{c:'Praderas de Oriente',cp:'67265'},{c:'El Mirador',cp:'67266'},{c:'Hacienda Real',cp:'67266'},{c:'Portal de Juárez',cp:'67266'},{c:'Valle del Seminario',cp:'67266'},{c:'Fuentes de Juárez',cp:'67267'},{c:'Hacienda de Juárez',cp:'67267'},{c:'La Escondida',cp:'67267'},{c:'Residencial Terranova',cp:'67267'},{c:'Santo Tomás',cp:'67267'},{c:'Villas de Oriente',cp:'67267'},{c:'Colinas del Río',cp:'67269'},{c:'Las Margaritas',cp:'67269'},{c:'La Esperanza',cp:'67275'},{c:'Los Encinos',cp:'67275'},{c:'Palermo',cp:'67275'},{c:'San Juan',cp:'67275'},{c:'Cerro de La Silla',cp:'67276'},{c:'Hacienda San Marcos',cp:'67276'},{c:'Las Bugambilias',cp:'67276'},{c:'Villa San Francisco',cp:'67276'},{c:'Arcos de Zirándaro',cp:'67277'},{c:'Cerradas del Rey',cp:'67277'},{c:'Lagos de Zirándaro',cp:'67277'},{c:'Portal de San Roque',cp:'67277'},{c:'Zirandaro',cp:'67277'},{c:'Alborada',cp:'67280'},{c:'Arboledas de San Roque',cp:'67280'},{c:'Bosques de San Roque',cp:'67280'},{c:'Jardines de San Roque',cp:'67280'},{c:'Los Valles',cp:'67280'},{c:'Montebello',cp:'67280'},{c:'San Francisco',cp:'67280'},{c:'San Roque',cp:'67280'},{c:'Valle Real',cp:'67280'},{c:'10 de Mayo',cp:'67286'},{c:'Bosques de San Pedro',cp:'67286'},{c:'Laderas de la Silla',cp:'67286'},{c:'Lomas de Santa Mónica I',cp:'67286'},{c:'San Pedro',cp:'67286'},{c:'Santa Mónica',cp:'67286'},{c:'Valle de la Silla',cp:'67286'},{c:'Jardines de la Silla',cp:'67287'},{c:'Ex Hacienda el Rosario',cp:'67288'},{c:'Lomas de los Naranjos',cp:'67288'},{c:'Los Naranjos',cp:'67288'},{c:'Rancho Viejo',cp:'67288'},{c:'Santa Isabel',cp:'67288'},{c:'Punta Esmeralda Sur',cp:'67289'},{c:'Valle de Juárez',cp:'67289'},{c:'Aliria Residencial',cp:'67294'},{c:'Altta Condesa',cp:'67294'},{c:'Contessa',cp:'67294'},{c:'Terra Park Condesa',cp:'67294'},{c:'Valle Condesa I',cp:'67294'},{c:'Valle Condesa II',cp:'67294'},{c:'Valle Condesa III',cp:'67294'},{c:'San Mateo',cp:'67296'}],
+  'Santiago': [{c:'Guaxuco',cp:'67300'},{c:'Los Rodríguez',cp:'67300'},{c:'San Juan',cp:'67300'},{c:'Bosques de las Misiones',cp:'67302'},{c:'El Faisán',cp:'67302'},{c:'Las Misiones',cp:'67302'},{c:'Los Nogales',cp:'67302'},{c:'Quivira',cp:'67302'},{c:'El Barrial',cp:'67303'},{c:'El Ranchito',cp:'67303'},{c:'San Andres',cp:'67303'},{c:'La Boca',cp:'67304'},{c:'Campestre Real',cp:'67310'},{c:'El Pueblito de Santiago',cp:'67310'},{c:'Portales de Santiago',cp:'67310'},{c:'Santiago Centro',cp:'67310'},{c:'Valle de Santa Rosalía',cp:'67310'},{c:'Lagos de San Francisco',cp:'67312'},{c:'San Francisco',cp:'67312'},{c:'Jardines de Santiago',cp:'67313'},{c:'Alina Residencial',cp:'67315'},{c:'Condado de Asturias',cp:'67315'},{c:'Valles de Santiago',cp:'67315'},{c:'Las Huertas',cp:'67316'},{c:'Los Sabinos',cp:'67316'},{c:'Sierras del Vergel',cp:'67316'},{c:'Las Cristalinas',cp:'67317'},{c:'Punta la Boca',cp:'67317'},{c:'Campestre Santiago',cp:'67318'},{c:'Santa Rosalía',cp:'67318'},{c:'Valle de Santiago',cp:'67318'},{c:'El Cercado Centro',cp:'67320'},{c:'Alameda',cp:'67322'},{c:'Los Pescadores',cp:'67322'},{c:'San Javier',cp:'67322'},{c:'Jardines de La Boca',cp:'67323'},{c:'Las Hadas',cp:'67323'},{c:'Los Nísperos',cp:'67323'},{c:'Campestre Santa Clara',cp:'67324'},{c:'Pedregal de Santiago',cp:'67327'},{c:'Cumbres de Santiago',cp:'67328'},{c:'San José Norte',cp:'67328'},{c:'San José Sur',cp:'67328'},{c:'Valle Dorado',cp:'67328'},{c:'Residencial Hacienda Santiago',cp:'67329'},{c:'Valle Alto',cp:'67329'},{c:'La Ciénega de González',cp:'67330'},{c:'Laguna de Sánchez',cp:'67338'},{c:'Bosque Residencial',cp:'67340'},{c:'San Juan Bautista',cp:'67340'}],
+  'Cadereyta Jiménez': [{c:'Centro',cp:'67480'},{c:'Hacienda los Encinos',cp:'67488'},{c:'Valle de Cadereyta',cp:'67490'}],
+  'Salinas Victoria': [{c:'Centro',cp:'65500'},{c:'Hacienda San Juan',cp:'65508'}],
+  'General Zuazua': [{c:'Centro',cp:'65750'},{c:'Los Cantaros',cp:'65756'}],
+  'Pesquería': [{c:'Centro',cp:'65660'},{c:'Arca Continental',cp:'65666'}],
+  'El Carmen': [{c:'Centro',cp:'66550'},{c:'La Encantada',cp:'66550'}],
+  'Ciénega de Flores': [{c:'Centro',cp:'65550'},{c:'Hacienda La Llave',cp:'65552'}],
+  'Linares': [{c:'Centro',cp:'67700'},{c:'Los Ángeles',cp:'67706'},{c:'Residencial Linares',cp:'67710'}],
+  'Montemorelos': [{c:'Centro',cp:'67500'},{c:'Fracc. Residencial',cp:'67506'}],
+  'Allende': [{c:'Centro',cp:'67350'},{c:'Hacienda Allende',cp:'67356'}],
+  'Sabinas Hidalgo': [{c:'Centro',cp:'65200'},{c:'Residencial',cp:'65206'}],
+  'Saltillo, Coahuila': [{c:'Centro',cp:'25000'},{c:'Zona Valle',cp:'25080'},{c:'Las Palmas',cp:'25205'},{c:'Lomas de Lourdes',cp:'25010'}],
+  'Ramos Arizpe, Coahuila': [{c:'Centro',cp:'25900'},{c:'Industrial',cp:'25901'}],
+  'Monclova, Coahuila': [{c:'Centro',cp:'25700'},{c:'Los Pinos',cp:'25706'}],
+  'Victoria, Tamaulipas': [{c:'Centro',cp:'87000'},{c:'Lomas de Condominio',cp:'87087'}],
+  'Reynosa, Tamaulipas': [{c:'Centro',cp:'88500'},{c:'Del Prado',cp:'88630'}],
+  'Matamoros, Tamaulipas': [{c:'Centro',cp:'87300'},{c:'Las Fuentes',cp:'87390'}],
+  'Nuevo Laredo, Tamaulipas': [{c:'Centro',cp:'88000'},{c:'Viveros del Río',cp:'88090'}],
+};
+
+async function geocodificarDireccion() {
+  const direccion = (document.getElementById('calle')?.value || '').trim();
+  const statusEl  = document.getElementById('geo-status');
+  const btnGeo    = document.getElementById('btn-geo');
+  if (!direccion) { if(statusEl) statusEl.textContent = '⚠️ Escribe la dirección completa primero.'; return; }
+
+  if(statusEl) statusEl.textContent = '🔍 Buscando dirección...';
+  if(btnGeo)   { btnGeo.disabled = true; btnGeo.textContent = '⏳'; }
+
+  try {
+    const query = (direccion.toLowerCase().includes('nuevo le') || direccion.toLowerCase().includes(', nl'))
+      ? direccion : `${direccion}, Nuevo León, México`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&countrycodes=mx&limit=3`;
+    const res  = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+    const data = await res.json();
+
+    if (!data.length) {
+      if(statusEl) statusEl.textContent = '⚠️ Dirección no encontrada. Llena los campos manualmente.';
+      if(btnGeo)   { btnGeo.disabled = false; btnGeo.textContent = '📍 Autodetectar'; }
+      return;
+    }
+
+    const addr  = data[0].address || {};
+    const coloniaDetectada   = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || addr.hamlet || '';
+    const municipioDetectado = addr.city   || addr.town || addr.municipality || addr.county || '';
+    const cpDetectado        = addr.postcode || '';
+    const mensajes = [];
+
+    // ── Municipio ──
+    if (municipioDetectado) {
+      const munSel   = document.getElementById('municipio');
+      const munMatch = Array.from(munSel.options).find(o =>
+        municipioDetectado.toLowerCase().includes(o.value.toLowerCase().split(',')[0]) ||
+        o.value.toLowerCase().includes(municipioDetectado.toLowerCase().split(',')[0])
+      );
+      if (munMatch) { munSel.value = munMatch.value; actualizarColonias(); mensajes.push(`Municipio: ${munMatch.value}`); }
+    }
+
+    // ── Colonia ──
+    if (coloniaDetectada) {
+      const colSel  = document.getElementById('colonia');
+      const normStr = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+      const colN    = normStr(coloniaDetectada);
+      let colMatch  = Array.from(colSel.options).find(o => normStr(o.value) === colN);
+      if (!colMatch) colMatch = Array.from(colSel.options).find(o => { const v = normStr(o.value); return v.includes(colN) || colN.includes(v); });
+      if (colMatch) {
+        colSel.value = colMatch.value; mensajes.push(`Colonia: ${colMatch.value}`);
+      } else {
+        // No está en catálogo → agregar opción temporal
+        const opt = document.createElement('option');
+        opt.value = coloniaDetectada; opt.textContent = `📍 ${coloniaDetectada}`;
+        colSel.appendChild(opt); colSel.value = coloniaDetectada;
+        mensajes.push(`Colonia: ${coloniaDetectada} (detectada)`);
+      }
+      actualizarCP();
+    }
+
+    // ── CP ──
+    if (cpDetectado && !document.getElementById('cp').value)
+      { document.getElementById('cp').value = cpDetectado; mensajes.push(`C.P.: ${cpDetectado}`); }
+
+    if(statusEl) statusEl.textContent = mensajes.length
+      ? `✅ ${mensajes.join(' · ')}`
+      : '⚠️ Dirección encontrada pero sin datos suficientes. Llena manualmente.';
+  } catch(e) {
+    if(statusEl) statusEl.textContent = '⚠️ Error de conexión. Llena los campos manualmente.';
+    console.warn('Geocoding error:', e);
+  }
+  if(btnGeo) { btnGeo.disabled = false; btnGeo.textContent = '📍 Autodetectar'; }
+}
+
+function toggleTorre() {
+  const tipo = document.getElementById('tipo').value;
+  const tg = document.getElementById('torre-group');
+  if (tg) tg.style.display = (tipo === 'Departamento') ? 'block' : 'none';
+}
+
+function actualizarColonias() {
+  const mun = document.getElementById('municipio').value;
+  const sel = document.getElementById('colonia');
+  sel.innerHTML = '<option value="">— Selecciona colonia —</option>';
+  const colonias = [...(COLONIAS_DATA[mun] || [])].sort((a, b) =>
+    a.c.localeCompare(b.c, 'es', { sensitivity: 'base' })
+  );
+  colonias.forEach(({c}) => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  });
+  document.getElementById('cp').value = '';
+}
+
+function actualizarCP() {
+  const mun = document.getElementById('municipio').value;
+  const col = document.getElementById('colonia').value;
+  const colonias = COLONIAS_DATA[mun] || [];
+  const match = colonias.find(x => x.c === col);
+  document.getElementById('cp').value = match ? match.cp : '';
+}
+
+// Initialize colonias on load
+window.addEventListener('load', () => actualizarColonias());
+
+// ══════════════════════════════════════════════════════
+//  BÚSQUEDA AUTOMÁTICA DE ENTORNO — OpenStreetMap (gratis)
+// ══════════════════════════════════════════════════════
+function aplicarEntornoCheckboxes(found) {
+  const mapping = [
+    { key:'sup',    val:'Supermercado (HEB/Walmart/La Comer)', min:1 },
+    { key:'hosp',   val:'Hospital o clínica privada',           min:1 },
+    { key:'esc',    val:'Escuela privada',                      min:1 },
+    { key:'parque', val:'Parque o área verde',                  min:1 },
+    { key:'mall',   val:'Centro comercial o plaza',             min:1 },
+    { key:'tienda', val:'OXXO / Comercio de proximidad',        min:1 },
+    { key:'gym',    val:'Gimnasio o club deportivo',            min:1 },
+    { key:'rest',   val:'Restaurantes y cafeterías',            min:3 },
+    { key:'bus',    val:'Transporte público cercano',           min:1 },
+    { key:'av',     val:'Acceso a avenida principal',           min:1 },
+  ];
+  document.querySelectorAll('#entorno-grid input[type=checkbox]').forEach(cb => {
+    const m = mapping.find(x => x.val === cb.value);
+    if (m && (found[m.key]||[]).length >= m.min) cb.checked = true;
+  });
+}
+
+async function fetchEntornoData() {
+  const calle    = (document.getElementById('calle')?.value || '').trim();
+  const colonia  = (document.getElementById('colonia')?.value || '').trim();
+  const municipio= (document.getElementById('municipio')?.value || '').trim();
+  const cp       = (document.getElementById('cp')?.value || '').trim();
+
+  if (!colonia && !municipio) return null;
+
+  // Construir query para Nominatim
+  const parts = [];
+  if (calle) parts.push(calle);
+  if (colonia) parts.push(colonia);
+  if (municipio) parts.push(municipio);
+  parts.push('Nuevo León, México');
+  const nominatimQ = encodeURIComponent(parts.join(', '));
+
+  try {
+    // 1. Geocodificación
+    const geoRes = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${nominatimQ}&format=json&limit=1&countrycodes=mx&accept-language=es`
+    );
+    const geoData = await geoRes.json();
+
+    if (!geoData.length) return null;
+
+    const lat = parseFloat(geoData[0].lat);
+    const lng = parseFloat(geoData[0].lon);
+
+    // 2. Overpass API — POIs en 3km
+    const R = 3000;
+    const q = `[out:json][timeout:45];(
+      node["shop"~"^(supermarket|convenience)$"](around:${R},${lat},${lng});
+      way["shop"~"^(supermarket|convenience)$"](around:${R},${lat},${lng});
+      node["amenity"~"^(hospital|clinic|doctors|pharmacy)$"](around:${R},${lat},${lng});
+      way["amenity"~"^(hospital|clinic|doctors)$"](around:${R},${lat},${lng});
+      node["amenity"~"^(school|university|college)$"](around:${R},${lat},${lng});
+      way["amenity"~"^(school|university|college)$"](around:${R},${lat},${lng});
+      node["leisure"="park"](around:${R},${lat},${lng});
+      way["leisure"="park"](around:${R},${lat},${lng});
+      node["shop"="mall"](around:${R},${lat},${lng});
+      way["shop"="mall"](around:${R},${lat},${lng});
+      node["leisure"~"^(fitness_centre|sports_centre)$"](around:${R},${lat},${lng});
+      way["leisure"~"^(fitness_centre|sports_centre)$"](around:${R},${lat},${lng});
+      node["amenity"~"^(restaurant|fast_food|cafe)$"](around:2000,${lat},${lng});
+      node["highway"="bus_stop"](around:1500,${lat},${lng});
+      node["amenity"="bus_station"](around:${R},${lat},${lng});
+      way["highway"~"^(primary|trunk|secondary|motorway)$"](around:2500,${lat},${lng});
+      node["landuse"~"^(construction|commercial|retail|industrial)$"](around:${R},${lat},${lng});
+      way["landuse"~"^(construction|commercial|retail)$"](around:${R},${lat},${lng});
+      node["building"="construction"](around:${R},${lat},${lng});
+      way["building"="construction"](around:${R},${lat},${lng});
+    );out body;`;
+
+    // Intentar con endpoint principal, luego fallback
+    let ovRes;
+    try {
+      ovRes = await fetch('https://overpass-api.de/api/interpreter', { method:'POST', body:q });
+      if (!ovRes.ok) throw new Error('endpoint principal falló');
+    } catch(_) {
+      ovRes = await fetch('https://overpass.kumi.systems/api/interpreter', { method:'POST', body:q });
+    }
+    const ovData = await ovRes.json();
+    const els = ovData.elements || [];
+
+    // 3. Clasificar resultados
+    const found = { sup:[], hosp:[], esc:[], parque:[], mall:[], tienda:[], gym:[], rest:[], bus:[], av:[], construccion:[] };
+    els.forEach(el => {
+      const t = el.tags || {};
+      const n = t.name || t['name:es'] || '';
+      const shop = t.shop || ''; const amenity = t.amenity || '';
+      const leisure = t.leisure || ''; const hw = t.highway || '';
+      const landuse = t.landuse || ''; const building = t.building || '';
+      if (shop === 'supermarket') found.sup.push(n || 'Supermercado');
+      else if (shop === 'convenience') {
+        const nl = n.toLowerCase();
+        if (nl.includes('oxxo') || nl.includes('extra') || nl.includes('seven') || nl.includes('7-')) found.tienda.push(n);
+        else found.sup.push(n || 'Tienda');
+      } else if (shop === 'mall') found.mall.push(n || 'Centro comercial');
+      else if (['hospital','clinic','doctors'].includes(amenity)) found.hosp.push(n || 'Hospital');
+      else if (['school','university','college'].includes(amenity)) found.esc.push(n || 'Escuela');
+      else if (leisure === 'park') found.parque.push(n || 'Parque');
+      else if (leisure === 'fitness_centre' || leisure === 'sports_centre') found.gym.push(n || 'Gimnasio');
+      else if (['restaurant','fast_food','cafe'].includes(amenity)) found.rest.push(n);
+      else if (hw === 'bus_stop' || amenity === 'bus_station') found.bus.push(n || 'Parada');
+      else if (['primary','trunk','secondary','motorway'].includes(hw)) {
+        const av = n || t['name:es'] || t.ref || '';
+        if (av && !found.av.includes(av)) found.av.push(av);
+      }
+      if (landuse === 'construction' || building === 'construction') {
+        const cn = n || t['addr:street'] || 'Proyecto en construcción';
+        if (!found.construccion.includes(cn)) found.construccion.push(cn);
+      }
+    });
+
+    return found;
+
+  } catch(e) {
+    console.warn('fetchEntornoData error:', e.message);
+    return null;
+  }
+}
+</script>
+</body>
+</html>
