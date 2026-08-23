@@ -1849,5 +1849,189 @@ async function extractINE(input, party) {
   }
 }
 </script>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   NIVA DOCS — SISTEMA DE FOLIOS (P0)
+   Folio único por documento: NIVA-{TIPO}-{AAAAMMDD}-{###}
+   - Se asigna automáticamente al descargar el PDF (o manualmente).
+   - Aparece impreso en el documento (dentro de #docPreview → sale en el PDF).
+   - Se registra en localStorage con un snapshot del formulario,
+     recuperable desde el panel "Recientes".
+   - No modifica ningún generador ni el contenido legal de los documentos.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+  var TIPO_PREF = {
+    'oferta-renta':'OFR','oferta-compra':'OFC','sep-renta':'SPR','sep-compra':'SPC',
+    'contrato-arrendamiento':'ARR','contrato-compraventa':'CPV','exclusividad':'EXC',
+    'visita':'VIS','entrega':'ENT','recibo-deposito':'RDP'
+  };
+  var TIPO_NOMBRE = {
+    'oferta-renta':'Oferta de renta','oferta-compra':'Oferta de compra','sep-renta':'Separación renta',
+    'sep-compra':'Separación compra','contrato-arrendamiento':'Contrato arrendamiento',
+    'contrato-compraventa':'Contrato compraventa','exclusividad':'Exclusividad','visita':'Registro de visita',
+    'entrega':'Entrega-recepción','recibo-deposito':'Recibo de depósito'
+  };
+  var LS_KEY = 'niva_docs_registry';
+  window.nivaFolioActual = null;
+
+  function leerRegistro(){
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch(e){ return []; }
+  }
+  function guardarRegistro(r){
+    try { localStorage.setItem(LS_KEY, JSON.stringify(r.slice(0,200))); } catch(e){}
+  }
+  function hoyStr(){
+    var d = new Date();
+    return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  }
+  function snapshotForm(){
+    var snap = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+      if (el.type === 'file') return;
+      if (el.type === 'checkbox' || el.type === 'radio') snap[el.id] = el.checked;
+      else snap[el.id] = el.value;
+    });
+    return snap;
+  }
+  function restaurarForm(snap){
+    Object.keys(snap || {}).forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!snap[id];
+      else el.value = snap[id];
+    });
+  }
+  function generarFolio(tipo){
+    var pref = TIPO_PREF[tipo] || 'DOC';
+    var fecha = hoyStr();
+    var reg = leerRegistro();
+    var n = reg.filter(function(r){ return r.tipo === tipo && r.folio.indexOf(fecha) >= 0; }).length + 1;
+    var folio;
+    do {
+      folio = 'NIVA-' + pref + '-' + fecha + '-' + String(n).padStart(3,'0');
+      n++;
+    } while (reg.some(function(r){ return r.folio === folio; })); // nunca duplicar
+    return folio;
+  }
+  function resumenPartes(){
+    var a = (document.getElementById('p1-nombre')||{}).value || '';
+    var b = (document.getElementById('p2-nombre')||{}).value || '';
+    var d = (document.getElementById('prop-dir')||{}).value || '';
+    return [a,b,d].filter(Boolean).join(' · ').slice(0,90);
+  }
+  window.nivaAsignarFolio = function(){
+    if (window.nivaFolioActual) return window.nivaFolioActual;
+    var tipo = (typeof currentDoc !== 'undefined') ? currentDoc : 'doc';
+    var folio = generarFolio(tipo);
+    window.nivaFolioActual = folio;
+    var reg = leerRegistro();
+    reg.unshift({ folio: folio, tipo: tipo, tipoNombre: TIPO_NOMBRE[tipo]||tipo, fecha: new Date().toISOString(), resumen: resumenPartes(), form: snapshotForm() });
+    guardarRegistro(reg);
+    inyectarFolioEnPreview();
+    actualizarBadgeFolio();
+    return folio;
+  };
+  function inyectarFolioEnPreview(){
+    var prev = document.getElementById('docPreview');
+    if (!prev) return;
+    var old = document.getElementById('niva-folio-line');
+    if (old) old.remove();
+    if (!window.nivaFolioActual) return;
+    var div = document.createElement('div');
+    div.id = 'niva-folio-line';
+    div.style.cssText = 'text-align:right;font-size:10px;color:#64748b;letter-spacing:.06em;padding:2px 0 6px;font-family:Arial,sans-serif;';
+    div.textContent = 'Folio: ' + window.nivaFolioActual;
+    prev.insertBefore(div, prev.firstChild);
+  }
+  function actualizarBadgeFolio(){
+    var b = document.getElementById('niva-folio-badge');
+    if (b) b.textContent = window.nivaFolioActual ? ('Folio: ' + window.nivaFolioActual) : 'Sin folio asignado';
+  }
+
+  // ── Wraps (sin tocar los originales) ──
+  var _renderPreview = window.renderPreview;
+  if (typeof _renderPreview === 'function') {
+    window.renderPreview = function(){
+      var r = _renderPreview.apply(this, arguments);
+      inyectarFolioEnPreview();
+      return r;
+    };
+  }
+  var _selectDoc = window.selectDoc;
+  if (typeof _selectDoc === 'function') {
+    window.selectDoc = function(){
+      window.nivaFolioActual = null; // nuevo tipo ⇒ documento nuevo ⇒ folio nuevo
+      var r = _selectDoc.apply(this, arguments);
+      actualizarBadgeFolio();
+      return r;
+    };
+  }
+  var _downloadPDF = window.downloadPDF;
+  if (typeof _downloadPDF === 'function') {
+    window.downloadPDF = function(){
+      window.nivaAsignarFolio(); // asegura folio antes de capturar el PDF
+      return _downloadPDF.apply(this, arguments);
+    };
+  }
+  var _clearForm = window.clearForm;
+  if (typeof _clearForm === 'function') {
+    window.clearForm = function(){
+      var r = _clearForm.apply(this, arguments);
+      window.nivaFolioActual = null;
+      actualizarBadgeFolio();
+      inyectarFolioEnPreview();
+      return r;
+    };
+  }
+
+  // ── UI: badge + panel de recientes ──
+  function construirUI(){
+    var bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;bottom:14px;right:14px;z-index:9999;display:flex;gap:8px;align-items:center;font-family:Arial,sans-serif;';
+    bar.innerHTML =
+      '<span id="niva-folio-badge" style="background:#1B2A4A;color:#C9A84C;font-size:11px;font-weight:700;padding:8px 12px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.25);">Sin folio asignado</span>' +
+      '<button id="niva-docs-recientes-btn" style="background:#C9A84C;color:#1B2A4A;border:0;border-radius:999px;padding:8px 14px;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);">📂 Recientes</button>';
+    document.body.appendChild(bar);
+    var panel = document.createElement('div');
+    panel.id = 'niva-docs-recientes';
+    panel.style.cssText = 'position:fixed;bottom:60px;right:14px;z-index:9999;width:340px;max-height:420px;overflow:auto;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 16px 50px rgba(0,0,0,.25);display:none;font-family:Arial,sans-serif;';
+    document.body.appendChild(panel);
+    document.getElementById('niva-docs-recientes-btn').onclick = function(){
+      if (panel.style.display === 'none') { pintarPanel(); panel.style.display = 'block'; }
+      else panel.style.display = 'none';
+    };
+    function pintarPanel(){
+      var reg = leerRegistro();
+      if (!reg.length) { panel.innerHTML = '<div style="padding:18px;font-size:12.5px;color:#64748b;text-align:center;">Aún no hay documentos con folio.<br>El folio se asigna al descargar el PDF.</div>'; return; }
+      var html = '<div style="padding:10px 14px;font-size:11px;font-weight:800;color:#1B2A4A;letter-spacing:.08em;border-bottom:2px solid #C9A84C;">DOCUMENTOS RECIENTES</div>';
+      reg.slice(0,20).forEach(function(r, i){
+        var f = new Date(r.fecha);
+        html += '<div style="padding:10px 14px;border-bottom:1px solid #f1f4f9;">' +
+          '<div style="font-size:12px;font-weight:700;color:#1B2A4A;">' + r.folio + '</div>' +
+          '<div style="font-size:11px;color:#64748b;margin:2px 0;">' + (r.tipoNombre||r.tipo) + ' · ' + f.toLocaleDateString('es-MX') + ' ' + f.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) + '</div>' +
+          (r.resumen ? '<div style="font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + r.resumen.replace(/</g,'&lt;') + '</div>' : '') +
+          '<button data-i="' + i + '" class="niva-reabrir" style="margin-top:6px;background:#f1f4f9;border:1px solid #e2e8f0;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:#1B2A4A;cursor:pointer;">↩ Reabrir</button>' +
+          '</div>';
+      });
+      panel.innerHTML = html;
+      panel.querySelectorAll('.niva-reabrir').forEach(function(b){
+        b.onclick = function(){
+          var r = leerRegistro()[Number(b.dataset.i)];
+          if (!r) return;
+          if (typeof _selectDoc === 'function') _selectDoc(r.tipo); // usa el original: no borra el folio
+          restaurarForm(r.form);
+          window.nivaFolioActual = r.folio;
+          actualizarBadgeFolio();
+          if (typeof window.updatePreview === 'function') window.updatePreview();
+          panel.style.display = 'none';
+        };
+      });
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', construirUI);
+  else construirUI();
+})();
+</script>
+
 </body>
 </html>
