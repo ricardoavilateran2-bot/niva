@@ -1,383 +1,437 @@
-<!doctype html>
-<html lang="es"><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>NIVA OS</title>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA OS — Portal de Herramientas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{--navy:#141d33;--navy2:#1d2947;--gold:#c9a227;--bg:#f4f5f8;--card:#fff;--txt:#1a2133;--mut:#6b7280;--ok:#16a34a;--new:#2563eb;--warn:#d97706;--bad:#9ca3af}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
-.hidden{display:none!important}
-/* LOGIN */
-#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--navy) 0%,var(--navy2) 100%);padding:24px}
-.lbox{width:100%;max-width:360px;background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-.logo{text-align:center;margin-bottom:18px}
-.logo b{font-size:26px;letter-spacing:4px;color:var(--navy)}
-.logo span{display:block;font-size:11px;letter-spacing:3px;color:var(--gold);margin-top:2px}
-.lbox label{font-size:12px;color:var(--mut);display:block;margin:12px 0 4px}
-.lbox input{width:100%;padding:12px;border:1px solid #d7dbe3;border-radius:10px;font-size:16px}
-.lbox button{width:100%;margin-top:18px;padding:13px;background:var(--navy);color:#fff;border:0;border-radius:10px;font-size:16px;font-weight:600}
-#lerr{color:#dc2626;font-size:13px;margin-top:10px;text-align:center;min-height:16px}
-/* APP — layout con barra lateral */
-#app{display:flex;min-height:100vh}
-#sbar{width:210px;flex-shrink:0;background:var(--navy);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
-.slogo{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
-.slogo b{font-size:19px;letter-spacing:3px}
-.slogo span{display:block;font-size:9.5px;letter-spacing:2px;color:var(--gold);margin-top:1px}
-.snav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
-.tab{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;background:none;font-size:13px;font-weight:600;border:0;color:rgba(255,255,255,.82);text-align:left;cursor:pointer;white-space:nowrap}
-.tab:hover{background:rgba(255,255,255,.07)}
-.tab.on{background:var(--gold);color:var(--navy)}
-.tab .n{margin-left:auto;font-size:11.5px;font-weight:800;background:rgba(255,255,255,.14);border-radius:999px;padding:1px 8px;min-width:22px;text-align:center}
-.tab.on .n{background:rgba(20,29,51,.18);color:var(--navy)}
-.tab .n.hot{background:var(--new);color:#fff}
-.sfoot{padding:12px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.hname{font-size:12px;opacity:.85;overflow:hidden;text-overflow:ellipsis}
-.hout{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}
-#contenido{flex:1;min-width:0}
-main{padding:16px 16px 60px;max-width:680px;margin:0 auto}
-.vtitulo{font-size:15px;font-weight:800;color:var(--navy);letter-spacing:.5px;margin:2px 2px 10px;display:flex;align-items:center;gap:8px}
-.lsec{font-size:12px;font-weight:800;letter-spacing:1.2px;color:var(--navy);padding:5px 2px;border-bottom:2px solid var(--gold);margin:14px 0 9px;display:flex;align-items:center;gap:7px}
-.lsec span{background:var(--navy);color:#fff;border-radius:999px;padding:1px 8px;font-size:11px}
-.lsec.gris{border-bottom-color:#d7dbe3;color:var(--mut)}.lsec.gris span{background:#9ca3af}
-.b-client{background:#0e7a3d}.b-unid{background:#64748b}
-.tipofix{padding:0 12px 12px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut)}
-.tipofix button{border:1px solid #d7dbe3;background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;cursor:pointer}
-.tipofix button:hover{background:#f1f3f7}
-.tipofix select{padding:6px 8px;border:1px solid #d7dbe3;border-radius:8px;font-size:13px;background:#fff}
-@media(max-width:719px){
-  #app{flex-direction:column}
-  #sbar{width:100%;height:auto;position:sticky;flex-direction:column;z-index:30}
-  .slogo{padding:10px 14px 8px;border-bottom:0;display:flex;align-items:baseline;gap:8px}
-  .snav{flex-direction:row;overflow-x:auto;padding:0 8px 10px;gap:6px}
-  .tab{padding:7px 10px;font-size:12px;flex-shrink:0}
-  .sfoot{position:absolute;top:8px;right:10px;border:0;padding:0}
-  .hname{display:none}
-}
-.filtros{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px}
-.f{border:1px solid #d7dbe3;background:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;white-space:nowrap;color:var(--mut)}
-.f.on{background:var(--navy);color:#fff;border-color:var(--navy)}
-#buscar{width:100%;padding:10px 12px;border:1px solid #d7dbe3;border-radius:10px;font-size:15px;margin-bottom:10px;background:#fff}
-.card{background:var(--card);border-radius:14px;box-shadow:0 1px 4px rgba(15,23,42,.08);margin-bottom:12px;overflow:hidden}
-.crow{display:flex;gap:12px;padding:12px}
-.cimg{width:86px;height:86px;border-radius:10px;object-fit:cover;background:#e5e7eb;flex-shrink:0}
-.cinfo{flex:1;min-width:0}
-.cname{font-weight:700;font-size:15.5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;letter-spacing:.5px}
-.b-new{background:var(--new)}.b-contacted{background:var(--warn)}.b-attended{background:var(--ok)}.b-cancelled{background:var(--bad)}
-.b-agent{background:#7c3aed}
-.cprop{font-size:13px;color:var(--txt);margin-top:3px;line-height:1.35}
-.cmeta{font-size:12px;color:var(--mut);margin-top:3px}
-.cprice{color:var(--navy);font-weight:700}
-details{padding:0 12px 8px}
-details summary{font-size:12.5px;color:var(--mut);cursor:pointer}
-details p{font-size:13.5px;background:#f1f3f7;border-radius:8px;padding:8px;margin-top:6px;white-space:pre-wrap}
-.acciones{display:flex;gap:8px;padding:0 12px 12px}
-.acc{flex:1;text-align:center;padding:10px 4px;border-radius:10px;font-size:13.5px;font-weight:700;border:0;text-decoration:none;color:#fff;display:block}
-.wa{background:#25d366}.tel{background:var(--navy)}.ver{background:#64748b}
-.estado{padding:0 12px 12px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut)}
-.estado select{flex:1;padding:8px;border:1px solid #d7dbe3;border-radius:8px;font-size:14px;background:#fff}
-.wabox{padding:0 12px 12px}
-.wabox textarea{width:100%;min-height:84px;border:1px solid #d7dbe3;border-radius:10px;padding:10px;font-size:14px;font-family:inherit}
-.wabox .go{margin-top:8px;width:100%;padding:11px;background:#25d366;color:#fff;border:0;border-radius:10px;font-size:15px;font-weight:700}
-#pbarra{padding:10px 12px 0;max-width:760px;margin:0 auto}
-#pbarra .filtros{margin-bottom:8px}
-.psort{display:flex;gap:8px;flex-wrap:wrap}
-.psort select{flex:0 0 auto;border:1px solid #d7dbe3;border-radius:10px;padding:9px 10px;font-size:13.5px;background:#fff;font-family:inherit}
-.psort input{flex:1;min-width:160px;border:1px solid #d7dbe3;border-radius:10px;padding:9px 12px;font-size:14px}
-body[data-tab="props"] main{max-width:1280px}
-.psecs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
-@media(max-width:640px){.psecs{grid-template-columns:1fr}}
-.psec{margin-bottom:0}
-.psec-h{font-size:13px;font-weight:800;letter-spacing:1.5px;color:var(--navy);padding:6px 2px;border-bottom:2px solid var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.psec-h span{background:var(--navy);color:#fff;border-radius:999px;padding:1px 9px;font-size:11.5px}
-.ptabla{background:var(--card);border-radius:12px;box-shadow:0 1px 4px rgba(15,23,42,.08);overflow:hidden}
-.prow{display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid #eef0f4;text-decoration:none;color:var(--txt)}
-.prow:last-child{border-bottom:0}
-.prow:hover{background:#f7f8fb}
-.prow img{width:44px;height:44px;border-radius:8px;object-fit:cover;background:#e5e7eb;flex-shrink:0}
-.pr-main{flex:1;min-width:0}
-.pr-t{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pr-m{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pr-tipo{font-size:11.5px;color:var(--mut);width:92px;flex-shrink:0}
-.pr-specs{font-size:11.5px;color:var(--mut);width:110px;flex-shrink:0;text-align:right}
-.pr-precio{font-size:13.5px;font-weight:800;color:var(--navy);width:110px;flex-shrink:0;text-align:right}
-.pr-precio small{font-weight:600;color:var(--mut);font-size:10.5px}
-@media(max-width:560px){.pr-tipo,.pr-specs{display:none}.pr-precio{width:auto}}
-.vacio{text-align:center;color:var(--mut);padding:50px 20px;font-size:14.5px}
-.pcard .cimg{width:96px;height:96px}
-#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:999px;font-size:13.5px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
-#toast.show{opacity:1}
-</style></head><body>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  :root {
+    --navy:   #1B2A4A;
+    --navy2:  #0f1e36;
+    --gold:   #C9A84C;
+    --gold2:  #e8c96a;
+    --white:  #ffffff;
+    --gray:   #f1f4f9;
+    --text:   #1e293b;
+    --muted:  #64748b;
+    --border: #e2e8f0;
+    --radius: 20px;
+  }
+
+  html, body {
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    background: var(--navy2);
+    color: var(--white);
+    overflow-x: hidden;
+  }
+
+  .hidden { display: none !important; }
+
+  /* ── FONDO ── */
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(201,168,76,.10) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 80% 90%, rgba(27,42,74,.8) 0%, transparent 70%),
+      linear-gradient(160deg, #0d1828 0%, #1B2A4A 50%, #0d1828 100%);
+  }
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0; opacity: .04;
+    background-image:
+      linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* ── LOGIN ── */
+  #login {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .lbox {
+    width: 100%; max-width: 360px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: var(--radius);
+    padding: 34px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    backdrop-filter: blur(6px);
+  }
+  .lbox .logo-block { display: flex; align-items: flex-end; gap: 4px; justify-content: center; }
+  .lbox .logo-niva { font-size: 34px; font-weight: 900; letter-spacing: -.02em; color: var(--white); line-height: 1; }
+  .lbox .logo-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; margin-bottom: 5px; }
+  .lbox .logo-sub {
+    text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .18em;
+    color: rgba(201,168,76,.7); text-transform: uppercase; margin: 4px 0 26px;
+  }
+  .lbox label { font-size: 12px; color: rgba(255,255,255,.5); display: block; margin: 14px 0 6px; }
+  .lbox input {
+    width: 100%; padding: 12px 14px; border-radius: 10px; font-size: 15px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); color: var(--white);
+  }
+  .lbox input:focus { outline: none; border-color: rgba(201,168,76,.5); }
+  .lbox button {
+    width: 100%; margin-top: 22px; padding: 13px;
+    background: linear-gradient(135deg, var(--gold), #b8922e);
+    color: var(--navy2); border: 0; border-radius: 10px; font-size: 15px; font-weight: 800; cursor: pointer;
+  }
+  #lerr { color: #f87171; font-size: 12.5px; margin-top: 12px; text-align: center; min-height: 16px; }
+
+  /* ── WRAPPER ── */
+  .page {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 0 20px 60px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    width: 100%; max-width: 1100px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 36px 0 0;
+    gap: 16px;
+  }
+  .logo-block { display: flex; align-items: flex-end; gap: 4px; }
+  .logo-niva {
+    font-size: 44px; font-weight: 900; letter-spacing: -.02em;
+    color: var(--white); line-height: 1;
+  }
+  .logo-dot { width: 10px; height: 10px; background: var(--gold); border-radius: 50%; margin-bottom: 6px; }
+  .logo-sub {
+    font-size: 12px; font-weight: 600; letter-spacing: .18em;
+    color: rgba(201,168,76,.7); text-transform: uppercase;
+    margin-left: 2px; line-height: 1; padding-bottom: 2px;
+  }
+  .header-nav { display: flex; gap: 10px; align-items: center; }
+  .hname { font-size: 12px; color: rgba(255,255,255,.5); }
+  .header-nav button {
+    font-size: .75rem; color: var(--gold); padding: 7px 16px; font-weight: 700;
+    background: none; border: 1px solid rgba(201,168,76,.4); border-radius: 8px;
+    cursor: pointer; transition: all .2s;
+  }
+  .header-nav button:hover { background: var(--gold); color: var(--navy2); }
+
+  /* ── HERO ── */
+  .hero {
+    width: 100%; max-width: 1100px;
+    padding: 56px 0 48px;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(201,168,76,.12); border: 1px solid rgba(201,168,76,.25);
+    border-radius: 40px; padding: 6px 18px;
+    font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    color: var(--gold); text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .hero-badge::before { content: ''; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; }
+  .hero h1 {
+    font-size: clamp(34px, 6vw, 58px); font-weight: 900;
+    line-height: 1.08; letter-spacing: -.03em;
+    color: var(--white);
+    margin-bottom: 18px;
+  }
+  .hero h1 span { color: var(--gold); }
+  .hero p {
+    font-size: 16px; color: rgba(255,255,255,.5);
+    max-width: 520px; margin: 0 auto; line-height: 1.7;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    width: 100%; max-width: 1100px;
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 32px;
+  }
+  .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,.08); }
+  .divider-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .14em;
+    color: rgba(255,255,255,.3); text-transform: uppercase;
+  }
+
+  /* ── TARJETAS ── */
+  .cards {
+    width: 100%; max-width: 1100px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 980px) { .cards { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .cards { grid-template-columns: 1fr; } }
+
+  .card {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: var(--radius);
+    padding: 30px 24px;
+    display: flex; flex-direction: column;
+    cursor: pointer;
+    text-decoration: none; color: inherit;
+    transition: transform .22s ease, background .22s ease, border-color .22s ease, box-shadow .22s ease;
+    position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(201,168,76,.08) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity .22s ease;
+  }
+  .card:hover { transform: translateY(-4px); background: rgba(255,255,255,.07); border-color: rgba(201,168,76,.3); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  .card:hover::before { opacity: 1; }
+
+  .card-icon {
+    width: 54px; height: 54px;
+    background: rgba(201,168,76,.12);
+    border: 1.5px solid rgba(201,168,76,.2);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .card-icon svg { width: 26px; height: 26px; }
+
+  .card-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .card h2 {
+    font-size: 21px; font-weight: 800; letter-spacing: -.02em;
+    color: var(--white); margin-bottom: 10px; line-height: 1.2;
+  }
+  .card p {
+    font-size: 13px; color: rgba(255,255,255,.5);
+    line-height: 1.65; flex: 1; margin-bottom: 22px;
+  }
+
+  .card-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 20px;
+    background: linear-gradient(135deg, var(--gold), #b8922e);
+    color: var(--navy); font-weight: 800; font-size: 12.5px;
+    border-radius: 10px; border: none;
+    transition: opacity .18s, box-shadow .18s;
+    align-self: flex-start;
+    letter-spacing: .01em;
+  }
+  .card:hover .card-btn { opacity: .9; box-shadow: 0 6px 24px rgba(201,168,76,.35); }
+
+  /* ── FOOTER ── */
+  footer {
+    width: 100%; max-width: 1100px;
+    margin-top: 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,.07);
+  }
+  .footer-logo { font-size: 16px; font-weight: 900; color: rgba(255,255,255,.25); }
+  .footer-logo span { color: rgba(201,168,76,.5); }
+  .footer-copy { font-size: 11px; color: rgba(255,255,255,.2); }
+
+  /* ── ANIMACIONES ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero { animation: fadeUp .7s ease both; }
+  .cards { animation: fadeUp .7s .15s ease both; }
+  footer { animation: fadeUp .7s .38s ease both; }
+</style>
+</head>
+<body>
+
+<div class="bg-pattern"></div>
+<div class="bg-grid"></div>
+
+<!-- LOGIN -->
 <div id="login">
   <div class="lbox">
-    <div class="logo"><b>NIVA</b><span>INMOBILIARIA · OS</span></div>
-    <label>Usuario</label><input id="lu" autocapitalize="none" autocomplete="username">
-    <label>Contraseña</label><input id="lp" type="password" autocomplete="current-password">
+    <div class="logo-block">
+      <span class="logo-niva">NIVA</span>
+      <div class="logo-dot"></div>
+    </div>
+    <div class="logo-sub">Inmobiliaria · OS</div>
+    <label>Usuario</label>
+    <input id="lu" autocapitalize="none" autocomplete="username">
+    <label>Contraseña</label>
+    <input id="lp" type="password" autocomplete="current-password">
     <button id="lbtn">Entrar</button>
     <div id="lerr"></div>
   </div>
 </div>
 
-<div id="app" class="hidden">
-<aside id="sbar">
-  <div class="slogo"><b>NIVA</b><span>OS</span></div>
-  <nav class="snav">
-    <button class="tab on" data-t="clientes">👤 Clientes<span class="n hot" id="n-clientes">–</span></button>
-    <button class="tab" data-t="asesores">👔 Asesores<span class="n" id="n-asesores">–</span></button>
-    <button class="tab" data-t="sinid">❓ Sin identificar<span class="n" id="n-sinid">–</span></button>
-    <button class="tab" data-t="todos">📋 Todos<span class="n" id="n-todos">–</span></button>
-    <button class="tab" data-t="props">🏠 Propiedades<span class="n" id="n-props">–</span></button>
-  </nav>
-  <div class="sfoot"><div class="hname" id="hname"></div><button class="hout" id="hout">Salir</button></div>
-</aside>
-<div id="contenido">
-<main>
-  <div id="barra" class="">
-    <div class="filtros" id="filtros">
-      <button class="f on" data-f="todos">Todos</button>
-      <button class="f" data-f="new">Nuevos</button>
-      <button class="f" data-f="contacted">Contactados</button>
-      <button class="f" data-f="attended">Atendidos</button>
-      <button class="f" data-f="cancelled">Cancelados</button>
+<!-- PORTAL -->
+<div class="page hidden" id="portal">
+
+  <header>
+    <div>
+      <div class="logo-block">
+        <span class="logo-niva">NIVA</span>
+        <div class="logo-dot"></div>
+      </div>
+      <div class="logo-sub">Inmobiliaria · Monterrey</div>
     </div>
-    <input id="buscar" placeholder="Buscar: nombre, teléfono, propiedad, folio, portal...">
+    <div class="header-nav">
+      <span class="hname" id="hname"></span>
+      <button id="hout">Salir</button>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-badge">NIVA OS</div>
+    <h1>Todo lo que necesitas<br>para <span>cerrar más</span></h1>
+    <p>CRM, marketing, valuaciones y documentación — todo en un solo lugar, diseñado para el equipo NIVA.</p>
   </div>
-  <div id="pbarra" class="hidden">
-    <div class="filtros" id="pf-tipo">
-      <button class="f on" data-f="todas">Todas</button>
-      <button class="f" data-f="casa">Casas</button>
-      <button class="f" data-f="depa">Departamentos</button>
-      <button class="f" data-f="otro">Otros</button>
-    </div>
-    <div class="filtros" id="pf-op">
-      <button class="f on" data-f="todo">Renta y venta</button>
-      <button class="f" data-f="rental">Renta</button>
-      <button class="f" data-f="sale">Venta</button>
-    </div>
-    <div class="psort">
-      <select id="pf-sort">
-        <option value="az">Ordenar: A → Z</option>
-        <option value="za">Ordenar: Z → A</option>
-        <option value="pmin">Precio: menor a mayor</option>
-        <option value="pmax">Precio: mayor a menor</option>
-      </select>
-      <input id="pbuscar" placeholder="Buscar por nombre, folio, zona...">
-    </div>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <span class="divider-label">Módulos</span>
+    <div class="divider-line"></div>
   </div>
-  <div id="lista"></div>
-</main>
-</div>
-<div id="toast"></div>
+
+  <div class="cards">
+
+    <!-- CRM -->
+    <a href="./crm.html" class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="14" cy="9" r="4" stroke="#C9A84C" stroke-width="1.8"/>
+          <path d="M5 24c0-4.5 4-8 9-8s9 3.5 9 8" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="card-tag">
+        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
+        Disponible ahora
+      </div>
+      <h2>CRM</h2>
+      <p>Leads, clientes, asesores y propiedades.</p>
+      <span class="card-btn">
+        Entrar al CRM
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+    <!-- CONTENT STUDIO -->
+    <a href="./studio.html" class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="4" width="16" height="20" rx="3" stroke="#C9A84C" stroke-width="1.8"/>
+          <path d="M7 9h8M7 13h8M7 17h5" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="21" cy="21" r="5" fill="#1B2A4A" stroke="#C9A84C" stroke-width="1.5"/>
+          <path d="M19.5 21l1 1 1.5-1.5" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="card-tag">
+        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
+        Disponible ahora
+      </div>
+      <h2>Content Studio</h2>
+      <p>Flyers, historias, videos con voz IA y textos para redes.</p>
+      <span class="card-btn">
+        Abrir Studio
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+    <!-- VALUACIÓN -->
+    <a href="./valuacion.html" class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 22L10 14l4 4 5-7 5 5" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="3" y="3" width="22" height="22" rx="3" stroke="#C9A84C" stroke-width="1.5"/>
+          <circle cx="10" cy="14" r="1.5" fill="#C9A84C"/>
+          <circle cx="14" cy="18" r="1.5" fill="#C9A84C"/>
+          <circle cx="19" cy="11" r="1.5" fill="#C9A84C"/>
+        </svg>
+      </div>
+      <div class="card-tag">
+        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
+        Disponible ahora
+      </div>
+      <h2>Valuación</h2>
+      <p>Reportes de valor de mercado con comparables y estrategia de precio.</p>
+      <span class="card-btn">
+        Generar reporte
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+    <!-- DOCUMENTOS -->
+    <a href="./docs.html" class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 4h10l6 6v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="#C9A84C" stroke-width="1.8"/>
+          <path d="M16 4v6h6" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M9 13h10M9 17h10M9 21h6" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="card-tag">
+        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
+        Disponible ahora
+      </div>
+      <h2>Documentos</h2>
+      <p>Contratos, ofertas y separaciones listos para firmar.</p>
+      <span class="card-btn">
+        Abrir módulo
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+  </div>
+
+  <footer>
+    <div class="footer-logo">NIVA<span>·</span></div>
+    <div class="footer-copy">Herramienta interna — uso exclusivo del equipo NIVA Inmobiliaria</div>
+  </footer>
+
 </div>
 
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const $=s=>document.querySelector(s);
 const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
 const sb = createClient(cfg.url, cfg.anon);
-const $ = (s)=>document.querySelector(s);
-let LEADS=[], PROPS=[], TAB='clientes', FIL='todos', Q='', ESADMIN=false;
-const tipoLead=(l)=>l.contact_type||'unidentified';
-let PT='todas', PO='todo', PS='az', PQ='';
-const EST={new:'NUEVO',contacted:'CONTACTADO',attended:'ATENDIDO',cancelled:'CANCELADO'};
-const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual'};
-const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
-const ftel=(t)=>t?t.replace('+52',''):'';
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 
-async function entrar(){
-  const u=$('#lu').value.trim().toLowerCase(), p=$('#lp').value;
-  if(!u||!p){$('#lerr').textContent='Escribe usuario y contraseña';return}
-  $('#lerr').textContent='';$('#lbtn').textContent='Entrando...';
-  const email=u.includes('@')?u:(u+'@niva.internal');
-  const {error}=await sb.auth.signInWithPassword({email,password:p});
-  $('#lbtn').textContent='Entrar';
-  if(error){$('#lerr').textContent='Usuario o contraseña incorrectos';return}
-  iniciar();
+function showPortal(email){
+  $('#login').classList.add('hidden');
+  $('#portal').classList.remove('hidden');
+  $('#hname').textContent = email || '';
 }
-$('#lbtn').onclick=entrar;
-$('#lp').addEventListener('keydown',e=>{if(e.key==='Enter')entrar()});
-$('#hout').onclick=async()=>{await sb.auth.signOut();location.reload()};
+function showLogin(){
+  $('#portal').classList.add('hidden');
+  $('#login').classList.remove('hidden');
+}
 
-async function iniciar(){
-  $('#login').classList.add('hidden');$('#app').classList.remove('hidden');
-  const {data:{user}}=await sb.auth.getUser();
-  const uname=(user?.email??'').split('@')[0];
-  $('#hname').textContent=uname;
-  ESADMIN=(uname==='admin');
-  await cargar();
-}
-async function cargar(){
-  const [l,p]=await Promise.all([
-    sb.from('my_leads').select('*').order('happened_at',{ascending:false}),
-    sb.from('my_properties').select('*')
-  ]);
-  LEADS=l.data??[];PROPS=p.data??[];
-  cargarContadores();
-  pintar();
-}
-function tipoDe(p){
-  const t=(p.property_type||'').toLowerCase();
-  if(t.includes('depa')||t.includes('departamento'))return 'depa';
-  if(t.includes('casa'))return 'casa';
-  return 'otro';
-}
-function pintar(){
-  document.body.dataset.tab=TAB;
-  $('#barra').style.display=TAB==='props'?'none':'';
-  $('#pbarra').classList.toggle('hidden',TAB!=='props');
-  const host=$('#lista');host.innerHTML='';
-  if(TAB==='props'){
-    if(!PROPS.length){host.innerHTML='<div class="vacio">No tienes propiedades activas asignadas.</div>';return}
-    let ps=PROPS.slice();
-    if(PT!=='todas')ps=ps.filter(p=>tipoDe(p)===PT);
-    if(PO!=='todo')ps=ps.filter(p=>p.operation_type===PO);
-    if(PQ){const q=PQ.toLowerCase();ps=ps.filter(p=>[p.title,p.eb_public_id,p.location_name,p.property_type].join(' ').toLowerCase().includes(q))}
-    const tt=(p)=>(p.title||p.eb_public_id||'').toLowerCase();
-    if(PS==='az')ps.sort((a,b)=>tt(a).localeCompare(tt(b)));
-    else if(PS==='za')ps.sort((a,b)=>tt(b).localeCompare(tt(a)));
-    else if(PS==='pmin')ps.sort((a,b)=>(a.price_amount??Infinity)-(b.price_amount??Infinity));
-    else if(PS==='pmax')ps.sort((a,b)=>(b.price_amount??-1)-(a.price_amount??-1));
-    if(!ps.length){host.innerHTML='<div class="vacio">Sin propiedades con esos filtros.</div>';return}
-    const secciones=[['rental','RENTA'],['sale','VENTA']];
-    const wrapper=document.createElement('div');wrapper.className='psecs';
-    for(const [op,titulo] of secciones){
-      const grupo=ps.filter(p=>p.operation_type===op);
-      if(!grupo.length)continue;
-      const sec=document.createElement('div');sec.className='psec';
-      sec.innerHTML='<div class="psec-h">'+titulo+' <span>'+grupo.length+'</span></div>';
-      const tabla=document.createElement('div');tabla.className='ptabla';
-      for(const p of grupo){
-        const fila=document.createElement('a');fila.className='prow';
-        if(p.public_url){fila.href=p.public_url;fila.target='_blank'}
-        fila.innerHTML='<img loading="lazy" src="'+(p.title_image_url||'')+'" onerror="this.style.visibility=\'hidden\'">'
-          +'<div class="pr-main"><div class="pr-t">'+(p.title||p.eb_public_id)+'</div>'
-          +'<div class="pr-m">'+p.eb_public_id+(p.location_name?' · '+p.location_name:'')+'</div></div>'
-          +'<div class="pr-tipo">'+(p.property_type||'')+'</div>'
-          +'<div class="pr-specs">'+[p.bedrooms?p.bedrooms+'r':null,p.bathrooms?p.bathrooms+'b':null,p.construction_size?p.construction_size+'m²':null].filter(Boolean).join(' · ')+'</div>'
-          +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>';
-        tabla.appendChild(fila);
-      }
-      sec.appendChild(tabla);wrapper.appendChild(sec);
-    }
-    host.appendChild(wrapper);
-    return;
-  }
-  let arr=LEADS.slice();
-  if(TAB==='clientes')arr=arr.filter(l=>tipoLead(l)==='client');
-  else if(TAB==='asesores')arr=arr.filter(l=>tipoLead(l)==='agent');
-  else if(TAB==='sinid')arr=arr.filter(l=>tipoLead(l)==='unidentified');
-  if(FIL!=='todos')arr=arr.filter(x=>x.status===FIL);
-  if(Q){const q=Q.toLowerCase();arr=arr.filter(x=>[x.full_name,x.phone_normalized,x.property_title,x.eb_public_id,ESRC[x.source]].join(' ').toLowerCase().includes(q))}
-  const vacios={clientes:'Sin clientes por ahora. 🎉',asesores:'Sin leads de asesores.',sinid:'Nada pendiente de identificar. ✅',todos:'Sin resultados.'};
-  if(!arr.length){host.innerHTML='<div class="vacio">'+(vacios[TAB]||'Sin resultados.')+'</div>';return}
-  const nuevos=arr.filter(l=>l.status==='new'), resto=arr.filter(l=>l.status!=='new');
-  if(FIL==='todos'&&nuevos.length&&resto.length){
-    const h1=document.createElement('div');h1.className='lsec';h1.innerHTML='🟢 NUEVOS <span>'+nuevos.length+'</span>';host.appendChild(h1);
-    for(const l of nuevos)host.appendChild(cardLead(l));
-    const h2=document.createElement('div');h2.className='lsec gris';h2.innerHTML='ANTERIORES <span>'+resto.length+'</span>';host.appendChild(h2);
-    for(const l of resto)host.appendChild(cardLead(l));
-  } else {
-    for(const l of [...nuevos,...resto])host.appendChild(cardLead(l));
-  }
-}
-function cardLead(l){
-  const d=document.createElement('div');d.className='card';
-  const fecha=l.happened_at?new Date(l.happened_at).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-  d.innerHTML='<div class="crow">'
-    +'<img class="cimg" loading="lazy" src="'+(l.title_image_url||'')+'" onerror="this.style.visibility=\'hidden\'">'
-    +'<div class="cinfo">'
-    +'<div class="cname">'+(l.full_name||'Sin nombre')+' <span class="badge b-'+l.status+'">'+EST[l.status]+'</span>'
-    +(tipoLead(l)==='agent'?' <span class="badge b-agent">👔 ASESOR</span>':tipoLead(l)==='client'?' <span class="badge b-client">👤 CLIENTE</span>':' <span class="badge b-unid">❓ SIN IDENTIFICAR</span>')+'</div>'
-    +'<div class="cprop">'+(l.property_title||'⚠️ Propiedad no identificada')+'</div>'
-    +'<div class="cmeta"><span class="cprice">'+fmt(l.price_amount)+(l.operation_type==='rental'?' /mes':'')+'</span>'+(l.location_name?' · '+l.location_name:'')+'</div>'
-    +'<div class="cmeta">'+[l.bedrooms?l.bedrooms+' rec':null,l.bathrooms?l.bathrooms+' baños':null,l.construction_size?l.construction_size+' m²':null].filter(Boolean).join(' · ')+'</div>'
-    +'<div class="cmeta">'+ESRC[l.source]+(l.eb_public_id?' · '+l.eb_public_id:'')+' · '+fecha+'</div>'
-    +'</div></div>'
-    +(l.first_message?'<details><summary>Ver mensaje original</summary><p></p></details>':'')
-    +'<div class="acciones">'
-    +(l.phone_normalized?'<button class="acc wa">💬 WhatsApp</button>':'')
-    +(l.phone_normalized?'<a class="acc tel" href="tel:'+l.phone_normalized+'">📞 Llamar</a>':'')
-    +(l.public_url?'<a class="acc ver" target="_blank" href="'+l.public_url+'">🏠 Ver</a>':'')
-    +'</div>'
-    +'<div class="wabox hidden"><textarea></textarea><button class="go">Abrir WhatsApp con este mensaje</button></div>'
-    +'<div class="estado"><span>Estado:</span><select>'
-    +Object.entries(EST).map(([k,v])=>'<option value="'+k+'"'+(k===l.status?' selected':'')+'>'+v+'</option>').join('')
-    +'</select></div>'
-    +(tipoLead(l)==='unidentified'&&!ESADMIN?'<div class="tipofix"><span>Tipo:</span><button data-tp="client">👤 Cliente</button><button data-tp="agent">👔 Asesor</button></div>':'')
-    +(ESADMIN?'<div class="tipofix"><span>Tipo:</span><select class="tpsel"><option value="client"'+(tipoLead(l)==='client'?' selected':'')+'>👤 Cliente</option><option value="agent"'+(tipoLead(l)==='agent'?' selected':'')+'>👔 Asesor</option><option value="unidentified"'+(tipoLead(l)==='unidentified'?' selected':'')+'>❓ Sin identificar</option></select></div>':'');
-  if(l.first_message)d.querySelector('details p').textContent=l.first_message;
-  const wab=d.querySelector('.wabox');
-  const btnWa=d.querySelector('.wa');
-  if(btnWa)btnWa.onclick=()=>{
-    if(wab.classList.contains('hidden')){
-      wab.querySelector('textarea').value='Hola '+(l.full_name?l.full_name.split(' ')[0]:'')+', soy tu asesor de NIVA Inmobiliaria. Vi tu interés en "'+(l.property_title||'nuestra propiedad')+'"'+(l.price_amount?' ('+fmt(l.price_amount)+(l.operation_type==='rental'?' al mes':'')+')':'')+'. ¿Te gustaría agendar una visita o resolver alguna duda?';
-      wab.classList.remove('hidden');
-    } else wab.classList.add('hidden');
-  };
-  const go=d.querySelector('.go');
-  if(go)go.onclick=async()=>{
-    const msg=wab.querySelector('textarea').value;
-    window.open('https://wa.me/'+l.phone_normalized.replace('+','')+'?text='+encodeURIComponent(msg),'_blank');
-    await sb.from('lead_interactions').insert({lead_id:l.id,type:'whatsapp_click',actor:'advisor',payload:{message:msg}});
-    if(l.status==='new'){await sb.from('leads').update({status:'contacted'}).eq('id',l.id);l.status='contacted';toast('Lead marcado como CONTACTADO');pintar();cargarContadores()}
-  };
-  const telA=d.querySelector('.tel');
-  if(telA)telA.addEventListener('click',()=>{sb.from('lead_interactions').insert({lead_id:l.id,type:'call_click',actor:'advisor',payload:{}})});
-  d.querySelector('select').onchange=async(e)=>{
-    const nv=e.target.value, prev=l.status;
-    const {error}=await sb.from('leads').update({status:nv}).eq('id',l.id);
-    if(error){e.target.value=prev;toast('No se pudo cambiar');return}
-    await sb.from('lead_interactions').insert({lead_id:l.id,type:'status_change',actor:'advisor',payload:{de:prev,a:nv}});
-    l.status=nv;toast('Estado: '+EST[nv]);pintar();cargarContadores();
-  };
-  async function cambiarTipo(nv){
-    const {error}=await sb.rpc('set_lead_contact_type',{p_lead_id:l.id,p_type:nv});
-    if(error){toast('No se pudo cambiar el tipo');return}
-    const mismos=LEADS.filter(x=>(l.phone_normalized&&x.phone_normalized===l.phone_normalized)||x.id===l.id);
-    mismos.forEach(x=>x.contact_type=nv);
-    toast('Tipo: '+(nv==='client'?'CLIENTE':nv==='agent'?'ASESOR':'SIN IDENTIFICAR'));
-    pintar();cargarContadores();
-  }
-  d.querySelectorAll('.tipofix button').forEach(b=>b.onclick=()=>cambiarTipo(b.dataset.tp));
-  const tps=d.querySelector('.tpsel');
-  if(tps)tps.onchange=(e)=>cambiarTipo(e.target.value);
-  return d;
-}
-function cargarContadores(){
-  const cli=LEADS.filter(l=>tipoLead(l)==='client');
-  const cliNew=cli.filter(l=>l.status==='new').length;
-  const nc=$('#n-clientes');
-  nc.textContent=cliNew>0?cliNew:cli.length;
-  nc.classList.toggle('hot',cliNew>0);
-  nc.title=cliNew>0?(cliNew+' clientes nuevos'):(cli.length+' clientes');
-  $('#n-asesores').textContent=LEADS.filter(l=>tipoLead(l)==='agent').length;
-  $('#n-sinid').textContent=LEADS.filter(l=>tipoLead(l)==='unidentified').length;
-  $('#n-todos').textContent=LEADS.length;
-  $('#n-props').textContent=PROPS.length;
-}
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  TAB=b.dataset.t;pintar();
-});
-document.querySelectorAll('#filtros .f').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#filtros .f').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  FIL=b.dataset.f;pintar();
-});
-$('#buscar').oninput=(e)=>{Q=e.target.value;pintar()};
-document.querySelectorAll('#pf-tipo .f').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#pf-tipo .f').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  PT=b.dataset.f;pintar();
-});
-document.querySelectorAll('#pf-op .f').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#pf-op .f').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  PO=b.dataset.f;pintar();
-});
-$('#pf-sort').onchange=(e)=>{PS=e.target.value;pintar()};
-$('#pbuscar').oninput=(e)=>{PQ=e.target.value;pintar()};
-// sesion existente
-const {data:{session}}=await sb.auth.getSession();
-if(session)iniciar();
+const {data:{session}} = await sb.auth.getSession();
+if(session){ showPortal(session.user?.email || session.user?.user_metadata?.username || ''); }
+else{ showLogin(); }
+
+sb.auth.onAuthStateChange((_e,s)=>{ if(s) showPortal(s.user?.email||''); else showLogin(); });
+
+$('#lbtn').onclick = async ()=>{
+  const u = $('#lu').value.trim();
+  const p = $('#lp').value;
+  $('#lerr').textContent='';
+  if(!u || !p){ $('#lerr').textContent='Completa usuario y contraseña'; return; }
+  const email = u.includes('@') ? u : (u + '@niva.internal');
+  const {error} = await sb.auth.signInWithPassword({email, password:p});
+  if(error){ $('#lerr').textContent='Usuario o contraseña incorrectos'; return; }
+};
+$('#lp').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#lbtn').click(); });
+
+$('#hout').onclick = async ()=>{ await sb.auth.signOut(); location.reload(); };
 </script>
-</body></html>
+
+</body>
+</html>
