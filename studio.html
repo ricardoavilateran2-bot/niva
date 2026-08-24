@@ -7828,7 +7828,16 @@ async function playVideoEL() {
       } else {
         mediaRecorder.start(200);
       }
-      audio.onloadedmetadata = () => {
+      // ── ARRANQUE CON VIGILANTE (Safari) ──
+      // Safari a veces NO dispara loadedmetadata con blob: URLs — si eso pasa, nada
+      // arranca (ni animación ni timeout de fin) y la grabación queda abierta para
+      // siempre ("se queda pensando"). beginRenderOnce garantiza UN solo arranque,
+      // por el evento que llegue primero o por el vigilante de 3s.
+      let _renderBegun = false;
+      const beginRenderOnce = (via) => {
+        if (_renderBegun) return;
+        _renderBegun = true;
+        console.log('[NIVA][RENDER] arranque vía:', via);
         // Calcular duración final: usa el selector o la IA
         const ta = document.getElementById('vid-script-ta');
         const scriptLen = (ta && ta.value) ? ta.value.length : 0;
@@ -7875,11 +7884,15 @@ async function playVideoEL() {
           setTimeout(() => stopVideo(), 500);
         }, finalDurMs);
       };
+      audio.onloadedmetadata = () => beginRenderOnce('loadedmetadata');
+      audio.oncanplay = () => beginRenderOnce('canplay');
+      setTimeout(() => beginRenderOnce('watchdog-3s'), 3000);
       // audio.onended ya NO controla el fin del video — solo limpieza secundaria
       audio.onended = () => {
         // En modo "both" la música sigue hasta el timeout — no detener aquí
       };
       audio.onerror = () => { vidStatus('❌ Error al reproducir audio.', 'err'); stopVideo(); };
+      audio.preload = 'auto'; // Safari: forzar carga completa para que los eventos de arranque disparen
       audio.load();
     } catch(err) {
       console.error('[NIVA][RENDER][AudioSetup]', err);
