@@ -922,10 +922,11 @@ async function generarReporte() {
 
   // ── Valuación con IA (fuente principal) ──
   let valorObj, conservador, salida, cierreLow, cierreHigh, promPm2Final, premiumPct, iaJustificacion = '';
+  let iaResult = null;
   {
     const btnIA = document.getElementById('btn-generar');
     btnIA.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" style="animation:spin 1s linear infinite"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="30" stroke-dashoffset="10"/></svg> Valuando con IA...`;
-    const iaResult = await valuarConIA({
+    iaResult = await valuarConIA({
       tipo, operacion, colonia, municipio, cp, calle: calleDisplay,
       m2terreno, m2const, recamaras, banos,
       mban: document.getElementById('mban')?.value || '',
