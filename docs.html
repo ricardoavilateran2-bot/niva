@@ -2041,6 +2041,7 @@ async function extractINE(input, party) {
 <script>
 // ── Edición directa del documento + descarga en Word ──
 let nivaEditMode = false;
+let nivaDocEditado = false; // tras editar a mano, el formulario ya no regenera (protege tus cambios)
 function nivaToggleEdit(){
   var prev = document.getElementById('docPreview');
   var btn = document.getElementById('btn-edit-doc');
@@ -2050,12 +2051,19 @@ function nivaToggleEdit(){
   prev.style.outlineOffset = '4px';
   btn.textContent = nivaEditMode ? '✅ Terminar edición' : '✏️ Editar texto';
   btn.style.background = nivaEditMode ? '#16a34a' : '#2a2a2a';
-  if (nivaEditMode) { prev.focus(); }
+  if (nivaEditMode) { nivaDocEditado = true; prev.focus(); }
+  else if (nivaDocEditado) { btn.textContent = '✏️ Seguir editando'; }
 }
 // Mientras se edita, el formulario NO re-genera el documento (para no perder tus cambios).
 (function(){
   var _rp = window.renderPreview;
-  window.renderPreview = function(){ if (nivaEditMode) return; return _rp.apply(this, arguments); };
+  window.renderPreview = function(){ if (nivaEditMode || nivaDocEditado) return; return _rp.apply(this, arguments); };
+})();
+(function(){
+  var _sd = window.selectDoc;
+  if (typeof _sd === 'function') window.selectDoc = function(){ nivaDocEditado = false; nivaEditMode = false; var p=document.getElementById('docPreview'); if(p){p.contentEditable='false'; p.style.outline='none';} var b=document.getElementById('btn-edit-doc'); if(b){b.textContent='✏️ Editar texto'; b.style.background='#2a2a2a';} return _sd.apply(this, arguments); };
+  var _cf = window.clearForm;
+  if (typeof _cf === 'function') window.clearForm = function(){ var r = _cf.apply(this, arguments); nivaDocEditado = false; nivaEditMode = false; var p=document.getElementById('docPreview'); if(p){p.contentEditable='false'; p.style.outline='none';} var b=document.getElementById('btn-edit-doc'); if(b){b.textContent='✏️ Editar texto'; b.style.background='#2a2a2a';} renderPreview(); return r; };
 })();
 function nivaDownloadWord(){
   try { if (typeof window.nivaAsignarFolio === 'function') window.nivaAsignarFolio(); } catch(e){}
