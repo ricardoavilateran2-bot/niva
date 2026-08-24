@@ -262,7 +262,7 @@ a{color:#c9a84c;text-decoration:none}
     <button class="btn-pdf" onclick="downloadPDF()">⬇ PDF</button>
     <button class="btn-word" onclick="nivaDownloadWord()">📝 Word</button>
     <button class="btn-edit" id="btn-edit-doc" onclick="nivaToggleEdit()">✏️ Editar texto</button>
-    <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
+    <button class="btn-print" onclick="imprimirNiva(this)">🖨 Imprimir</button>
     <button class="btn-fullscreen" onclick="toggleFullscreen()" id="btn-fs" style="flex:0;padding:11px 16px">⛶ Solo doc</button>
   </div>
   <div id="docPreview">
@@ -684,7 +684,7 @@ a{color:#c9a84c;text-decoration:none}
   <div class="form-actions-bottom">
     <button class="btn-gen" onclick="downloadPDF()">⬇ PDF</button>
     <button class="btn-clr" onclick="clearForm()">🗑 Limpiar</button>
-    <button class="btn-gen" onclick="window.print()" style="background:#1e3a5f;color:#fff">🖨</button>
+    <button class="btn-gen" onclick="imprimirNiva(this)" style="background:#1e3a5f;color:#fff">🖨</button>
   </div>
 </div><!-- end form-col -->
 
@@ -954,6 +954,9 @@ window.addEventListener('DOMContentLoaded', function() {
 
   window.addEventListener('beforeprint', buildPrintPages);
   window.addEventListener('afterprint', clearPrintPages);
+  // Expuestos para el flujo de impresión vía PDF (Safari)
+  window.__nivaBuildPrintPages = buildPrintPages;
+  window.__nivaClearPrintPages = clearPrintPages;
   // Botón "🖨 Imprimir": beforeprint/afterprint ya cubren window.print(), pero algunos
   // navegadores no disparan afterprint de forma consistente — este respaldo garantiza
   // que todo quede limpio después del diálogo.
@@ -966,6 +969,57 @@ window.addEventListener('DOMContentLoaded', function() {
   };
 })();
 
+
+// ===================== IMPRIMIR (cross-browser) =====================
+// Chrome/Edge respetan @page{margin:0} → impresión nativa directa, sin textos del
+// navegador. Safari IGNORA @page (imprime con sus márgenes y sus encabezados/pies
+// de navegador SIEMPRE), así que en Safari se genera el documento ya paginado como
+// PDF y se abre en una pestaña: un PDF impreso no lleva ningún texto del navegador.
+async function imprimirNiva(btnEl){
+  var isChromium = /Chrome\/|Chromium\/|Edg\//.test(navigator.userAgent);
+  if (isChromium){ window.print(); return; }
+
+  // Safari / otros: abrir la pestaña YA (dentro del clic, para que no la bloquee)
+  var win = null;
+  try { win = window.open('', '_blank'); } catch(e){}
+  if (win){
+    try { win.document.write('<title>Preparando impresi\u00f3n\u2026</title><body style="font-family:Arial,Helvetica,sans-serif;padding:40px;color:#333">\u23f3 Generando documento para imprimir\u2026</body>'); } catch(e){}
+  }
+  var btn = btnEl && btnEl.textContent !== undefined ? btnEl : null;
+  var prevTxt = btn ? btn.textContent : '';
+  if (btn){ btn.disabled = true; btn.textContent = '\u23f3 Preparando\u2026'; }
+  try{
+    if (!window.__nivaBuildPrintPages || !window.__nivaBuildPrintPages()){
+      if (win) try{ win.close(); }catch(e){}
+      alert('Selecciona y genera un documento primero.');
+      return;
+    }
+    var host = document.getElementById('niva-print-measure');
+    var pages = host ? host.querySelectorAll('.niva-print-page') : [];
+    if (!pages.length){ if (win) try{ win.close(); }catch(e){}; alert('No hay contenido para imprimir.'); return; }
+    var jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+    if (!jsPDFCtor || typeof html2canvas !== 'function'){ if (win) try{ win.close(); }catch(e){}; alert('No se pudieron cargar las librer\u00edas de PDF. Revisa tu conexi\u00f3n e intenta de nuevo.'); return; }
+    var pdf = new jsPDFCtor({ orientation:'portrait', unit:'mm', format:'letter' });
+    for (var i = 0; i < pages.length; i++){
+      var canvas = await html2canvas(pages[i], { scale: 2.5, useCORS: true, logging: false, backgroundColor: '#ffffff' });
+      var img = canvas.toDataURL('image/jpeg', 0.92);
+      if (i > 0) pdf.addPage();
+      pdf.addImage(img, 'JPEG', 0, 0, 215.9, 278); // misma geometr\u00eda que cada hoja construida
+    }
+    var url = pdf.output('bloburl');
+    if (win){ win.location = url; }
+    else {
+      var w2 = window.open(url, '_blank');
+      if (!w2) location.href = url;
+    }
+  } catch(err){
+    if (win) try{ win.close(); }catch(e){}
+    alert('No se pudo preparar la impresi\u00f3n: ' + ((err && err.message) || err));
+  } finally {
+    if (window.__nivaClearPrintPages) window.__nivaClearPrintPages();
+    if (btn){ btn.disabled = false; btn.textContent = prevTxt; }
+  }
+}
 
 // ===================== FULLSCREEN TOGGLE =====================
 function toggleFullscreen() {
