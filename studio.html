@@ -4663,7 +4663,20 @@ function getBestSupportedVideoMime(needsAudio) {
         'video/webm;codecs=vp9',
         'video/webm',
       ];
-  const results = candidates.map(t => {
+  // Safari NO soporta grabar WebM — su MediaRecorder graba nativamente MP4 (H.264/AAC).
+  // Si ningún candidato webm pasa, se intenta MP4 EXPLÍCITO (nunca el default del navegador).
+  // Con grabación MP4 nativa, la conversión WebM→MP4 se salta por completo (ver finalizeRecording).
+  const mp4Candidates = needsAudio
+    ? [
+        'video/mp4;codecs=avc1.42E01E,mp4a.40.2', // H.264 baseline + AAC-LC (Safari)
+        'video/mp4;codecs=avc1,mp4a',
+        'video/mp4',
+      ]
+    : [
+        'video/mp4;codecs=avc1.42E01E',
+        'video/mp4',
+      ];
+  const results = candidates.concat(mp4Candidates).map(t => {
     let supported = false;
     try { supported = MediaRecorder.isTypeSupported(t); } catch(e) {}
     return { mime: t, supported };
@@ -4822,6 +4835,22 @@ async function finalizeRecording(mimeType) {
   // Auto-generar portada cuando el video esté listo
   try { if (vidImages && vidImages.length > 0) generatePortada(); } catch(e) {}
 
+  // ── GRABACIÓN MP4 NATIVA (Safari) — sin conversión ──
+  // Si el navegador grabó directamente MP4 (Safari no soporta WebM), el blob YA es el
+  // formato de entrega: no hay nada que convertir. Se marca listo de inmediato.
+  if (/^video\/mp4/i.test(realMime)) {
+    _nivaMp4Blob = blob;
+    _nivaWebmBlob = null;
+    updateDiagStep('validacion', 'ok');
+    updateDiagStep('mp4', 'ok');
+    updateDiagStep('done', 'ok');
+    vidStatus('✅ VIDEO LISTO · ' + durLabel + ' · ' + v.width + '×' + v.height + ' · ' + sizeMB + ' MB MP4 (grabación nativa) · Presiona "Descargar MP4 HD"', 'ok');
+    document.getElementById('btn-dl-video').style.display = 'flex';
+    document.getElementById('btn-retry-mp4').style.display = 'none';
+    document.getElementById('btn-dl-webm-fallback').style.display = 'none';
+    return true;
+  }
+
   // WebM validado — queda en memoria como fuente única. NO se vuelve a renderizar
   // (fotos/voz/música/render) aunque la conversión a MP4 falle o se reintente.
   _nivaWebmBlob = blob;
@@ -4880,6 +4909,11 @@ async function validateMp4Blob(blob, expectHasAudio) {
       console.log('[NIVA][MP4 VALIDATE] w=' + w + ' h=' + h + ' dur=' + dur + ' sizeMB=' + sizeMB);
       if (w > 0 && h > 0 && isFinite(dur) && dur > 0) {
         done({ ok: true, width: w, height: h, duration: dur, sizeMB, hasAudioTrack });
+      } else if (w > 0 && h > 0 && (!isFinite(dur) || dur <= 0) && videoDurationSeconds > 0) {
+        // MP4 grabado con MediaRecorder (Safari) puede reportar duration=Infinity/NaN
+        // igual que WebM — dimensiones válidas + duración conocida del render = OK.
+        console.warn('[NIVA][MP4 VALIDATE] duración no finita (' + dur + ') — usando videoDurationSeconds=' + videoDurationSeconds);
+        done({ ok: true, width: w, height: h, duration: videoDurationSeconds, sizeMB, hasAudioTrack });
       } else {
         done({ ok: false, reason: 'MP4 sin dimensiones/duración válidas (w=' + w + ' h=' + h + ' dur=' + dur + ')' });
       }
@@ -7728,13 +7762,13 @@ async function playVideoEL() {
       const mimeType = getBestSupportedVideoMime(true);
 
       // ── GUARDIA CRÍTICA — nunca dejar que el navegador elija su propio default ──
-      // Si ningún candidato webm pasó MediaRecorder.isTypeSupported(), NO crear el
-      // MediaRecorder sin mimeType: el navegador puede caer en su propio default
-      // (visto en producción: video/mp4), cuyo encoder no produce chunks en algunos
-      // entornos → "video 0 segundos". Mejor abortar con diagnóstico claro.
+      // getBestSupportedVideoMime intenta webm (Chrome/Edge/Firefox) y luego mp4 explícito
+      // (Safari). Si NINGUNO pasa isTypeSupported, NO crear el MediaRecorder sin mimeType:
+      // un default desconocido puede no producir chunks → "video 0 segundos".
+      // Mejor abortar con diagnóstico claro.
       if (!mimeType) {
-        console.error('[NIVA][RECORDER] Ningún codec webm soportado — abortando grabación (no se intentará mp4).');
-        vidStatus('❌ Tu navegador no admite la grabación de video compatible con NIVA. Usa Chrome o Safari actualizado.', 'err');
+        console.error('[NIVA][RECORDER] Ningún codec soportado (ni webm ni mp4) — abortando grabación.');
+        vidStatus('❌ Tu navegador no admite la grabación de video compatible con NIVA. Actualiza Chrome o Safari a su última versión.', 'err');
         document.getElementById('btn-dl-video').style.display = 'none';
         return;
       }
