@@ -128,18 +128,92 @@ a{color:#c9a84c;text-decoration:none}
 .btn-clr:hover{background:#2a5080}
 .hidden{display:none!important}
 
-/* PRINT */
+/* ============================================================
+   PRINT — impresión profesional multipágina (módulo Documentos)
+   ============================================================ */
 @media print{
-  body{background:#fff}
-  .top-bar,.doc-tabs,.form-col,.preview-actions{display:none!important}
+  /* Tamaño de hoja Carta y márgenes de página. El encabezado/pie ya NO dependen de
+     este margen para tener espacio propio (ver tabla .niva-print-table abajo), así
+     que aquí solo se define el margen "de cortesía" de la hoja física. */
+  @page{ size: letter; margin: 10mm 16mm; }
+
+  html,body{background:#fff}
+
+  /* --- Ocultar TODO lo que es interfaz de la app, nunca el documento --- */
+  .top-bar,.doc-tabs,.form-col,.preview-actions,
+  #nivaOsFloat,#nivaDocsToolbar,#niva-docs-recientes{
+    display:none!important;
+  }
+
   .split{display:block}
   .preview-col{background:#fff;padding:0;min-height:auto}
-  #docPreview{box-shadow:none;width:100%;font-size:10.5pt}
+  #docPreview{
+    box-shadow:none;
+    width:100%;
+    font-size:10.5pt;
+    /* Tipografía profesional para el documento IMPRESO (la vista en pantalla, el PDF
+       y el Word siguen igual que antes — esto solo aplica dentro de @media print). */
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  /* --- Encabezado y pie que se repiten en TODAS las páginas impresas ---
+     Justo antes de imprimir (ver el bloque "beforeprint/afterprint" en el <script>),
+     el propio encabezado/pie del documento (.lh-header / .lh-footer) se mueve dentro
+     de esta tabla envolvente, dentro de <thead>/<tfoot> — el mecanismo nativo del
+     navegador para que un encabezado/pie de tabla se repita en cada hoja al paginar.
+     Terminada la impresión, todo vuelve a su estructura original. */
+  table.niva-print-table{ width:100%; border-collapse:collapse; }
+  table.niva-print-table td{ padding:0; }
+  table.niva-print-table thead .lh-header,
+  table.niva-print-table tfoot .lh-footer{ display:block!important }
+
+  /* Repetir encabezados de tabla (thead) al paginar — aplica tanto a esta tabla
+     envolvente como a cualquier tabla real dentro del documento (p.ej. inventarios). */
+  thead{ display: table-header-group; }
+  tfoot{ display: table-footer-group; }
+
+  /* --- Continuidad y cortes de página --- */
+  /* Nunca dividir: firmas, y cajas de información resaltada */
+  .sig-block,.sig-row,.pm-section,.os-section{
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Que un título/encabezado de sección nunca quede solo al final de una hoja */
+  .doc-title,.doc-subtitle,.doc-sec-head,.doc-sec-num{
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+  /* Párrafos y cláusulas: evitar líneas sueltas (huérfanas/viudas) al cortar,
+     sin forzar que bloques largos salten completos de página (evita hojas casi vacías) */
+  .doc-p,.doc-clause,.doc-bullet{
+    orphans: 3;
+    widows: 3;
+  }
+  /* Cláusulas cortas de contrato sí se mantienen completas (no se ven bien partidas) */
+  .doc-clause{
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Tablas REALES dentro del documento (p.ej. inventario de entrega-recepción): que no
+     se corten sus filas de forma antiestética. No aplica a la tabla envolvente de
+     impresión, cuya única fila SÍ debe poder continuar de una hoja a otra. */
+  .doc-body table{ border-collapse: collapse; width:100%; }
+  .doc-body table tr,.doc-body table td,.doc-body table th{
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Conservar los colores de fondo de los recuadros informativos al imprimir */
+  #docPreview,#docPreview *{
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 </style>
 </head>
 <body>
-<a href="./index.html" style="position:fixed;top:12px;left:12px;z-index:999999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:7px 14px;border-radius:8px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);">&larr; NIVA OS</a>
+<a href="./index.html" id="nivaOsFloat" style="position:fixed;top:12px;left:12px;z-index:999999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:7px 14px;border-radius:8px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);">&larr; NIVA OS</a>
 
 <!-- HEADER -->
 <div class="top-bar">
@@ -697,6 +771,85 @@ window.addEventListener('DOMContentLoaded', function() {
   selectDoc('oferta-renta');
 });
 
+// ===================== IMPRESIÓN: encabezado/pie que se repiten en cada hoja =====================
+// El documento ya trae su propio encabezado (.lh-header, logo NIVA) y pie (.lh-footer, datos de
+// contacto) — normalmente aparecen UNA sola vez, al inicio y al final de todo el documento.
+// Para que se repitan en CADA hoja física al imprimir, justo antes de imprimir los movemos (sin
+// clonarlos ni tocar su contenido) dentro de un <thead>/<tfoot> de una tabla envolvente: es el
+// mecanismo nativo del navegador para encabezados/pies de tabla que se repiten al paginar, y evita
+// depender de "position:fixed" (que en documentos largos puede tapar el inicio del contenido en
+// algunos motores de impresión). Al terminar de imprimir, se restaura la estructura original tal
+// cual estaba, así que la vista en pantalla, el PDF y el Word no se ven afectados en absoluto.
+(function(){
+  function wrapForPrint(){
+    var dp = document.getElementById('docPreview');
+    if (!dp || dp.querySelector('table.niva-print-table')) return;
+    var hdr = dp.querySelector('.lh-header');
+    var body = dp.querySelector('.doc-body');
+    var ftr = dp.querySelector('.lh-footer');
+    if (!body) return; // nada que envolver (p.ej. mensaje "selecciona un documento")
+    var folio = document.getElementById('niva-folio-line'); // línea de folio, si existe
+
+    var table = document.createElement('table');
+    table.className = 'niva-print-table';
+
+    var thead = document.createElement('thead');
+    var theadTr = document.createElement('tr');
+    var theadTd = document.createElement('td');
+    if (hdr) theadTd.appendChild(hdr);
+    theadTr.appendChild(theadTd);
+    thead.appendChild(theadTr);
+
+    var tbody = document.createElement('tbody');
+    var tbodyTr = document.createElement('tr');
+    var tbodyTd = document.createElement('td');
+    if (folio) tbodyTd.appendChild(folio);
+    tbodyTd.appendChild(body);
+    tbodyTr.appendChild(tbodyTd);
+    tbody.appendChild(tbodyTr);
+
+    var tfoot = document.createElement('tfoot');
+    var tfootTr = document.createElement('tr');
+    var tfootTd = document.createElement('td');
+    if (ftr) tfootTd.appendChild(ftr);
+    tfootTr.appendChild(tfootTd);
+    tfoot.appendChild(tfootTr);
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    table.appendChild(tfoot);
+    dp.innerHTML = '';
+    dp.appendChild(table);
+  }
+  function unwrapAfterPrint(){
+    var dp = document.getElementById('docPreview');
+    if (!dp) return;
+    var table = dp.querySelector('table.niva-print-table');
+    if (!table) return;
+    var hdr = table.querySelector('thead .lh-header');
+    var folio = table.querySelector('#niva-folio-line');
+    var body = table.querySelector('tbody .doc-body');
+    var ftr = table.querySelector('tfoot .lh-footer');
+    dp.innerHTML = '';
+    if (hdr) dp.appendChild(hdr);
+    if (folio) dp.appendChild(folio);
+    if (body) dp.appendChild(body);
+    if (ftr) dp.appendChild(ftr);
+  }
+  window.addEventListener('beforeprint', wrapForPrint);
+  window.addEventListener('afterprint', unwrapAfterPrint);
+  // Botón "🖨 Imprimir": beforeprint/afterprint ya cubren window.print(), pero algunos navegadores
+  // no disparan afterprint de forma consistente tras cerrar el diálogo — este respaldo garantiza
+  // que la estructura siempre quede restaurada.
+  var _origPrint = window.print;
+  window.print = function(){
+    wrapForPrint();
+    var r = _origPrint.apply(window, arguments);
+    setTimeout(unwrapAfterPrint, 800);
+    return r;
+  };
+})();
+
 // ===================== FULLSCREEN TOGGLE =====================
 function toggleFullscreen() {
   var formCol = document.querySelector('.form-col');
@@ -827,11 +980,11 @@ function fdateHeader(d, ciudad, estado) {
 }
 // Firma de Ricardo (siempre al fondo de documentos NIVA)
 function sigRicardo() {
-  return '<div style="text-align:center;margin-top:50px"><div class="sig-space"></div><div style="display:inline-block;border-top:1.5px solid #000;padding-top:6px;min-width:220px"><div class="sig-name">Ricardo Avila Teran</div><div class="sig-title">Director NIVA Inmobiliaria</div></div></div>';
+  return '<div class="sig-block" style="text-align:center;margin-top:50px"><div class="sig-space"></div><div style="display:inline-block;border-top:1.5px solid #000;padding-top:6px;min-width:220px"><div class="sig-name">Ricardo Avila Teran</div><div class="sig-title">Director NIVA Inmobiliaria</div></div></div>';
 }
 // Firma de cliente
 function sigCliente(nombre, titulo) {
-  return '<div style="text-align:center;margin-top:50px"><div class="sig-space"></div><div style="display:inline-block;border-top:1.5px solid #000;padding-top:6px;min-width:220px"><div class="sig-name">'+(nombre||'<span class="ph">[nombre]</span>')+'</div>'+(titulo?'<div class="sig-title">'+titulo+'</div>':'')+'</div></div>';
+  return '<div class="sig-block" style="text-align:center;margin-top:50px"><div class="sig-space"></div><div style="display:inline-block;border-top:1.5px solid #000;padding-top:6px;min-width:220px"><div class="sig-name">'+(nombre||'<span class="ph">[nombre]</span>')+'</div>'+(titulo?'<div class="sig-title">'+titulo+'</div>':'')+'</div></div>';
 }
 function field(val, fallback) {
   // Mantenido por compatibilidad con código del contrato
@@ -868,7 +1021,7 @@ function updateLetras(inputId, outId) {
 
 // ===================== LETTERHEAD HTML =====================
 function letterhead() {
-  return '<img src="'+IMG1+'" style="width:100%;display:block">';
+  return '<div class="lh-header"><img src="'+IMG1+'" style="width:100%;display:block"></div>';
 }
 function letterheadFooter() {
   return '<div class="lh-footer"><img src="'+IMG2+'" style="width:100%;display:block"></div>';
@@ -963,7 +1116,7 @@ function genOfertaRenta() {
 
   html += '<div class="doc-p" style="margin-top:16px">La presente oferta no constituye un contrato de arrendamiento definitivo y quedará sujeta a la aceptación del propietario y a la firma del contrato correspondiente.</div>';
 
-  html += '<div style="display:flex;justify-content:center;margin-top:40px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:center;margin-top:40px">';
   html += sigCliente(oferente, 'Arrendatario (Oferente)');
   html += '</div>';
   html += '</div>';
@@ -1083,11 +1236,11 @@ function genSepRenta() {
     'Leído que fue el presente documento y enteradas las partes de su contenido y alcance legal, lo firman de conformidad.</p>';
 
   // Firmas
-  html += '<div style="display:flex;justify-content:space-around;margin-top:30px;flex-wrap:wrap;gap:16px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:space-around;margin-top:30px;flex-wrap:wrap;gap:16px">';
   html += sigCliente(arrendador, 'Arrendador');
   html += sigCliente(arrendatario, 'Arrendatario');
   html += '</div>';
-  html += '<div style="display:flex;justify-content:center;margin-top:30px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:center;margin-top:30px">';
   html += sigRicardo();
   html += '</div>';
   html += '</div>';
@@ -1173,11 +1326,11 @@ function genSepCompra() {
 
   html += '<div class="doc-p" style="margin-top:16px">Leído que fue el presente documento y enteradas las partes de su contenido y alcance legal, lo firman por duplicado.</div>';
 
-  html += '<div style="display:flex;justify-content:space-around;margin-top:20px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:space-around;margin-top:20px">';
   html += sigCliente(vendedor, 'Vendedor(a)');
   html += sigCliente(comprador, 'Comprador(a)');
   html += '</div>';
-  html += '<div style="display:flex;justify-content:space-around;margin-top:30px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:space-around;margin-top:30px">';
   html += sigCliente(null, 'Testigo 1');
   html += sigCliente(null, 'Testigo 2');
   html += '</div>';
@@ -1495,12 +1648,12 @@ function genContratoArrendamiento() {
   html += '<p style="text-align:justify;font-size:10.5px;line-height:1.55;margin-top:14px;margin-bottom:20px">Leído por partes el presente <b>CONTRATO</b>, lo firman en tres tantos al calce en cada una de sus hojas y al final en esta última, a los <b>'+fdate(fecha)+'</b> en '+ciudad+', '+estado+', manifestando que no existió dolo, violencia, lesión, o algún otro tipo de vicio en el consentimiento en la celebración del mismo.</p>';
 
   // ---- FIRMAS ----
-  html += '<div style="display:flex;justify-content:space-around;margin-top:30px;flex-wrap:wrap;gap:20px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:space-around;margin-top:30px;flex-wrap:wrap;gap:20px">';
   html += '<div style="text-align:center;min-width:200px"><div style="border-top:1.5px solid #000;padding-top:6px;min-width:220px"><div class="sig-name">"EL ARRENDADOR"</div><div class="sig-name">'+ph(arrendador,'NOMBRE')+'</div>'+(p1pm?'<div class="sig-title">REPRESENTADA POR<br>'+ph(v('p1-rep-nombre'),'REPRESENTANTE')+'</div>':'')+'</div></div>';
   html += '<div style="text-align:center;min-width:200px"><div style="border-top:1.5px solid #000;padding-top:6px;min-width:220px"><div class="sig-name">"EL ARRENDATARIO"</div><div class="sig-name">'+ph(arrendatario,'NOMBRE')+'</div>'+(p2pm?'<div class="sig-title">REPRESENTADA POR<br>'+ph(v('p2-rep-nombre'),'REPRESENTANTE')+'</div>':'')+'</div></div>';
   html += '</div>';
   if (osActivo) {
-    html += '<div style="display:flex;justify-content:center;margin-top:30px"><div style="text-align:center;min-width:200px"><div style="border-top:1.5px solid #000;padding-top:6px;min-width:220px"><div class="sig-name">"EL OBLIGADO SOLIDARIO"</div><div class="sig-name">'+ph(osNombre,'NOMBRE')+'</div><div class="sig-title">REPRESENTADO POR<br>'+ph(osNombre,'NOMBRE')+'</div></div></div></div>';
+    html += '<div class="sig-row" style="display:flex;justify-content:center;margin-top:30px"><div class="sig-block" style="text-align:center;min-width:200px"><div style="border-top:1.5px solid #000;padding-top:6px;min-width:220px"><div class="sig-name">"EL OBLIGADO SOLIDARIO"</div><div class="sig-name">'+ph(osNombre,'NOMBRE')+'</div><div class="sig-title">REPRESENTADO POR<br>'+ph(osNombre,'NOMBRE')+'</div></div></div></div>';
   }
 
   html += '</div>';
@@ -1551,7 +1704,7 @@ function genContratoCompraventa() {
 
   html += '<div class="doc-p" style="margin-top:16px">Leído que fue el presente contrato y enteradas las partes de su contenido, lo firman por duplicado.</div>';
 
-  html += '<div style="display:flex;justify-content:space-around;margin-top:20px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:space-around;margin-top:20px">';
   html += sigCliente(vendedor, 'Vendedor');
   html += sigCliente(comprador, 'Comprador');
   html += '</div>';
@@ -1597,7 +1750,7 @@ function genExclusividad() {
 
   html += '<div class="doc-p" style="margin-top:16px">Leído que fue el presente convenio, lo firman para constancia.</div>';
 
-  html += '<div style="display:flex;justify-content:space-around;margin-top:20px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:space-around;margin-top:20px">';
   html += sigCliente(propietario, 'El Propietario');
   html += sigRicardo();
   html += '</div>';
@@ -1636,7 +1789,7 @@ function genRegistroVisita() {
   html += '<div class="doc-sec-num">SIGUIENTE PASO</div>';
   html += '<div class="doc-p">☐ Enviar información adicional &nbsp;&nbsp; ☐ Agendar segunda visita &nbsp;&nbsp; ☐ Presentar oferta &nbsp;&nbsp; ☐ Sin seguimiento</div>';
 
-  html += '<div style="display:flex;justify-content:space-around;margin-top:40px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:space-around;margin-top:40px">';
   html += sigCliente(prospecto, 'Firma del Prospecto');
   html += sigRicardo();
   html += '</div>';
@@ -1674,13 +1827,13 @@ function genEntregaRecepcion() {
   html += '<div class="doc-p">Observaciones:<br>________________________________________________________________________________________________<br>________________________________________________________________________________________________</div>';
 
   html += '<div class="doc-sec-num">INVENTARIO DE MUEBLES Y EQUIPOS</div>';
-  html += '<table style="width:100%;border-collapse:collapse;font-size:10.5pt"><tr style="background:#f5f5f5"><th style="border:1px solid #ccc;padding:5px;text-align:left">Concepto</th><th style="border:1px solid #ccc;padding:5px;text-align:left">Estado</th><th style="border:1px solid #ccc;padding:5px;text-align:left">Observaciones</th></tr>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10.5pt"><thead><tr style="background:#f5f5f5"><th style="border:1px solid #ccc;padding:5px;text-align:left">Concepto</th><th style="border:1px solid #ccc;padding:5px;text-align:left">Estado</th><th style="border:1px solid #ccc;padding:5px;text-align:left">Observaciones</th></tr></thead><tbody>';
   for (var i=0;i<4;i++) html += '<tr><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td><td style="border:1px solid #ccc;padding:5px">&nbsp;</td></tr>';
-  html += '</table>';
+  html += '</tbody></table>';
 
   html += '<div class="doc-p" style="margin-top:16px">Ambas partes declaran conformidad con el estado del inmueble al momento de la entrega-recepción.</div>';
 
-  html += '<div style="display:flex;justify-content:space-around;margin-top:20px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:space-around;margin-top:20px">';
   html += sigCliente(arrendador, 'Entrega (Arrendador)');
   html += sigCliente(arrendatario, 'Recibe (Arrendatario)');
   html += '</div>';
@@ -1718,7 +1871,7 @@ function genReciboDeposito() {
 
   html += '<div class="doc-p" style="margin-top:14px">Para constancia de lo anterior, firman las partes de conformidad.</div>';
 
-  html += '<div style="display:flex;justify-content:space-around;margin-top:20px">';
+  html += '<div class="sig-row" style="display:flex;justify-content:space-around;margin-top:20px">';
   html += sigCliente(arrendatario, 'Quien Entrega (Arrendatario)');
   html += sigCliente(arrendador, 'Quien Recibe (Arrendador)');
   html += '</div>';
@@ -1993,6 +2146,7 @@ async function extractINE(input, party) {
   // ── UI: badge + panel de recientes ──
   function construirUI(){
     var bar = document.createElement('div');
+    bar.id = 'nivaDocsToolbar';
     bar.style.cssText = 'position:fixed;bottom:14px;right:14px;z-index:9999;display:flex;gap:8px;align-items:center;font-family:Arial,sans-serif;';
     bar.innerHTML =
       '<span id="niva-folio-badge" style="background:#1B2A4A;color:#C9A84C;font-size:11px;font-weight:700;padding:8px 12px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.25);">Sin folio asignado</span>' +
