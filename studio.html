@@ -5159,8 +5159,40 @@ function getElDiagnostics() {
 
 let elApiKey = ''; // compatibilidad — no usar directamente; usar getElevenLabsApiKey()
 function getOaKey() {
-  return (document.getElementById('openai-key')?.value || '').trim();
+  const k = (document.getElementById('openai-key')?.value || '').trim();
+  if (k) return k; // el usuario puede seguir usando su propia key personal
+  return NIVA_PROXY_SENTINEL; // sin key → IA vía proxy de empresa (niva-openai-proxy)
 }
+// ── NIVA PROXY IA DE EMPRESA ─────────────────────────────────────
+// Redirige las llamadas a api.openai.com hacia la edge function
+// niva-openai-proxy (la misma que usa Valuación) cuando el usuario no
+// tiene API key propia. La llave real vive en el servidor, nunca aquí.
+const NIVA_PROXY_SENTINEL = 'NIVA-PROXY-EMPRESA-KEY-000000';
+(function(){
+  const _f = window.fetch.bind(window);
+  window.fetch = async function(url, opts){
+    try {
+      if (typeof url === 'string' && url.startsWith('https://api.openai.com/') && opts && opts.headers) {
+        const h = opts.headers;
+        const auth = h['Authorization'] || h['authorization'] || '';
+        if (String(auth).includes(NIVA_PROXY_SENTINEL)) {
+          if (!url.startsWith('https://api.openai.com/v1/chat/completions')) {
+            // Endpoint no soportado por el proxy (p. ej. voz TTS) → aviso claro
+            return new Response(JSON.stringify({error:{message:'Esta función de voz requiere API key propia de OpenAI. Usa audio propio, o pega tu key en Configuración.'}}), {status:400, headers:{'Content-Type':'application/json'}});
+          }
+          const cfg = window.__nivaCfg || (window.__nivaCfg = await (await _f('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json());
+          let token = cfg.anon;
+          try {
+            if (window.__nivaSb) { const s = await window.__nivaSb.auth.getSession(); if (s && s.data && s.data.session) token = s.data.session.access_token; }
+            else if (window.__nivaSession) token = window.__nivaSession.access_token;
+          } catch(e){}
+          return _f(cfg.url + '/functions/v1/niva-openai-proxy', { method:'POST', headers:{'Authorization':'Bearer '+token, 'apikey':cfg.anon, 'Content-Type':'application/json'}, body: opts.body });
+        }
+      }
+    } catch(e) { console.warn('[NIVA][PROXY] interceptor:', e); }
+    return _f(url, opts);
+  };
+})();
 let vidScenes = [];        // escenas generadas por IA [{foto,duracion,texto,narracion,funcion}]
 let selectedHookIdx = -1;  // hook seleccionado
 let vidHooks = [];         // hooks generados
