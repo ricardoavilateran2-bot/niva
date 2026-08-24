@@ -841,7 +841,7 @@ function enteroALetras(n) {
   var C=['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'];
   if (n<20) return U[n];
   if (n===100) return 'CIEN';
-  if (n<100) { var d=Math.floor(n/10); var u=n%10; return u===0?D[d]:D[d]+' Y '+U[u]; }
+  if (n<100) { var d=Math.floor(n/10); var u=n%10; if (d===2) { var V=['VEINTE','VEINTIÚN','VEINTIDÓS','VEINTITRÉS','VEINTICUATRO','VEINTICINCO','VEINTISÉIS','VEINTISIETE','VEINTIOCHO','VEINTINUEVE']; return V[u]; } return u===0?D[d]:D[d]+' Y '+U[u]; }
   if (n<1000) { var c=Math.floor(n/100); var r=n%100; return r===0?(n===100?'CIEN':C[c]):C[c]+' '+enteroALetras(r); }
   if (n<1000000) { var m=Math.floor(n/1000); var r=n%1000; var ms=m===1?'MIL':enteroALetras(m)+' MIL'; return r===0?ms:ms+' '+enteroALetras(r); }
   if (n<1000000000) { var mm=Math.floor(n/1000000); var r=n%1000000; var mms=mm===1?'UN MILLÓN':enteroALetras(mm)+' MILLONES'; return r===0?mms:mms+' '+enteroALetras(r); }

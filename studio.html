@@ -6527,6 +6527,8 @@ function buildScenesPlantilla(v, hook, script) {
 }
 
 function buildScenesPlantillaV2(v, hook, concept, meta) {
+  // FIX: los hooks de plantilla son objetos {categoria,emoji,texto}; normalizar a string
+  if (hook && typeof hook !== 'string') hook = hook.texto || hook.hook_maestro || '';
   const photos = (v.photos_urls || []);
   const precio = fmtP(v.price);
   const rec = v.rec && v.rec !== '0' ? v.rec+' rec' : '';
@@ -10085,8 +10087,8 @@ function renderNivaTrackList() {
 document.addEventListener('DOMContentLoaded', () => {
   renderNivaTrackList();
 
-  // Verificación silenciosa: intenta cargar el primer track
-  // Música embebida — no se necesita verificar carpeta externa
+  // Verificación silenciosa: intenta cargar el primer track de la carpeta music/
+  const testAudio = new Audio(NIVA_MUSIC_LIBRARY[0].file);
   testAudio.addEventListener('error', () => {
     const msg = "⚠️ No se encontró la biblioteca musical. Asegúrate de que la carpeta 'music' esté en la misma ubicación que studio_47.html";
     console.warn("[MUSIC_SELECT] Carpeta music/ no encontrada —", msg);
