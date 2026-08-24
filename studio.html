@@ -7679,6 +7679,10 @@ async function playVideoEL() {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // Safari crea el AudioContext "suspendido" — sin resume() el track de audio no
+      // produce muestras y el MediaRecorder MP4 de Safari se queda esperando (0 chunks).
+      // En Chrome es un no-op inofensivo si ya está "running".
+      try { await audioCtx.resume(); } catch(e) { console.warn('[NIVA][AUDIO] resume() falló:', e); }
       const dest = audioCtx.createMediaStreamDestination();
       const masterGain = audioCtx.createGain();
       masterGain.connect(dest);
@@ -7816,7 +7820,14 @@ async function playVideoEL() {
       const provLabel = usedProvider === 'elevenlabs' ? '🎙️ ElevenLabs' : usedProvider === 'upload' ? '📁 Audio propio' : '🎙️ Audio';
       vidStatus('🎬 Grabando con voz ' + provLabel + '… no cierres esta ventana', 'loading');
       updateDiagStep('render', 'pending');
-      mediaRecorder.start(200);
+      // Safari (grabación MP4): NO usar timeslice — su muxer MP4 con cortes periódicos
+      // puede no producir dataavailable nunca. Sin timeslice entrega un solo blob al stop.
+      // Chrome (WebM) conserva el timeslice de 200ms de siempre.
+      if (/^video\/mp4/i.test(_recordedMimeType)) {
+        mediaRecorder.start();
+      } else {
+        mediaRecorder.start(200);
+      }
       audio.onloadedmetadata = () => {
         // Calcular duración final: usa el selector o la IA
         const ta = document.getElementById('vid-script-ta');
