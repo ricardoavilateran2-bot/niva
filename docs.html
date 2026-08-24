@@ -49,6 +49,10 @@ a{color:#c9a84c;text-decoration:none}
 .btn-pdf:hover{background:#b8972d}
 .btn-print{background:#1e3a5f;color:#fff}
 .btn-print:hover{background:#2a5080}
+.btn-word{background:#2b579a;color:#fff}
+.btn-word:hover{background:#3a68b0}
+.btn-edit{background:#2a2a2a;color:#fff}
+.btn-edit:hover{background:#444}
 .btn-fullscreen{background:#2a2a2a;color:#fff}
 .btn-fullscreen:hover{background:#444}
 .form-col{width:390px;min-width:360px;background:#0d1a2e;border-left:1px solid #1e3a5f;position:sticky;top:115px;height:calc(100vh - 115px);overflow-y:auto}
@@ -164,7 +168,9 @@ a{color:#c9a84c;text-decoration:none}
 <!-- LEFT: DOCUMENT PREVIEW -->
 <div class="preview-col">
   <div class="preview-actions">
-    <button class="btn-pdf" onclick="downloadPDF()">⬇ Descargar PDF</button>
+    <button class="btn-pdf" onclick="downloadPDF()">⬇ PDF</button>
+    <button class="btn-word" onclick="nivaDownloadWord()">📝 Word</button>
+    <button class="btn-edit" id="btn-edit-doc" onclick="nivaToggleEdit()">✏️ Editar texto</button>
     <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
     <button class="btn-fullscreen" onclick="toggleFullscreen()" id="btn-fs" style="flex:0;padding:11px 16px">⛶ Solo doc</button>
   </div>
@@ -2028,10 +2034,41 @@ async function extractINE(input, party) {
       });
     }
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', construirUI);
-  else construirUI();
+  /* UI flotante de folio removida a peticion de Ricardo — el folio se sigue asignando e imprimiendo en el documento */
 })();
 </script>
 
+<script>
+// ── Edición directa del documento + descarga en Word ──
+let nivaEditMode = false;
+function nivaToggleEdit(){
+  var prev = document.getElementById('docPreview');
+  var btn = document.getElementById('btn-edit-doc');
+  nivaEditMode = !nivaEditMode;
+  prev.contentEditable = nivaEditMode ? 'true' : 'false';
+  prev.style.outline = nivaEditMode ? '2px dashed #c9a84c' : 'none';
+  prev.style.outlineOffset = '4px';
+  btn.textContent = nivaEditMode ? '✅ Terminar edición' : '✏️ Editar texto';
+  btn.style.background = nivaEditMode ? '#16a34a' : '#2a2a2a';
+  if (nivaEditMode) { prev.focus(); }
+}
+// Mientras se edita, el formulario NO re-genera el documento (para no perder tus cambios).
+(function(){
+  var _rp = window.renderPreview;
+  window.renderPreview = function(){ if (nivaEditMode) return; return _rp.apply(this, arguments); };
+})();
+function nivaDownloadWord(){
+  try { if (typeof window.nivaAsignarFolio === 'function') window.nivaAsignarFolio(); } catch(e){}
+  var prev = document.getElementById('docPreview');
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>Documento NIVA</title><style>body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.45;color:#111} @page{size:letter;margin:2.2cm}</style></head><body>' + prev.innerHTML + '</body></html>';
+  var blob = new Blob(['\ufeff', html], {type:'application/msword'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  var folio = window.nivaFolioActual ? '_' + window.nivaFolioActual : '';
+  a.download = 'NIVA_' + (typeof currentDoc !== 'undefined' ? currentDoc : 'documento') + folio + '.doc';
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+}
+</script>
 </body>
 </html>
