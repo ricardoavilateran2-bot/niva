@@ -375,7 +375,9 @@ function cardLead(l){
     ?'<img class="cimg" loading="lazy" src="'+esc(l.title_image_url)+'" onerror="this.outerHTML=\'<div class=cimg-ph>'+inicial+'</div>\'">'
     :'<div class="cimg-ph">'+inicial+'</div>';
   const metaSpecs=[l.bedrooms?l.bedrooms+' rec':null,l.bathrooms?l.bathrooms+' baños':null,m2ok(l.construction_size)?l.construction_size+' m²':null].filter(Boolean).join(' · ');
-  const metaSrc=[ESRC[l.source],l.eb_public_id?esc(l.eb_public_id):null,fecha||null].filter(Boolean).join(' · ');
+  const metaSrc=[ESRC[l.source],l.eb_public_id?esc(l.eb_public_id):null].filter(Boolean).join(' · ');
+  const telVisible=l.phone_normalized?('<div class="cmeta">📱 <a href="tel:'+esc(l.phone_normalized)+'" style="color:var(--navy);font-weight:700;text-decoration:none">'+esc(ftel(l.phone_normalized))+'</a></div>'):'';
+  const fechaVisible=fecha?('<div class="cmeta">🕐 Se comunicó: <strong style="color:var(--txt)">'+fecha+'</strong></div>'):'';
   d.innerHTML='<div class="crow">'
     +imgHTML
     +'<div class="cinfo">'
@@ -384,6 +386,8 @@ function cardLead(l){
     +'<div class="cprop">'+(l.property_title?esc(l.property_title):'⚠️ Propiedad no identificada')+'</div>'
     +'<div class="cmeta"><span class="cprice">'+fmt(l.price_amount)+(l.operation_type==='rental'?' /mes':'')+'</span>'+(l.location_name?' · '+esc(l.location_name):'')+'</div>'
     +(metaSpecs?'<div class="cmeta">'+metaSpecs+'</div>':'')
+    +telVisible
+    +fechaVisible
     +'<div class="cmeta">'+metaSrc+'</div>'
     +'</div></div>'
     +(l.first_message?'<details><summary>Ver mensaje original</summary><p></p></details>':'')
