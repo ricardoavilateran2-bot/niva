@@ -707,19 +707,22 @@ function cargarContadores(){
 let REP=null;
 async function cargarDatosRep(){
   if(REP)return REP;
-  const [l,c,p,a,i]=await Promise.all([
+  const [l,c,p,a,i,pc,pv]=await Promise.all([
     sb.from('leads').select('*'),
     sb.from('contacts').select('*'),
     sb.from('properties').select('id,eb_public_id,title,property_type,operation_type,price_amount,location_name,eb_status,bedrooms,bathrooms,construction_size,eb_created_at'),
     sb.from('advisors').select('*'),
-    sb.from('lead_interactions').select('lead_id,type,actor,created_at')
+    sb.from('lead_interactions').select('lead_id,type,actor,created_at'),
+    sb.from('portal_costos').select('*'),
+    sb.from('portal_volumen').select('*')
   ]);
   for(const r of [l,c,p,a,i]) if(r.error) throw new Error(r.error.message);
   const cMap={},pMap={},aMap={};
   (c.data||[]).forEach(x=>cMap[x.id]=x);
   (p.data||[]).forEach(x=>pMap[x.id]=x);
   (a.data||[]).forEach(x=>aMap[x.id]=x);
-  REP={L:l.data||[],C:c.data||[],P:p.data||[],A:a.data||[],I:i.data||[],cMap,pMap,aMap};
+  REP={L:l.data||[],C:c.data||[],P:p.data||[],A:a.data||[],I:i.data||[],
+       COST:(pc&&pc.data)||[],VOL:(pv&&pv.data)||[],cMap,pMap,aMap};
   return REP;
 }
 const nomAsesor=(id)=>{const a=id?REP.aMap[id]:null;if(!a)return 'Sin asignar';return (((a.first_name||'')+' '+(a.last_name||'')).trim())||a.niva_code||'Asesor'};
@@ -928,6 +931,51 @@ function repDiaHora(){
         : 'Las franjas con más entrada son donde no puedes dejar el WhatsApp sin contestar.');
 }
 
+function repCosto(){
+  const PORTAL={easybroker:'EasyBroker',inmuebles24:'Inmuebles24'};
+  const SRC={easybroker:'easybroker',inmuebles24:'inmuebles24_email'};
+  if(!REP.COST.length)return tablaHTML('💸 Costo por lead',['Aviso'],[['Todavía no hay costos de portal cargados.']],null);
+  const meses=[...new Set(REP.VOL.map(v=>v.mes))].sort().reverse().slice(0,4);
+  // mezcla cliente/colega segun lo que SI esta clasificado en el CRM
+  const mezcla={};
+  Object.keys(SRC).forEach(k=>{
+    const ls=REP.L.filter(l=>l.source===SRC[k]);
+    const cli=ls.filter(l=>((REP.cMap[l.contact_id]||{}).contact_type)==='client').length;
+    mezcla[k]={n:ls.length,cli,pctCli:ls.length?cli/ls.length:0};
+  });
+  const filas=[];
+  REP.COST.forEach(c=>{
+    const vols=REP.VOL.filter(v=>v.portal===c.portal&&meses.indexOf(v.mes)>=0);
+    const prom=vols.length?Math.round(vols.reduce((s,v)=>s+v.consultas,0)/vols.length):0;
+    const m=mezcla[c.portal]||{pctCli:0,n:0};
+    const clientes=Math.round(prom*m.pctCli);
+    filas.push([
+      '<strong>'+(PORTAL[c.portal]||esc(c.portal))+'</strong><br><small style="color:#8a94a6">'+esc(c.nota||'')+'</small>',
+      fmt(c.monto_mensual)+'/mes',
+      prom||'—',
+      prom?'<strong>'+fmt(Math.round(c.monto_mensual/prom))+'</strong>':'—',
+      m.n?Math.round(m.pctCli*100)+'%':'—',
+      clientes||'—',
+      clientes?'<strong>'+fmt(Math.round(c.monto_mensual/clientes))+'</strong>':'—'
+    ]);
+  });
+  const totalMes=REP.COST.reduce((s,c)=>s+Number(c.monto_mensual),0);
+  // detalle mes a mes
+  const det=meses.map(mes=>{
+    const f=[mes];
+    REP.COST.forEach(c=>{
+      const v=REP.VOL.find(x=>x.portal===c.portal&&x.mes===mes);
+      f.push(v?v.consultas+' · '+fmt(Math.round(c.monto_mensual/v.consultas)):'—');
+    });
+    return f;
+  });
+  return tablaHTML('💸 Costo por lead por portal',
+    ['Portal','#Inversión','#Consultas/mes','#Costo x consulta','#% clientes','#Clientes/mes','#Costo x cliente'],filas,
+    'Inviertes <b>'+fmt(totalMes)+' al mes</b> en portales. La columna que manda es <b>Costo por cliente</b>: las consultas de colegas no te traen comprador, te traen comisión compartida.')
+   +tablaHTML('📆 Consultas y costo, mes a mes',['Mes'].concat(REP.COST.map(c=>'#'+(PORTAL[c.portal]||c.portal))),det,
+    'Si las consultas de un portal bajan mes con mes y el pago es fijo, tu costo por lead sube solo. Ahí es cuando conviene renegociar o mover la inversión.');
+}
+
 async function renderReportes(host){
   host.innerHTML='<div class="vacio"><span class="vi">⏳</span>Cargando datos para reportes...</div>';
   try{await cargarDatosRep();}catch(e){host.innerHTML=vacioHTML('No se pudieron cargar los datos: '+esc(e.message),'⚠️');return;}
@@ -937,11 +985,11 @@ async function renderReportes(host){
     +b('exp-leads','📋 Leads completos')+b('exp-clientes','👤 Clientes')+b('exp-props','🏠 Propiedades')+b('exp-asesores','👔 Asesores')+b('exp-inter','⚡ Actividad')
     +'</div></div>'
     +'<div class="repsec"><div class="reph">📊 Reportes en pantalla</div><div class="repgrid">'
-    +b('rep-resumen','📈 Resumen general')+b('rep-embudo','🔻 Embudo de conversión')+b('rep-asesor','👔 Por asesor')+b('rep-prop','🏠 Por propiedad')+b('rep-zonas','📍 Zonas y precios')+b('rep-diahora','📆 Día y hora')+b('rep-mes','📅 Por mes y fuente')+b('rep-frias','🧊 Sin demanda')
+    +b('rep-resumen','📈 Resumen general')+b('rep-embudo','🔻 Embudo de conversión')+b('rep-asesor','👔 Por asesor')+b('rep-prop','🏠 Por propiedad')+b('rep-zonas','📍 Zonas y precios')+b('rep-diahora','📆 Día y hora')+b('rep-costo','💸 Costo por lead')+b('rep-mes','📅 Por mes y fuente')+b('rep-frias','🧊 Sin demanda')
     +'</div></div><div id="repout"></div></div>';
   const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter };
   Object.entries(acc).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=fn;});
-  const reps={ 'rep-resumen':repResumen,'rep-embudo':repEmbudo,'rep-asesor':repAsesor,'rep-prop':repProp,'rep-zonas':repZonas,'rep-diahora':repDiaHora,'rep-mes':repMes,'rep-frias':repFrias };
+  const reps={ 'rep-resumen':repResumen,'rep-embudo':repEmbudo,'rep-asesor':repAsesor,'rep-prop':repProp,'rep-zonas':repZonas,'rep-diahora':repDiaHora,'rep-costo':repCosto,'rep-mes':repMes,'rep-frias':repFrias };
   Object.entries(reps).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=()=>{
     document.querySelectorAll('#repout ~ * , .repgrid .repbtn').forEach(x=>{if(reps[x.id])x.classList.remove('on')});
     el.classList.add('on');
