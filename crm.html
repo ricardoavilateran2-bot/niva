@@ -415,8 +415,11 @@ function cardLead(l){
     +'<div class="estado"><span>Estado:</span><select>'
     +Object.entries(EST).map(([k,v])=>'<option value="'+k+'"'+(k===l.status?' selected':'')+'>'+v+'</option>').join('')
     +'</select></div>'
-    +(tipoLead(l)==='unidentified'&&!ESADMIN?'<div class="tipofix"><span>Tipo:</span><button data-tp="client">👤 Cliente</button><button data-tp="agent">👔 Asesor</button></div>':'')
-    +(ESADMIN?'<div class="tipofix"><span>Tipo:</span><select class="tpsel"><option value="client"'+(tipoLead(l)==='client'?' selected':'')+'>👤 Cliente</option><option value="agent"'+(tipoLead(l)==='agent'?' selected':'')+'>👔 Asesor</option><option value="unidentified"'+(tipoLead(l)==='unidentified'?' selected':'')+'>❓ Sin identificar</option></select></div>':'');
+    +'<div class="tipofix"><span>Tipo:</span><select class="tpsel">'
+    +'<option value="client"'+(tipoLead(l)==='client'?' selected':'')+'>👤 Cliente</option>'
+    +'<option value="agent"'+(tipoLead(l)==='agent'?' selected':'')+'>👔 Asesor</option>'
+    +((ESADMIN||tipoLead(l)==='unidentified')?'<option value="unidentified"'+(tipoLead(l)==='unidentified'?' selected':'')+'>❓ Sin identificar</option>':'')
+    +'</select></div>';
   if(l.first_message)d.querySelector('details p').textContent=l.first_message;
   const wab=d.querySelector('.wabox');
   const btnWa=d.querySelector('.wa');
