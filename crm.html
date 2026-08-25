@@ -271,7 +271,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
 const sb = createClient(cfg.url, cfg.anon);
 const $ = (s)=>document.querySelector(s);
-let LEADS=[], PROPS=[], TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='';
+let LEADS=[], PROPS=[], ASESORES=[], TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='';
 let SHOWN=60; // paginación incremental
 const tipoLead=(l)=>l.contact_type||'unidentified';
 const esArchivado=(l)=>!!l.archived_at;
@@ -341,6 +341,12 @@ async function cargar(){
     if(p.error) throw new Error(p.error.message||'propiedades');
     LEADS=l.data??[];PROPS=p.data??[];
     REP=null; // los reportes se recalculan con datos frescos
+    if(ESADMIN&&!ASESORES.length){
+      const a=await sb.from('advisors').select('id,first_name,last_name,niva_code,status');
+      if(!a.error)ASESORES=(a.data||[]).filter(x=>x.status!=='inactive')
+        .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor'}))
+        .sort((x,y)=>x.n.localeCompare(y.n));
+    }
     cargarContadores();
     pintar();
   }catch(e){
@@ -442,7 +448,7 @@ function cardLead(l){
     ?'<img class="cimg" loading="lazy" src="'+esc(l.title_image_url)+'" onerror="this.outerHTML=\'<div class=cimg-ph>'+inicial+'</div>\'">'
     :'<div class="cimg-ph">'+inicial+'</div>';
   const metaSpecs=[l.bedrooms?l.bedrooms+' rec':null,l.bathrooms?l.bathrooms+' baños':null,m2ok(l.construction_size)?l.construction_size+' m²':null].filter(Boolean).join(' · ');
-  const metaSrc=[ESRC[l.source],l.eb_public_id?esc(l.eb_public_id):null].filter(Boolean).join(' · ');
+  const metaSrc=[ESRC[l.source],l.eb_public_id?esc(l.eb_public_id):null,ESADMIN?(l.advisor_name?'👔 '+esc(l.advisor_name):'⚠️ Sin asesor'):null].filter(Boolean).join(' · ');
   const telVisible=l.phone_normalized?('<div class="cmeta">📱 <a href="tel:'+esc(l.phone_normalized)+'" style="color:var(--navy);font-weight:700;text-decoration:none">'+esc(ftel(l.phone_normalized))+'</a></div>'):'';
   const fechaVisible=fecha?('<div class="cmeta">🕐 Se comunicó: <strong style="color:var(--txt)">'+fecha+'</strong></div>'):'';
   d.innerHTML='<div class="crow">'
@@ -472,7 +478,11 @@ function cardLead(l){
     +'<option value="client"'+(tipoLead(l)==='client'?' selected':'')+'>👤 Cliente</option>'
     +'<option value="agent"'+(tipoLead(l)==='agent'?' selected':'')+'>👔 Asesor</option>'
     +((ESADMIN||tipoLead(l)==='unidentified')?'<option value="unidentified"'+(tipoLead(l)==='unidentified'?' selected':'')+'>❓ Sin identificar</option>':'')
-    +'</select></div>';
+    +'</select></div>'
+    +(ESADMIN?'<div class="tipofix"><span>Asesor:</span><select class="asel">'
+      +'<option value="">— Sin asignar —</option>'
+      +ASESORES.map(a=>'<option value="'+esc(a.id)+'"'+(a.id===l.advisor_id?' selected':'')+'>'+esc(a.n)+'</option>').join('')
+      +'</select></div>':'');
   if(l.first_message)d.querySelector('details p').textContent=l.first_message;
   const wab=d.querySelector('.wabox');
   const btnWa=d.querySelector('.wa');
@@ -529,6 +539,18 @@ function cardLead(l){
   d.querySelectorAll('.tipofix button').forEach(b=>b.onclick=()=>cambiarTipo(b.dataset.tp));
   const tps=d.querySelector('.tpsel');
   if(tps)tps.onchange=(e)=>cambiarTipo(e.target.value);
+  const asel=d.querySelector('.asel');
+  if(asel)asel.onchange=async(e)=>{
+    const nv=e.target.value||null, prev=l.advisor_id||'';
+    e.target.disabled=true;
+    const {error}=await sb.rpc('asignar_asesor',{p_lead_id:l.id,p_advisor_id:nv});
+    e.target.disabled=false;
+    if(error){e.target.value=prev;toast('No se pudo asignar');return}
+    const nom=nv?(ASESORES.find(a=>a.id===nv)||{}).n:null;
+    toast(nv?('Asignado a '+nom+' ✅'):'Lead sin asignar');
+    // el servidor tambien asigna los demas leads huerfanos de esa propiedad
+    await cargar();
+  };
   return d;
 }
 function cargarContadores(){
