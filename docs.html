@@ -351,10 +351,16 @@ a{color:#c9a84c;text-decoration:none}
       <div class="fsec-body">
         <label class="ine-upload" for="ine1-input">
           <span>📷</span>
-          <span>Subir INE para autocompletar datos</span>
+          <span>Subir INE (frente) — nombre y domicilio</span>
           <input type="file" id="ine1-input" accept="image/*" onchange="extractINE(this,'1')">
         </label>
         <div class="ine-status" id="ine1-status"></div>
+        <label class="ine-upload" for="ine1r-input">
+          <span>🔄</span>
+          <span>Subir INE (reverso) — número de ID (IDMEX)</span>
+          <input type="file" id="ine1r-input" accept="image/*" onchange="extractINEReverso(this,'1')">
+        </label>
+        <div class="ine-status" id="ine1r-status"></div>
         <div class="frow">
           <label>Nombre completo</label>
           <input id="p1-nombre" placeholder="Nombre completo" oninput="updatePreview()">
@@ -427,10 +433,16 @@ a{color:#c9a84c;text-decoration:none}
       <div class="fsec-body">
         <label class="ine-upload" for="ine2-input">
           <span>📷</span>
-          <span>Subir INE para autocompletar datos</span>
+          <span>Subir INE (frente) — nombre y domicilio</span>
           <input type="file" id="ine2-input" accept="image/*" onchange="extractINE(this,'2')">
         </label>
         <div class="ine-status" id="ine2-status"></div>
+        <label class="ine-upload" for="ine2r-input">
+          <span>🔄</span>
+          <span>Subir INE (reverso) — número de ID (IDMEX)</span>
+          <input type="file" id="ine2r-input" accept="image/*" onchange="extractINEReverso(this,'2')">
+        </label>
+        <div class="ine-status" id="ine2r-status"></div>
         <div class="frow">
           <label>Nombre completo</label>
           <input id="p2-nombre" placeholder="Nombre completo" oninput="updatePreview()">
@@ -2399,7 +2411,7 @@ function clearForm() {
 // SIN idioma y al reconocer revienta con "Cannot read properties of null
 // (reading 'SetImageFile')" — que además llega como texto, no como Error, por eso
 // se veía "Error al leer imagen: undefined". Esta función prueba ambas formas.
-async function nivaOCR(imagen, onProgreso){
+async function nivaOCR(imagen, onProgreso, params){
   if (typeof Tesseract === 'undefined') throw new Error('No se pudo cargar el lector de texto. Revisa tu conexión.');
   var opts = onProgreso ? { logger: onProgreso } : {};
 
@@ -2410,6 +2422,7 @@ async function nivaOCR(imagen, onProgreso){
       await w.loadLanguage('spa');
       await w.initialize('spa');
     }
+    if (params && typeof w.setParameters === 'function'){ try { await w.setParameters(params); } catch(e){} }
     var out = await w.recognize(imagen);
     await w.terminate();
     if (out && out.data && typeof out.data.text === 'string') return out.data.text;
@@ -2417,16 +2430,124 @@ async function nivaOCR(imagen, onProgreso){
 
   // 2) Atajo de la librería
   try {
-    var out2 = await Tesseract.recognize(imagen, 'spa', opts);
+    var o2 = {}; for (var k in opts) o2[k] = opts[k];
+    if (params) for (var k2 in params) o2[k2] = params[k2];
+    var out2 = await Tesseract.recognize(imagen, 'spa', o2);
     if (out2 && out2.data && typeof out2.data.text === 'string') return out2.data.text;
   } catch(e2){ /* se intenta la siguiente forma */ }
 
   // 3) API nueva
   var w3 = await Tesseract.createWorker('spa', 1, opts);
+  if (params && typeof w3.setParameters === 'function'){ try { await w3.setParameters(params); } catch(e){} }
   var out3 = await w3.recognize(imagen);
   await w3.terminate();
   if (out3 && out3.data && typeof out3.data.text === 'string') return out3.data.text;
   throw new Error('El lector no devolvió texto.');
+}
+
+// Gira la foto. Las credenciales se fotografían de lado con mucha frecuencia y el
+// lector no reconoce texto vertical, así que hay que probar las cuatro posiciones.
+function nivaRotarImagen(blobOFile, grados){
+  return new Promise(function(resolve){
+    var img = new Image();
+    img.onload = function(){
+      var cv = document.createElement('canvas');
+      var vertical = (grados === 90 || grados === 270);
+      cv.width  = vertical ? img.height : img.width;
+      cv.height = vertical ? img.width  : img.height;
+      var g = cv.getContext('2d');
+      g.translate(cv.width/2, cv.height/2);
+      g.rotate(grados * Math.PI / 180);
+      g.drawImage(img, -img.width/2, -img.height/2);
+      cv.toBlob(function(b){ resolve(b || blobOFile); }, 'image/png');
+    };
+    img.onerror = function(){ resolve(blobOFile); };
+    img.src = URL.createObjectURL(blobOFile);
+  });
+}
+
+// Busca en el texto del OCR la línea legible por máquina del reverso de la INE:
+// empieza con IDMEX y sigue una hilera larga de dígitos y signos "<".
+function nivaLeerMRZ(texto){
+  // El lector suele devolver los "<" del MRZ como comillas angulares. Ojo: «
+  // y » son DOS signos juntos, mientras ‹ y › son uno solo — si se convirtieran
+  // todos a un único "<" se perdería un carácter del número.
+  var t = (texto || '')
+    .replace(/[«»]/g, '<<')
+    .replace(/[‹›〈〉≺≻]/g, '<')
+    .replace(/[|¡!]/g, '')
+    .toUpperCase();
+
+  // Se aceptan variantes que el OCR suele producir: "ID MEX", "IOMEX", "1DMEX"
+  var re = /\b[I1][D0]\s*M[EF]X\s*([0-9OQIL<\s]{10,})/;
+  var linea = '';
+  var lineas = t.split('\n');
+  for (var i = 0; i < lineas.length; i++){
+    var m = lineas[i].replace(/\s+/g,'').match(/^[I1][D0]M[EF]X([0-9OQIL<]{10,})$/);
+    if (m){ linea = 'IDMEX' + m[1]; break; }
+  }
+  if (!linea){
+    var m2 = t.replace(/\n/g,' ').match(re);
+    if (m2){
+      var cuerpo = m2[1].replace(/\s+/g,'');
+      cuerpo = cuerpo.split(/[^0-9OQIL<]/)[0];
+      if (cuerpo.length >= 10) linea = 'IDMEX' + cuerpo;
+    }
+  }
+  if (linea){
+    // Correcciones típicas del OCR dentro de una zona que es sólo numérica
+    linea = 'IDMEX' + linea.slice(5).replace(/O/g,'0').replace(/Q/g,'0').replace(/[IL]/g,'1');
+  }
+
+  // Nombre del titular: tercer renglón del MRZ (APELLIDOS<<NOMBRES)
+  var nombre = '';
+  for (var j = 0; j < lineas.length; j++){
+    var L = lineas[j].replace(/\s+/g,'');
+    if (/^[A-ZÑ<]{10,}$/.test(L) && L.indexOf('<<') > 0){
+      nombre = L.replace(/<+/g,' ').replace(/\s+/g,' ').trim();
+      break;
+    }
+  }
+  return { idmex: linea, nombreMRZ: nombre };
+}
+
+async function extractINEReverso(input, party){
+  var file = input.files[0];
+  if (!file) return;
+  var statusEl = document.getElementById('ine'+party+'r-status');
+  var poner = function(t){ if (statusEl) statusEl.textContent = t; };
+
+  try {
+    var base = await nivaPrepararImagen(file);
+    // El MRZ sólo tiene letras, dígitos y "<": restringir el alfabeto sube mucho el acierto.
+    var params = { tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<' };
+    var giros = [0, 90, 270, 180];   // se prueba cada posición hasta encontrar el IDMEX
+    var datos = { idmex:'', nombreMRZ:'' };
+
+    for (var i = 0; i < giros.length; i++){
+      poner('⏳ Leyendo reverso' + (i ? ' (girando la imagen ' + giros[i] + '°)' : '') + '…');
+      var img = giros[i] === 0 ? base : await nivaRotarImagen(base, giros[i]);
+      var texto = await nivaOCR(img, null, params);
+      datos = nivaLeerMRZ(texto || '');
+      if (datos.idmex) break;
+    }
+
+    if (datos.idmex){
+      document.getElementById('p'+party+'-id-num').value = datos.idmex;
+      var tipo = document.getElementById('p'+party+'-id-tipo');
+      if (tipo) tipo.value = 'INE';
+      // Si el nombre aún está vacío, se aprovecha el del propio MRZ
+      var campoNom = document.getElementById('p'+party+'-nombre');
+      if (campoNom && !campoNom.value.trim() && datos.nombreMRZ) campoNom.value = datos.nombreMRZ;
+      poner('✅ Número de ID capturado — verifica que coincida con la credencial');
+      updatePreview();
+    } else {
+      poner('⚠️ No se encontró la línea IDMEX. Toma la foto del reverso completa, derecha y con buena luz.');
+    }
+  } catch(e){
+    var msg = (e && e.message) ? e.message : String(e || 'error desconocido');
+    poner('❌ No se pudo leer el reverso: ' + msg);
+  }
 }
 
 // Realza la foto antes de leerla: escala de grises + más contraste + ampliación.
