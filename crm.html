@@ -109,6 +109,9 @@ details p{font-size:13.5px;background:#f1f3f7;border-radius:8px;padding:8px;marg
 .acc{flex:1;text-align:center;padding:10px 4px;border-radius:10px;font-size:13.5px;font-weight:700;border:0;text-decoration:none;color:#fff;display:block;cursor:pointer;transition:opacity .15s}
 .acc:hover{opacity:.9}
 .wa{background:#25d366}.tel{background:var(--navy)}.ver{background:#64748b}
+.arch{background:#8a94a6}.desarch{background:#3d6b4a}
+.acc:disabled{opacity:.6;cursor:default}
+.card.esarchivada{opacity:.82}
 .estado{padding:0 14px 12px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut)}
 .estado select{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff}
 .wabox{padding:0 14px 12px}
@@ -170,6 +173,7 @@ body[data-tab="props"] main{max-width:1280px}
     <button class="tab" data-t="sinid" id="tab-sinid" style="display:none">❓ Sin identificar<span class="n" id="n-sinid">–</span></button>
     <button class="tab" data-t="todos">📋 Todos<span class="n" id="n-todos">–</span></button>
     <button class="tab" data-t="props">🏠 Propiedades<span class="n" id="n-props">–</span></button>
+    <button class="tab" data-t="archivados" id="tab-arch">🗄️ Archivados<span class="n" id="n-arch">–</span></button>
   </nav>
   <div class="sfoot"><div class="hname" id="hname"></div><button class="hout" id="hout">Salir</button></div>
 </aside>
@@ -218,9 +222,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
 const sb = createClient(cfg.url, cfg.anon);
 const $ = (s)=>document.querySelector(s);
-let LEADS=[], PROPS=[], TAB='clientes', FIL='todos', Q='', ESADMIN=false;
+let LEADS=[], PROPS=[], TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='';
 let SHOWN=60; // paginación incremental
 const tipoLead=(l)=>l.contact_type||'unidentified';
+const esArchivado=(l)=>!!l.archived_at;
 let PT='todas', PO='todo', PS='az', PQ='';
 const EST={new:'NUEVO',contacted:'CONTACTADO',attended:'ATENDIDO',cancelled:'CANCELADO'};
 const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual'};
@@ -250,6 +255,7 @@ async function iniciar(){
   const {data:{user}}=await sb.auth.getUser();
   const uname=(user?.email??'').split('@')[0];
   $('#hname').textContent=uname;
+  USUARIO=uname;
   ESADMIN=(uname==='admin');
   const tabSinId=$('#tab-sinid');
   if(tabSinId) tabSinId.style.display = ESADMIN ? '' : 'none';
@@ -340,13 +346,15 @@ function pintar(){
     return;
   }
   let arr=LEADS.slice();
+  if(TAB==='archivados')arr=arr.filter(esArchivado);
+  else arr=arr.filter(l=>!esArchivado(l));
   if(TAB==='clientes')arr=arr.filter(l=>tipoLead(l)==='client');
   else if(TAB==='asesores')arr=arr.filter(l=>tipoLead(l)==='agent');
   else if(TAB==='sinid')arr=arr.filter(l=>tipoLead(l)==='unidentified');
   if(FIL!=='todos')arr=arr.filter(x=>x.status===FIL);
   if(Q){const q=Q.toLowerCase();arr=arr.filter(x=>[x.full_name,x.phone_normalized,x.property_title,x.eb_public_id,ESRC[x.source]].join(' ').toLowerCase().includes(q))}
-  const vacios={clientes:'Sin clientes por ahora.',asesores:'Sin leads de asesores.',sinid:'Nada pendiente de identificar. ✅',todos:'Sin resultados.'};
-  if(!arr.length){host.innerHTML=vacioHTML(vacios[TAB]||'Sin resultados.',TAB==='sinid'?'✅':'📭');return}
+  const vacios={clientes:'Sin clientes por ahora.',asesores:'Sin leads de asesores.',sinid:'Nada pendiente de identificar. ✅',todos:'Sin resultados.',archivados:'No has archivado ningún lead todavía.'};
+  if(!arr.length){host.innerHTML=vacioHTML(vacios[TAB]||'Sin resultados.',TAB==='sinid'?'✅':TAB==='archivados'?'🗄️':'📭');return}
   const nuevos=arr.filter(l=>l.status==='new'), resto=arr.filter(l=>l.status!=='new');
   const ordenado=(FIL==='todos')?[...nuevos,...resto]:[...nuevos,...resto];
   const total=ordenado.length;
@@ -373,7 +381,7 @@ function pintar(){
   }
 }
 function cardLead(l){
-  const d=document.createElement('div');d.className='card';
+  const d=document.createElement('div');d.className='card'+(esArchivado(l)?' esarchivada':'');
   const fecha=l.happened_at?new Date(l.happened_at).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   const nombre=(l.full_name&&l.full_name.trim().length>2)?l.full_name:'Sin nombre';
   const inicial=esc(nombre.charAt(0).toUpperCase());
@@ -401,6 +409,7 @@ function cardLead(l){
     +(l.phone_normalized?'<button class="acc wa">💬 WhatsApp</button>':'')
     +(l.phone_normalized?'<a class="acc tel" href="tel:'+esc(l.phone_normalized)+'">📞 Llamar</a>':'')
     +(l.public_url?'<a class="acc ver" target="_blank" rel="noopener" href="'+esc(l.public_url)+'">🏠 Ver</a>':'')
+    +(esArchivado(l)?'<button class="acc desarch">↩️ Restaurar</button>':'<button class="acc arch">🗄️ Archivar</button>')
     +'</div>'
     +'<div class="wabox hidden"><textarea></textarea><button class="go">Abrir WhatsApp con este mensaje</button></div>'
     +'<div class="estado"><span>Estado:</span><select>'
@@ -441,22 +450,44 @@ function cardLead(l){
     toast('Tipo: '+(nv==='client'?'CLIENTE':nv==='agent'?'ASESOR':'SIN IDENTIFICAR'));
     pintar();cargarContadores();
   }
+  async function archivar(archivando){
+    const btn=d.querySelector(archivando?'.arch':'.desarch');
+    if(btn){btn.disabled=true;btn.textContent=archivando?'Archivando...':'Restaurando...'}
+    const cambio=archivando
+      ? {archived_at:new Date().toISOString(), archived_by:USUARIO}
+      : {archived_at:null, archived_by:null};
+    const {error}=await sb.from('leads').update(cambio).eq('id',l.id);
+    if(error){
+      if(btn){btn.disabled=false;btn.textContent=archivando?'🗄️ Archivar':'↩️ Restaurar'}
+      toast('No se pudo '+(archivando?'archivar':'restaurar'));return;
+    }
+    l.archived_at=cambio.archived_at;l.archived_by=cambio.archived_by;
+    sb.from('lead_interactions').insert({lead_id:l.id,type:archivando?'archived':'unarchived',actor:'advisor',payload:{}});
+    toast(archivando?'Lead archivado':'Lead restaurado');
+    pintar();cargarContadores();
+  }
+  const btnArch=d.querySelector('.arch');
+  if(btnArch)btnArch.onclick=()=>archivar(true);
+  const btnDes=d.querySelector('.desarch');
+  if(btnDes)btnDes.onclick=()=>archivar(false);
   d.querySelectorAll('.tipofix button').forEach(b=>b.onclick=()=>cambiarTipo(b.dataset.tp));
   const tps=d.querySelector('.tpsel');
   if(tps)tps.onchange=(e)=>cambiarTipo(e.target.value);
   return d;
 }
 function cargarContadores(){
-  const cli=LEADS.filter(l=>tipoLead(l)==='client');
+  const activos=LEADS.filter(l=>!esArchivado(l));
+  const cli=activos.filter(l=>tipoLead(l)==='client');
   const cliNew=cli.filter(l=>l.status==='new').length;
   const nc=$('#n-clientes');
   nc.textContent=cliNew>0?cliNew:cli.length;
   nc.classList.toggle('hot',cliNew>0);
   nc.title=cliNew>0?(cliNew+' clientes nuevos'):(cli.length+' clientes');
-  $('#n-asesores').textContent=LEADS.filter(l=>tipoLead(l)==='agent').length;
-  $('#n-sinid').textContent=LEADS.filter(l=>tipoLead(l)==='unidentified').length;
-  $('#n-todos').textContent=LEADS.length;
+  $('#n-asesores').textContent=activos.filter(l=>tipoLead(l)==='agent').length;
+  $('#n-sinid').textContent=activos.filter(l=>tipoLead(l)==='unidentified').length;
+  $('#n-todos').textContent=activos.length;
   $('#n-props').textContent=PROPS.length;
+  $('#n-arch').textContent=LEADS.filter(esArchivado).length;
 }
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');
