@@ -869,6 +869,65 @@ function repFrias(){
     'Candidatas a: mejorar fotos y título, ajustar precio, o subir de plan en el portal. Si llevan meses frías, esa exclusividad te está costando.');
 }
 
+const RANGOS_R=[[0,15000,'Menos de $15,000'],[15000,25000,'$15,000 – $25,000'],[25000,40000,'$25,000 – $40,000'],[40000,60000,'$40,000 – $60,000'],[60000,1e12,'Más de $60,000']];
+const RANGOS_V=[[0,3e6,'Menos de $3M'],[3e6,6e6,'$3M – $6M'],[6e6,1e7,'$6M – $10M'],[1e7,2e7,'$10M – $20M'],[2e7,1e12,'Más de $20M']];
+function repZonas(){
+  const act=REP.L.filter(x=>!x.archived_at&&x.property_id);
+  // demanda por zona
+  const zl={},zp={};
+  REP.P.filter(p=>p.eb_status==='published').forEach(p=>{const z=(p.location_name||'Sin zona').split(',')[0].trim();zp[z]=(zp[z]||0)+1});
+  act.forEach(l=>{const p=REP.pMap[l.property_id];if(!p)return;const z=(p.location_name||'Sin zona').split(',')[0].trim();zl[z]=(zl[z]||0)+1});
+  const zonas=Object.keys(zl).map(z=>({z,leads:zl[z],props:zp[z]||0}))
+    .sort((a,b)=>b.leads-a.leads).slice(0,15);
+  const maxZ=zonas.length?zonas[0].leads:1;
+  const fz=zonas.map(r=>[esc(r.z),r.props||'—',r.leads,
+    r.props?(r.leads/r.props).toFixed(1):'—',
+    '<div class="repbar" style="width:'+Math.max(4,Math.round(r.leads*100/maxZ))+'%"></div>']);
+  // demanda por rango de precio
+  function tablaRango(op,rangos,etiqueta){
+    const filas=rangos.map(([a,b,nom])=>{
+      const props=REP.P.filter(p=>p.eb_status==='published'&&p.operation_type===op&&p.price_amount>=a&&p.price_amount<b);
+      const ids=new Set(props.map(p=>p.id));
+      const leads=act.filter(l=>ids.has(l.property_id)).length;
+      return {nom,np:props.length,leads};
+    });
+    const mx=Math.max(1,...filas.map(f=>f.leads));
+    return tablaHTML('💰 Demanda por rango de precio · '+etiqueta,
+      ['Rango','#Propiedades','#Leads','#Leads por propiedad','Demanda'],
+      filas.map(f=>[f.nom,f.np||'—',f.leads,f.np?(f.leads/f.np).toFixed(1):'—',
+        '<div class="repbar" style="width:'+Math.max(3,Math.round(f.leads*100/mx))+'%"></div>']),null);
+  }
+  return tablaHTML('📍 Zonas con más demanda (top 15)',['Zona','#En inventario','#Leads','#Leads x propiedad','Demanda'],fz,
+    'La columna clave es <b>Leads por propiedad</b>: una zona con 1 propiedad y 8 leads pide más inventario ahí; una con 6 propiedades y 1 lead te está costando dinero.')
+    +tablaRango('rental',RANGOS_R,'RENTA')
+    +tablaRango('sale',RANGOS_V,'VENTA');
+}
+function repDiaHora(){
+  const act=REP.L.filter(x=>!x.archived_at);
+  const DIAS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const pd=[0,0,0,0,0,0,0];
+  act.forEach(l=>{const f=l.happened_at||l.created_at;if(f)pd[new Date(f).getDay()]++});
+  const mxd=Math.max(1,...pd);
+  const orden=[1,2,3,4,5,6,0];
+  const fd=orden.map(i=>[DIAS[i],pd[i],pct(pd[i],act.length),
+    '<div class="repbar" style="width:'+Math.max(3,Math.round(pd[i]*100/mxd))+'%"></div>']);
+  // horas: solo las reales (la importación dejó 12:00 ficticio)
+  const reales=act.filter(l=>{const f=l.happened_at;if(!f)return false;
+    const d=new Date(f);return !(d.getHours()===12&&d.getMinutes()===0&&d.getSeconds()===0)});
+  const BLOQ=[[6,9,'Madrugada y temprano (6–9h)'],[9,12,'Mañana (9–12h)'],[12,15,'Mediodía (12–15h)'],
+              [15,18,'Tarde (15–18h)'],[18,21,'Noche (18–21h)'],[21,30,'Noche tarde (21–6h)']];
+  const fh=BLOQ.map(([a,b,nom])=>{
+    const n=reales.filter(l=>{const h=new Date(l.happened_at).getHours();return b>24?(h>=a||h<6):(h>=a&&h<b)}).length;
+    return [nom,n,pct(n,reales.length)];
+  });
+  return tablaHTML('📆 Leads por día de la semana',['Día','#Leads','#% del total','Volumen'],fd,
+    'La fecha sí es real en los '+act.length+' leads. Si el fin de semana pesa, ahí necesitas guardia.')
+    +tablaHTML('🕐 Leads por hora del día ('+reales.length+' con hora real)',['Franja','#Leads','#%'],fh,
+      reales.length<30
+        ? '⚠️ Todavía hay pocos datos: '+ (act.length-reales.length) +' leads entraron por importación masiva y traen hora ficticia (12:00), así que los excluí. Este reporte se vuelve confiable conforme entren leads nuevos en vivo.'
+        : 'Las franjas con más entrada son donde no puedes dejar el WhatsApp sin contestar.');
+}
+
 async function renderReportes(host){
   host.innerHTML='<div class="vacio"><span class="vi">⏳</span>Cargando datos para reportes...</div>';
   try{await cargarDatosRep();}catch(e){host.innerHTML=vacioHTML('No se pudieron cargar los datos: '+esc(e.message),'⚠️');return;}
@@ -878,11 +937,11 @@ async function renderReportes(host){
     +b('exp-leads','📋 Leads completos')+b('exp-clientes','👤 Clientes')+b('exp-props','🏠 Propiedades')+b('exp-asesores','👔 Asesores')+b('exp-inter','⚡ Actividad')
     +'</div></div>'
     +'<div class="repsec"><div class="reph">📊 Reportes en pantalla</div><div class="repgrid">'
-    +b('rep-resumen','📈 Resumen general')+b('rep-embudo','🔻 Embudo de conversión')+b('rep-asesor','👔 Por asesor')+b('rep-prop','🏠 Por propiedad')+b('rep-mes','📅 Por mes y fuente')+b('rep-frias','🧊 Sin demanda')
+    +b('rep-resumen','📈 Resumen general')+b('rep-embudo','🔻 Embudo de conversión')+b('rep-asesor','👔 Por asesor')+b('rep-prop','🏠 Por propiedad')+b('rep-zonas','📍 Zonas y precios')+b('rep-diahora','📆 Día y hora')+b('rep-mes','📅 Por mes y fuente')+b('rep-frias','🧊 Sin demanda')
     +'</div></div><div id="repout"></div></div>';
   const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter };
   Object.entries(acc).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=fn;});
-  const reps={ 'rep-resumen':repResumen,'rep-embudo':repEmbudo,'rep-asesor':repAsesor,'rep-prop':repProp,'rep-mes':repMes,'rep-frias':repFrias };
+  const reps={ 'rep-resumen':repResumen,'rep-embudo':repEmbudo,'rep-asesor':repAsesor,'rep-prop':repProp,'rep-zonas':repZonas,'rep-diahora':repDiaHora,'rep-mes':repMes,'rep-frias':repFrias };
   Object.entries(reps).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=()=>{
     document.querySelectorAll('#repout ~ * , .repgrid .repbtn').forEach(x=>{if(reps[x.id])x.classList.remove('on')});
     el.classList.add('on');
