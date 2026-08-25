@@ -2388,44 +2388,181 @@ function clearForm() {
 }
 
 // ===================== INE OCR =====================
+// ─────────────────────────────────────────────────────────────────────────────
+// LECTURA DE INE (OCR en el propio navegador: la credencial NUNCA sale de tu equipo)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// El CDN de tesseract.js sirve builds con dos APIs distintas según la versión:
+//   · API nueva:  createWorker('spa')                      → ya deja listo el idioma
+//   · API previa: createWorker() + loadLanguage + initialize
+// Si se usa la forma nueva sobre un build viejo, el worker se crea pero se queda
+// SIN idioma y al reconocer revienta con "Cannot read properties of null
+// (reading 'SetImageFile')" — que además llega como texto, no como Error, por eso
+// se veía "Error al leer imagen: undefined". Esta función prueba ambas formas.
+async function nivaOCR(imagen, onProgreso){
+  if (typeof Tesseract === 'undefined') throw new Error('No se pudo cargar el lector de texto. Revisa tu conexión.');
+  var opts = onProgreso ? { logger: onProgreso } : {};
+
+  // 1) Forma clásica (compatible con todas las versiones)
+  try {
+    var w = await Tesseract.createWorker(opts);
+    if (typeof w.loadLanguage === 'function'){
+      await w.loadLanguage('spa');
+      await w.initialize('spa');
+    }
+    var out = await w.recognize(imagen);
+    await w.terminate();
+    if (out && out.data && typeof out.data.text === 'string') return out.data.text;
+  } catch(e){ /* se intenta la siguiente forma */ }
+
+  // 2) Atajo de la librería
+  try {
+    var out2 = await Tesseract.recognize(imagen, 'spa', opts);
+    if (out2 && out2.data && typeof out2.data.text === 'string') return out2.data.text;
+  } catch(e2){ /* se intenta la siguiente forma */ }
+
+  // 3) API nueva
+  var w3 = await Tesseract.createWorker('spa', 1, opts);
+  var out3 = await w3.recognize(imagen);
+  await w3.terminate();
+  if (out3 && out3.data && typeof out3.data.text === 'string') return out3.data.text;
+  throw new Error('El lector no devolvió texto.');
+}
+
+// Realza la foto antes de leerla: escala de grises + más contraste + ampliación.
+// En fotos de credencial tomadas con el celular esto mejora bastante el acierto.
+function nivaPrepararImagen(file){
+  return new Promise(function(resolve){
+    var img = new Image();
+    img.onload = function(){
+      var escala = Math.min(3, Math.max(1, 1600 / Math.max(img.width, img.height)));
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * escala);
+      cv.height = Math.round(img.height * escala);
+      var g = cv.getContext('2d');
+      g.drawImage(img, 0, 0, cv.width, cv.height);
+      try {
+        var d = g.getImageData(0, 0, cv.width, cv.height), p = d.data;
+        for (var i = 0; i < p.length; i += 4){
+          var gris = 0.299*p[i] + 0.587*p[i+1] + 0.114*p[i+2];
+          gris = (gris - 128) * 1.45 + 128;            // contraste
+          gris = gris < 0 ? 0 : (gris > 255 ? 255 : gris);
+          p[i] = p[i+1] = p[i+2] = gris;
+        }
+        g.putImageData(d, 0, 0);
+      } catch(e){ /* si el canvas no deja leer píxeles, se usa tal cual */ }
+      cv.toBlob(function(b){ resolve(b || file); }, 'image/png');
+    };
+    img.onerror = function(){ resolve(file); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// Interpreta el texto crudo del OCR con la estructura real de una credencial INE.
+function nivaLeerDatosINE(texto){
+  var RUIDO = /INSTITUTO|NACIONAL|ELECTORAL|CREDENCIAL|PARA VOTAR|ESTADOS UNIDOS|MEXICANOS|M[EÉ]XICO|REGISTRO|FEDERAL|ELECTORES/i;
+  var lineas = texto.split('\n').map(function(l){ return l.replace(/\s+/g,' ').trim(); }).filter(Boolean);
+
+  function esMayus(l){
+    return /^[A-ZÁÉÍÓÚÑÜ0-9''´.,#\-\/ ]+$/.test(l) && /[A-ZÁÉÍÓÚÑ]/.test(l);
+  }
+
+  // ── NOMBRE ── en la INE viene tras la etiqueta "NOMBRE", en 1 a 3 renglones
+  // (apellido paterno, apellido materno, nombre de pila).
+  var nombre = '';
+  var iNom = -1;
+  for (var i = 0; i < lineas.length; i++){
+    if (/^NOMBRE\b/i.test(lineas[i]) && lineas[i].length < 20){ iNom = i; break; }
+  }
+  if (iNom >= 0){
+    var partes = [];
+    for (var j = iNom + 1; j < lineas.length && partes.length < 3; j++){
+      var L = lineas[j];
+      if (/^(DOMICILIO|CLAVE|CURP|FECHA|SEXO|A[NÑ]O|SECCI[OÓ]N|VIGENCIA)\b/i.test(L)) break;
+      if (RUIDO.test(L) || !esMayus(L) || L.length < 3) continue;
+      partes.push(L);
+    }
+    nombre = partes.join(' ').trim();
+  }
+  if (!nombre){   // sin etiqueta: el renglón más largo en mayúsculas que no sea ruido
+    var cand = lineas.filter(function(l){
+      return l.length > 7 && l.length < 60 && esMayus(l) && !RUIDO.test(l) &&
+             !/\d{4}/.test(l) && l.split(' ').length >= 2 && l.split(' ').length <= 6;
+    });
+    nombre = cand.length ? cand[0] : '';
+  }
+
+  // ── DOMICILIO ── renglones entre "DOMICILIO" y la siguiente etiqueta
+  var domicilio = '';
+  var iDom = lineas.findIndex(function(l){ return /^DOMICILIO\b/i.test(l); });
+  if (iDom >= 0){
+    var dl = [];
+    for (var k = iDom + 1; k < lineas.length; k++){
+      var D = lineas[k];
+      if (/^(CLAVE|CURP|FECHA|SEXO|A[NÑ]O|SECCI[OÓ]N|VIGENCIA|EMISI[OÓ]N|ESTADO|MUNICIPIO|LOCALIDAD)\b/i.test(D)) break;
+      if (RUIDO.test(D)) continue;
+      dl.push(D);
+      if (dl.length >= 4) break;
+    }
+    domicilio = dl.join(', ');
+  }
+  if (!domicilio){
+    domicilio = lineas.filter(function(l){
+      return /\bCALLE|\bC\.?P\.?\s*\d|\bCOL\.?\b|\bCOLONIA|\bMPIO|\bMUNICIPIO|\bNUM\b|\bN[UÚ]M/i.test(l);
+    }).slice(0,4).join(', ');
+  }
+
+  // ── IDENTIFICADORES ──
+  var limpio = texto.replace(/\s+/g,' ').toUpperCase();
+  var curp  = (limpio.match(/[A-Z]{4}\d{6}[HM][A-Z]{5}[0-9A-Z]\d/) || [])[0] || '';
+  var clave = '';
+  var mClave = limpio.match(/CLAVE\s*DE\s*ELECTOR\s*:?\s*([A-Z0-9]{18})/);
+  if (mClave) clave = mClave[1];
+  else { var m2 = limpio.match(/\b[A-Z]{6}\d{8}[HM]\d{3}\b/); if (m2) clave = m2[0]; }
+
+  return { nombre: nombre, domicilio: domicilio, idNum: clave || curp, curp: curp, clave: clave };
+}
+
 async function extractINE(input, party) {
   var file = input.files[0];
   if (!file) return;
   var statusEl = document.getElementById('ine'+party+'-status');
-  statusEl.textContent = '⏳ Procesando INE...';
+  var poner = function(t){ if (statusEl) statusEl.textContent = t; };
+  poner('⏳ Preparando imagen…');
 
   try {
-    var worker = await Tesseract.createWorker('spa');
-    var { data: { text } } = await worker.recognize(file);
-    await worker.terminate();
-
-    // Parse name, address, etc from OCR text
-    var lines = text.split('\n').map(function(l){return l.trim();}).filter(Boolean);
-    
-    // Try to find CURP (18 chars)
-    var curpMatch = text.match(/[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z][0-9]/);
-    // Try to find address (lines with words like "Calle", "Col", "CP")
-    var addrLines = lines.filter(function(l){ return /CALLE|COL\.?\s|CP\s|MPIO|MUNICIPIO|NUM|NÚM/i.test(l); });
-    // Try to find name - often after "NOMBRE" header or in all-caps 2-4 words
-    var nameLines = lines.filter(function(l){ 
-      return l.length > 8 && l.length < 60 && /^[A-ZÁÉÍÓÚÑ\s]+$/.test(l) && l.split(' ').length >= 2 && l.split(' ').length <= 6;
+    var img = await nivaPrepararImagen(file);
+    poner('⏳ Leyendo credencial… 0%');
+    var texto = await nivaOCR(img, function(m){
+      if (m && m.status === 'recognizing text' && typeof m.progress === 'number'){
+        poner('⏳ Leyendo credencial… ' + Math.round(m.progress * 100) + '%');
+      }
     });
-    
-    var nombre = nameLines.length > 0 ? nameLines[0] : '';
-    var domicilio = addrLines.join(', ');
-    var idNum = curpMatch ? curpMatch[0] : '';
 
-    if (nombre) {
-      document.getElementById('p'+party+'-nombre').value = nombre;
-      document.getElementById('p'+party+'-id-tipo').value = 'INE';
+    var d = nivaLeerDatosINE(texto || '');
+
+    if (d.nombre)    document.getElementById('p'+party+'-nombre').value = d.nombre;
+    if (d.nombre)    document.getElementById('p'+party+'-id-tipo').value = 'INE';
+    if (d.domicilio) document.getElementById('p'+party+'-domicilio').value = d.domicilio;
+    if (d.idNum)     document.getElementById('p'+party+'-id-num').value = d.idNum;
+
+    var puestos = [];
+    if (d.nombre) puestos.push('nombre');
+    if (d.domicilio) puestos.push('domicilio');
+    if (d.idNum) puestos.push('clave');
+
+    if (puestos.length){
+      poner('✅ Se llenó: ' + puestos.join(', ') + ' — revisa que esté correcto');
+    } else if ((texto||'').trim().length > 20){
+      poner('⚠️ Se leyó la imagen pero no se reconocieron los campos. Captura a mano.');
+    } else {
+      poner('⚠️ No se pudo leer la credencial. Prueba con una foto más nítida, de frente y con buena luz.');
     }
-    if (domicilio) document.getElementById('p'+party+'-domicilio').value = domicilio;
-    if (idNum) document.getElementById('p'+party+'-id-num').value = idNum;
-
-    statusEl.textContent = nombre ? '✅ Datos extraídos — verifica y corrige' : '⚠️ Revisa manualmente — texto detectado en imagen';
     updatePreview();
   } catch(e) {
-    statusEl.textContent = '❌ Error al leer imagen: ' + e.message;
+    // El lector a veces rechaza con texto plano en vez de un Error: se contemplan ambos.
+    var msg = (e && e.message) ? e.message : String(e || 'error desconocido');
+    poner('❌ No se pudo leer la credencial: ' + msg);
   }
 }
 </script>
