@@ -127,6 +127,19 @@ details p{font-size:13.5px;background:#f1f3f7;border-radius:8px;padding:8px;marg
 .wa{background:#25d366}.tel{background:var(--navy)}.ver{background:#64748b}
 .arch{background:#8a94a6}.desarch{background:#3d6b4a}
 .fsep{width:1px;background:var(--border);margin:2px 4px;flex-shrink:0}
+.sagrupo{background:#fff;border:1px solid var(--border);border-left:3px solid #c9a84c;border-radius:var(--radius);padding:13px 15px;margin-bottom:11px}
+.sagrupo.sinprop{border-left-color:#b4451f}
+.sat{font-weight:800;color:var(--navy);font-size:14.5px;line-height:1.3}
+.sam{font-size:12.5px;color:var(--mut);margin-top:3px}
+.sanombres{font-size:12.5px;color:var(--txt);margin-top:8px;line-height:1.5}
+.sanombres span{display:inline-block;background:#f1f3f7;border-radius:6px;padding:2px 7px;margin:0 4px 4px 0}
+.saacc{display:flex;gap:8px;margin-top:11px;align-items:center;flex-wrap:wrap}
+.saacc select{flex:1;min-width:170px;padding:9px 10px;border:1px solid var(--border);border-radius:9px;font-size:14px;background:#fff}
+.saacc button{padding:9px 16px;border:0;border-radius:9px;background:var(--navy);color:#fff;font-weight:700;font-size:13.5px;cursor:pointer}
+.saacc button:disabled{opacity:.5;cursor:default}
+.sacount{background:var(--navy);color:#fff;border-radius:99px;padding:2px 9px;font-size:12px;font-weight:700;margin-left:6px}
+.sahead{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:18px 0 9px}
+.sahead:first-child{margin-top:0}
 body[data-vista="tablero"] main{max-width:1600px}
 body[data-vista="tablero"] #buscar{max-width:640px}
 .kb{display:flex;gap:10px;align-items:flex-start;padding-bottom:10px;width:100%}
@@ -240,6 +253,7 @@ body[data-tab="props"] main{max-width:1280px}
     <button class="tab" data-t="todos">📋 Todos<span class="n" id="n-todos">–</span></button>
     <button class="tab" data-t="props">🏠 Propiedades<span class="n" id="n-props">–</span></button>
     <button class="tab" data-t="archivados" id="tab-arch">🗄️ Archivados<span class="n" id="n-arch">–</span></button>
+    <button class="tab" data-t="sinasignar" id="tab-sinasig" style="display:none">⚠️ Sin asignar<span class="n" id="n-sinasig">–</span></button>
     <button class="tab" data-t="reportes" id="tab-rep" style="display:none">📊 Reportes</button>
   </nav>
   <div class="sfoot"><div class="hname" id="hname"></div><button class="hout" id="hout">Salir</button></div>
@@ -346,6 +360,8 @@ async function iniciar(){
   ESADMIN=(uname==='admin');
   const tabSinId=$('#tab-sinid');
   if(tabSinId) tabSinId.style.display = ESADMIN ? '' : 'none';
+  const tabSA=$('#tab-sinasig');
+  if(tabSA) tabSA.style.display = ESADMIN ? '' : 'none';
   const tabRep=$('#tab-rep');
   if(tabRep) tabRep.style.display = ESADMIN ? '' : 'none';
   if(!ESADMIN && TAB==='sinid'){
@@ -403,10 +419,11 @@ function pintar(){
   document.body.dataset.tab=TAB;
   const enTablero=(VISTA==='tablero'&&FIL==='todos'&&['clientes','asesores','sinid','todos','archivados'].indexOf(TAB)>=0);
   document.body.dataset.vista=enTablero?'tablero':'lista';
-  $('#barra').style.display=(TAB==='props'||TAB==='reportes')?'none':'';
+  $('#barra').style.display=(TAB==='props'||TAB==='reportes'||TAB==='sinasignar')?'none':'';
   $('#pbarra').classList.toggle('hidden',TAB!=='props');
   const host=$('#lista');host.innerHTML='';
   if(TAB==='reportes'){renderReportes(host);return;}
+  if(TAB==='sinasignar'){renderSinAsignar(host);return;}
   if(TAB==='props'){
     if(!PROPS.length){host.innerHTML=vacioHTML('No tienes propiedades activas asignadas.','🏠');return}
     let ps=PROPS.slice();
@@ -481,6 +498,74 @@ function pintar(){
     host.appendChild(b);
   }
 }
+// ── Leads sin asesor asignado (solo admin) ───────────────────────────
+function grupoSinAsignar(clave,titulo,sub,leads,esProp){
+  const d=document.createElement('div');
+  d.className='sagrupo'+(esProp?'':' sinprop');
+  d.innerHTML='<div class="sat">'+titulo+'<span class="sacount">'+leads.length+(leads.length===1?' lead':' leads')+'</span></div>'
+    +(sub?'<div class="sam">'+sub+'</div>':'')
+    +'<div class="sanombres">'+leads.slice(0,12).map(l=>'<span>'+esc((l.full_name&&l.full_name.trim().length>2)?l.full_name:'Sin nombre')+'</span>').join('')
+      +(leads.length>12?'<span>+'+(leads.length-12)+' más</span>':'')+'</div>'
+    +'<div class="saacc"><select><option value="">Elige un asesor…</option>'
+      +ASESORES.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.n)+'</option>').join('')
+      +'</select><button disabled>Asignar</button>'
+      +(esProp&&leads.length>1?'<span class="sam">Se asignan los '+leads.length+' de golpe</span>':'')
+    +'</div>';
+  const sel=d.querySelector('select'), btn=d.querySelector('button');
+  sel.onchange=()=>{btn.disabled=!sel.value};
+  btn.onclick=async()=>{
+    if(!sel.value)return;
+    btn.disabled=true;btn.textContent='Asignando...';
+    // con propiedad basta un lead: el servidor arrastra a los demas de esa propiedad
+    const objetivo = esProp ? [leads[0]] : leads;
+    let err=null;
+    for(const l of objetivo){
+      const r=await sb.rpc('asignar_asesor',{p_lead_id:l.id,p_advisor_id:sel.value});
+      if(r.error){err=r.error;break}
+    }
+    if(err){btn.disabled=false;btn.textContent='Asignar';toast('No se pudo asignar');return}
+    toast('Asignado a '+((ASESORES.find(a=>a.id===sel.value)||{}).n||'asesor'));
+    await cargar();
+  };
+  return d;
+}
+function renderSinAsignar(host){
+  const arr=LEADS.filter(l=>!l.advisor_id&&!esArchivado(l));
+  if(!arr.length){host.innerHTML=vacioHTML('Todos los leads tienen asesor asignado. ✅','🎯');return}
+  const conProp={}, sinProp=[];
+  arr.forEach(l=>{
+    if(l.eb_public_id||l.property_title){
+      const k=l.eb_public_id||l.property_title;
+      (conProp[k]=conProp[k]||[]).push(l);
+    } else sinProp.push(l);
+  });
+  const grupos=Object.keys(conProp).map(k=>({k,leads:conProp[k]})).sort((a,b)=>b.leads.length-a.leads.length);
+  const totalProp=grupos.reduce((s,g)=>s+g.leads.length,0);
+  host.insertAdjacentHTML('beforeend','<div class="sahead">🏠 Por propiedad — '+grupos.length+' propiedades, '+totalProp+' leads</div>');
+  if(grupos.length){
+    host.insertAdjacentHTML('beforeend','<div class="repnote" style="margin:-4px 0 12px">Asigna una vez por propiedad: el sistema registra al dueño y arrastra todos sus leads, incluidos los que lleguen después.</div>');
+    grupos.forEach(g=>{
+      const l0=g.leads[0];
+      host.appendChild(grupoSinAsignar(g.k,
+        esc(l0.property_title||g.k),
+        (l0.eb_public_id?esc(l0.eb_public_id):'')+(l0.price_amount?' · '+fmt(l0.price_amount)+(l0.operation_type==='rental'?'/mes':''):'')+(l0.location_name?' · '+esc(l0.location_name):''),
+        g.leads,true));
+    });
+  }
+  if(sinProp.length){
+    host.insertAdjacentHTML('beforeend','<div class="sahead">❓ Sin propiedad identificada — '+sinProp.length+' leads</div>');
+    host.insertAdjacentHTML('beforeend','<div class="repnote" style="margin:-4px 0 12px">Estos llegaron con mensaje genérico y no se pueden agrupar. Van uno por uno.</div>');
+    sinProp.forEach(l=>{
+      host.appendChild(grupoSinAsignar(l.id,
+        esc((l.full_name&&l.full_name.trim().length>2)?l.full_name:'Sin nombre'),
+        [ESRC[l.source],l.phone_normalized?ftel(l.phone_normalized):null,
+         l.happened_at?new Date(l.happened_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}):null
+        ].filter(Boolean).map(esc).join(' · '),
+        [l],false));
+    });
+  }
+}
+
 // ── Tablero por etapas (estilo pipeline) ─────────────────────────────
 const COLS=[['new','🟢 Nuevos'],['contacted','🟡 Contactados'],['attended','✅ Atendidos'],['cancelled','⛔ Cancelados']];
 const fechaLead=(l)=>new Date(l.happened_at||l.created_at||0).getTime();
@@ -702,6 +787,12 @@ function cargarContadores(){
   $('#n-todos').textContent=activos.length;
   $('#n-props').textContent=PROPS.length;
   $('#n-arch').textContent=LEADS.filter(esArchivado).length;
+  const nsa=$('#n-sinasig');
+  if(nsa){
+    const sa=activos.filter(l=>!l.advisor_id).length;
+    nsa.textContent=sa;
+    nsa.classList.toggle('hot',sa>0);
+  }
 }
 // ── Reportes y descargas (solo admin) ────────────────────────────────
 let REP=null;
