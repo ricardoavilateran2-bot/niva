@@ -125,7 +125,11 @@ details p{font-size:13.5px;background:#f1f3f7;border-radius:8px;padding:8px;marg
 .acc{flex:1;text-align:center;padding:10px 4px;border-radius:10px;font-size:13.5px;font-weight:700;border:0;text-decoration:none;color:#fff;display:block;cursor:pointer;transition:opacity .15s}
 .acc:hover{opacity:.9}
 .wa{background:#25d366}.tel{background:var(--navy)}.ver{background:#64748b}
-.arch{background:#8a94a6}.desarch{background:#3d6b4a}
+.arch{background:#8a94a6}.desarch{background:#3d6b4a}.elim{background:#b4451f}
+.pr-cancel{border:0;background:#f6e8e4;color:#b4451f;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.pr-cancel:hover{background:#f0d8d2}
+.pr-cancel.rea{background:#e3ede5;color:#3d6b4a}
+.pr-fila.cancelada{opacity:.62}
 .fsep{width:1px;background:var(--border);margin:2px 4px;flex-shrink:0}
 .sagrupo{background:#fff;border:1px solid var(--border);border-left:3px solid #c9a84c;border-radius:var(--radius);padding:13px 15px;margin-bottom:11px}
 .sagrupo.sinprop{border-left-color:#b4451f}
@@ -280,6 +284,10 @@ body[data-tab="props"] main{max-width:1280px}
     <button class="f" data-f="depa">Departamentos</button>
     <button class="f" data-f="otro">Otros</button>
   </div>
+  <div class="filtros" id="pf-estado">
+    <button class="f on" data-e="activas">🏠 Activas</button>
+    <button class="f" data-e="canceladas">🚫 Canceladas<span class="n" id="n-canc">–</span></button>
+  </div>
   <div class="filtros" id="pf-op">
     <button class="f on" data-f="todo">Renta y venta</button>
     <button class="f" data-f="rental">Renta</button>
@@ -327,7 +335,7 @@ let SUBSA='leads'; // dentro de "Sin asignar": leads | props
 let SHOWN=60; // paginación incremental
 const tipoLead=(l)=>l.contact_type||'unidentified';
 const esArchivado=(l)=>!!l.archived_at;
-let PT='todas', PO='todo', PS='pmin', PQ='';
+let PT='todas', PO='todo', PS='pmin', PQ='', PE='activas', PROPSC=[];
 let VISTA='tablero'; // tablero | lista
 const EST={new:'NUEVO',contacted:'CONTACTADO',attended:'ATENDIDO',cancelled:'CANCELADO'};
 const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa'};
@@ -406,6 +414,8 @@ async function cargar(){
       const d=await sb.from('property_advisors').select('property_id,advisor_id');
       DUENOS={};
       if(!d.error)(d.data||[]).forEach(x=>{DUENOS[x.property_id]=x.advisor_id});
+      const pc=await sb.from('my_properties_canceladas').select('*');
+      PROPSC=pc.error?[]:(pc.data||[]);
     }
     cargarContadores();
     pintar();
@@ -431,8 +441,10 @@ function pintar(){
   if(TAB==='reportes'){renderReportes(host);return;}
   if(TAB==='sinasignar'){renderSinAsignar(host);return;}
   if(TAB==='props'){
-    if(!PROPS.length){host.innerHTML=vacioHTML('No tienes propiedades activas asignadas.','🏠');return}
-    let ps=PROPS.slice();
+    const canc=(PE==='canceladas');
+    const base=canc?PROPSC:PROPS;
+    if(!base.length){host.innerHTML=vacioHTML(canc?'No has cancelado ninguna propiedad.':'No tienes propiedades activas asignadas.',canc?'🚫':'🏠');return}
+    let ps=base.slice();
     if(PT!=='todas')ps=ps.filter(p=>tipoDe(p)===PT);
     if(PO!=='todo')ps=ps.filter(p=>p.operation_type===PO);
     if(PQ){const q=PQ.toLowerCase();ps=ps.filter(p=>[p.title,p.eb_public_id,p.location_name,p.property_type].join(' ').toLowerCase().includes(q))}
@@ -459,7 +471,29 @@ function pintar(){
           +'<div class="pr-m">'+esc(p.eb_public_id)+(p.location_name?' · '+esc(p.location_name):'')+'</div></div>'
           +'<div class="pr-tipo">'+esc(p.property_type||'')+'</div>'
           +'<div class="pr-specs">'+specs+'</div>'
-          +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>';
+          +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>'
+          +(ESADMIN?'<button class="pr-cancel'+(canc?' rea':'')+'">'+(canc?'↩️ Reactivar':'🚫 Cancelar')+'</button>':'');
+        if(canc)fila.classList.add('cancelada');
+        const bc=fila.querySelector('.pr-cancel');
+        if(bc)bc.onclick=async(e)=>{
+          e.preventDefault();e.stopPropagation();
+          if(canc){
+            if(!confirm('¿Reactivar "'+(p.title||p.eb_public_id)+'"?\n\nVuelve a la lista de propiedades activas.'))return;
+            bc.disabled=true;bc.textContent='...';
+            const r=await sb.rpc('reactivar_propiedad',{p_property_id:p.id});
+            if(r.error){bc.disabled=false;bc.textContent='↩️ Reactivar';toast(r.error.message||'No se pudo');return}
+            toast('Propiedad reactivada');
+          } else {
+            if(!confirm('¿Cancelar "'+(p.title||p.eb_public_id)+'"?\n\nSale de la lista de propiedades activas y de los reportes.\nSus leads se conservan. Puedes reactivarla cuando quieras.\n\nOjo: esto NO la despublica de EasyBroker ni de Inmuebles24.'))return;
+            const mot=prompt('¿Por qué la cancelas? (opcional)\nEj: se vendió, se rentó, el dueño la retiró, terminó exclusiva','');
+            if(mot===null)return;
+            bc.disabled=true;bc.textContent='...';
+            const r=await sb.rpc('cancelar_propiedad',{p_property_id:p.id,p_motivo:mot||null});
+            if(r.error){bc.disabled=false;bc.textContent='🚫 Cancelar';toast(r.error.message||'No se pudo');return}
+            toast('Propiedad cancelada');
+          }
+          await cargar();
+        };
         tabla.appendChild(fila);
       }
       sec.appendChild(tabla);wrapper.appendChild(sec);
@@ -735,6 +769,7 @@ function cardLead(l){
     +(l.phone_normalized?'<a class="acc tel" href="tel:'+esc(l.phone_normalized)+'">📞 Llamar</a>':'')
     +(l.public_url?'<a class="acc ver" target="_blank" rel="noopener" href="'+esc(l.public_url)+'">🏠 Ver</a>':'')
     +(esArchivado(l)?'<button class="acc desarch">↩️ Restaurar</button>':'<button class="acc arch">🗄️ Archivar</button>')
+    +(ESADMIN?'<button class="acc elim">🗑️ Eliminar</button>':'')
     +'</div>'
     +'<div class="wabox hidden"><textarea></textarea><button class="go">Abrir WhatsApp con este mensaje</button></div>'
     +'<div class="estado"><span>Estado:</span><select>'
@@ -799,6 +834,19 @@ function cardLead(l){
     toast(archivando?'Lead archivado':'Lead restaurado');
     pintar();cargarContadores();
   }
+  const btnElim=d.querySelector('.elim');
+  if(btnElim)btnElim.onclick=async()=>{
+    const nom=(l.full_name&&l.full_name.trim().length>2)?l.full_name:'este lead sin nombre';
+    if(!confirm('¿Eliminar definitivamente a "'+nom+'"?\n\nEsto borra el lead y su historial. No se puede deshacer.\n\nSi solo quieres quitarlo de la lista, usa Archivar.'))return;
+    const motivo=prompt('¿Por qué lo eliminas? (opcional — queda en la bitácora)','');
+    if(motivo===null)return;
+    btnElim.disabled=true;btnElim.textContent='Eliminando...';
+    const {error}=await sb.rpc('eliminar_lead',{p_lead_id:l.id,p_motivo:motivo||null});
+    if(error){btnElim.disabled=false;btnElim.textContent='🗑️ Eliminar';toast(error.message||'No se pudo eliminar');return}
+    const mf=document.getElementById('modalFicha'); if(mf)mf.remove();
+    toast('Lead eliminado');
+    await cargar();
+  };
   const btnArch=d.querySelector('.arch');
   if(btnArch)btnArch.onclick=()=>archivar(true);
   const btnDes=d.querySelector('.desarch');
@@ -832,6 +880,8 @@ function cargarContadores(){
   $('#n-sinid').textContent=activos.filter(l=>tipoLead(l)==='unidentified').length;
   $('#n-todos').textContent=activos.length;
   $('#n-props').textContent=PROPS.length;
+  const ncanc=$('#n-canc'); if(ncanc)ncanc.textContent=PROPSC.length;
+  const fe=document.getElementById('pf-estado'); if(fe)fe.style.display=ESADMIN?'':'none';
   $('#n-arch').textContent=LEADS.filter(esArchivado).length;
   const nsa=$('#n-sinasig');
   if(nsa){
@@ -1193,6 +1243,10 @@ $('#buscar').oninput=(e)=>{clearTimeout(_dq);_dq=setTimeout(()=>{Q=e.target.valu
 document.querySelectorAll('#pf-tipo .f').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#pf-tipo .f').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   PT=b.dataset.f;pintar();
+});
+document.querySelectorAll('#pf-estado .f').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#pf-estado .f').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  PE=b.dataset.e;pintar();
 });
 document.querySelectorAll('#pf-op .f').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#pf-op .f').forEach(x=>x.classList.remove('on'));b.classList.add('on');
