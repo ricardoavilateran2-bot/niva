@@ -2466,6 +2466,90 @@ function nivaRotarImagen(blobOFile, grados){
   });
 }
 
+// Prepara la franja donde vive el MRZ: gira, recorta la parte baja de la
+// credencial, amplía y deja la imagen en blanco y negro puro (umbral de Otsu).
+// Recortar es lo que más ayuda: deja fuera los códigos QR, que son puro ruido
+// para el lector y son la razón por la que antes salía texto sin sentido.
+function nivaFranjaMRZ(blobOFile, grados, desdeY, escala){
+  return new Promise(function(resolve){
+    var im = new Image();
+    im.onload = function(){
+      var vert = (grados === 90 || grados === 270);
+      var W = vert ? im.height : im.width, H = vert ? im.width : im.height;
+      var c1 = document.createElement('canvas'); c1.width = W; c1.height = H;
+      var g1 = c1.getContext('2d');
+      g1.translate(W/2, H/2); g1.rotate(grados*Math.PI/180);
+      g1.drawImage(im, -im.width/2, -im.height/2);
+
+      var y0 = Math.round(H*desdeY), hh = H - y0;
+      var c2 = document.createElement('canvas');
+      c2.width = Math.round(W*escala); c2.height = Math.round(hh*escala);
+      var g2 = c2.getContext('2d'); g2.imageSmoothingQuality = 'high';
+      g2.drawImage(c1, 0, y0, W, hh, 0, 0, c2.width, c2.height);
+
+      try {
+        var d = g2.getImageData(0,0,c2.width,c2.height), p = d.data;
+        var hist = new Array(256), n = c2.width*c2.height, i;
+        for (i=0;i<256;i++) hist[i]=0;
+        for (i=0;i<p.length;i+=4){
+          var v = (0.299*p[i] + 0.587*p[i+1] + 0.114*p[i+2])|0;
+          p[i]=p[i+1]=p[i+2]=v; hist[v]++;
+        }
+        var sum=0, t; for (t=0;t<256;t++) sum += t*hist[t];
+        var sumB=0, wB=0, mejor=0, umbral=128;
+        for (t=0;t<256;t++){
+          wB += hist[t]; if (!wB) continue;
+          var wF = n-wB; if (!wF) break;
+          sumB += t*hist[t];
+          var mB = sumB/wB, mF = (sum-sumB)/wF, entre = wB*wF*(mB-mF)*(mB-mF);
+          if (entre > mejor){ mejor = entre; umbral = t; }
+        }
+        for (i=0;i<p.length;i+=4){ var q = p[i] > umbral ? 255 : 0; p[i]=p[i+1]=p[i+2]=q; }
+        g2.putImageData(d,0,0);
+      } catch(e){ /* si no se pueden leer los píxeles, se usa la imagen tal cual */ }
+
+      c2.toBlob(function(b){ resolve(b || blobOFile); }, 'image/png');
+    };
+    im.onerror = function(){ resolve(blobOFile); };
+    im.src = URL.createObjectURL(blobOFile);
+  });
+}
+
+// Lector reutilizable para el MRZ: crear el worker y cargar el idioma es lo más
+// lento de todo, así que se hace UNA vez y se reaprovecha en cada intento de giro.
+async function nivaLectorMRZ(){
+  if (window.__nivaLectorMRZ) return window.__nivaLectorMRZ;
+  if (typeof Tesseract === 'undefined') throw new Error('No se pudo cargar el lector de texto. Revisa tu conexión.');
+  var params = {
+    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
+    tessedit_pageseg_mode: '6'
+  };
+  // Imagen mínima para comprobar que el worker quedó realmente utilizable
+  var prueba = await new Promise(function(r){
+    var c = document.createElement('canvas'); c.width=120; c.height=48;
+    var g = c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,120,48);
+    g.fillStyle='#000'; g.font='bold 30px Arial'; g.fillText('A1', 12, 36);
+    c.toBlob(r, 'image/png');
+  });
+
+  var intentos = [
+    async function(){ var w = await Tesseract.createWorker();
+      if (typeof w.loadLanguage === 'function'){ await w.loadLanguage('spa'); await w.initialize('spa'); }
+      return w; },
+    async function(){ return await Tesseract.createWorker('spa', 1, {}); }
+  ];
+  for (var i = 0; i < intentos.length; i++){
+    try {
+      var w = await intentos[i]();
+      if (w.setParameters) { try { await w.setParameters(params); } catch(e){} }
+      await w.recognize(prueba);            // si el idioma no cargó, aquí truena
+      window.__nivaLectorMRZ = w;
+      return w;
+    } catch(e){ /* siguiente intento */ }
+  }
+  throw new Error('No se pudo iniciar el lector de la credencial.');
+}
+
 // Busca en el texto del OCR la línea legible por máquina del reverso de la INE:
 // empieza con IDMEX y sigue una hilera larga de dígitos y signos "<".
 function nivaLeerMRZ(texto){
@@ -2518,17 +2602,25 @@ async function extractINEReverso(input, party){
   var poner = function(t){ if (statusEl) statusEl.textContent = t; };
 
   try {
-    var base = await nivaPrepararImagen(file);
-    // El MRZ sólo tiene letras, dígitos y "<": restringir el alfabeto sube mucho el acierto.
-    var params = { tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<' };
-    var giros = [0, 90, 270, 180];   // se prueba cada posición hasta encontrar el IDMEX
+    poner('⏳ Preparando el lector…');
+    var lector = await nivaLectorMRZ();
+
+    // Se prueban las cuatro posiciones de la foto y dos alturas de recorte.
+    // La credencial suele fotografiarse de lado, por eso 270° y 90° van primero
+    // en cuanto la posición derecha no da resultado.
+    var combinaciones = [
+      [0, 0.58, 2.2], [270, 0.58, 2.2], [90, 0.58, 2.2], [180, 0.58, 2.2],
+      [0, 0.40, 2.0], [270, 0.40, 2.0], [90, 0.40, 2.0], [180, 0.40, 2.0]
+    ];
     var datos = { idmex:'', nombreMRZ:'' };
 
-    for (var i = 0; i < giros.length; i++){
-      poner('⏳ Leyendo reverso' + (i ? ' (girando la imagen ' + giros[i] + '°)' : '') + '…');
-      var img = giros[i] === 0 ? base : await nivaRotarImagen(base, giros[i]);
-      var texto = await nivaOCR(img, null, params);
-      datos = nivaLeerMRZ(texto || '');
+    for (var i = 0; i < combinaciones.length; i++){
+      var cb = combinaciones[i];
+      poner('⏳ Buscando el número de ID… (' + (i+1) + '/' + combinaciones.length + ')');
+      var img = await nivaFranjaMRZ(file, cb[0], cb[1], cb[2]);
+      var salida = await lector.recognize(img);
+      var texto = (salida && salida.data && salida.data.text) || '';
+      datos = nivaLeerMRZ(texto);
       if (datos.idmex) break;
     }
 
