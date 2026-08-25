@@ -900,9 +900,55 @@ window.addEventListener('DOMContentLoaded', function() {
     }
     function overflowed(p){ return p.content.scrollHeight > p.content.clientHeight + 2; }
 
-    // ¿Puede dividirse este bloque entre dos hojas? (solo texto corrido; nunca
-    // firmas, tablas, cajas resaltadas ni títulos)
-    var SPLITTABLE_RE = /(^|\s)(doc-p|doc-clause)(\s|$)/;
+    // ── ¿Se puede dividir este bloque entre dos hojas? ──
+    // La decisión es ESTRUCTURAL, no por nombre de clase: la mayoría de las cláusulas
+    // del contrato son <p> sin clase y los incisos a)/b)/c) son <div> con hijos. Si
+    // sólo se dividieran los bloques con clase conocida, esos brincarían enteros a la
+    // hoja siguiente y dejarían huecos enormes al final de la página.
+    var NOSPLIT_RE = /(^|\s)(sig-row|doc-title|doc-subtitle|doc-sec-head|doc-sec-num|doc-date)(\s|$)/;
+    var TAGS_BLOQUE = { DIV:1, P:1, LI:1, OL:1, UL:1, TABLE:1, SECTION:1, ARTICLE:1 };
+
+    // Nunca se parten: firmas, títulos y tablas (deben viajar completos).
+    function esDivisible(el){
+      if (!el || el.nodeType !== 1) return false;
+      if (el.tagName === 'TABLE') return false;
+      if (NOSPLIT_RE.test(el.className || '')) return false;
+      return true;
+    }
+    // ¿Es un contenedor de sub-bloques (lista de incisos) o texto corrido?
+    function tieneHijosBloque(el){
+      for (var i = 0; i < el.children.length; i++){
+        if (TAGS_BLOQUE[el.children[i].tagName]) return true;
+      }
+      return false;
+    }
+    // ¿Parece el encabezado de una cláusula? ("DÉCIMA CUARTA. – LIMITANTES:")
+    // Si queda como último renglón de la hoja, se lo lleva al bloque siguiente
+    // para que el título no se separe de su contenido.
+    function pareceTitulo(el){
+      if (!el || el.nodeType !== 1) return false;
+      if (HEADING_RE.test(el.className || '')) return true;
+      var t = (el.textContent || '').trim();
+      return t.length > 0 && t.length < 90 && /[:：]$/.test(t);
+    }
+
+    // Divide un contenedor de sub-bloques moviendo los últimos hijos completos a la
+    // hoja siguiente. Nunca parte un inciso por dentro.
+    function splitPorHijos(clone, page){
+      var rest = clone.cloneNode(false);
+      var guard = 0;
+      while (overflowed(page) && clone.children.length > 1 && guard++ < 800){
+        rest.insertBefore(clone.lastElementChild, rest.firstChild);
+      }
+      var devolverTodo = function(){
+        while (rest.firstChild) clone.appendChild(rest.firstChild);
+        return null;
+      };
+      if (!rest.children.length) return null;          // no hizo falta dividir
+      if (!clone.children.length) return devolverTodo(); // no cupo ni un inciso
+      if (overflowed(page)) return devolverTodo();       // sigue sin caber: va entero
+      return rest;
+    }
 
     // Extrae del final del elemento la última "pieza" (una palabra, o el trozo de
     // un <b>/<u>). Conserva el formato: la pieza devuelta trae su propia etiqueta.
@@ -970,11 +1016,12 @@ window.addEventListener('DOMContentLoaded', function() {
       var clone = blocks[b].cloneNode(true);
       cur.content.appendChild(clone);
       if (overflowed(cur)){
-        var isSplittable = SPLITTABLE_RE.test(clone.className || '');
-        // Intentar dividir el párrafo para aprovechar el espacio restante de la hoja
-        // (solo si ya hay algo en la hoja o el párrafo es más alto que la hoja entera)
+        var isSplittable = esDivisible(clone);
+        var porHijos = isSplittable && tieneHijosBloque(clone);
+        // Aprovechar el espacio que queda en la hoja: si el bloque es una lista de
+        // incisos se corta ENTRE incisos; si es texto corrido se corta entre palabras.
         if (isSplittable){
-          var rest = splitToFit(clone, cur);
+          var rest = porHijos ? splitPorHijos(clone, cur) : splitToFit(clone, cur);
           if (rest){
             // La parte que cupo se queda; el resto se procesa como siguiente bloque.
             // Verificación: si tras dividir la hoja SIGUE desbordada (el divisor dejó
@@ -982,7 +1029,11 @@ window.addEventListener('DOMContentLoaded', function() {
             // así jamás queda una línea recortada por el borde de la hoja.
             var fixGuard = 0;
             while (overflowed(cur) && fixGuard++ < 400){
-              var back = takeLastPiece(clone);
+              // En listas de incisos se devuelve el inciso completo; en texto corrido,
+              // palabra por palabra. Nunca se parte un inciso por dentro.
+              var back = porHijos
+                ? (clone.children.length > 1 ? clone.lastElementChild : null)
+                : takeLastPiece(clone);
               if (!back) break;
               rest.insertBefore(back, rest.firstChild);
             }
@@ -994,9 +1045,11 @@ window.addEventListener('DOMContentLoaded', function() {
         cur.content.removeChild(clone);
         // Un título/encabezado no debe quedar como último renglón de la hoja:
         // se lo lleva consigo a la hoja siguiente.
+        // (incluye encabezados de cláusula tipo "DÉCIMA CUARTA. – LIMITANTES:",
+        //  que antes se quedaban solos al pie de la hoja)
         var pulled = [];
         var last = cur.content.lastElementChild;
-        while (last && HEADING_RE.test(last.className || '') && cur.content.children.length > 1){
+        while (last && pareceTitulo(last) && cur.content.children.length > 1){
           pulled.unshift(last); cur.content.removeChild(last); last = cur.content.lastElementChild;
         }
         cur = newPage();
@@ -1004,11 +1057,13 @@ window.addEventListener('DOMContentLoaded', function() {
         cur.content.appendChild(clone);
         // Si aun así no cabe en la hoja nueva (párrafo larguísimo), dividirlo aquí
         if (overflowed(cur) && isSplittable){
-          var rest2 = splitToFit(clone, cur);
+          var rest2 = porHijos ? splitPorHijos(clone, cur) : splitToFit(clone, cur);
           if (rest2){
             var fixGuard2 = 0;
             while (overflowed(cur) && fixGuard2++ < 400){
-              var back2 = takeLastPiece(clone);
+              var back2 = porHijos
+                ? (clone.children.length > 1 ? clone.lastElementChild : null)
+                : takeLastPiece(clone);
               if (!back2) break;
               rest2.insertBefore(back2, rest2.firstChild);
             }
