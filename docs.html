@@ -55,6 +55,19 @@ a{color:#c9a84c;text-decoration:none}
 .btn-edit:hover{background:#444}
 .btn-fullscreen{background:#2a2a2a;color:#fff}
 .btn-fullscreen:hover{background:#444}
+.btn-hojas{background:#3d6b4a;color:#fff}
+.btn-hojas:hover{background:#4e8a5e}
+
+/* ---- VISTA POR HOJAS (previsualización paginada, igual que el PDF) ---- */
+#docPages{display:none;flex-direction:column;align-items:center;gap:26px;width:100%;max-width:100%;overflow-x:auto}
+#docPages .niva-print-page{box-shadow:0 6px 32px rgba(0,0,0,.5);flex:0 0 auto}
+/* Rótulo de hoja: deja ver de un vistazo dónde brinca el contenido */
+#docPages .npp-rotulo{width:215.9mm;max-width:100%;color:#0d1a2e;font:700 .78rem Arial,Helvetica,sans-serif;
+  letter-spacing:.08em;text-transform:uppercase;opacity:.75;padding-bottom:2px}
+/* Guías de las zonas reservadas: sólo en pantalla, nunca al imprimir */
+#docPages.guias .npp-header{outline:1px dashed #7c9ec4;outline-offset:2px}
+#docPages.guias .npp-footer{outline:1px dashed #7c9ec4;outline-offset:2px}
+#docPages.guias .npp-content{outline:1px dashed #c4a97c;outline-offset:2px}
 .form-col{width:390px;min-width:360px;background:#0d1a2e;border-left:1px solid #1e3a5f;position:sticky;top:115px;height:calc(100vh - 115px);overflow-y:auto}
 .form-col.hidden-form{display:none}
 /* fullscreen mode */
@@ -185,6 +198,10 @@ a{color:#c9a84c;text-decoration:none}
     display:none!important;
   }
 
+  /* La vista por hojas es sólo de pantalla: al imprimir se usan las hojas que
+     construye el paginador en #niva-print-measure, nunca esta copia visual. */
+  #docPages{ display:none!important; }
+
   /* --- FOLIO: dato interno de control, NUNCA se imprime ---
      El folio se sigue generando y guardando en el registro interno (nivaFolioActual
      y el historial de documentos); solo se suprime su representación visual. */
@@ -289,11 +306,14 @@ a{color:#c9a84c;text-decoration:none}
     <button class="btn-word" onclick="nivaDownloadWord()">📝 Word</button>
     <button class="btn-edit" id="btn-edit-doc" onclick="nivaToggleEdit()">✏️ Editar texto</button>
     <button class="btn-print" onclick="imprimirNiva(this)">🖨 Imprimir</button>
+    <button class="btn-hojas" id="btn-vista-hojas" onclick="nivaToggleVistaHojas()">📄 Continua</button>
     <button class="btn-fullscreen" onclick="toggleFullscreen()" id="btn-fs" style="flex:0;padding:11px 16px">⛶ Solo doc</button>
   </div>
   <div id="docPreview">
     <!-- Generated dynamically -->
   </div>
+  <!-- Vista por hojas: mismas páginas que se imprimen, mostradas en pantalla -->
+  <div id="docPages"></div>
 </div>
 
 <!-- RIGHT: FORM -->
@@ -1050,6 +1070,90 @@ window.addEventListener('DOMContentLoaded', function() {
     setTimeout(clearPrintPages, 800);
     return r;
   };
+
+  // ===================== VISTA POR HOJAS (previsualización paginada) =====================
+  // Muestra en pantalla EXACTAMENTE las mismas hojas que se van a imprimir, para poder
+  // ver dónde brinca el texto a la página siguiente y acomodar párrafos antes de mandar
+  // a imprimir. Reutiliza el mismo motor de paginación (no hay un segundo cálculo que
+  // pueda dar un resultado distinto): se construyen las hojas en el contenedor de
+  // medición y luego se trasladan tal cual al contenedor visible.
+  window.nivaVistaHojas = true; // por defecto: ver el documento tal como saldrá impreso
+
+  function renderVistaHojas(){
+    var cont = document.getElementById('docPages');
+    var dp   = document.getElementById('docPreview');
+    var btn  = document.getElementById('btn-vista-hojas');
+    if (!cont || !dp) return;
+
+    if (!window.nivaVistaHojas){                       // ── vista continua ──
+      cont.style.display = 'none'; cont.innerHTML = '';
+      dp.style.display = '';
+      if (btn) btn.textContent = '📑 Por hojas';
+      return;
+    }
+
+    // ── vista por hojas ──
+    clearPrintPages();
+    var ok = buildPrintPages();
+    var host = document.getElementById('niva-print-measure');
+    if (!ok || !host || !host.children.length){        // sin documento: vista normal
+      cont.style.display = 'none'; cont.innerHTML = '';
+      dp.style.display = '';
+      if (btn) btn.textContent = '📑 Por hojas';
+      return;
+    }
+    // Trasladar las hojas ya medidas (mismo ancho fijo ⇒ el traslado no re-maqueta nada)
+    cont.innerHTML = '';
+    var hojas = [].slice.call(host.children);
+    for (var i = 0; i < hojas.length; i++){
+      var rot = document.createElement('div');
+      rot.className = 'npp-rotulo';
+      rot.textContent = 'Hoja ' + (i + 1) + ' de ' + hojas.length;
+      cont.appendChild(rot);
+      cont.appendChild(hojas[i]);
+    }
+    clearPrintPages();                                  // deja el host limpio para imprimir
+    dp.style.display = 'none';
+    cont.style.display = 'flex';
+    if (btn) btn.textContent = '📄 Continua';
+  }
+
+  // Repintado con freno: al escribir en el formulario no se recalcula en cada tecla.
+  var _tmrHojas = null;
+  function programarVistaHojas(){
+    if (!window.nivaVistaHojas) return;
+    clearTimeout(_tmrHojas);
+    _tmrHojas = setTimeout(renderVistaHojas, 260);
+  }
+
+  window.nivaToggleVistaHojas = function(){
+    window.nivaVistaHojas = !window.nivaVistaHojas;
+    renderVistaHojas();
+  };
+  window.__nivaRenderVistaHojas   = renderVistaHojas;
+  window.__nivaProgramarVistaHojas = programarVistaHojas;
+
+  // Engancharse al repintado del documento: cada vez que cambia el contenido, se
+  // vuelven a calcular las hojas (con freno) para que el corte mostrado sea el real.
+  function engancharRepintado(){
+    ['renderPreview','updatePreview','selectDoc','clearForm'].forEach(function(fn){
+      var orig = window[fn];
+      if (typeof orig !== 'function') return;
+      window[fn] = function(){
+        var r = orig.apply(this, arguments);
+        programarVistaHojas();
+        return r;
+      };
+    });
+  }
+
+  if (document.readyState === 'loading'){
+    window.addEventListener('DOMContentLoaded', function(){
+      engancharRepintado(); setTimeout(renderVistaHojas, 500);
+    });
+  } else {
+    engancharRepintado(); setTimeout(renderVistaHojas, 500);
+  }
 })();
 
 
@@ -2352,17 +2456,13 @@ async function extractINE(input, party) {
     actualizarBadgeFolio();
     return folio;
   };
+  // El folio es un dato INTERNO de control: se genera y se guarda en el registro,
+  // pero no se dibuja en el documento — ni en el PDF, ni al imprimir, ni en la
+  // vista previa (la pantalla debe verse exactamente igual que la hoja impresa).
+  // Para consultarlo está el indicador de folio de la barra, fuera del documento.
   function inyectarFolioEnPreview(){
-    var prev = document.getElementById('docPreview');
-    if (!prev) return;
     var old = document.getElementById('niva-folio-line');
-    if (old) old.remove();
-    if (!window.nivaFolioActual) return;
-    var div = document.createElement('div');
-    div.id = 'niva-folio-line';
-    div.style.cssText = 'text-align:right;font-size:10px;color:#64748b;letter-spacing:.06em;padding:2px 0 6px;font-family:Arial,sans-serif;';
-    div.textContent = 'Folio: ' + window.nivaFolioActual;
-    prev.insertBefore(div, prev.firstChild);
+    if (old && old.parentNode) old.parentNode.removeChild(old);
   }
   function actualizarBadgeFolio(){
     var b = document.getElementById('niva-folio-badge');
@@ -2461,6 +2561,18 @@ let nivaDocEditado = false; // tras editar a mano, el formulario ya no regenera 
 function nivaToggleEdit(){
   var prev = document.getElementById('docPreview');
   var btn = document.getElementById('btn-edit-doc');
+  // El texto se edita sobre el documento corrido; si estabas viendo las hojas,
+  // se cambia solo a vista continua para poder escribir, y al terminar se
+  // regresa a las hojas para ver cómo quedó el corte de página.
+  if (!nivaEditMode && window.nivaVistaHojas){
+    window.nivaVistaHojas = false;
+    if (window.__nivaRenderVistaHojas) window.__nivaRenderVistaHojas();
+    window.__nivaVolverAHojas = true;
+  } else if (nivaEditMode && window.__nivaVolverAHojas){
+    window.__nivaVolverAHojas = false;
+    window.nivaVistaHojas = true;
+    setTimeout(function(){ if (window.__nivaRenderVistaHojas) window.__nivaRenderVistaHojas(); }, 60);
+  }
   nivaEditMode = !nivaEditMode;
   prev.contentEditable = nivaEditMode ? 'true' : 'false';
   prev.style.outline = nivaEditMode ? '2px dashed #c9a84c' : 'none';
