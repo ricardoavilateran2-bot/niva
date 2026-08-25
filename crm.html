@@ -430,7 +430,7 @@ function cardLead(l){
     +'<div class="cinfo">'
     +'<div class="cname">'+esc(nombre)+' <span class="badge b-'+esc(l.status)+'">'+(EST[l.status]||esc(l.status))+'</span>'
     +(tipoLead(l)==='agent'?' <span class="badge b-agent">👔 ASESOR</span>':tipoLead(l)==='client'?' <span class="badge b-client">👤 CLIENTE</span>':' <span class="badge b-unid">❓ SIN IDENTIFICAR</span>')+'</div>'
-    +'<div class="cprop">'+(l.property_title?esc(l.property_title):'⚠️ Propiedad no identificada')+'</div>'
+    +'<div class="cprop">'+(l.property_title?esc(l.property_title):(l.source==='manual_asesor'||l.source==='manual_admin'?'🔎 Sin propiedad asignada':'⚠️ Propiedad no identificada'))+'</div>'
     +'<div class="cmeta"><span class="cprice">'+fmt(l.price_amount)+(l.operation_type==='rental'?' /mes':'')+'</span>'+(l.location_name?' · '+esc(l.location_name):'')+'</div>'
     +(metaSpecs?'<div class="cmeta">'+metaSpecs+'</div>':'')
     +telVisible
