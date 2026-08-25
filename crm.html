@@ -43,6 +43,21 @@ input,select,textarea{font-family:inherit}
 .slogo span{display:block;font-size:9.5px;letter-spacing:.18em;color:rgba(201,168,76,.7);margin-top:3px;font-weight:600}
 .sback{display:block;margin:10px 8px 0;padding:8px 12px;border-radius:9px;font-size:12px;font-weight:600;color:rgba(255,255,255,.55);text-decoration:none;border:1px solid rgba(255,255,255,.1);text-align:center;transition:all .18s}
 .sback:hover{color:var(--gold);border-color:rgba(201,168,76,.4)}
+.snuevo{display:block;width:calc(100% - 16px);margin:10px 8px 2px;padding:10px 12px;border-radius:9px;font-size:13px;font-weight:800;color:#0d1a2e;background:var(--gold);border:0;cursor:pointer;transition:filter .18s}
+.snuevo:hover{filter:brightness(1.08)}
+#modalNuevo{position:fixed;inset:0;background:rgba(8,14,26,.62);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
+#modalNuevo .mbox{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:92vh;overflow-y:auto}
+#modalNuevo h3{margin:0 0 14px;font-size:17px;color:var(--navy)}
+#modalNuevo label{display:block;font-size:12.5px;font-weight:700;color:var(--mut);margin:12px 0 5px}
+#modalNuevo label small{font-weight:500;opacity:.8}
+#modalNuevo input,#modalNuevo select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box}
+#modalNuevo input:focus,#modalNuevo select:focus{outline:none;border-color:rgba(201,168,76,.7);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
+#modalNuevo .merr{min-height:18px;margin-top:10px;font-size:12.5px;color:#c0392b;font-weight:600}
+#modalNuevo .macc{display:flex;gap:10px;margin-top:6px}
+#modalNuevo .macc button{flex:1;padding:12px;border-radius:10px;font-size:14.5px;font-weight:700;border:0;cursor:pointer}
+#modalNuevo .mcancel{background:#eef1f5;color:var(--mut)}
+#modalNuevo .msave{background:var(--navy);color:#fff}
+#modalNuevo .msave:disabled{opacity:.6;cursor:default}
 .snav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
 .tab{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:10px;background:none;font-size:13px;font-weight:600;border:0;color:rgba(255,255,255,.75);text-align:left;cursor:pointer;white-space:nowrap;transition:background .15s}
 .tab:hover{background:rgba(255,255,255,.07)}
@@ -78,6 +93,7 @@ main{padding:20px 20px 60px;max-width:720px;margin:0 auto}
   .slogo{padding:12px 14px 8px;border-bottom:0;display:flex;align-items:baseline;gap:8px}
   .slogo span{display:inline;margin:0}
   .sback{display:none}
+  .snuevo{margin:0 8px 8px;width:calc(100% - 16px)}
   .snav{flex-direction:row;overflow-x:auto;padding:0 8px 10px;gap:6px}
   .tab{padding:7px 10px;font-size:12px;flex-shrink:0}
   .sfoot{position:absolute;top:10px;right:12px;border:0;padding:0}
@@ -167,6 +183,7 @@ body[data-tab="props"] main{max-width:1280px}
     <span>CRM</span>
   </div>
   <a class="sback" href="./index.html">← Volver a NIVA OS</a>
+  <button id="btn-nuevo" class="snuevo">➕ Cliente directo</button>
   <nav class="snav">
     <button class="tab on" data-t="clientes">👤 Clientes<span class="n hot" id="n-clientes">–</span></button>
     <button class="tab" data-t="asesores">👔 Asesores<span class="n" id="n-asesores">–</span></button>
@@ -215,6 +232,22 @@ body[data-tab="props"] main{max-width:1280px}
 </main>
 </div>
 <div id="toast"></div>
+<div id="modalNuevo" class="hidden">
+  <div class="mbox">
+    <h3>➕ Nuevo cliente directo</h3>
+    <label for="nc-nombre">Nombre completo</label>
+    <input id="nc-nombre" autocomplete="off" placeholder="Ej. María Fernanda Tamez">
+    <label for="nc-tel">Teléfono (10 dígitos)</label>
+    <input id="nc-tel" inputmode="numeric" autocomplete="off" placeholder="8112345678">
+    <label for="nc-prop">Propiedad de interés <small>(opcional)</small></label>
+    <select id="nc-prop"><option value="">— Sin propiedad todavía —</option></select>
+    <div class="merr" id="nc-err"></div>
+    <div class="macc">
+      <button id="nc-cancel" class="mcancel">Cancelar</button>
+      <button id="nc-save" class="msave">Guardar cliente</button>
+    </div>
+  </div>
+</div>
 </div>
 
 <script type="module">
@@ -228,7 +261,7 @@ const tipoLead=(l)=>l.contact_type||'unidentified';
 const esArchivado=(l)=>!!l.archived_at;
 let PT='todas', PO='todo', PS='az', PQ='';
 const EST={new:'NUEVO',contacted:'CONTACTADO',attended:'ATENDIDO',cancelled:'CANCELADO'};
-const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual'};
+const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa'};
 const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
 const ftel=(t)=>t?t.replace('+52',''):'';
 // P0: escape de HTML para todo dato dinámico (anti-XSS)
@@ -492,6 +525,40 @@ function cargarContadores(){
   $('#n-props').textContent=PROPS.length;
   $('#n-arch').textContent=LEADS.filter(esArchivado).length;
 }
+// ── Alta de cliente directo ──────────────────────────────────────────
+function abrirNuevoCliente(){
+  const sel=$('#nc-prop');
+  const ps=PROPS.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||'')));
+  sel.innerHTML='<option value="">— Sin propiedad todavía —</option>'
+    +ps.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.title||p.eb_public_id||'')+'</option>').join('');
+  $('#nc-nombre').value='';$('#nc-tel').value='';sel.value='';
+  $('#nc-err').textContent='';
+  $('#modalNuevo').classList.remove('hidden');
+  setTimeout(()=>$('#nc-nombre').focus(),50);
+}
+function cerrarNuevoCliente(){$('#modalNuevo').classList.add('hidden')}
+async function guardarNuevoCliente(){
+  const nombre=$('#nc-nombre').value.trim();
+  const tel=$('#nc-tel').value.replace(/\D/g,'');
+  const prop=$('#nc-prop').value||null;
+  const err=$('#nc-err'), btn=$('#nc-save');
+  if(nombre.length<3){err.textContent='Escribe el nombre completo del cliente.';return}
+  if(tel.length<10){err.textContent='El teléfono debe tener 10 dígitos.';return}
+  err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
+  const {error}=await sb.rpc('crear_lead_manual',{p_nombre:nombre,p_telefono:tel,p_property_id:prop});
+  btn.disabled=false;btn.textContent='Guardar cliente';
+  if(error){err.textContent=error.message||'No se pudo guardar el cliente.';return}
+  cerrarNuevoCliente();
+  toast('Cliente agregado ✅');
+  await cargar();
+}
+$('#btn-nuevo').onclick=abrirNuevoCliente;
+$('#nc-cancel').onclick=cerrarNuevoCliente;
+$('#nc-save').onclick=guardarNuevoCliente;
+$('#modalNuevo').addEventListener('click',e=>{if(e.target.id==='modalNuevo')cerrarNuevoCliente()});
+$('#nc-tel').addEventListener('keydown',e=>{if(e.key==='Enter')guardarNuevoCliente()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modalNuevo').classList.contains('hidden'))cerrarNuevoCliente()});
+
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   TAB=b.dataset.t;SHOWN=60;pintar();
