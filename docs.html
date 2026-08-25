@@ -134,14 +134,35 @@ a{color:#c9a84c;text-decoration:none}
    de #niva-print-measure (fuera de pantalla) para poder medir su contenido con
    las mismas métricas con las que se imprimirá. */
 #niva-print-measure{position:absolute;left:-12000px;top:0}
-.niva-print-page{width:215.9mm;height:278mm;box-sizing:border-box;padding:9mm 16mm 6mm;display:flex;flex-direction:column;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;line-height:1.65;overflow:hidden}
-.niva-print-page .npp-header{flex:0 0 auto;margin-bottom:5mm}
-.niva-print-page .npp-header img{width:100%;display:block}
+/* Hoja Carta con TRES zonas reales e independientes:
+   HEADER · (espacio de seguridad) · CONTENT · (espacio de seguridad) · FOOTER
+   El contenido vive en .npp-content, que es flex:1 con overflow:hidden — es
+   físicamente imposible que invada la zona del encabezado o la del pie. */
+.niva-print-page{width:215.9mm;height:278mm;box-sizing:border-box;padding:11mm 16mm 9mm;display:flex;flex-direction:column;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;line-height:1.6;overflow:hidden}
+/* ZONA 1 — ENCABEZADO: altura FIJA (21.6mm = proporción real del membrete).
+   Es fija a propósito: así el hueco disponible para el contenido se conoce desde
+   el primer instante y NO depende de que la imagen ya haya terminado de cargar
+   (si dependiera, el paginador mediría de más y el texto se recortaría). */
+.niva-print-page .npp-header{flex:0 0 21.6mm;height:21.6mm}
+.niva-print-page .npp-header img{width:100%;height:100%;display:block;object-fit:contain;object-position:left top}
+/* Espacio de seguridad superior: el contenido nunca se pega al encabezado */
+.niva-print-page .npp-gap-top{flex:0 0 auto;height:9mm}
+/* ZONA 2 — CONTENIDO: ocupa sólo el hueco libre entre las dos zonas fijas */
 .niva-print-page .npp-content{flex:1 1 auto;min-height:0;overflow:hidden;padding:0 2mm}
+.niva-print-page .npp-content > *:first-child{margin-top:0}
 .niva-print-page .npp-content .doc-p,.niva-print-page .npp-content .doc-clause,.niva-print-page .npp-content .doc-bullet{font-size:10.5pt}
-.niva-print-page .npp-footer{flex:0 0 auto;margin-top:auto;padding-top:4mm}
-.niva-print-page .npp-footer img{width:100%;display:block}
-.niva-print-page .npp-pagenum{flex:0 0 auto;text-align:right;font-size:8pt;color:#666;margin-top:1.5mm}
+/* Espacio de seguridad inferior: el contenido nunca llega hasta el pie */
+.niva-print-page .npp-gap-bottom{flex:0 0 auto;height:9mm}
+/* ZONA 3 — PIE: altura FIJA y anclado al fondo, en todas las hojas (mismo
+   motivo que el encabezado: el espacio queda reservado desde el principio). */
+.niva-print-page .npp-footer{flex:0 0 21.6mm;height:21.6mm;margin-top:auto}
+.niva-print-page .npp-footer img{width:100%;height:100%;display:block;object-fit:contain;object-position:left bottom}
+/* Número de página: altura FIJA. Su texto ("Página X de Y") sólo se conoce al
+   terminar de paginar; si su alto fuera automático, crecería DESPUÉS de medir y
+   le robaría espacio al contenido (era otra causa de texto recortado). */
+.niva-print-page .npp-pagenum{flex:0 0 6mm;height:6mm;line-height:6mm;text-align:right;font-size:8pt;color:#666}
+/* El folio es interno: nunca se imprime ni aparece en el PDF */
+.niva-print-page #niva-folio-line,.niva-print-page .niva-folio-line{display:none!important}
 
 
 /* ============================================================
@@ -163,6 +184,11 @@ a{color:#c9a84c;text-decoration:none}
   #nivaOsFloat,#nivaDocsToolbar,#niva-docs-recientes{
     display:none!important;
   }
+
+  /* --- FOLIO: dato interno de control, NUNCA se imprime ---
+     El folio se sigue generando y guardando en el registro interno (nivaFolioActual
+     y el historial de documentos); solo se suprime su representación visual. */
+  #niva-folio-line,.niva-folio-line,#niva-folio-badge{ display:none!important; }
 
   .split{display:block}
   .preview-col{background:#fff;padding:0;min-height:auto}
@@ -821,22 +847,32 @@ window.addEventListener('DOMContentLoaded', function() {
     if (!host){ host = document.createElement('div'); host.id = 'niva-print-measure'; document.body.appendChild(host); }
     host.innerHTML = '';
 
-    // Bloques a paginar: línea de folio (si existe) + hijos directos del cuerpo del documento
+    // Bloques a paginar: SOLO los hijos directos del cuerpo del documento.
+    // El folio (#niva-folio-line) se excluye a propósito: es un dato interno de
+    // control y NO debe aparecer en el documento impreso ni en el PDF.
     var blocks = [];
-    var folio = document.getElementById('niva-folio-line');
-    if (folio) blocks.push(folio);
-    for (var i = 0; i < body.children.length; i++) blocks.push(body.children[i]);
+    for (var i = 0; i < body.children.length; i++){
+      var el = body.children[i];
+      if (el.id === 'niva-folio-line') continue;      // folio: interno, no se imprime
+      if (el.classList && el.classList.contains('niva-folio-line')) continue;
+      blocks.push(el);
+    }
 
     var pages = [];
     function newPage(){
+      // Cada hoja se arma SIEMPRE con la misma estructura de 5 franjas:
+      // encabezado · espacio · contenido · espacio · pie (+ número de página)
       var page = document.createElement('div'); page.className = 'niva-print-page';
       var h = document.createElement('div'); h.className = 'npp-header';
       if (hdrSrc){ var hi = document.createElement('img'); hi.src = hdrSrc; h.appendChild(hi); }
+      var gt = document.createElement('div'); gt.className = 'npp-gap-top';
       var c = document.createElement('div'); c.className = 'npp-content';
+      var gb = document.createElement('div'); gb.className = 'npp-gap-bottom';
       var f = document.createElement('div'); f.className = 'npp-footer';
       if (ftrSrc){ var fi = document.createElement('img'); fi.src = ftrSrc; f.appendChild(fi); }
       var n = document.createElement('div'); n.className = 'npp-pagenum';
-      page.appendChild(h); page.appendChild(c); page.appendChild(f); page.appendChild(n);
+      page.appendChild(h); page.appendChild(gt); page.appendChild(c);
+      page.appendChild(gb); page.appendChild(f); page.appendChild(n);
       host.appendChild(page);
       var p = { page: page, content: c };
       pages.push(p);
@@ -847,6 +883,25 @@ window.addEventListener('DOMContentLoaded', function() {
     // ¿Puede dividirse este bloque entre dos hojas? (solo texto corrido; nunca
     // firmas, tablas, cajas resaltadas ni títulos)
     var SPLITTABLE_RE = /(^|\s)(doc-p|doc-clause)(\s|$)/;
+
+    // Extrae del final del elemento la última "pieza" (una palabra, o el trozo de
+    // un <b>/<u>). Conserva el formato: la pieza devuelta trae su propia etiqueta.
+    // Nunca parte una palabra por la mitad.
+    function takeLastPiece(el){
+      var last = el.lastChild;
+      if (!last) return null;
+      if (last.nodeType === 3){
+        var m = last.nodeValue.match(/^([\s\S]*\S)(\s+\S+\s*)$/);
+        if (m){ last.nodeValue = m[1]; return document.createTextNode(m[2]); }
+        el.removeChild(last); return last;
+      }
+      if (last.nodeType === 1){
+        var inner = takeLastPiece(last);
+        if (inner){ var shell = last.cloneNode(false); shell.appendChild(inner); return shell; }
+        el.removeChild(last); return last;
+      }
+      el.removeChild(last); return null;
+    }
 
     // Divide el clon para que quepa en la hoja actual; regresa el elemento
     // "resto" (misma etiqueta/clase, conserva negritas) o null si no dividió.
@@ -872,21 +927,7 @@ window.addEventListener('DOMContentLoaded', function() {
         return restShell;
       }
       // Caso general (párrafo con <b>/<u> etc.): quitar piezas del final una a una
-      function takeLastPiece(el){
-        var last = el.lastChild;
-        if (!last) return null;
-        if (last.nodeType === 3){
-          var m = last.nodeValue.match(/^([\s\S]*\S)(\s+\S+\s*)$/);
-          if (m){ last.nodeValue = m[1]; return document.createTextNode(m[2]); }
-          el.removeChild(last); return last;
-        }
-        if (last.nodeType === 1){
-          var inner = takeLastPiece(last);
-          if (inner){ var shell = last.cloneNode(false); shell.appendChild(inner); return shell; }
-          el.removeChild(last); return last;
-        }
-        el.removeChild(last); return null;
-      }
+      // usando takeLastPiece (definida arriba, compartida con la verificación final).
       var originalHTML = clone.innerHTML; // para restaurar si no procede dividir
       var guard = 0, movedAny = false;
       while (overflowed(page) && guard++ < 3000){
@@ -915,7 +956,16 @@ window.addEventListener('DOMContentLoaded', function() {
         if (isSplittable){
           var rest = splitToFit(clone, cur);
           if (rest){
-            // La parte que cupo se queda; el resto se procesa como siguiente bloque
+            // La parte que cupo se queda; el resto se procesa como siguiente bloque.
+            // Verificación: si tras dividir la hoja SIGUE desbordada (el divisor dejó
+            // un renglón de más), se devuelven palabras al "resto" hasta que quepa —
+            // así jamás queda una línea recortada por el borde de la hoja.
+            var fixGuard = 0;
+            while (overflowed(cur) && fixGuard++ < 400){
+              var back = takeLastPiece(clone);
+              if (!back) break;
+              rest.insertBefore(back, rest.firstChild);
+            }
             blocks.splice(b + 1, 0, rest);
             continue;
           }
@@ -935,10 +985,43 @@ window.addEventListener('DOMContentLoaded', function() {
         // Si aun así no cabe en la hoja nueva (párrafo larguísimo), dividirlo aquí
         if (overflowed(cur) && isSplittable){
           var rest2 = splitToFit(clone, cur);
-          if (rest2) blocks.splice(b + 1, 0, rest2);
+          if (rest2){
+            var fixGuard2 = 0;
+            while (overflowed(cur) && fixGuard2++ < 400){
+              var back2 = takeLastPiece(clone);
+              if (!back2) break;
+              rest2.insertBefore(back2, rest2.firstChild);
+            }
+            blocks.splice(b + 1, 0, rest2);
+          }
         }
       }
     }
+
+    // ── GARANTÍA FINAL: ninguna hoja puede quedar con contenido recortado ──
+    // Barrido de seguridad: si alguna hoja quedó desbordada (caso límite que el
+    // divisor no pudo resolver), se empujan bloques COMPLETOS del final hacia la
+    // hoja siguiente hasta que quepa. Nunca se recorta ni se pierde contenido.
+    for (var sp = 0; sp < pages.length; sp++){
+      var guardSweep = 0;
+      while (overflowed(pages[sp]) && pages[sp].content.children.length > 1 && guardSweep++ < 200){
+        var moveEl = pages[sp].content.lastElementChild;
+        var nextPage = pages[sp + 1];
+        if (!nextPage){
+          nextPage = newPage();            // newPage() ya lo agrega a "pages"
+        }
+        pages[sp].content.removeChild(moveEl);
+        nextPage.content.insertBefore(moveEl, nextPage.content.firstChild);
+      }
+    }
+    // Descartar hojas que hayan quedado vacías tras el barrido
+    for (var dz = pages.length - 1; dz >= 0; dz--){
+      if (!pages[dz].content.children.length){
+        if (pages[dz].page.parentNode) pages[dz].page.parentNode.removeChild(pages[dz].page);
+        pages.splice(dz, 1);
+      }
+    }
+
     for (var pn = 0; pn < pages.length; pn++){
       pages[pn].page.querySelector('.npp-pagenum').textContent = 'P\u00e1gina ' + (pn + 1) + ' de ' + pages.length;
     }
@@ -2053,41 +2136,46 @@ function genReciboDeposito() {
 }
 
 // ===================== PDF DOWNLOAD =====================
+// Genera el PDF a partir de las hojas YA PAGINADAS por el motor de impresión
+// (encabezado + contenido + pie en CADA hoja). Antes se capturaba todo el
+// documento como una sola imagen larga y se cortaba a ciegas cada 279 mm: eso
+// producía páginas sin encabezado, texto pegado al borde superior y renglones
+// partidos a la mitad. Ahora cada hoja del paginador es exactamente una página
+// del PDF, así que el resultado impreso y el PDF son idénticos.
 async function downloadPDF() {
   var btn = event ? event.target : null;
   if (btn) { btn.textContent = '⏳ Generando...'; btn.disabled = true; }
 
+  var built = false;
   try {
-    var preview = document.getElementById('docPreview');
+    if (!window.__nivaBuildPrintPages || !window.__nivaBuildPrintPages()){
+      alert('Selecciona y genera un documento primero.');
+      if (btn) { btn.textContent = '⬇ Descargar PDF'; btn.disabled = false; }
+      return;
+    }
+    built = true;
 
-    // Capturar TODO el contenido del documento, no solo lo visible
-    var canvas = await html2canvas(preview, {
-      scale: 1.5,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      height: preview.scrollHeight,       // altura real completa
-      windowHeight: preview.scrollHeight  // idem para el contexto de render
-    });
+    var host = document.getElementById('niva-print-measure');
+    var pages = host ? host.querySelectorAll('.niva-print-page') : [];
+    if (!pages.length){
+      alert('No hay contenido para generar el PDF.');
+      if (window.__nivaClearPrintPages) window.__nivaClearPrintPages();
+      if (btn) { btn.textContent = '⬇ Descargar PDF'; btn.disabled = false; }
+      return;
+    }
 
-    // JPEG para archivo más ligero (vs PNG gigante)
-    var imgData = canvas.toDataURL('image/jpeg', 0.93);
     var { jsPDF } = window.jspdf;
     var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-    var pdfW = pdf.internal.pageSize.getWidth();   // 215.9mm
-    var pdfH = pdf.internal.pageSize.getHeight();  // 279.4mm
 
-    // Dimensiones de la imagen escalada al ancho del PDF
-    var imgW = pdfW;
-    var imgH = (canvas.height / canvas.width) * pdfW;
-
-    // Cuántas páginas necesitamos
-    var numPages = Math.ceil(imgH / pdfH);
-
-    for (var p = 0; p < numPages; p++) {
+    // Una hoja construida  →  una página del PDF. Sin recortes ni desplazamientos.
+    for (var p = 0; p < pages.length; p++) {
+      if (btn) btn.textContent = '⏳ Página ' + (p + 1) + ' de ' + pages.length + '…';
+      var canvas = await html2canvas(pages[p], {
+        scale: 2.5, useCORS: true, logging: false, backgroundColor: '#ffffff'
+      });
+      var imgData = canvas.toDataURL('image/jpeg', 0.92);
       if (p > 0) pdf.addPage();
-      // Y negativo para "deslizar" la imagen y mostrar la página correcta
-      pdf.addImage(imgData, 'JPEG', 0, -(p * pdfH), imgW, imgH);
+      pdf.addImage(imgData, 'JPEG', 0, 0, 215.9, 278); // misma geometría que la hoja
     }
 
     var docNames = {
@@ -2102,6 +2190,9 @@ async function downloadPDF() {
     pdf.save('NIVA_' + (docNames[currentDoc]||'Documento') + (safeName?'_'+safeName:'') + '_' + today + '.pdf');
   } catch(e) {
     alert('Error al generar PDF: ' + e.message);
+  } finally {
+    // Desmontar siempre las hojas temporales: la vista de edición queda intacta.
+    if (built && window.__nivaClearPrintPages) { try { window.__nivaClearPrintPages(); } catch(e){} }
   }
 
   if (btn) { btn.textContent = '⬇ Descargar PDF'; btn.disabled = false; }
