@@ -322,7 +322,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
 const sb = createClient(cfg.url, cfg.anon);
 const $ = (s)=>document.querySelector(s);
-let LEADS=[], PROPS=[], ASESORES=[], TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='';
+let LEADS=[], PROPS=[], ASESORES=[], DUENOS={}, TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='';
+let SUBSA='leads'; // dentro de "Sin asignar": leads | props
 let SHOWN=60; // paginación incremental
 const tipoLead=(l)=>l.contact_type||'unidentified';
 const esArchivado=(l)=>!!l.archived_at;
@@ -395,11 +396,16 @@ async function cargar(){
     if(p.error) throw new Error(p.error.message||'propiedades');
     LEADS=l.data??[];PROPS=p.data??[];
     REP=null; // los reportes se recalculan con datos frescos
-    if(ESADMIN&&!ASESORES.length){
-      const a=await sb.from('advisors').select('id,first_name,last_name,niva_code,status');
-      if(!a.error)ASESORES=(a.data||[]).filter(x=>x.status!=='inactive')
-        .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor'}))
-        .sort((x,y)=>x.n.localeCompare(y.n));
+    if(ESADMIN){
+      if(!ASESORES.length){
+        const a=await sb.from('advisors').select('id,first_name,last_name,niva_code,status');
+        if(!a.error)ASESORES=(a.data||[]).filter(x=>x.status!=='inactive')
+          .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor'}))
+          .sort((x,y)=>x.n.localeCompare(y.n));
+      }
+      const d=await sb.from('property_advisors').select('property_id,advisor_id');
+      DUENOS={};
+      if(!d.error)(d.data||[]).forEach(x=>{DUENOS[x.property_id]=x.advisor_id});
     }
     cargarContadores();
     pintar();
@@ -529,9 +535,49 @@ function grupoSinAsignar(clave,titulo,sub,leads,esProp){
   };
   return d;
 }
+function renderPropsSinDueno(host){
+  const sin=PROPS.filter(p=>!DUENOS[p.id]);
+  const conD=PROPS.length-sin.length;
+  host.insertAdjacentHTML('beforeend','<div class="sahead">🏠 Propiedades sin dueño — '+sin.length+' de '+PROPS.length+' ('+conD+' ya asignadas)</div>');
+  if(!sin.length){host.insertAdjacentHTML('beforeend',vacioHTML('Todas tus propiedades tienen dueño. ✅','🎯'));return}
+  host.insertAdjacentHTML('beforeend','<div class="repnote" style="margin:-4px 0 12px">Al poner dueño, el sistema le pasa también los leads huérfanos de esa propiedad y los que lleguen después.</div>');
+  const leadsDe=(id)=>LEADS.filter(l=>l.eb_public_id&&PROPS.find(x=>x.id===id&&x.eb_public_id===l.eb_public_id)).length;
+  sin.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||''))).forEach(p=>{
+    const d=document.createElement('div');
+    d.className='sagrupo';
+    const n=leadsDe(p.id);
+    d.innerHTML='<div class="sat">'+esc(p.title||p.eb_public_id||'Sin título')+(n?'<span class="sacount">'+n+(n===1?' lead':' leads')+'</span>':'')+'</div>'
+      +'<div class="sam">'+[esc(p.eb_public_id||''),
+          p.price_amount?fmt(p.price_amount)+(p.operation_type==='rental'?'/mes':''):'',
+          esc(p.property_type||''), esc(p.location_name||'')].filter(Boolean).join(' · ')+'</div>'
+      +'<div class="saacc"><select><option value="">Elige un asesor…</option>'
+      +ASESORES.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.n)+'</option>').join('')
+      +'</select><button disabled>Asignar</button></div>';
+    const sel=d.querySelector('select'), btn=d.querySelector('button');
+    sel.onchange=()=>{btn.disabled=!sel.value};
+    btn.onclick=async()=>{
+      if(!sel.value)return;
+      btn.disabled=true;btn.textContent='Asignando...';
+      const r=await sb.rpc('asignar_dueno_propiedad',{p_property_id:p.id,p_advisor_id:sel.value});
+      if(r.error){btn.disabled=false;btn.textContent='Asignar';toast('No se pudo asignar');return}
+      toast('Propiedad de '+((ASESORES.find(a=>a.id===sel.value)||{}).n||'asesor'));
+      await cargar();
+    };
+    host.appendChild(d);
+  });
+}
 function renderSinAsignar(host){
+  const nLeads=LEADS.filter(l=>!l.advisor_id&&!esArchivado(l)).length;
+  const nProps=PROPS.filter(p=>!DUENOS[p.id]).length;
+  const bar=document.createElement('div');
+  bar.className='filtros';bar.style.marginBottom='14px';
+  bar.innerHTML='<button class="f'+(SUBSA==='leads'?' on':'')+'" data-s="leads">📋 Leads sin asesor ('+nLeads+')</button>'
+               +'<button class="f'+(SUBSA==='props'?' on':'')+'" data-s="props">🏠 Propiedades sin dueño ('+nProps+')</button>';
+  bar.querySelectorAll('.f').forEach(b=>b.onclick=()=>{SUBSA=b.dataset.s;pintar()});
+  host.appendChild(bar);
+  if(SUBSA==='props'){renderPropsSinDueno(host);return}
   const arr=LEADS.filter(l=>!l.advisor_id&&!esArchivado(l));
-  if(!arr.length){host.innerHTML=vacioHTML('Todos los leads tienen asesor asignado. ✅','🎯');return}
+  if(!arr.length){host.insertAdjacentHTML('beforeend',vacioHTML('Todos los leads tienen asesor asignado. ✅','🎯'));return}
   const conProp={}, sinProp=[];
   arr.forEach(l=>{
     if(l.eb_public_id||l.property_title){
@@ -789,7 +835,7 @@ function cargarContadores(){
   $('#n-arch').textContent=LEADS.filter(esArchivado).length;
   const nsa=$('#n-sinasig');
   if(nsa){
-    const sa=activos.filter(l=>!l.advisor_id).length;
+    const sa=activos.filter(l=>!l.advisor_id).length+PROPS.filter(p=>!DUENOS[p.id]).length;
     nsa.textContent=sa;
     nsa.classList.toggle('hot',sa>0);
   }
