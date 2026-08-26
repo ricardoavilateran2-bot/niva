@@ -96,6 +96,25 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .reptable th.num{text-align:right}
 .repbar{height:8px;background:var(--gold);border-radius:99px;min-width:2px}
 .repnote{font-size:12.5px;color:rgba(255,255,255,.45);margin-top:8px}
+.secdet{margin:36px 0 16px;border-bottom:1px solid rgba(201,168,76,.2);padding-bottom:4px}
+.secdet summary{list-style:none;cursor:pointer;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);padding-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.secdet summary::-webkit-details-marker{display:none}
+.secdet summary .car{transition:transform .2s;font-size:13px}
+.secdet[open] summary .car{transform:rotate(90deg)}
+.secdet .secbody{padding:6px 0 20px}
+.filtros2{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filtros2 button{padding:9px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);font-size:13px;font-weight:700;color:rgba(255,255,255,.7);cursor:pointer;font-family:'Inter',sans-serif}
+.filtros2 button.on{background:linear-gradient(135deg,var(--gold),#b8922e);color:var(--navy2);border-color:transparent}
+.proptabla{display:flex;flex-direction:column;gap:8px}
+.proprow{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:12px 16px}
+.proprow .pmain{flex:1;min-width:0}
+.proprow .pt{font-weight:700;font-size:13.5px;color:var(--white)}
+.proprow .pm{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.proprow .pown{font-size:11.5px;font-weight:800;padding:5px 11px;border-radius:20px;white-space:nowrap}
+.proprow .pown.asig{background:rgba(74,222,128,.15);color:#4ade80}
+.proprow .pown.sin{background:rgba(248,113,113,.15);color:#f87171}
+.searchbox{width:100%;padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--white);font-family:'Inter',sans-serif;font-size:13.5px;margin-bottom:14px}
+.searchbox::placeholder{color:rgba(255,255,255,.3)}
 </style>
 </head>
 <body>
@@ -127,15 +146,32 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     <div class="stat"><div class="sn" id="s-sinlead">–</div><div class="sl">Leads sin asesor</div></div>
   </div>
 
-  <div class="section-title"><span>⚠️ Propiedades sin dueño</span></div>
-  <div class="repnote">Al poner dueño, el sistema le pasa también los leads huérfanos de esa propiedad y los que lleguen después.</div>
-  <div id="sindueno"></div>
+  <details class="secdet" open>
+    <summary><span>⚠️ Propiedades sin dueño</span><span class="car">▶</span></summary>
+    <div class="secbody">
+      <div class="repnote" style="margin-top:-4px">Al poner dueño, el sistema le pasa también los leads huérfanos de esa propiedad y los que lleguen después.</div>
+      <div id="sindueno"></div>
+    </div>
+  </details>
 
-  <div class="section-title"><span>📸 Captaciones del equipo</span></div>
-  <div id="captaciones"></div>
+  <details class="secdet" open>
+    <summary><span>🏠 Propiedades y asesores</span><span class="car">▶</span></summary>
+    <div class="secbody">
+      <div class="filtros2" id="prop-filtros">
+        <button class="on" data-f="todas">Todas</button>
+        <button data-f="capturadas">📸 Capturadas por el equipo</button>
+      </div>
+      <input type="text" class="searchbox" id="prop-buscar" placeholder="Buscar por propiedad, folio o asesor...">
+      <div id="propasesor"></div>
+    </div>
+  </details>
 
-  <div class="section-title"><span>📊 Reportes del CRM</span></div>
-  <div id="reportes"></div>
+  <details class="secdet">
+    <summary><span>📊 Reportes del CRM</span><span class="car">▶</span></summary>
+    <div class="secbody">
+      <div id="reportes"></div>
+    </div>
+  </details>
 
 </div>
 
@@ -167,7 +203,7 @@ function skeleton(host){
 
 async function cargar(){
   skeleton($('#sindueno'));
-  skeleton($('#captaciones'));
+  skeleton($('#propasesor'));
   try{
     const [p,l,a,d] = await Promise.all([
       sb.from('my_properties').select('*'),
@@ -190,11 +226,11 @@ async function cargar(){
     $('#s-sinlead').textContent = LEADS.filter(x=>!x.advisor_id && !x.archived_at).length;
 
     renderSinDueno();
-    renderCaptaciones();
+    renderPropAsesor();
   }catch(e){
     console.error('[admin] error de carga:', e);
     $('#sindueno').innerHTML='<div class="vacio">⚠️ No se pudieron cargar los datos'+(e.message?': '+esc(e.message):'')+'.</div>';
-    $('#captaciones').innerHTML='';
+    $('#propasesor').innerHTML='';
   }
 }
 
@@ -234,28 +270,54 @@ function renderSinDueno(){
   });
 }
 
-function renderCaptaciones(){
-  const host=$('#captaciones');
+let PA_FILTRO='todas', PA_Q='';
+function renderPropAsesor(){
+  const host=$('#propasesor');
   host.innerHTML='';
-  const capturadas=PROPS.filter(p=>p.captured_by_advisor_id)
-    .slice().sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
-  if(!capturadas.length){ host.innerHTML=vacioHTML('Todavía no hay propiedades captadas desde el módulo de Captaciones.','📸'); return; }
+  let lista = PA_FILTRO==='capturadas' ? PROPS.filter(p=>p.captured_by_advisor_id) : PROPS.slice();
+  if(PA_Q){
+    const q=PA_Q.toLowerCase();
+    lista = lista.filter(p=>
+      (p.title||'').toLowerCase().includes(q) ||
+      (p.eb_public_id||'').toLowerCase().includes(q) ||
+      nomAsesor(DUENOS[p.id]).toLowerCase().includes(q)
+    );
+  }
+  lista = lista.slice().sort((a,b)=>{
+    const na=DUENOS[a.id]?nomAsesor(DUENOS[a.id]):'zzz', nb=DUENOS[b.id]?nomAsesor(DUENOS[b.id]):'zzz';
+    if(na!==nb) return na.localeCompare(nb);
+    return String(a.title||'').localeCompare(String(b.title||''));
+  });
+  if(!lista.length){
+    host.innerHTML=vacioHTML(PA_FILTRO==='capturadas'?'Todavía no hay propiedades captadas desde el módulo de Captaciones.':'No hay propiedades que coincidan.','📭');
+    return;
+  }
   const wrap=document.createElement('div');
-  wrap.className='captabla';
-  capturadas.forEach(p=>{
+  wrap.className='proptabla';
+  lista.forEach(p=>{
+    const dueno=DUENOS[p.id];
     const row=document.createElement('div');
-    row.className='caprow';
-    row.innerHTML='<div class="cap-main"><div class="cap-t">'+esc(p.title||p.eb_public_id||'Sin título')+'</div>'
-      +'<div class="cap-m">'+[esc(nomAsesor(p.captured_by_advisor_id)),
+    row.className='proprow';
+    row.innerHTML='<div class="pmain"><div class="pt">'+esc(p.title||p.eb_public_id||'Sin título')+(p.captured_by_advisor_id?' 📸':'')+'</div>'
+      +'<div class="pm">'+[esc(p.eb_public_id||''),
           p.price_amount?fmt(p.price_amount)+(p.operation_type==='rental'?'/mes':''):'',
-          esc(p.location_name||''),
-          p.created_at?new Date(p.created_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}):''
-        ].filter(Boolean).join(' · ')+'</div></div>'
-      +'<div class="cap-badge">'+esc(p.eb_public_id||'—')+'</div>';
+          esc(p.property_type||''), esc(p.location_name||'')].filter(Boolean).join(' · ')+'</div></div>'
+      +'<div class="pown '+(dueno?'asig':'sin')+'">'+(dueno?esc(nomAsesor(dueno)):'Sin dueño')+'</div>';
     wrap.appendChild(row);
   });
   host.appendChild(wrap);
 }
+$('#prop-filtros').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-f]');
+  if(!b)return;
+  PA_FILTRO=b.dataset.f;
+  document.querySelectorAll('#prop-filtros button').forEach(x=>x.classList.toggle('on',x===b));
+  renderPropAsesor();
+});
+$('#prop-buscar').addEventListener('input',e=>{
+  PA_Q=e.target.value.trim();
+  renderPropAsesor();
+});
 
 // ===== Reportes del CRM (misma lógica que en el CRM, sección Reportes) =====
 let REP=null;
