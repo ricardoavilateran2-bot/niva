@@ -112,6 +112,14 @@ textarea { resize: vertical; min-height: 80px; }
 .reptable tr:last-child td{border-bottom:0}
 .reptable td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .reptable th.num{text-align:right}
+.reptable.hoja{border:1px solid rgba(255,255,255,.18)}
+.reptable.hoja th{background:rgba(201,168,76,.16);border:1px solid rgba(255,255,255,.15);color:var(--gold2);text-transform:none;font-size:11.5px;letter-spacing:0}
+.reptable.hoja td{border:1px solid rgba(255,255,255,.1)}
+.reptable.hoja tbody tr:nth-child(odd){background:rgba(255,255,255,.025)}
+.reptable.hoja tbody tr:last-child{background:rgba(201,168,76,.14);font-weight:800}
+.reptable.hoja tbody tr:last-child td{border-top:2px solid rgba(201,168,76,.5)}
+.hojasec{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media (max-width: 760px){.hojasec{grid-template-columns:1fr}}
 .vertodo-btn{padding:9px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--gold),#b8922e);color:var(--navy2);font-size:12.5px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif}
 </style>
 </head>
@@ -340,8 +348,8 @@ function renderLista(){
 }
 
 // ===== Zona de administrador =====
-function tablaHTML(titulo,heads,filas,nota){
-  return '<div class="repsec"><div class="reph">'+titulo+'</div><table class="reptable"><thead><tr>'
+function tablaHTML(titulo,heads,filas,nota,hoja){
+  return '<div class="repsec"><div class="reph">'+titulo+'</div><table class="reptable'+(hoja?' hoja':'')+'"><thead><tr>'
     +heads.map(h=>'<th'+(h[0]==='#'?' class="num"':'')+'>'+esc(h.replace(/^#/,''))+'</th>').join('')
     +'</tr></thead><tbody>'
     +filas.map(f=>'<tr>'+f.map((v,i)=>'<td'+(heads[i]&&heads[i][0]==='#'?' class="num"':'')+'>'+v+'</td>').join('')+'</tr>').join('')
@@ -506,23 +514,34 @@ function renderRep(){
   host.innerHTML=resumen+porAsesor+porCliente+porMes+renderHojaPorAsesor(aprobados);
 }
 function mesEtiqueta(d){return d?new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}):''}
+function esDeAsesor(c,a){ return c.advisor_id===a.id || (!c.advisor_id && (c.advisor_nombre||'').trim().toLowerCase()===a.n.trim().toLowerCase()); }
 function renderHojaPorAsesor(aprobados){
   let out='<div class="section-title"><span>📋 Hoja por asesor (pagado vs. en verde)</span></div>';
-  ASESORES.forEach(a=>{
-    const pagados=aprobados.filter(c=>c.advisor_id===a.id);
-    const verdes=CIERRES.filter(c=>c.estatus==='apartado' && c.advisor_id===a.id);
+  const nombresVistos=new Set();
+  const grupos=ASESORES.map(a=>({key:a.id,n:a.n,esMio:c=>esDeAsesor(c,a)}));
+  CIERRES.forEach(c=>{
+    if(c.advisor_id || !c.advisor_nombre) return;
+    const k=c.advisor_nombre.trim().toLowerCase();
+    if(ASESORES.some(a=>a.n.trim().toLowerCase()===k)) return;
+    if(nombresVistos.has(k)) return;
+    nombresVistos.add(k);
+    grupos.push({key:'nombre:'+k, n:c.advisor_nombre, esMio:cc=>!cc.advisor_id && (cc.advisor_nombre||'').trim().toLowerCase()===k});
+  });
+  grupos.forEach(g=>{
+    const pagados=aprobados.filter(g.esMio);
+    const verdes=CIERRES.filter(c=>c.estatus==='apartado' && g.esMio(c));
     if(!pagados.length && !verdes.length) return;
     const filasPag=pagados.map(c=>[mesEtiqueta(c.fecha_cierre||c.created_at),fmt(c.monto_comision),c.porcentaje_niva+'%',fmt(c.monto_comision*c.porcentaje_niva/100),c.valor_propiedad?fmt(c.valor_propiedad):'',esc(c.ubicacion||nomProp(c))]);
     const totPagFact=pagados.reduce((s,c)=>s+Number(c.monto_comision),0);
     const totPagNiva=pagados.reduce((s,c)=>s+Number(c.monto_comision)*Number(c.porcentaje_niva)/100,0);
     filasPag.push(['<strong>TOTAL</strong>','<strong>'+fmt(totPagFact)+'</strong>','','<strong>'+fmt(totPagNiva)+'</strong>','','']);
-    const tablaPag=tablaHTML('✅ Pagado — '+esc(a.n),['Mes','#Facturación','%','#Pagado (a NIVA)','#Portafolio','Ubicación'],filasPag,null);
+    const tablaPag=tablaHTML('✅ Pagado — '+esc(g.n),['Mes','#Facturación','%','#Pagado (a NIVA)','#Portafolio','Ubicación'],filasPag,null,true);
     const filasVerde=verdes.map(c=>[fmt(c.monto_comision),c.porcentaje_niva+'%',fmt(c.monto_comision*c.porcentaje_niva/100)]);
     const totVerFact=verdes.reduce((s,c)=>s+Number(c.monto_comision),0);
     const totVerNiva=verdes.reduce((s,c)=>s+Number(c.monto_comision)*Number(c.porcentaje_niva)/100,0);
     filasVerde.push(['<strong>'+fmt(totVerFact)+'</strong>','','<strong>'+fmt(totVerNiva)+'</strong>']);
-    const tablaVerde=tablaHTML('🟢 En verde (posibles) — '+esc(a.n),['#Facturación','%','#X pagar'],filasVerde,null);
-    out+='<div class="form-grid">'+'<div class="form-group full">'+tablaPag+'</div><div class="form-group full">'+tablaVerde+'</div></div>';
+    const tablaVerde=tablaHTML('🟢 En verde (posibles) — '+esc(g.n),['#Facturación','%','#X pagar'],filasVerde,null,true);
+    out+='<div class="hojasec">'+tablaPag+tablaVerde+'</div>';
   });
   return out;
 }
