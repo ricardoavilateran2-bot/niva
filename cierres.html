@@ -88,6 +88,12 @@ textarea { resize: vertical; min-height: 80px; }
 .cierrerow .ct{font-weight:700;font-size:13.5px;color:var(--white)}
 .cierrerow .cm{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
 .cmonto{font-weight:800;font-size:15px;color:var(--gold2);white-space:nowrap}
+.cigrupo{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:18px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cigrupo:first-child{margin-top:0}
+.cigrupo .cgtot{color:var(--gold2);font-size:13px}
+.citotal{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.35);border-radius:12px;padding:14px 16px;margin-top:14px;font-weight:800}
+.citotal .ct{font-size:13.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--gold2)}
+.citotal .cmonto{font-size:18px}
 .cierrebadge{font-size:11px;font-weight:800;padding:5px 11px;border-radius:20px;white-space:nowrap}
 .cierrebadge.pendiente{background:rgba(234,179,8,.15);color:#eab308}
 .cierrebadge.aprobado{background:rgba(74,222,128,.15);color:#4ade80}
@@ -184,6 +190,10 @@ textarea { resize: vertical; min-height: 80px; }
         <label for="ci-op">Tipo de operación</label>
         <select id="ci-op"><option value="sale">Venta</option><option value="rental">Renta</option></select>
       </div>
+      <div class="form-group">
+        <label for="ci-fecha">Fecha del cierre <small>(puedes poner una fecha pasada)</small></label>
+        <input id="ci-fecha" type="date">
+      </div>
       <div class="form-group full">
         <label for="ci-monto">Comisión total recibida <small>(antes del pago a NIVA)</small></label>
         <input id="ci-monto" inputmode="decimal" placeholder="Ej. 45000">
@@ -259,6 +269,8 @@ async function cargar(){
 function poblarSelects(){
   const nombre = MI_ASESOR ? MI_ASESOR.n : (USUARIO.charAt(0).toUpperCase()+USUARIO.slice(1));
   $('#ci-quien').innerHTML='👤 Registrando como <strong>'+esc(nombre)+'</strong>';
+  const fEl=$('#ci-fecha');
+  if(fEl && !fEl.value) fEl.value=new Date().toISOString().slice(0,10);
 }
 $('#ci-tipo-tog').addEventListener('click',e=>{
   const b=e.target.closest('button[data-v]');
@@ -301,6 +313,7 @@ async function guardarCierre(){
   if(!monto||monto<=0){err.textContent='Escribe la comisión total recibida.';return}
   const valorProp=Number($('#ci-valor').value)||null;
   const ubicacion=$('#ci-ubicacion').value.trim()||null;
+  const fecha=$('#ci-fecha').value || new Date().toISOString().slice(0,10);
   const estatusInicial = TIPO==='apartado' ? 'apartado' : 'pendiente';
   err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
   let error=null;
@@ -311,7 +324,7 @@ async function guardarCierre(){
       advisor_id:advisorId, advisor_nombre:advisorNombre, operation_type:op,
       compartida:COMPARTIDA, trae:COMPARTIDA?TRAIGO:null,
       monto_comision:monto, porcentaje_niva:MI_ASESOR?MI_ASESOR.pn:20,
-      valor_propiedad:valorProp, ubicacion:ubicacion,
+      valor_propiedad:valorProp, ubicacion:ubicacion, fecha_cierre:fecha,
       estatus:estatusInicial,
       notas:notas||null, registrado_por:USUARIO
     });
@@ -324,6 +337,7 @@ async function guardarCierre(){
   toast(TIPO==='apartado' ? 'Apartado registrado 🟢' : 'Cierre registrado — pendiente de aprobación ✅');
   $('#ci-monto').value='';$('#ci-notas').value='';$('#ci-valor').value='';$('#ci-ubicacion').value='';
   $('#ci-prop').value='';$('#ci-cliente').value='';
+  $('#ci-fecha').value=new Date().toISOString().slice(0,10);
   await cargar();
 }
 $('#ci-save').onclick=guardarCierre;
@@ -331,20 +345,31 @@ $('#ci-save').onclick=guardarCierre;
 function nomAsesor(id){const a=ASESORES.find(x=>x.id===id);return a?a.n:'Asesor'}
 function nomAsesorCierre(c){ if(c.advisor_id) return nomAsesor(c.advisor_id); return c.advisor_nombre||'Asesor' }
 function nomProp(c){ if(c.property_externa) return c.property_externa; const p=PROPS.find(x=>x.id===c.property_id); return p?(p.title||p.eb_public_id||'Propiedad'):'Propiedad' }
+function filaCierreHTML(c){
+  return '<div class="cierrerow"><div class="cmain"><div class="ct">'+esc(nomProp(c))+' · '+esc(c.cliente_nombre||'Cliente')+'</div>'
+    +'<div class="cm">'+[esc(nomAsesorCierre(c)),c.compartida?('Compartida · trajiste '+(c.trae==='propiedad'?'la propiedad':'el cliente')):'Directa',fFecha(c.fecha_cierre||c.created_at)].filter(Boolean).join(' · ')+'</div></div>'
+    +'<div class="cmonto">'+fmt(c.monto_comision)+'</div></div>';
+}
 function renderLista(){
   const host=$('#ci-lista');
   if(!CIERRES.length){host.innerHTML=vacioHTML('Todavía no hay cierres registrados. Usa el formulario de arriba.','🤝');return}
-  const wrap=document.createElement('div');
-  CIERRES.forEach(c=>{
-    const row=document.createElement('div');
-    row.className='cierrerow';
-    row.innerHTML='<div class="cmain"><div class="ct">'+esc(nomProp(c))+' · '+esc(c.cliente_nombre||'Cliente')+'</div>'
-      +'<div class="cm">'+[esc(nomAsesorCierre(c)),c.operation_type==='rental'?'Renta':'Venta',c.compartida?('Compartida · trajiste '+(c.trae==='propiedad'?'la propiedad':'el cliente')):'Directa',fFecha(c.fecha_cierre||c.created_at)].filter(Boolean).join(' · ')+'</div></div>'
-      +'<div class="cmonto">'+fmt(c.monto_comision)+'</div>';
-    wrap.appendChild(row);
-  });
-  host.innerHTML='';
-  host.appendChild(wrap);
+  const ordenados=CIERRES.slice().sort((a,b)=>new Date(b.fecha_cierre||b.created_at)-new Date(a.fecha_cierre||a.created_at));
+  const ventas=ordenados.filter(c=>c.operation_type!=='rental');
+  const rentas=ordenados.filter(c=>c.operation_type==='rental');
+  let out='';
+  if(ventas.length){
+    const totV=ventas.reduce((s,c)=>s+Number(c.monto_comision),0);
+    out+='<div class="cigrupo"><span>🏠 Ventas ('+ventas.length+')</span><span class="cgtot">'+fmt(totV)+'</span></div>';
+    out+=ventas.map(filaCierreHTML).join('');
+  }
+  if(rentas.length){
+    const totR=rentas.reduce((s,c)=>s+Number(c.monto_comision),0);
+    out+='<div class="cigrupo"><span>🔑 Rentas ('+rentas.length+')</span><span class="cgtot">'+fmt(totR)+'</span></div>';
+    out+=rentas.map(filaCierreHTML).join('');
+  }
+  const totalGeneral=ordenados.reduce((s,c)=>s+Number(c.monto_comision),0);
+  out+='<div class="citotal"><span class="ct">Total ('+ordenados.length+' cierres)</span><span class="cmonto">'+fmt(totalGeneral)+'</span></div>';
+  host.innerHTML=out;
 }
 
 // ===== Zona de administrador =====
