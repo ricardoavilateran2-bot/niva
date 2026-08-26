@@ -70,6 +70,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: rgba(20
 input::placeholder, textarea::placeholder { color: rgba(255,255,255,.25); }
 select option { background: #1B2A4A; color: #fff; }
 textarea { resize: vertical; min-height: 80px; }
+.addtoggle{margin-top:6px;background:none;border:none;color:var(--gold);font-size:11.5px;font-weight:700;cursor:pointer;text-align:left;padding:0;font-family:'Inter',sans-serif}
+.addtoggle:hover{text-decoration:underline}
 .filtros2{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap}
 .filtros2 button{padding:9px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);font-size:13px;font-weight:700;color:rgba(255,255,255,.7);cursor:pointer;font-family:'Inter',sans-serif}
 .filtros2 button.on{background:linear-gradient(135deg,var(--gold),#b8922e);color:var(--navy2);border-color:transparent}
@@ -162,10 +164,12 @@ textarea { resize: vertical; min-height: 80px; }
       <div class="form-group" id="ci-prop-wrap">
         <label for="ci-prop">Propiedad</label>
         <select id="ci-prop"><option value="">— Selecciona una propiedad —</option></select>
+        <button type="button" class="addtoggle" id="ci-prop-add">+ Agregar propiedad nueva (no está en el CRM)</button>
       </div>
       <div class="form-group" id="ci-cliente-wrap">
         <label for="ci-cliente">Cliente</label>
         <select id="ci-cliente"><option value="">— Selecciona un cliente —</option></select>
+        <button type="button" class="addtoggle" id="ci-cliente-add">+ Agregar cliente nuevo (no está en el CRM)</button>
       </div>
       <div class="form-group">
         <label for="ci-asesor">Asesor responsable</label>
@@ -229,6 +233,8 @@ async function cargar(){
   ]);
   PROPS = p.error?[]:(p.data||[]);
   CONTACTS = c.error?[]:(c.data||[]);
+  if(p.error) toast('No se pudieron cargar las propiedades: '+(p.error.message||''));
+  if(c.error) toast('No se pudieron cargar los clientes: '+(c.error.message||''));
   ASESORES = (a.data||[]).filter(x=>x.status!=='inactive')
     .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor',pn:Number(x.porcentaje_niva??20)}))
     .sort((x,y)=>x.n.localeCompare(y.n));
@@ -245,25 +251,47 @@ function poblarSelects(){
   actualizarPropiedad();
   actualizarSelectCliente();
 }
+let PROP_MANUAL=false, CLI_MANUAL=false;
+function propForzadoManual(){ return COMPARTIDA && TRAIGO!=='propiedad'; }
+function cliForzadoManual(){ return COMPARTIDA && TRAIGO!=='cliente'; }
+function propEsManual(){ return propForzadoManual() || PROP_MANUAL; }
+function cliEsManual(){ return cliForzadoManual() || CLI_MANUAL; }
+
 function actualizarSelectCliente(){
-  const wrap=$('#ci-cliente-wrap');
-  const esCrm = !COMPARTIDA || TRAIGO==='cliente';
-  if(esCrm){
-    wrap.innerHTML='<label for="ci-cliente">Cliente</label><select id="ci-cliente"><option value="">— Selecciona un cliente —</option>'
-      +CONTACTS.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.full_name||c.phone_normalized||'Cliente')+'</option>').join('')+'</select>';
+  const addBtn=$('#ci-cliente-add');
+  const forzado=cliForzadoManual();
+  const manual=cliEsManual();
+  addBtn.classList.toggle('hidden',forzado);
+  addBtn.textContent = manual ? '↺ Usar lista de clientes del CRM' : '+ Agregar cliente nuevo (no está en el CRM)';
+  const old=$('#ci-cliente');
+  let el;
+  if(!manual){
+    el=document.createElement('select'); el.id='ci-cliente';
+    el.innerHTML='<option value="">— Selecciona un cliente —</option>'
+      +CONTACTS.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.full_name||c.phone_normalized||'Cliente')+'</option>').join('');
   }else{
-    wrap.innerHTML='<label for="ci-cliente">Cliente <small>(lo trajo el otro asesor)</small></label><input id="ci-cliente" placeholder="Nombre del cliente">';
+    el=document.createElement('input'); el.id='ci-cliente';
+    el.placeholder = forzado ? 'Nombre del cliente (lo trajo el otro asesor)' : 'Nombre del cliente nuevo';
   }
+  old.replaceWith(el);
+  const lbl=$('label[for="ci-cliente"]');
+  if(lbl) lbl.innerHTML = 'Cliente'+(forzado?' <small>(lo trajo el otro asesor)</small>':'');
 }
 function actualizarPropiedad(){
-  const wrap=$('#ci-prop-wrap');
-  const esCrm = !COMPARTIDA || TRAIGO==='propiedad';
-  if(esCrm){
+  const addBtn=$('#ci-prop-add');
+  const forzado=propForzadoManual();
+  const manual=propEsManual();
+  addBtn.classList.toggle('hidden',forzado);
+  addBtn.textContent = manual ? '↺ Usar lista de propiedades del CRM' : '+ Agregar propiedad nueva (no está en el CRM)';
+  const old=$('#ci-prop');
+  let el;
+  if(!manual){
     const ps=PROPS.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||'')));
-    wrap.innerHTML='<label for="ci-prop">Propiedad</label><select id="ci-prop"><option value="">— Selecciona una propiedad —</option>'
-      +ps.map(p=>'<option value="'+esc(p.id)+'" data-op="'+esc(p.operation_type||'')+'">'+esc(p.title||p.eb_public_id||'')+'</option>').join('')+'</select>';
-    $('#ci-prop').addEventListener('change',()=>{
-      const opt=$('#ci-prop').selectedOptions[0];
+    el=document.createElement('select'); el.id='ci-prop';
+    el.innerHTML='<option value="">— Selecciona una propiedad —</option>'
+      +ps.map(p=>'<option value="'+esc(p.id)+'" data-op="'+esc(p.operation_type||'')+'">'+esc(p.title||p.eb_public_id||'')+'</option>').join('');
+    el.addEventListener('change',()=>{
+      const opt=el.selectedOptions[0];
       const op=opt?.dataset.op;
       if(op==='rental'||op==='sale')$('#ci-op').value=op;
       const p=PROPS.find(x=>x.id===opt?.value);
@@ -273,9 +301,15 @@ function actualizarPropiedad(){
       }
     });
   }else{
-    wrap.innerHTML='<label for="ci-prop">Propiedad <small>(la trajo el otro asesor)</small></label><input id="ci-prop" placeholder="Dirección o referencia de la propiedad">';
+    el=document.createElement('input'); el.id='ci-prop';
+    el.placeholder = forzado ? 'Dirección o referencia de la propiedad (la trajo el otro asesor)' : 'Dirección o referencia de la propiedad nueva';
   }
+  old.replaceWith(el);
+  const lbl=$('label[for="ci-prop"]');
+  if(lbl) lbl.innerHTML = 'Propiedad'+(forzado?' <small>(la trajo el otro asesor)</small>':'');
 }
+$('#ci-prop-add').addEventListener('click',()=>{ PROP_MANUAL=!PROP_MANUAL; actualizarPropiedad(); });
+$('#ci-cliente-add').addEventListener('click',()=>{ CLI_MANUAL=!CLI_MANUAL; actualizarSelectCliente(); });
 $('#ci-tipo-tog').addEventListener('click',e=>{
   const b=e.target.closest('button[data-v]');
   if(!b)return;
@@ -303,8 +337,8 @@ $('#ci-traigo-tog').addEventListener('click',e=>{
 
 async function guardarCierre(){
   const propEl=$('#ci-prop'), cliEl=$('#ci-cliente');
-  const propEsCrm = !COMPARTIDA || TRAIGO==='propiedad';
-  const cliEsCrm = !COMPARTIDA || TRAIGO==='cliente';
+  const propEsCrm = !propEsManual();
+  const cliEsCrm = !cliEsManual();
   const advisorId=$('#ci-asesor').value;
   const op=$('#ci-op').value;
   const monto=Number($('#ci-monto').value);
