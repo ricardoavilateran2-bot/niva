@@ -141,6 +141,8 @@ details p{font-size:13.5px;background:#f1f3f7;border-radius:8px;padding:8px;marg
 .saacc select{flex:1;min-width:170px;padding:9px 10px;border:1px solid var(--border);border-radius:9px;font-size:14px;background:#fff}
 .saacc button{padding:9px 16px;border:0;border-radius:9px;background:var(--navy);color:#fff;font-weight:700;font-size:13.5px;cursor:pointer}
 .saacc button:disabled{opacity:.5;cursor:default}
+.saacc button.elimg{background:#f6e8e4;color:#b4451f}
+.saacc button.elimg:disabled{opacity:.6}
 .sacount{background:var(--navy);color:#fff;border-radius:99px;padding:2px 9px;font-size:12px;font-weight:700;margin-left:6px}
 .sahead{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:18px 0 9px}
 .sahead:first-child{margin-top:0}
@@ -549,6 +551,7 @@ function grupoSinAsignar(clave,titulo,sub,leads,esProp){
     +'<div class="saacc"><select><option value="">Elige un asesor…</option>'
       +ASESORES.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.n)+'</option>').join('')
       +'</select><button disabled>Asignar</button>'
+      +(ESADMIN?'<button class="elimg">🗑️ Eliminar '+(leads.length>1?'estos '+leads.length:'este lead')+'</button>':'')
       +(esProp&&leads.length>1?'<span class="sam">Se asignan los '+leads.length+' de golpe</span>':'')
     +'</div>';
   const sel=d.querySelector('select'), btn=d.querySelector('button');
@@ -565,6 +568,21 @@ function grupoSinAsignar(clave,titulo,sub,leads,esProp){
     }
     if(err){btn.disabled=false;btn.textContent='Asignar';toast('No se pudo asignar');return}
     toast('Asignado a '+((ASESORES.find(a=>a.id===sel.value)||{}).n||'asesor'));
+    await cargar();
+  };
+  const belim=d.querySelector('.elimg');
+  if(belim)belim.onclick=async()=>{
+    if(!confirm('¿Eliminar definitivamente '+(leads.length>1?'estos '+leads.length+' leads':'este lead')+'?\n\nSe borran junto con su historial. No se puede deshacer.\n\nSi solo quieres organizarlos, mejor asígnalos a un asesor.'))return;
+    const motivo=prompt('¿Por qué los eliminas? (opcional — queda en la bitácora)','');
+    if(motivo===null)return;
+    belim.disabled=true;belim.textContent='Eliminando...';
+    let err=null;
+    for(const l of leads){
+      const r=await sb.rpc('eliminar_lead',{p_lead_id:l.id,p_motivo:motivo||null});
+      if(r.error){err=r.error;break}
+    }
+    if(err){belim.disabled=false;belim.textContent='🗑️ Eliminar';toast(err.message||'No se pudo eliminar');return}
+    toast(leads.length>1?'Leads eliminados':'Lead eliminado');
     await cargar();
   };
   return d;
@@ -586,7 +604,9 @@ function renderPropsSinDueno(host){
           esc(p.property_type||''), esc(p.location_name||'')].filter(Boolean).join(' · ')+'</div>'
       +'<div class="saacc"><select><option value="">Elige un asesor…</option>'
       +ASESORES.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.n)+'</option>').join('')
-      +'</select><button disabled>Asignar</button></div>';
+      +'</select><button disabled>Asignar</button>'
+      +(ESADMIN?'<button class="elimg">🚫 Cancelar propiedad</button>':'')
+      +'</div>';
     const sel=d.querySelector('select'), btn=d.querySelector('button');
     sel.onchange=()=>{btn.disabled=!sel.value};
     btn.onclick=async()=>{
@@ -595,6 +615,17 @@ function renderPropsSinDueno(host){
       const r=await sb.rpc('asignar_dueno_propiedad',{p_property_id:p.id,p_advisor_id:sel.value});
       if(r.error){btn.disabled=false;btn.textContent='Asignar';toast('No se pudo asignar');return}
       toast('Propiedad de '+((ASESORES.find(a=>a.id===sel.value)||{}).n||'asesor'));
+      await cargar();
+    };
+    const belim=d.querySelector('.elimg');
+    if(belim)belim.onclick=async()=>{
+      if(!confirm('¿Cancelar "'+(p.title||p.eb_public_id||'esta propiedad')+'"?\n\nSe quita de activas y de esta lista. No se borra: la puedes reactivar después desde Propiedades → Canceladas.'))return;
+      const motivo=prompt('¿Por qué la cancelas? (opcional)','');
+      if(motivo===null)return;
+      belim.disabled=true;belim.textContent='Cancelando...';
+      const r=await sb.rpc('cancelar_propiedad',{p_property_id:p.id,p_motivo:motivo||null});
+      if(r.error){belim.disabled=false;belim.textContent='🚫 Cancelar propiedad';toast(r.error.message||'No se pudo cancelar');return}
+      toast('Propiedad cancelada');
       await cargar();
     };
     host.appendChild(d);
