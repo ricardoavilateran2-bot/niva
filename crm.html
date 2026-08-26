@@ -230,6 +230,7 @@ body[data-tab="props"] main{max-width:1280px}
 .vacio{text-align:center;color:var(--mut);padding:56px 20px;font-size:14.5px;background:var(--card);border-radius:var(--radius);border:1px dashed var(--border)}
 .vacio .vi{font-size:34px;display:block;margin-bottom:10px}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:999px;font-size:13.5px;opacity:0;transition:.3s;pointer-events:none;z-index:50;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+#syncBanner{position:fixed;top:0;left:0;right:0;z-index:60;background:var(--warn);color:#fff;text-align:center;font-size:13px;font-weight:700;padding:8px 12px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 #toast.show{opacity:1}
 </style></head><body>
 
@@ -309,6 +310,7 @@ body[data-tab="props"] main{max-width:1280px}
 </main>
 </div>
 <div id="toast"></div>
+<div id="syncBanner" class="hidden"></div>
 <div id="modalNuevo" class="hidden">
   <div class="mbox">
     <h3>➕ Nuevo cliente directo</h3>
@@ -348,6 +350,68 @@ const esc=(v)=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 const m2ok=(n)=>n && Number(n)>=20; // saneo: superficies absurdas no se muestran
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 
+// ===== Modo sin conexión: caché local + cola de cambios pendientes =====
+const CACHE_KEY='niva_cache_v1', QUEUE_KEY='niva_queue_v1';
+function guardarCache(){
+  try{localStorage.setItem(CACHE_KEY, JSON.stringify({LEADS,PROPS,ts:Date.now()}));}catch(e){}
+}
+function cargarCache(){
+  try{
+    const raw=localStorage.getItem(CACHE_KEY);
+    if(!raw)return null;
+    return JSON.parse(raw);
+  }catch(e){return null}
+}
+function leerCola(){
+  try{return JSON.parse(localStorage.getItem(QUEUE_KEY)||'[]');}catch(e){return []}
+}
+function guardarCola(q){
+  try{localStorage.setItem(QUEUE_KEY, JSON.stringify(q));}catch(e){}
+  actualizarBadgeSync();
+}
+function encolar(op){
+  const q=leerCola();
+  q.push(Object.assign({id:Date.now()+'_'+Math.random().toString(36).slice(2)},op));
+  guardarCola(q);
+}
+function actualizarBadgeSync(){
+  const n=leerCola().length;
+  const b=$('#syncBanner');
+  if(!b)return;
+  if(!navigator.onLine){
+    b.textContent='📡 Sin conexión'+(n?' — '+n+' cambio'+(n>1?'s':'')+' pendiente'+(n>1?'s':'')+' de sincronizar':' — viendo datos guardados');
+    b.classList.remove('hidden');
+  }else if(n>0){
+    b.textContent='🔄 Sincronizando '+n+' cambio'+(n>1?'s':'')+' pendiente'+(n>1?'s':'')+'...';
+    b.classList.remove('hidden');
+  }else{
+    b.classList.add('hidden');
+  }
+}
+async function sincronizar(){
+  if(!navigator.onLine)return;
+  let q=leerCola();
+  if(!q.length)return;
+  const restantes=[];
+  for(const op of q){
+    try{
+      if(op.tipo==='status_change'){
+        const {error}=await sb.from('leads').update({status:op.nuevo}).eq('id',op.leadId);
+        if(error)throw error;
+        sb.from('lead_interactions').insert({lead_id:op.leadId,type:'status_change',actor:'advisor',payload:{de:op.prev,a:op.nuevo}});
+      }
+    }catch(e){
+      restantes.push(op); // se reintenta después
+    }
+  }
+  guardarCola(restantes);
+  if(restantes.length<q.length)toast('Cambios sincronizados ✓');
+  actualizarBadgeSync();
+}
+window.addEventListener('online',()=>{actualizarBadgeSync();sincronizar();});
+window.addEventListener('offline',actualizarBadgeSync);
+setInterval(()=>{if(navigator.onLine)sincronizar();},30000);
+
 async function entrar(){
   const u=$('#lu').value.trim().toLowerCase(), p=$('#lp').value;
   if(!u||!p){$('#lerr').textContent='Escribe usuario y contraseña';return}
@@ -379,6 +443,8 @@ async function iniciar(){
     TAB='clientes';
     document.querySelectorAll('.snav .tab').forEach(b=>b.classList.toggle('on', b.dataset.t==='clientes'));
   }
+  actualizarBadgeSync();
+  sincronizar();
   await cargar();
 }
 function skeleton(){
@@ -396,6 +462,15 @@ function errorCarga(msg){
 }
 async function cargar(){
   skeleton(); // P0: estado de carga visible
+  if(!navigator.onLine){
+    const c=cargarCache();
+    if(c){
+      LEADS=c.LEADS||[];PROPS=c.PROPS||[];
+      cargarContadores();pintar();actualizarBadgeSync();
+      toast('Sin conexión — mostrando datos guardados');
+      return;
+    }
+  }
   try{
     const [l,p]=await Promise.all([
       sb.from('my_leads').select('*').order('happened_at',{ascending:false}),
@@ -405,6 +480,7 @@ async function cargar(){
     if(l.error) throw new Error(l.error.message||'leads');
     if(p.error) throw new Error(p.error.message||'propiedades');
     LEADS=l.data??[];PROPS=p.data??[];
+    guardarCache();
     REP=null; // los reportes se recalculan con datos frescos
     if(ESADMIN){
       if(!ASESORES.length){
@@ -421,8 +497,16 @@ async function cargar(){
     }
     cargarContadores();
     pintar();
+    actualizarBadgeSync();
   }catch(e){
     console.error('[CRM] error de carga:',e);
+    const c=cargarCache();
+    if(c){
+      LEADS=c.LEADS||[];PROPS=c.PROPS||[];
+      cargarContadores();pintar();actualizarBadgeSync();
+      toast('Sin conexión — mostrando datos guardados');
+      return;
+    }
     errorCarga(e.message);
   }
 }
@@ -716,9 +800,19 @@ function kbCard(l){
 async function moverEtapa(id,nuevo){
   const l=LEADS.find(x=>x.id===id);
   if(!l||l.status===nuevo)return;
-  const prev=l.status;l.status=nuevo;pintar();cargarContadores();
+  const prev=l.status;l.status=nuevo;pintar();cargarContadores();guardarCache();
+  if(!navigator.onLine){
+    encolar({tipo:'status_change',leadId:id,prev,nuevo});
+    toast('Movido a '+EST[nuevo]+' (sin conexión, se sincronizará)');
+    return;
+  }
   const {error}=await sb.from('leads').update({status:nuevo}).eq('id',id);
-  if(error){l.status=prev;pintar();cargarContadores();toast('No se pudo mover');return}
+  if(error){
+    // pudo ser un corte de red en el momento del envío: no revertimos, lo encolamos
+    encolar({tipo:'status_change',leadId:id,prev,nuevo});
+    toast('Movido a '+EST[nuevo]+' (pendiente de sincronizar)');
+    return;
+  }
   sb.from('lead_interactions').insert({lead_id:id,type:'status_change',actor:'advisor',payload:{de:prev,a:nuevo}});
   toast('Movido a '+EST[nuevo]);
 }
@@ -837,10 +931,19 @@ function cardLead(l){
   if(telA)telA.addEventListener('click',()=>{sb.from('lead_interactions').insert({lead_id:l.id,type:'call_click',actor:'advisor',payload:{}})});
   d.querySelector('.estado select').onchange=async(e)=>{
     const nv=e.target.value, prev=l.status;
+    if(!navigator.onLine){
+      l.status=nv;guardarCache();encolar({tipo:'status_change',leadId:l.id,prev,nuevo:nv});
+      toast('Estado: '+EST[nv]+' (sin conexión, se sincronizará)');pintar();cargarContadores();
+      return;
+    }
     const {error}=await sb.from('leads').update({status:nv}).eq('id',l.id);
-    if(error){e.target.value=prev;toast('No se pudo cambiar');return}
+    if(error){
+      l.status=nv;guardarCache();encolar({tipo:'status_change',leadId:l.id,prev,nuevo:nv});
+      toast('Estado: '+EST[nv]+' (pendiente de sincronizar)');pintar();cargarContadores();
+      return;
+    }
     await sb.from('lead_interactions').insert({lead_id:l.id,type:'status_change',actor:'advisor',payload:{de:prev,a:nv}});
-    l.status=nv;toast('Estado: '+EST[nv]);pintar();cargarContadores();
+    l.status=nv;guardarCache();toast('Estado: '+EST[nv]);pintar();cargarContadores();
   };
   async function cambiarTipo(nv){
     const {error}=await sb.rpc('set_lead_contact_type',{p_lead_id:l.id,p_type:nv});
