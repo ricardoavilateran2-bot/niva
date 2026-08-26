@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+(async()=>{
+  try{
+    const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+    const sb = createClient(cfg.url, cfg.anon);
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ window.location.replace('./index.html'); return; }
+    window.__nivaSession = session;
+    window.__nivaSb = sb;
+    window.__nivaCfg = cfg;
+    sb.auth.onAuthStateChange((_e, s)=>{ if(!s) window.location.replace('./index.html'); });
+  }catch(e){ console.error('niva-auth-guard', e); window.location.replace('./index.html'); }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Captaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1B2A4A; --navy2: #0f1e36; --gold: #C9A84C; --gold2: #e8c96a;
+  --white: #fff; --radius: 16px;
+}
+html, body { min-height: 100vh; font-family: 'Inter', sans-serif; background: var(--navy2); color: var(--white); overflow-x: hidden; }
+.hidden{display:none !important}
+.bg-pattern {
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(201,168,76,.10) 0%, transparent 60%),
+              linear-gradient(160deg, #0d1828 0%, #1B2A4A 50%, #0d1828 100%);
+}
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; opacity: .04;
+  background-image: linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.page { position: relative; z-index: 1; min-height: 100vh; max-width: 960px; margin: 0 auto; padding: 0 20px 80px; }
+header { display: flex; align-items: center; justify-content: space-between; padding: 32px 0 0; gap: 12px; }
+.logo-block { display: flex; align-items: flex-end; gap: 4px; }
+.logo-niva { font-size: 38px; font-weight: 900; letter-spacing: -.02em; color: var(--white); line-height: 1; }
+.logo-dot { width: 9px; height: 9px; background: var(--gold); border-radius: 50%; margin-bottom: 5px; }
+.logo-sub { font-size: 11px; font-weight: 600; letter-spacing: .18em; color: rgba(201,168,76,.7); text-transform: uppercase; margin-left: 2px; padding-bottom: 2px; }
+.back-btn { font-size: .75rem; color: var(--gold); padding: 6px 14px; border: 1px solid rgba(201,168,76,.4); border-radius: 8px; text-decoration: none; white-space: nowrap; transition: all .2s; }
+.back-btn:hover { background: var(--gold); color: var(--navy2); }
+.page-hero { padding: 40px 0 32px; }
+.badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(201,168,76,.12); border: 1px solid rgba(201,168,76,.25); border-radius: 40px; padding: 6px 18px; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--gold); text-transform: uppercase; margin-bottom: 18px; }
+.page-hero h1 { font-size: clamp(28px,5vw,42px); font-weight: 900; line-height: 1.1; letter-spacing: -.02em; margin-bottom: 12px; }
+.page-hero h1 span { color: var(--gold); }
+.page-hero p { font-size: 14.5px; color: rgba(255,255,255,.5); max-width: 560px; line-height: 1.65; }
+.section-title { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin: 36px 0 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(201,168,76,.2); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.form-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: var(--radius); padding: 28px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+@media (max-width: 620px) { .form-grid, .form-grid-3 { grid-template-columns: 1fr; } }
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.45); }
+label small { text-transform: none; letter-spacing: 0; font-weight: 500; opacity: .8; }
+input, select, textarea {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px; padding: 11px 14px; color: var(--white); font-family: 'Inter', sans-serif;
+  font-size: 14px; font-weight: 500; width: 100%;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: rgba(201,168,76,.5); background: rgba(255,255,255,.09); }
+input::placeholder, textarea::placeholder { color: rgba(255,255,255,.25); }
+select option { background: #1B2A4A; color: #fff; }
+textarea { resize: vertical; min-height: 90px; }
+#cap-fotos-prev { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+#cap-fotos-prev img { width: 68px; height: 68px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,.12); }
+.merr { min-height: 18px; margin-top: 10px; font-size: 12.5px; color: #f87171; font-weight: 600; }
+.msave { margin-top: 8px; padding: 13px 26px; background: linear-gradient(135deg, var(--gold), #b8922e); color: var(--navy2); border: 0; border-radius: 10px; font-size: 14.5px; font-weight: 800; cursor: pointer; }
+.msave:disabled { opacity: .6; cursor: default; }
+.captabla { display: flex; flex-direction: column; gap: 10px; }
+.caprow { display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 12px; padding: 12px 16px; text-decoration: none; color: inherit; transition: background .18s, border-color .18s; }
+.caprow:hover { background: rgba(255,255,255,.07); border-color: rgba(201,168,76,.3); }
+.caprow img { width: 54px; height: 54px; object-fit: cover; border-radius: 8px; background: rgba(255,255,255,.08); flex-shrink: 0; }
+.cap-main { flex: 1; min-width: 0; }
+.cap-t { font-weight: 700; font-size: 14px; color: var(--white); }
+.cap-m { font-size: 12.5px; color: rgba(255,255,255,.5); margin-top: 2px; }
+.cap-badge { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+.cap-badge.pub { background: rgba(31,139,76,.18); color: #4ade80; }
+.cap-badge.pend { background: rgba(179,120,28,.18); color: #fbbf24; }
+.vacio { text-align: center; padding: 40px 20px; color: rgba(255,255,255,.4); font-size: 14px; }
+.vacio .vi { display: block; font-size: 34px; margin-bottom: 10px; }
+.toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%,20px); background: var(--navy); color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: all .25s; z-index: 80; }
+.toast.show { opacity: 1; transform: translate(-50%,0); }
+</style>
+</head>
+<body>
+
+<div class="bg-pattern"></div>
+<div class="bg-grid"></div>
+
+<div class="page">
+  <header>
+    <div>
+      <div class="logo-block">
+        <span class="logo-niva">NIVA</span>
+        <div class="logo-dot"></div>
+      </div>
+      <div class="logo-sub">Inmobiliaria · Monterrey</div>
+    </div>
+    <a href="index.html" class="back-btn">← Panel principal</a>
+  </header>
+
+  <div class="page-hero">
+    <div class="badge">📸 Módulo de Captaciones</div>
+    <h1>Da de alta una <span>propiedad nueva</span></h1>
+    <p>Llena el formulario y la propiedad se publica automáticamente en EasyBroker y queda asignada a tu nombre.</p>
+  </div>
+
+  <div class="section-title"><span>Nueva captación</span></div>
+  <div class="form-card">
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="cap-tipo">Tipo de propiedad</label>
+        <select id="cap-tipo">
+          <option value="Casa">Casa</option>
+          <option value="Departamento">Departamento</option>
+          <option value="Terreno">Terreno</option>
+          <option value="Local comercial">Local comercial</option>
+          <option value="Oficina">Oficina</option>
+          <option value="Bodega">Bodega</option>
+          <option value="Edificio">Edificio</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="cap-op">Operación</label>
+        <select id="cap-op">
+          <option value="rental">Renta</option>
+          <option value="sale">Venta</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="cap-precio">Precio (MXN)</label>
+        <input id="cap-precio" inputmode="numeric" placeholder="Ej. 25000">
+      </div>
+      <div class="form-group">
+        <label for="cap-zona">Zona / colonia</label>
+        <select id="cap-zona"></select>
+        <input id="cap-zona-otra" placeholder="Escribe la zona" style="display:none;margin-top:8px">
+      </div>
+      <div class="form-group full">
+        <label for="cap-titulo">Título <small>(opcional — se genera automático si lo dejas vacío)</small></label>
+        <input id="cap-titulo" placeholder="Ej. Casa en venta en Cumbres">
+      </div>
+      <div class="form-group full">
+        <label for="cap-desc">Descripción</label>
+        <textarea id="cap-desc" rows="4" placeholder="Describe la propiedad: características, amenidades, estado..."></textarea>
+      </div>
+    </div>
+    <div class="form-grid-3">
+      <div class="form-group"><label for="cap-rec">Recámaras</label><input id="cap-rec" inputmode="numeric"></div>
+      <div class="form-group"><label for="cap-bano">Baños</label><input id="cap-bano" inputmode="numeric"></div>
+      <div class="form-group"><label for="cap-mbano">Medios baños</label><input id="cap-mbano" inputmode="numeric"></div>
+      <div class="form-group"><label for="cap-est">Estacionamientos</label><input id="cap-est" inputmode="numeric"></div>
+      <div class="form-group"><label for="cap-m2c">M² construcción</label><input id="cap-m2c" inputmode="numeric"></div>
+      <div class="form-group"><label for="cap-m2t">M² terreno</label><input id="cap-m2t" inputmode="numeric"></div>
+    </div>
+    <div class="form-group full">
+      <label for="cap-fotos">Fotos</label>
+      <input id="cap-fotos" type="file" accept="image/*" multiple>
+      <div id="cap-fotos-prev"></div>
+    </div>
+    <div class="merr" id="cap-err"></div>
+    <button id="cap-save" class="msave">Publicar captación</button>
+  </div>
+
+  <div class="section-title"><span>Mis captaciones</span></div>
+  <div id="cap-historial"></div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const $=s=>document.querySelector(s);
+const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+const sb = createClient(cfg.url, cfg.anon);
+const {data:{session}} = await sb.auth.getSession();
+if(!session){ window.location.replace('./index.html'); }
+const esc=(v)=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function vacioHTML(txt,icon){return '<div class="vacio"><span class="vi">'+(icon||'📭')+'</span>'+txt+'</div>'}
+
+let PROPS=[], ESADMIN=false, CAP_FOTOS=[];
+
+async function cargar(){
+  const uname=(session.user?.email||'').split('@')[0];
+  ESADMIN=(uname==='admin'||uname==='ricardo');
+  const {data,error}=await sb.from('my_properties').select('*');
+  PROPS = error? [] : (data||[]);
+  const zsel=$('#cap-zona');
+  const zonas=[...new Set(PROPS.map(p=>p.location_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  zsel.innerHTML=zonas.map(z=>'<option value="'+esc(z)+'">'+esc(z)+'</option>').join('')+'<option value="__otra__">✏️ Otra zona...</option>';
+  renderHistorial();
+}
+
+function renderHistorial(){
+  const host=$('#cap-historial');
+  const mias=PROPS.filter(p=>p.captured_by_advisor_id).slice()
+    .sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  if(!mias.length){host.innerHTML=vacioHTML(ESADMIN?'Todavía no hay captaciones de ningún asesor.':'Todavía no has capturado ninguna propiedad. Usa el formulario de arriba para dar de alta la primera.','📸');return}
+  const wrap=document.createElement('div');wrap.className='captabla';
+  for(const p of mias){
+    const a=document.createElement('a');a.className='caprow';
+    if(p.public_url){a.href=p.public_url;a.target='_blank';a.rel='noopener'}
+    const pub=p.eb_status==='published'||p.internal_status==='active';
+    a.innerHTML='<img loading="lazy" src="'+esc(p.title_image_url||'')+'" onerror="this.style.visibility=\'hidden\'">'
+      +'<div class="cap-main"><div class="cap-t">'+esc(p.title||p.eb_public_id||'')+'</div>'
+      +'<div class="cap-m">'+esc(p.eb_public_id||'')+(p.location_name?' · '+esc(p.location_name):'')+(p.price_amount?' · '+fmt(p.price_amount):'')+'</div></div>'
+      +'<span class="cap-badge '+(pub?'pub':'pend')+'">'+(pub?'✅ Publicada':'⏳ En proceso')+'</span>';
+    wrap.appendChild(a);
+  }
+  host.innerHTML='';host.appendChild(wrap);
+}
+
+function pintarFotosCap(){
+  $('#cap-fotos-prev').innerHTML=CAP_FOTOS.map(f=>'<img src="'+f.previewUrl+'">').join('');
+}
+
+async function guardarCaptacion(){
+  const err=$('#cap-err'), btn=$('#cap-save');
+  const tipo=$('#cap-tipo').value, op=$('#cap-op').value;
+  const precio=Number($('#cap-precio').value.replace(/[^\d.]/g,''));
+  let zona=$('#cap-zona').value;
+  if(zona==='__otra__')zona=$('#cap-zona-otra').value.trim();
+  const desc=$('#cap-desc').value.trim();
+  if(!precio||precio<=0){err.textContent='Escribe un precio válido.';return}
+  if(!zona){err.textContent='Escribe o elige la zona/colonia.';return}
+  if(desc.length<10){err.textContent='Escribe una descripción (mínimo 10 caracteres).';return}
+  err.textContent='';btn.disabled=true;btn.textContent='Subiendo fotos...';
+  try{
+    const photoUrls=[];
+    for(const f of CAP_FOTOS){
+      const path=Date.now()+'_'+Math.random().toString(36).slice(2)+'_'+f.file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+      const up=await sb.storage.from('captaciones').upload(path,f.file);
+      if(up.error)throw new Error('No se pudo subir una foto: '+up.error.message);
+      const pu=sb.storage.from('captaciones').getPublicUrl(path);
+      photoUrls.push(pu.data.publicUrl);
+    }
+    btn.textContent='Publicando en EasyBroker...';
+    const body={
+      property_type:tipo,operation_type:op,price_amount:precio,description:desc,location_name:zona,
+      title:$('#cap-titulo').value.trim()||undefined,
+      bedrooms:$('#cap-rec').value||undefined,bathrooms:$('#cap-bano').value||undefined,
+      half_bathrooms:$('#cap-mbano').value||undefined,parking_spaces:$('#cap-est').value||undefined,
+      construction_size:$('#cap-m2c').value||undefined,lot_size:$('#cap-m2t').value||undefined,
+      photos:photoUrls
+    };
+    const {data:{session}}=await sb.auth.getSession();
+    const res=await fetch(cfg.url+'/functions/v1/niva-crear-captacion',{
+      method:'POST',
+      headers:{'content-type':'application/json',Authorization:'Bearer '+session.access_token},
+      body:JSON.stringify(body)
+    });
+    const out=await res.json();
+    if(!res.ok)throw new Error(out.error||'No se pudo publicar la captación');
+    toast('Captación publicada ✅');
+    $('#cap-tipo').value='Casa';$('#cap-op').value='rental';$('#cap-precio').value='';
+    $('#cap-titulo').value='';$('#cap-desc').value='';
+    $('#cap-rec').value='';$('#cap-bano').value='';$('#cap-mbano').value='';$('#cap-est').value='';$('#cap-m2c').value='';$('#cap-m2t').value='';
+    $('#cap-fotos').value='';CAP_FOTOS=[];pintarFotosCap();
+    $('#cap-zona-otra').style.display='none';$('#cap-zona-otra').value='';
+    btn.disabled=false;btn.textContent='Publicar captación';
+    await cargar();
+  }catch(e){
+    err.textContent=e.message||'Ocurrió un error';
+    btn.disabled=false;btn.textContent='Publicar captación';
+  }
+}
+
+$('#cap-zona').onchange=(e)=>{$('#cap-zona-otra').style.display=(e.target.value==='__otra__')?'':'none'};
+$('#cap-fotos').onchange=(e)=>{
+  const files=Array.from(e.target.files||[]).slice(0,20);
+  CAP_FOTOS=files.map(file=>({file,previewUrl:URL.createObjectURL(file)}));
+  pintarFotosCap();
+};
+$('#cap-save').onclick=guardarCaptacion;
+
+cargar();
+</script>
+
+</body>
+</html>
