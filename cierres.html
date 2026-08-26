@@ -261,6 +261,7 @@ async function cargar(){
     .sort((x,y)=>x.n.localeCompare(y.n));
   MI_ASESOR = ASESORES.find(a=>a.fn===uname.toLowerCase())||null;
   CIERRES = ci.error?[]:(ci.data||[]);
+  CIERRES.sort((a,b)=>new Date(b.fecha_cierre||b.created_at)-new Date(a.fecha_cierre||a.created_at));
   poblarSelects();
   renderLista();
   if(ESADMIN) renderAdminZona();
@@ -353,7 +354,7 @@ function filaCierreHTML(c){
 function renderLista(){
   const host=$('#ci-lista');
   if(!CIERRES.length){host.innerHTML=vacioHTML('Todavía no hay cierres registrados. Usa el formulario de arriba.','🤝');return}
-  const ordenados=CIERRES.slice().sort((a,b)=>new Date(b.fecha_cierre||b.created_at)-new Date(a.fecha_cierre||a.created_at));
+  const ordenados=CIERRES;
   const ventas=ordenados.filter(c=>c.operation_type!=='rental');
   const rentas=ordenados.filter(c=>c.operation_type==='rental');
   let out='';
