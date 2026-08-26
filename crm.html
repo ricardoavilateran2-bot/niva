@@ -45,19 +45,35 @@ input,select,textarea{font-family:inherit}
 .sback:hover{color:var(--gold);border-color:rgba(201,168,76,.4)}
 .snuevo{display:block;width:calc(100% - 16px);margin:10px 8px 2px;padding:10px 12px;border-radius:9px;font-size:13px;font-weight:800;color:#0d1a2e;background:var(--gold);border:0;cursor:pointer;transition:filter .18s}
 .snuevo:hover{filter:brightness(1.08)}
-#modalNuevo{position:fixed;inset:0;background:rgba(8,14,26,.62);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
-#modalNuevo .mbox{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:92vh;overflow-y:auto}
-#modalNuevo h3{margin:0 0 14px;font-size:17px;color:var(--navy)}
-#modalNuevo label{display:block;font-size:12.5px;font-weight:700;color:var(--mut);margin:12px 0 5px}
-#modalNuevo label small{font-weight:500;opacity:.8}
-#modalNuevo input,#modalNuevo select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box}
-#modalNuevo input:focus,#modalNuevo select:focus{outline:none;border-color:rgba(201,168,76,.7);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
-#modalNuevo .merr{min-height:18px;margin-top:10px;font-size:12.5px;color:#c0392b;font-weight:600}
-#modalNuevo .macc{display:flex;gap:10px;margin-top:6px}
-#modalNuevo .macc button{flex:1;padding:12px;border-radius:10px;font-size:14.5px;font-weight:700;border:0;cursor:pointer}
-#modalNuevo .mcancel{background:#eef1f5;color:var(--mut)}
-#modalNuevo .msave{background:var(--navy);color:#fff}
-#modalNuevo .msave:disabled{opacity:.6;cursor:default}
+#modalNuevo,#modalCap{position:fixed;inset:0;background:rgba(8,14,26,.62);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
+#modalNuevo .mbox,#modalCap .mbox{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:92vh;overflow-y:auto}
+#modalCap .mbox{max-width:560px}
+#modalNuevo h3,#modalCap h3{margin:0 0 14px;font-size:17px;color:var(--navy)}
+#modalNuevo label,#modalCap label{display:block;font-size:12.5px;font-weight:700;color:var(--mut);margin:12px 0 5px}
+#modalNuevo label small,#modalCap label small{font-weight:500;opacity:.8}
+#modalNuevo input,#modalNuevo select,#modalCap input,#modalCap select,#modalCap textarea{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;font-family:inherit}
+#modalNuevo input:focus,#modalNuevo select:focus,#modalCap input:focus,#modalCap select:focus,#modalCap textarea:focus{outline:none;border-color:rgba(201,168,76,.7);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
+#modalNuevo .merr,#modalCap .merr{min-height:18px;margin-top:10px;font-size:12.5px;color:#c0392b;font-weight:600}
+#modalNuevo .macc,#modalCap .macc{display:flex;gap:10px;margin-top:6px}
+#modalNuevo .macc button,#modalCap .macc button{flex:1;padding:12px;border-radius:10px;font-size:14.5px;font-weight:700;border:0;cursor:pointer}
+#modalNuevo .mcancel,#modalCap .mcancel{background:#eef1f5;color:var(--mut)}
+#modalNuevo .msave,#modalCap .msave{background:var(--navy);color:#fff}
+#modalNuevo .msave:disabled,#modalCap .msave:disabled{opacity:.6;cursor:default}
+#modalCap .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+#modalCap .cgrid>div{min-width:0}
+#cap-fotos-prev{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+#cap-fotos-prev img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+.cap-toolbar{display:flex;justify-content:flex-end;padding:14px 0 4px;max-width:1000px;margin:0 auto}
+.cap-toolbar button{padding:10px 16px;border-radius:10px;font-size:14px;font-weight:800;color:#0d1a2e;background:var(--gold);border:0;cursor:pointer}
+.captabla{display:flex;flex-direction:column;gap:8px;max-width:1000px;margin:0 auto;padding-bottom:20px}
+.caprow{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px;text-decoration:none;color:inherit}
+.caprow img{width:52px;height:52px;object-fit:cover;border-radius:8px;background:#eef1f5}
+.cap-main{flex:1;min-width:0}
+.cap-t{font-weight:700;font-size:14px;color:var(--navy)}
+.cap-m{font-size:12.5px;color:var(--mut);margin-top:2px}
+.cap-badge{font-size:11.5px;font-weight:800;padding:4px 9px;border-radius:20px;white-space:nowrap}
+.cap-badge.pub{background:#e4f6ea;color:#1f8b4c}
+.cap-badge.pend{background:#fdf1de;color:#b3781c}
 .snav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
 .tab{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:10px;background:none;font-size:13px;font-weight:600;border:0;color:rgba(255,255,255,.75);text-align:left;cursor:pointer;white-space:nowrap;transition:background .15s}
 .tab:hover{background:rgba(255,255,255,.07)}
@@ -258,6 +274,7 @@ body[data-tab="props"] main{max-width:1280px}
     <button class="tab" data-t="sinid" id="tab-sinid" style="display:none">❓ Sin identificar<span class="n" id="n-sinid">–</span></button>
     <button class="tab" data-t="todos">📋 Todos<span class="n" id="n-todos">–</span></button>
     <button class="tab" data-t="props">🏠 Propiedades<span class="n" id="n-props">–</span></button>
+    <button class="tab" data-t="captaciones" id="tab-cap">📸 Captaciones<span class="n" id="n-cap">–</span></button>
     <button class="tab" data-t="archivados" id="tab-arch">🗄️ Archivados<span class="n" id="n-arch">–</span></button>
     <button class="tab" data-t="sinasignar" id="tab-sinasig" style="display:none">⚠️ Sin asignar<span class="n" id="n-sinasig">–</span></button>
     <button class="tab" data-t="reportes" id="tab-rep" style="display:none">📊 Reportes</button>
@@ -322,6 +339,57 @@ body[data-tab="props"] main{max-width:1280px}
     <div class="macc">
       <button id="nc-cancel" class="mcancel">Cancelar</button>
       <button id="nc-save" class="msave">Guardar cliente</button>
+    </div>
+  </div>
+</div>
+<div id="modalCap" class="hidden">
+  <div class="mbox">
+    <h3>📸 Nueva captación</h3>
+    <div class="cgrid">
+      <div>
+        <label for="cap-tipo">Tipo de propiedad</label>
+        <select id="cap-tipo">
+          <option value="Casa">Casa</option>
+          <option value="Departamento">Departamento</option>
+          <option value="Terreno">Terreno</option>
+          <option value="Local comercial">Local comercial</option>
+          <option value="Oficina">Oficina</option>
+          <option value="Bodega">Bodega</option>
+          <option value="Edificio">Edificio</option>
+        </select>
+      </div>
+      <div>
+        <label for="cap-op">Operación</label>
+        <select id="cap-op">
+          <option value="rental">Renta</option>
+          <option value="sale">Venta</option>
+        </select>
+      </div>
+    </div>
+    <label for="cap-precio">Precio (MXN)</label>
+    <input id="cap-precio" inputmode="numeric" placeholder="Ej. 25000">
+    <label for="cap-zona">Zona / colonia</label>
+    <select id="cap-zona"></select>
+    <input id="cap-zona-otra" placeholder="Escribe la zona" style="display:none;margin-top:8px">
+    <label for="cap-titulo">Título <small>(opcional — se genera automático si lo dejas vacío)</small></label>
+    <input id="cap-titulo" placeholder="Ej. Casa en venta en Cumbres">
+    <label for="cap-desc">Descripción</label>
+    <textarea id="cap-desc" rows="4" placeholder="Describe la propiedad: características, amenidades, estado..."></textarea>
+    <div class="cgrid">
+      <div><label for="cap-rec">Recámaras</label><input id="cap-rec" inputmode="numeric"></div>
+      <div><label for="cap-bano">Baños</label><input id="cap-bano" inputmode="numeric"></div>
+      <div><label for="cap-mbano">Medios baños</label><input id="cap-mbano" inputmode="numeric"></div>
+      <div><label for="cap-est">Estacionamientos</label><input id="cap-est" inputmode="numeric"></div>
+      <div><label for="cap-m2c">M² construcción</label><input id="cap-m2c" inputmode="numeric"></div>
+      <div><label for="cap-m2t">M² terreno</label><input id="cap-m2t" inputmode="numeric"></div>
+    </div>
+    <label for="cap-fotos">Fotos</label>
+    <input id="cap-fotos" type="file" accept="image/*" multiple>
+    <div id="cap-fotos-prev"></div>
+    <div class="merr" id="cap-err"></div>
+    <div class="macc">
+      <button id="cap-cancel" class="mcancel">Cancelar</button>
+      <button id="cap-save" class="msave">Publicar captación</button>
     </div>
   </div>
 </div>
@@ -437,11 +505,12 @@ function pintar(){
   document.body.dataset.tab=TAB;
   const enTablero=(VISTA==='tablero'&&FIL==='todos'&&['clientes','asesores','sinid','todos','archivados'].indexOf(TAB)>=0);
   document.body.dataset.vista=enTablero?'tablero':'lista';
-  $('#barra').style.display=(TAB==='props'||TAB==='reportes'||TAB==='sinasignar')?'none':'';
+  $('#barra').style.display=(TAB==='props'||TAB==='reportes'||TAB==='sinasignar'||TAB==='captaciones')?'none':'';
   $('#pbarra').classList.toggle('hidden',TAB!=='props');
   const host=$('#lista');host.innerHTML='';
   if(TAB==='reportes'){renderReportes(host);return;}
   if(TAB==='sinasignar'){renderSinAsignar(host);return;}
+  if(TAB==='captaciones'){renderCaptaciones(host);return;}
   if(TAB==='props'){
     const canc=(PE==='canceladas');
     const base=canc?PROPSC:PROPS;
@@ -911,6 +980,7 @@ function cargarContadores(){
   $('#n-sinid').textContent=activos.filter(l=>tipoLead(l)==='unidentified').length;
   $('#n-todos').textContent=activos.length;
   $('#n-props').textContent=PROPS.length;
+  const ncap=$('#n-cap'); if(ncap)ncap.textContent=PROPS.filter(p=>p.captured_by_advisor_id).length;
   const ncanc=$('#n-canc'); if(ncanc)ncanc.textContent=PROPSC.length;
   const fe=document.getElementById('pf-estado'); if(fe)fe.style.display=ESADMIN?'':'none';
   $('#n-arch').textContent=LEADS.filter(esArchivado).length;
@@ -1217,6 +1287,89 @@ async function renderReportes(host){
   if(primero){primero.classList.add('on');document.getElementById('repout').innerHTML=repResumen();}
 }
 
+// ── Captaciones (asesores suben propiedades nuevas) ──────────────────
+let CAP_FOTOS=[]; // {file, previewUrl}
+function renderCaptaciones(host){
+  const mias=PROPS.filter(p=>p.captured_by_advisor_id).slice()
+    .sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  host.innerHTML='<div class="cap-toolbar"><button id="cap-nueva">📸 Nueva captación</button></div>';
+  const nb=document.getElementById('cap-nueva'); if(nb)nb.onclick=abrirCaptacion;
+  if(!mias.length){host.insertAdjacentHTML('beforeend',vacioHTML(ESADMIN?'Todavía no hay captaciones de ningún asesor.':'Todavía no has capturado ninguna propiedad. Usa "Nueva captación" para dar de alta la primera.','📸'));return}
+  const wrap=document.createElement('div');wrap.className='captabla';
+  for(const p of mias){
+    const a=document.createElement('a');a.className='caprow';
+    if(p.public_url){a.href=p.public_url;a.target='_blank';a.rel='noopener'}
+    const pub=p.eb_status==='published'||p.internal_status==='active';
+    a.innerHTML='<img loading="lazy" src="'+esc(p.title_image_url||'')+'" onerror="this.style.visibility=\'hidden\'">'
+      +'<div class="cap-main"><div class="cap-t">'+esc(p.title||p.eb_public_id||'')+'</div>'
+      +'<div class="cap-m">'+esc(p.eb_public_id||'')+(p.location_name?' · '+esc(p.location_name):'')+(p.price_amount?' · '+fmt(p.price_amount):'')+'</div></div>'
+      +'<span class="cap-badge '+(pub?'pub':'pend')+'">'+(pub?'✅ Publicada':'⏳ En proceso')+'</span>';
+    wrap.appendChild(a);
+  }
+  host.appendChild(wrap);
+}
+function abrirCaptacion(){
+  const zsel=$('#cap-zona');
+  const zonas=[...new Set(PROPS.map(p=>p.location_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  zsel.innerHTML=zonas.map(z=>'<option value="'+esc(z)+'">'+esc(z)+'</option>').join('')+'<option value="__otra__">✏️ Otra zona...</option>';
+  $('#cap-zona-otra').style.display='none';$('#cap-zona-otra').value='';
+  $('#cap-tipo').value='Casa';$('#cap-op').value='rental';$('#cap-precio').value='';
+  $('#cap-titulo').value='';$('#cap-desc').value='';
+  $('#cap-rec').value='';$('#cap-bano').value='';$('#cap-mbano').value='';$('#cap-est').value='';$('#cap-m2c').value='';$('#cap-m2t').value='';
+  $('#cap-fotos').value='';CAP_FOTOS=[];pintarFotosCap();
+  $('#cap-err').textContent='';$('#cap-save').disabled=false;$('#cap-save').textContent='Publicar captación';
+  $('#modalCap').classList.remove('hidden');
+}
+function cerrarCaptacion(){$('#modalCap').classList.add('hidden')}
+function pintarFotosCap(){
+  $('#cap-fotos-prev').innerHTML=CAP_FOTOS.map(f=>'<img src="'+f.previewUrl+'">').join('');
+}
+async function guardarCaptacion(){
+  const err=$('#cap-err'), btn=$('#cap-save');
+  const tipo=$('#cap-tipo').value, op=$('#cap-op').value;
+  const precio=Number($('#cap-precio').value.replace(/[^\d.]/g,''));
+  let zona=$('#cap-zona').value;
+  if(zona==='__otra__')zona=$('#cap-zona-otra').value.trim();
+  const desc=$('#cap-desc').value.trim();
+  if(!precio||precio<=0){err.textContent='Escribe un precio válido.';return}
+  if(!zona){err.textContent='Escribe o elige la zona/colonia.';return}
+  if(desc.length<10){err.textContent='Escribe una descripción (mínimo 10 caracteres).';return}
+  err.textContent='';btn.disabled=true;btn.textContent='Subiendo fotos...';
+  try{
+    const photoUrls=[];
+    for(const f of CAP_FOTOS){
+      const path=Date.now()+'_'+Math.random().toString(36).slice(2)+'_'+f.file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+      const up=await sb.storage.from('captaciones').upload(path,f.file);
+      if(up.error)throw new Error('No se pudo subir una foto: '+up.error.message);
+      const pu=sb.storage.from('captaciones').getPublicUrl(path);
+      photoUrls.push(pu.data.publicUrl);
+    }
+    btn.textContent='Publicando en EasyBroker...';
+    const body={
+      property_type:tipo,operation_type:op,price_amount:precio,description:desc,location_name:zona,
+      title:$('#cap-titulo').value.trim()||undefined,
+      bedrooms:$('#cap-rec').value||undefined,bathrooms:$('#cap-bano').value||undefined,
+      half_bathrooms:$('#cap-mbano').value||undefined,parking_spaces:$('#cap-est').value||undefined,
+      construction_size:$('#cap-m2c').value||undefined,lot_size:$('#cap-m2t').value||undefined,
+      photos:photoUrls
+    };
+    const {data:{session}}=await sb.auth.getSession();
+    const res=await fetch(cfg.url+'/functions/v1/niva-crear-captacion',{
+      method:'POST',
+      headers:{'content-type':'application/json',Authorization:'Bearer '+session.access_token},
+      body:JSON.stringify(body)
+    });
+    const out=await res.json();
+    if(!res.ok)throw new Error(out.error||'No se pudo publicar la captación');
+    toast('Captación publicada ✅');
+    cerrarCaptacion();
+    await cargar();
+  }catch(e){
+    err.textContent=e.message||'Ocurrió un error';
+    btn.disabled=false;btn.textContent='Publicar captación';
+  }
+}
+
 // ── Alta de cliente directo ──────────────────────────────────────────
 function abrirNuevoCliente(){
   const sel=$('#nc-prop');
@@ -1250,6 +1403,16 @@ $('#nc-save').onclick=guardarNuevoCliente;
 $('#modalNuevo').addEventListener('click',e=>{if(e.target.id==='modalNuevo')cerrarNuevoCliente()});
 $('#nc-tel').addEventListener('keydown',e=>{if(e.key==='Enter')guardarNuevoCliente()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modalNuevo').classList.contains('hidden'))cerrarNuevoCliente()});
+$('#cap-cancel').onclick=cerrarCaptacion;
+$('#cap-save').onclick=guardarCaptacion;
+$('#modalCap').addEventListener('click',e=>{if(e.target.id==='modalCap')cerrarCaptacion()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modalCap').classList.contains('hidden'))cerrarCaptacion()});
+$('#cap-zona').onchange=(e)=>{$('#cap-zona-otra').style.display=(e.target.value==='__otra__')?'':'none'};
+$('#cap-fotos').onchange=(e)=>{
+  const files=Array.from(e.target.files||[]).slice(0,20);
+  CAP_FOTOS=files.map(file=>({file,previewUrl:URL.createObjectURL(file)}));
+  pintarFotosCap();
+};
 
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');
