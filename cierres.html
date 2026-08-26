@@ -53,6 +53,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .page-hero h1 { font-size: clamp(28px,5vw,42px); font-weight: 900; line-height: 1.1; letter-spacing: -.02em; margin-bottom: 12px; }
 .page-hero h1 span { color: var(--gold); }
 .page-hero p { font-size: 14.5px; color: rgba(255,255,255,.5); max-width: 560px; line-height: 1.65; }
+.quien{margin-top:14px;display:inline-flex;align-items:center;gap:8px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--gold2)}
 .section-title { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin: 36px 0 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(201,168,76,.2); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .form-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: var(--radius); padding: 28px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -135,6 +136,7 @@ textarea { resize: vertical; min-height: 80px; }
     <div class="badge">🤝 Módulo de Cierres</div>
     <h1>Registra un <span>cierre</span></h1>
     <p>Anota la propiedad, el cliente y la comisión total recibida antes del pago a NIVA. El cierre queda pendiente de aprobación hasta que se revise.</p>
+    <div class="quien" id="ci-quien"></div>
   </div>
 
   <div class="section-title"><span>Nuevo cierre</span></div>
@@ -169,7 +171,6 @@ textarea { resize: vertical; min-height: 80px; }
         <label for="ci-cliente">Cliente</label>
         <input id="ci-cliente" placeholder="Nombre del cliente">
       </div>
-      <div class="form-group" id="ci-asesor-wrap"></div>
       <div class="form-group">
         <label for="ci-op">Tipo de operación</label>
         <select id="ci-op"><option value="sale">Venta</option><option value="rental">Renta</option></select>
@@ -242,9 +243,8 @@ async function cargar(){
 }
 
 function poblarSelects(){
-  const wrap=$('#ci-asesor-wrap');
   const nombre = MI_ASESOR ? MI_ASESOR.n : (USUARIO.charAt(0).toUpperCase()+USUARIO.slice(1));
-  wrap.innerHTML='<label>Registrando como</label><div style="padding:11px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;font-size:14px;font-weight:600">'+esc(nombre)+'</div>';
+  $('#ci-quien').innerHTML='👤 Registrando como <strong>'+esc(nombre)+'</strong>';
 }
 $('#ci-tipo-tog').addEventListener('click',e=>{
   const b=e.target.closest('button[data-v]');
