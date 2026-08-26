@@ -351,10 +351,15 @@ function filaCierreHTML(c){
     +'<div class="cm">'+[esc(nomAsesorCierre(c)),c.compartida?('Compartida · trajiste '+(c.trae==='propiedad'?'la propiedad':'el cliente')):'Directa',fFecha(c.fecha_cierre||c.created_at)].filter(Boolean).join(' · ')+'</div></div>'
     +'<div class="cmonto">'+fmt(c.monto_comision)+'</div></div>';
 }
+function esMiCierre(c){
+  if(MI_ASESOR) return c.advisor_id===MI_ASESOR.id || (!c.advisor_id && (c.advisor_nombre||'').trim().toLowerCase()===MI_ASESOR.n.trim().toLowerCase());
+  return !c.advisor_id && (c.advisor_nombre||'').trim().toLowerCase()===USUARIO.trim().toLowerCase();
+}
 function renderLista(){
   const host=$('#ci-lista');
-  if(!CIERRES.length){host.innerHTML=vacioHTML('Todavía no hay cierres registrados. Usa el formulario de arriba.','🤝');return}
-  const ordenados=CIERRES;
+  const mios = ESADMIN ? CIERRES : CIERRES.filter(esMiCierre);
+  if(!mios.length){host.innerHTML=vacioHTML('Todavía no hay cierres registrados. Usa el formulario de arriba.','🤝');return}
+  const ordenados=mios;
   const ventas=ordenados.filter(c=>c.operation_type!=='rental');
   const rentas=ordenados.filter(c=>c.operation_type==='rental');
   let out='';
