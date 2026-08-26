@@ -169,7 +169,7 @@ textarea { resize: vertical; min-height: 80px; }
         <label for="ci-cliente">Cliente</label>
         <input id="ci-cliente" placeholder="Nombre del cliente">
       </div>
-      <div class="form-group">
+      <div class="form-group" id="ci-asesor-wrap">
         <label for="ci-asesor">Asesor responsable</label>
         <select id="ci-asesor"><option value="">— Selecciona el asesor —</option></select>
       </div>
@@ -219,6 +219,7 @@ function vacioHTML(txt,icon){return '<div class="vacio"><span class="vi">'+(icon
 
 let PROPS=[], CONTACTS=[], ASESORES=[], CIERRES=[], ESADMIN=false, USUARIO='';
 let COMPARTIDA=false, TRAIGO='propiedad', TIPO='confirmado';
+let MI_ASESOR=null;
 
 async function cargar(){
   const uname=(session.user?.email||'').split('@')[0];
@@ -234,8 +235,9 @@ async function cargar(){
   if(p.error) toast('No se pudieron cargar las propiedades: '+(p.error.message||''));
   if(c.error) toast('No se pudieron cargar los clientes: '+(c.error.message||''));
   ASESORES = (a.data||[]).filter(x=>x.status!=='inactive')
-    .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor',pn:Number(x.porcentaje_niva??20)}))
+    .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor',pn:Number(x.porcentaje_niva??20),fn:(x.first_name||'').trim().toLowerCase()}))
     .sort((x,y)=>x.n.localeCompare(y.n));
+  MI_ASESOR = ESADMIN ? null : (ASESORES.find(a=>a.fn===uname.toLowerCase())||null);
   CIERRES = ci.error?[]:(ci.data||[]);
   poblarSelects();
   renderLista();
@@ -243,6 +245,14 @@ async function cargar(){
 }
 
 function poblarSelects(){
+  const wrap=$('#ci-asesor-wrap');
+  if(MI_ASESOR){
+    wrap.innerHTML='<label>Asesor responsable</label><div style="padding:11px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;font-size:14px;font-weight:600">'+esc(MI_ASESOR.n)+'</div>';
+    return;
+  }
+  if(!$('#ci-asesor')){
+    wrap.innerHTML='<label for="ci-asesor">Asesor responsable</label><select id="ci-asesor"><option value="">— Selecciona el asesor —</option></select>';
+  }
   const selA=$('#ci-asesor');
   selA.innerHTML='<option value="">— Selecciona el asesor —</option>'
     +ASESORES.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.n)+'</option>').join('');
@@ -270,7 +280,7 @@ $('#ci-traigo-tog').addEventListener('click',e=>{
 
 async function guardarCierre(){
   const propEl=$('#ci-prop'), cliEl=$('#ci-cliente');
-  const advisorId=$('#ci-asesor').value;
+  const advisorId=MI_ASESOR ? MI_ASESOR.id : ($('#ci-asesor')?$('#ci-asesor').value:'');
   const op=$('#ci-op').value;
   const monto=Number($('#ci-monto').value);
   const notas=$('#ci-notas').value.trim();
