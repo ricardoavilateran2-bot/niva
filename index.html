@@ -409,6 +409,26 @@
       </span>
     </a>
 
+    <!-- ADMINISTRADOR -->
+    <a href="./admin.html" class="card hidden" id="card-admin">
+      <div class="card-icon">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 3l9 4v6c0 6-4 10-9 12-5-2-9-6-9-12V7l9-4z" stroke="#C9A84C" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="M10.5 14l2.5 2.5 5-5" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="card-tag">
+        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
+        Disponible ahora
+      </div>
+      <h2>Administrador</h2>
+      <p>Captaciones del equipo y asignación de asesor a propiedades sin dueño.</p>
+      <span class="card-btn">
+        Entrar al portal
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
   </div>
 
   <footer>
@@ -428,6 +448,9 @@ function showPortal(email){
   $('#login').classList.add('hidden');
   $('#portal').classList.remove('hidden');
   $('#hname').textContent = email || '';
+  const uname=(email||'').split('@')[0];
+  const cardAdmin=$('#card-admin');
+  if(cardAdmin) cardAdmin.classList.toggle('hidden', !(uname==='admin'||uname==='ricardo'));
 }
 function showLogin(){
   $('#portal').classList.add('hidden');

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+(async()=>{
+  try{
+    const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+    const sb = createClient(cfg.url, cfg.anon);
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ window.location.replace('./index.html'); return; }
+    const uname=(session.user?.email||'').split('@')[0];
+    if(uname!=='admin' && uname!=='ricardo'){ window.location.replace('./index.html'); return; }
+    sb.auth.onAuthStateChange((_e, s)=>{ if(!s) window.location.replace('./index.html'); });
+  }catch(e){ console.error('niva-auth-guard', e); window.location.replace('./index.html'); }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Administrador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1B2A4A; --navy2: #0f1e36; --gold: #C9A84C; --gold2: #e8c96a;
+  --white: #fff; --radius: 16px;
+}
+html, body { min-height: 100vh; font-family: 'Inter', sans-serif; background: var(--navy2); color: var(--white); overflow-x: hidden; }
+.hidden{display:none !important}
+.bg-pattern {
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(201,168,76,.10) 0%, transparent 60%),
+              linear-gradient(160deg, #0d1828 0%, #1B2A4A 50%, #0d1828 100%);
+}
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; opacity: .04;
+  background-image: linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.page { position: relative; z-index: 1; min-height: 100vh; max-width: 1040px; margin: 0 auto; padding: 0 20px 80px; }
+header { display: flex; align-items: center; justify-content: space-between; padding: 32px 0 0; gap: 12px; }
+.logo-block { display: flex; align-items: flex-end; gap: 4px; }
+.logo-niva { font-size: 38px; font-weight: 900; letter-spacing: -.02em; color: var(--white); line-height: 1; }
+.logo-dot { width: 9px; height: 9px; background: var(--gold); border-radius: 50%; margin-bottom: 5px; }
+.logo-sub { font-size: 11px; font-weight: 600; letter-spacing: .18em; color: rgba(201,168,76,.7); text-transform: uppercase; margin-left: 2px; padding-bottom: 2px; }
+.back-btn { font-size: .75rem; color: var(--gold); padding: 6px 14px; border: 1px solid rgba(201,168,76,.4); border-radius: 8px; text-decoration: none; white-space: nowrap; transition: all .2s; }
+.back-btn:hover { background: var(--gold); color: var(--navy2); }
+.page-hero { padding: 40px 0 32px; }
+.badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(201,168,76,.12); border: 1px solid rgba(201,168,76,.25); border-radius: 40px; padding: 6px 18px; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--gold); text-transform: uppercase; margin-bottom: 18px; }
+.page-hero h1 { font-size: clamp(28px,5vw,42px); font-weight: 900; line-height: 1.1; letter-spacing: -.02em; margin-bottom: 12px; }
+.page-hero h1 span { color: var(--gold); }
+.page-hero p { font-size: 14.5px; color: rgba(255,255,255,.5); max-width: 620px; line-height: 1.65; }
+.section-title { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin: 36px 0 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(201,168,76,.2); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:8px; }
+@media (max-width:700px){ .stats{grid-template-columns:1fr 1fr} }
+.stat { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: var(--radius); padding: 20px; }
+.stat .sn { font-size: 30px; font-weight: 900; color: var(--gold); line-height:1; }
+.stat .sl { font-size: 12px; color: rgba(255,255,255,.5); margin-top:6px; font-weight:600; }
+.captabla { display: flex; flex-direction: column; gap: 10px; }
+.caprow { display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 12px; padding: 14px 16px; }
+.cap-main { flex: 1; min-width: 0; }
+.cap-t { font-weight: 700; font-size: 14px; color: var(--white); }
+.cap-m { font-size: 12.5px; color: rgba(255,255,255,.5); margin-top: 2px; }
+.cap-badge { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px; white-space: nowrap; background: rgba(201,168,76,.15); color: var(--gold); }
+.sagrupo { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 12px; padding: 16px; margin-bottom: 10px; }
+.sat { font-weight: 700; font-size: 14.5px; margin-bottom: 4px; }
+.sacount { font-size: 11px; font-weight: 800; color: var(--gold); background: rgba(201,168,76,.15); border-radius: 20px; padding: 2px 9px; margin-left: 8px; }
+.sam { font-size: 12.5px; color: rgba(255,255,255,.5); margin-bottom: 12px; }
+.saacc { display: flex; gap: 8px; flex-wrap: wrap; }
+.saacc select { flex: 1; min-width: 160px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 10px 12px; color: var(--white); font-family: 'Inter', sans-serif; font-size: 13.5px; }
+.saacc select option { background: #1B2A4A; color: #fff; }
+.saacc button { background: linear-gradient(135deg, var(--gold), #b8922e); color: var(--navy2); border: 0; border-radius: 10px; padding: 10px 18px; font-size: 13.5px; font-weight: 800; cursor: pointer; }
+.saacc button:disabled { opacity: .45; cursor: default; }
+.repnote { font-size: 12.5px; color: rgba(255,255,255,.45); line-height: 1.6; margin: -6px 0 14px; }
+.vacio { text-align: center; padding: 40px 20px; color: rgba(255,255,255,.4); font-size: 14px; }
+.vacio .vi { display: block; font-size: 34px; margin-bottom: 10px; }
+.toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%,20px); background: var(--navy); color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: all .25s; z-index: 80; }
+.toast.show { opacity: 1; transform: translate(-50%,0); }
+.skel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:16px;margin-bottom:10px}
+.skel .l{height:12px;border-radius:6px;background:rgba(255,255,255,.08);margin-bottom:8px;animation:pulse 1.3s infinite ease-in-out}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+</style>
+</head>
+<body>
+
+<div class="bg-pattern"></div>
+<div class="bg-grid"></div>
+
+<div class="page">
+  <header>
+    <div>
+      <div class="logo-block">
+        <span class="logo-niva">NIVA</span>
+        <div class="logo-dot"></div>
+      </div>
+      <div class="logo-sub">Inmobiliaria · Monterrey</div>
+    </div>
+    <a href="index.html" class="back-btn">← Panel principal</a>
+  </header>
+
+  <div class="page-hero">
+    <div class="badge">🛡️ Portal de Administrador</div>
+    <h1>Visión general de <span>captaciones y asignaciones</span></h1>
+    <p>Aquí ves todas las propiedades captadas por el equipo y puedes asignar asesor a las que el sistema no supo identificar — en cuanto le pones dueño, los leads de esa propiedad (los que ya llegaron y los que lleguen después) caen directo con ese asesor.</p>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat"><div class="sn" id="s-total">–</div><div class="sl">Propiedades activas</div></div>
+    <div class="stat"><div class="sn" id="s-sindueno">–</div><div class="sl">Sin dueño asignado</div></div>
+    <div class="stat"><div class="sn" id="s-sinlead">–</div><div class="sl">Leads sin asesor</div></div>
+  </div>
+
+  <div class="section-title"><span>⚠️ Propiedades sin dueño</span></div>
+  <div class="repnote">Al poner dueño, el sistema le pasa también los leads huérfanos de esa propiedad y los que lleguen después.</div>
+  <div id="sindueno"></div>
+
+  <div class="section-title"><span>📸 Captaciones del equipo</span></div>
+  <div id="captaciones"></div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const $ = (s)=>document.querySelector(s);
+const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+const sb = createClient(cfg.url, cfg.anon);
+const { data:{ session } } = await sb.auth.getSession();
+if(!session){ window.location.replace('./index.html'); }
+
+const esc=(v)=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
+function vacioHTML(m,i){return '<div class="vacio"><span class="vi">'+(i||'📭')+'</span>'+esc(m)+'</div>'}
+
+let PROPS=[], LEADS=[], ASESORES=[], DUENOS={};
+
+function skeleton(host){
+  host.innerHTML='';
+  for(let i=0;i<3;i++){
+    const d=document.createElement('div');d.className='skel';
+    d.innerHTML='<div class="l" style="width:50%"></div><div class="l" style="width:70%"></div><div class="l" style="width:30%;margin-bottom:0"></div>';
+    host.appendChild(d);
+  }
+}
+
+async function cargar(){
+  skeleton($('#sindueno'));
+  skeleton($('#captaciones'));
+  try{
+    const [p,l,a,d] = await Promise.all([
+      sb.from('my_properties').select('*'),
+      sb.from('my_leads').select('*'),
+      sb.from('advisors').select('id,first_name,last_name,niva_code,status'),
+      sb.from('property_advisors').select('property_id,advisor_id')
+    ]);
+    if(p.error) throw new Error(p.error.message||'propiedades');
+    if(l.error) throw new Error(l.error.message||'leads');
+    PROPS = p.data||[];
+    LEADS = l.data||[];
+    ASESORES = (a.data||[]).filter(x=>x.status!=='inactive')
+      .map(x=>({id:x.id, n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor'}))
+      .sort((x,y)=>x.n.localeCompare(y.n));
+    DUENOS={};
+    (d.data||[]).forEach(x=>{DUENOS[x.property_id]=x.advisor_id});
+
+    $('#s-total').textContent = PROPS.length;
+    $('#s-sindueno').textContent = PROPS.filter(x=>!DUENOS[x.id]).length;
+    $('#s-sinlead').textContent = LEADS.filter(x=>!x.advisor_id && !x.archived_at).length;
+
+    renderSinDueno();
+    renderCaptaciones();
+  }catch(e){
+    console.error('[admin] error de carga:', e);
+    $('#sindueno').innerHTML='<div class="vacio">⚠️ No se pudieron cargar los datos'+(e.message?': '+esc(e.message):'')+'.</div>';
+    $('#captaciones').innerHTML='';
+  }
+}
+
+function nomAsesor(id){
+  const a=ASESORES.find(x=>x.id===id);
+  return a?a.n:'Asesor';
+}
+
+function renderSinDueno(){
+  const host=$('#sindueno');
+  host.innerHTML='';
+  const sin=PROPS.filter(p=>!DUENOS[p.id]);
+  if(!sin.length){ host.innerHTML=vacioHTML('Todas las propiedades activas tienen dueño. ✅','🎯'); return; }
+  const leadsDe=(id)=>LEADS.filter(l=>l.eb_public_id && PROPS.find(x=>x.id===id && x.eb_public_id===l.eb_public_id)).length;
+  sin.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||''))).forEach(p=>{
+    const d=document.createElement('div');
+    d.className='sagrupo';
+    const n=leadsDe(p.id);
+    d.innerHTML='<div class="sat">'+esc(p.title||p.eb_public_id||'Sin título')+(n?'<span class="sacount">'+n+(n===1?' lead':' leads')+'</span>':'')+'</div>'
+      +'<div class="sam">'+[esc(p.eb_public_id||''),
+          p.price_amount?fmt(p.price_amount)+(p.operation_type==='rental'?'/mes':''):'',
+          esc(p.property_type||''), esc(p.location_name||'')].filter(Boolean).join(' · ')+'</div>'
+      +'<div class="saacc"><select><option value="">Elige un asesor…</option>'
+      +ASESORES.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.n)+'</option>').join('')
+      +'</select><button disabled>Asignar</button></div>';
+    const sel=d.querySelector('select'), btn=d.querySelector('button');
+    sel.onchange=()=>{btn.disabled=!sel.value};
+    btn.onclick=async()=>{
+      if(!sel.value)return;
+      btn.disabled=true;btn.textContent='Asignando...';
+      const r=await sb.rpc('asignar_dueno_propiedad',{p_property_id:p.id,p_advisor_id:sel.value});
+      if(r.error){btn.disabled=false;btn.textContent='Asignar';toast('No se pudo asignar');return}
+      toast('Propiedad asignada a '+((ASESORES.find(a=>a.id===sel.value)||{}).n||'asesor'));
+      await cargar();
+    };
+    host.appendChild(d);
+  });
+}
+
+function renderCaptaciones(){
+  const host=$('#captaciones');
+  host.innerHTML='';
+  const capturadas=PROPS.filter(p=>p.captured_by_advisor_id)
+    .slice().sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  if(!capturadas.length){ host.innerHTML=vacioHTML('Todavía no hay propiedades captadas desde el módulo de Captaciones.','📸'); return; }
+  const wrap=document.createElement('div');
+  wrap.className='captabla';
+  capturadas.forEach(p=>{
+    const row=document.createElement('div');
+    row.className='caprow';
+    row.innerHTML='<div class="cap-main"><div class="cap-t">'+esc(p.title||p.eb_public_id||'Sin título')+'</div>'
+      +'<div class="cap-m">'+[esc(nomAsesor(p.captured_by_advisor_id)),
+          p.price_amount?fmt(p.price_amount)+(p.operation_type==='rental'?'/mes':''):'',
+          esc(p.location_name||''),
+          p.created_at?new Date(p.created_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}):''
+        ].filter(Boolean).join(' · ')+'</div></div>'
+      +'<div class="cap-badge">'+esc(p.eb_public_id||'—')+'</div>';
+    wrap.appendChild(row);
+  });
+  host.appendChild(wrap);
+}
+
+cargar();
+</script>
+
+</body>
+</html>
