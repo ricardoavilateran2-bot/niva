@@ -81,6 +81,21 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .skel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:16px;margin-bottom:10px}
 .skel .l{height:12px;border-radius:6px;background:rgba(255,255,255,.08);margin-bottom:8px;animation:pulse 1.3s infinite ease-in-out}
 @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+.repwrap{display:flex;flex-direction:column;gap:14px}
+.repsec{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:var(--radius);padding:16px;overflow-x:auto}
+.reph{font-size:11.5px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:.07em;margin-bottom:10px;text-transform:uppercase}
+.repgrid{display:flex;flex-wrap:wrap;gap:8px}
+.repbtn{padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);font-size:13.5px;font-weight:700;color:var(--white);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+.repbtn:hover{border-color:rgba(201,168,76,.6)}
+.repbtn.on{background:linear-gradient(135deg,var(--gold),#b8922e);color:var(--navy2);border-color:transparent}
+.reptable{width:100%;border-collapse:collapse;font-size:13.5px;min-width:520px}
+.reptable th{text-align:left;padding:8px 10px;border-bottom:2px solid rgba(255,255,255,.12);font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.reptable td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top;color:rgba(255,255,255,.85)}
+.reptable tr:last-child td{border-bottom:0}
+.reptable td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.reptable th.num{text-align:right}
+.repbar{height:8px;background:var(--gold);border-radius:99px;min-width:2px}
+.repnote{font-size:12.5px;color:rgba(255,255,255,.45);margin-top:8px}
 </style>
 </head>
 <body>
@@ -118,6 +133,9 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 
   <div class="section-title"><span>📸 Captaciones del equipo</span></div>
   <div id="captaciones"></div>
+
+  <div class="section-title"><span>📊 Reportes del CRM</span></div>
+  <div id="reportes"></div>
 
 </div>
 
@@ -239,7 +257,300 @@ function renderCaptaciones(){
   host.appendChild(wrap);
 }
 
+// ===== Reportes del CRM (misma lógica que en el CRM, sección Reportes) =====
+let REP=null;
+async function cargarDatosRep(){
+  if(REP)return REP;
+  const [l,c,p,a,i,pc,pv]=await Promise.all([
+    sb.from('leads').select('*'),
+    sb.from('contacts').select('*'),
+    sb.from('properties').select('id,eb_public_id,title,property_type,operation_type,price_amount,location_name,eb_status,bedrooms,bathrooms,construction_size,eb_created_at'),
+    sb.from('advisors').select('*'),
+    sb.from('lead_interactions').select('lead_id,type,actor,created_at'),
+    sb.from('portal_costos').select('*'),
+    sb.from('portal_volumen').select('*')
+  ]);
+  for(const r of [l,c,p,a,i]) if(r.error) throw new Error(r.error.message);
+  const cMap={},pMap={},aMap={};
+  (c.data||[]).forEach(x=>cMap[x.id]=x);
+  (p.data||[]).forEach(x=>pMap[x.id]=x);
+  (a.data||[]).forEach(x=>aMap[x.id]=x);
+  REP={L:l.data||[],C:c.data||[],P:p.data||[],A:a.data||[],I:i.data||[],
+       COST:(pc&&pc.data)||[],VOL:(pv&&pv.data)||[],cMap,pMap,aMap};
+  return REP;
+}
+const repNomAsesor=(id)=>{const a=id?REP.aMap[id]:null;if(!a)return 'Sin asignar';return (((a.first_name||'')+' '+(a.last_name||'')).trim())||a.niva_code||'Asesor'};
+const fchLead=(l)=>l.happened_at||l.created_at;
+const mesDe=(d)=>{const t=new Date(d);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')};
+const pct=(n,d)=>d?Math.round(n*100/d)+'%':'—';
+const FTE={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Directo',manual_asesor:'Directo'};
+function descargarCSV(nombre,cols,filas){
+  const escv=(v)=>{v=(v==null)?'':String(v).replace(/\r?\n/g,' ');return /[",]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const txt='﻿'+cols.join(',')+'\n'+filas.map(f=>f.map(escv).join(',')).join('\n');
+  const b=new Blob([txt],{type:'text/csv;charset=utf-8'});
+  const el=document.createElement('a');el.href=URL.createObjectURL(b);
+  el.download='NIVA_'+nombre+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(el);el.click();el.remove();
+  toast('Descargado: '+el.download);
+}
+function tablaHTML(titulo,heads,filas,nota){
+  return '<div class="repsec"><div class="reph">'+titulo+'</div><table class="reptable"><thead><tr>'
+    +heads.map(h=>'<th'+(h[0]==='#'?' class="num"':'')+'>'+esc(h.replace(/^#/,''))+'</th>').join('')
+    +'</tr></thead><tbody>'
+    +filas.map(f=>'<tr>'+f.map((v,i)=>'<td'+(heads[i]&&heads[i][0]==='#'?' class="num"':'')+'>'+v+'</td>').join('')+'</tr>').join('')
+    +'</tbody></table>'+(nota?'<div class="repnote">'+nota+'</div>':'')+'</div>';
+}
+function fFecha(d){return d?new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'}):''}
+
+function expLeads(){
+  descargarCSV('leads',
+    ['fecha','nombre','telefono','email','tipo_contacto','estado','fuente','propiedad','folio','precio','operacion','zona','asesor','archivado','mensaje'],
+    REP.L.map(l=>{const c=REP.cMap[l.contact_id]||{},p=l.property_id?REP.pMap[l.property_id]:null;
+      return [fchLead(l)?String(fchLead(l)).slice(0,16).replace('T',' '):'',c.full_name||'',c.phone_normalized||'',c.email_normalized||'',c.contact_type||'',l.status,FTE[l.source]||l.source,p?p.title:'',p?p.eb_public_id:'',p?p.price_amount:'',p?p.operation_type:'',p?p.location_name:'',repNomAsesor(l.advisor_id),l.archived_at?'SI':'NO',(l.first_message||'').slice(0,300)];}));
+}
+function expClientes(){
+  const porC={};REP.L.forEach(l=>{(porC[l.contact_id]=porC[l.contact_id]||[]).push(l)});
+  descargarCSV('clientes',
+    ['nombre','telefono','email','tipo','num_leads','propiedades_distintas','primer_contacto','ultimo_contacto'],
+    REP.C.map(c=>{const ls=porC[c.id]||[];const props=new Set(ls.filter(x=>x.property_id).map(x=>x.property_id));
+      return [c.full_name||'',c.phone_normalized||'',c.email_normalized||'',c.contact_type||'',ls.length,props.size,String(c.first_seen_at||'').slice(0,10),String(c.last_seen_at||'').slice(0,10)];}));
+}
+function expProps(){
+  const porP={};REP.L.forEach(l=>{if(l.property_id)porP[l.property_id]=(porP[l.property_id]||0)+1});
+  descargarCSV('propiedades',
+    ['folio','titulo','tipo','operacion','precio','zona','estado','recamaras','banos','m2','leads','publicada_desde'],
+    REP.P.map(p=>[p.eb_public_id||'',p.title||'',p.property_type||'',p.operation_type||'',p.price_amount||'',p.location_name||'',p.eb_status||'',p.bedrooms||'',p.bathrooms||'',p.construction_size||'',porP[p.id]||0,String(p.eb_created_at||'').slice(0,10)]));
+}
+function expAsesores(){
+  const porA={};REP.L.forEach(l=>{const k=l.advisor_id||'—';(porA[k]=porA[k]||[]).push(l)});
+  descargarCSV('asesores',
+    ['asesor','codigo','telefono','email_easybroker','estatus','leads_asignados','atendidos','capturas_directas'],
+    REP.A.map(a=>{const ls=porA[a.id]||[];
+      return [repNomAsesor(a.id),a.niva_code||'',a.phone||'',a.easybroker_agent_email||'',a.status||'',ls.length,ls.filter(x=>x.status==='attended').length,ls.filter(x=>x.source==='manual_asesor').length];}));
+}
+function expInter(){
+  const cDe=(id)=>{const l=REP.L.find(x=>x.id===id);return l?((REP.cMap[l.contact_id]||{}).full_name||''):''};
+  descargarCSV('actividad',
+    ['fecha','cliente','accion','quien'],
+    REP.I.map(i=>[String(i.created_at||'').slice(0,16).replace('T',' '),cDe(i.lead_id),i.type,i.actor||'']));
+}
+
+function repResumen(){
+  const L=REP.L, act=L.filter(x=>!x.archived_at);
+  const st=(s)=>act.filter(x=>x.status===s).length;
+  const tipo=(t)=>act.filter(x=>((REP.cMap[x.contact_id]||{}).contact_type||'unidentified')===t).length;
+  const src=(s)=>act.filter(x=>(FTE[x.source]||x.source)===s).length;
+  const hoy=new Date(), mesAct=mesDe(hoy);
+  const prev=new Date(hoy.getFullYear(),hoy.getMonth()-1,15), mesPrev=mesDe(prev);
+  const nAct=L.filter(l=>mesDe(fchLead(l))===mesAct).length, nPrev=L.filter(l=>mesDe(fchLead(l))===mesPrev).length;
+  const delta=nPrev?Math.round((nAct-nPrev)*100/nPrev):null;
+  const wa=REP.I.filter(i=>i.type==='whatsapp_click').length, tel=REP.I.filter(i=>i.type==='call_click').length;
+  const pub=REP.P.filter(p=>p.eb_status==='published').length;
+  const fila=(k,v)=>['<strong>'+k+'</strong>',v];
+  return tablaHTML('📈 Resumen general de la inmobiliaria',['Indicador','#Valor'],[
+    fila('Leads totales (histórico)',L.length),
+    fila('Leads activos',act.length),
+    fila('Leads archivados',L.length-act.length),
+    fila('· Nuevos sin atender',st('new')+' ('+pct(st('new'),act.length)+')'),
+    fila('· Activos',st('contacted')+' ('+pct(st('contacted'),act.length)+')'),
+    fila('· Tibios',st('attended')+' ('+pct(st('attended'),act.length)+')'),
+    fila('· Cancelados',st('cancelled')+' ('+pct(st('cancelled'),act.length)+')'),
+    fila('Clientes',tipo('client')),
+    fila('Asesores externos (colegas)',tipo('agent')),
+    fila('Sin identificar',tipo('unidentified')),
+    fila('Leads de EasyBroker',src('EasyBroker')),
+    fila('Leads de Inmuebles24',src('Inmuebles24')),
+    fila('Leads directos (capturados)',src('Directo')),
+    fila('Leads este mes',nAct+(delta==null?'':(' ('+(delta>=0?'+':'')+delta+'% vs mes anterior)'))),
+    fila('Leads el mes pasado',nPrev),
+    fila('Propiedades publicadas',pub+' de '+REP.P.length),
+    fila('Clics de WhatsApp a clientes',wa),
+    fila('Clics de llamada',tel),
+  ],'Los porcentajes son sobre los leads activos. "Leads este mes" incluye archivados para no perder historia.');
+}
+function repEmbudo(){
+  const act=REP.L.filter(x=>!x.archived_at), t=act.length;
+  const cont=act.filter(x=>x.status==='contacted'||x.status==='attended').length;
+  const aten=act.filter(x=>x.status==='attended').length;
+  const canc=act.filter(x=>x.status==='cancelled').length;
+  const bar=(n)=>'<div class="repbar" style="width:'+(t?Math.max(2,Math.round(n*100/t)):0)+'%"></div>';
+  return tablaHTML('🔻 Embudo de conversión',['Etapa','#Leads','#% del total','Avance'],[
+    ['Leads recibidos',t,'100%',bar(t)],
+    ['Activos o más',cont,pct(cont,t),bar(cont)],
+    ['Tibios',aten,pct(aten,t),bar(aten)],
+    ['Cancelados',canc,pct(canc,t),bar(canc)],
+  ],'De los activos, el '+pct(aten,cont)+' llegó a tibio. El objetivo: que "Nuevos sin atender" tienda a cero.');
+}
+function repAsesor(){
+  const g={};REP.L.filter(x=>!x.archived_at).forEach(l=>{const k=l.advisor_id||'—';(g[k]=g[k]||[]).push(l)});
+  const filas=Object.entries(g).map(([k,ls])=>({n:k==='—'?'Sin asignar':repNomAsesor(k),ls}))
+    .sort((a,b)=>b.ls.length-a.ls.length)
+    .map(r=>[esc(r.n),r.ls.length,
+      r.ls.filter(x=>x.status==='new').length,
+      r.ls.filter(x=>x.status==='contacted').length,
+      r.ls.filter(x=>x.status==='attended').length,
+      pct(r.ls.filter(x=>x.status==='attended').length,r.ls.length),
+      r.ls.filter(x=>x.source==='manual_asesor').length]);
+  return tablaHTML('👔 Desempeño por asesor',['Asesor','#Leads','#Nuevos','#Activos','#Tibios','#% atención','#Capturas directas'],filas,
+    '"Sin asignar" son los leads de portales que aún no tienen asesor. Asignarlos es la palanca más rápida para subir la atención.');
+}
+function repProp(){
+  const g={};let sinProp=0;
+  REP.L.filter(x=>!x.archived_at).forEach(l=>{if(!l.property_id){sinProp++;return}(g[l.property_id]=g[l.property_id]||[]).push(l)});
+  const filas=Object.entries(g).map(([id,ls])=>({p:REP.pMap[id],ls})).filter(r=>r.p)
+    .sort((a,b)=>b.ls.length-a.ls.length).slice(0,20)
+    .map(r=>[esc(r.p.title||''),esc(r.p.eb_public_id||''),r.ls.length,
+      r.ls.filter(x=>x.status==='new').length,
+      fFecha(r.ls.map(fchLead).sort().pop())]);
+  return tablaHTML('🏠 Demanda por propiedad (top 20)',['Propiedad','Folio','#Leads','#Nuevos','Último lead'],filas,
+    sinProp+' leads activos no tienen propiedad ligada. Las propiedades con más leads y "nuevos" pendientes son dinero sobre la mesa.');
+}
+function repMes(){
+  const hoy=new Date(), meses=[];
+  for(let i=5;i>=0;i--){const d=new Date(hoy.getFullYear(),hoy.getMonth()-i,15);meses.push(mesDe(d));}
+  const nombre=(k)=>{const [y,m]=k.split('-');return new Date(y,m-1,15).toLocaleDateString('es-MX',{month:'short',year:'2-digit'})};
+  const filas=meses.map(k=>{const ls=REP.L.filter(l=>mesDe(fchLead(l))===k);
+    const de=(f)=>ls.filter(x=>(FTE[x.source]||x.source)===f).length;
+    return [nombre(k),de('EasyBroker'),de('Inmuebles24'),de('Directo'),'<strong>'+ls.length+'</strong>'];});
+  return tablaHTML('📅 Leads por mes y fuente (últimos 6 meses)',['Mes','#EasyBroker','#Inmuebles24','#Directos','#Total'],filas,
+    'Si un mes cae, revisa la renovación de anuncios de ese portal — la posición en "más recientes" es lo que trae leads.');
+}
+function repFrias(){
+  const con=new Set(REP.L.filter(l=>l.property_id).map(l=>l.property_id));
+  const dias=(p)=>p.eb_created_at?Math.round((Date.now()-new Date(p.eb_created_at))/86400000):null;
+  const frias=REP.P.filter(p=>p.eb_status==='published'&&!con.has(p.id))
+    .sort((a,b)=>(dias(b)||0)-(dias(a)||0));
+  const filas=frias.slice(0,25).map(p=>[esc(p.title||''),esc(p.eb_public_id||''),esc(p.property_type||''),
+    p.price_amount?fmt(p.price_amount)+(p.operation_type==='rental'?' /mes':''):'',dias(p)!=null?dias(p)+' días':'']);
+  return tablaHTML('🧊 Propiedades publicadas sin ningún lead ('+frias.length+')',['Propiedad','Folio','Tipo','Precio','Publicada hace'],filas,
+    'Candidatas a: mejorar fotos y título, ajustar precio, o subir de plan en el portal. Si llevan meses frías, esa exclusividad te está costando.');
+}
+
+const RANGOS_R=[[0,15000,'Menos de $15,000'],[15000,25000,'$15,000 – $25,000'],[25000,40000,'$25,000 – $40,000'],[40000,60000,'$40,000 – $60,000'],[60000,1e12,'Más de $60,000']];
+const RANGOS_V=[[0,3e6,'Menos de $3M'],[3e6,6e6,'$3M – $6M'],[6e6,1e7,'$6M – $10M'],[1e7,2e7,'$10M – $20M'],[2e7,1e12,'Más de $20M']];
+function repZonas(){
+  const act=REP.L.filter(x=>!x.archived_at&&x.property_id);
+  const zl={},zp={};
+  REP.P.filter(p=>p.eb_status==='published').forEach(p=>{const z=(p.location_name||'Sin zona').split(',')[0].trim();zp[z]=(zp[z]||0)+1});
+  act.forEach(l=>{const p=REP.pMap[l.property_id];if(!p)return;const z=(p.location_name||'Sin zona').split(',')[0].trim();zl[z]=(zl[z]||0)+1});
+  const zonas=Object.keys(zl).map(z=>({z,leads:zl[z],props:zp[z]||0}))
+    .sort((a,b)=>b.leads-a.leads).slice(0,15);
+  const maxZ=zonas.length?zonas[0].leads:1;
+  const fz=zonas.map(r=>[esc(r.z),r.props||'—',r.leads,
+    r.props?(r.leads/r.props).toFixed(1):'—',
+    '<div class="repbar" style="width:'+Math.max(4,Math.round(r.leads*100/maxZ))+'%"></div>']);
+  function tablaRango(op,rangos,etiqueta){
+    const filas=rangos.map(([a,b,nom])=>{
+      const props=REP.P.filter(p=>p.eb_status==='published'&&p.operation_type===op&&p.price_amount>=a&&p.price_amount<b);
+      const ids=new Set(props.map(p=>p.id));
+      const leads=act.filter(l=>ids.has(l.property_id)).length;
+      return {nom,np:props.length,leads};
+    });
+    const mx=Math.max(1,...filas.map(f=>f.leads));
+    return tablaHTML('💰 Demanda por rango de precio · '+etiqueta,
+      ['Rango','#Propiedades','#Leads','#Leads por propiedad','Demanda'],
+      filas.map(f=>[f.nom,f.np||'—',f.leads,f.np?(f.leads/f.np).toFixed(1):'—',
+        '<div class="repbar" style="width:'+Math.max(3,Math.round(f.leads*100/mx))+'%"></div>']),null);
+  }
+  return tablaHTML('📍 Zonas con más demanda (top 15)',['Zona','#En inventario','#Leads','#Leads x propiedad','Demanda'],fz,
+    'La columna clave es <b>Leads por propiedad</b>: una zona con 1 propiedad y 8 leads pide más inventario ahí; una con 6 propiedades y 1 lead te está costando dinero.')
+    +tablaRango('rental',RANGOS_R,'RENTA')
+    +tablaRango('sale',RANGOS_V,'VENTA');
+}
+function repDiaHora(){
+  const act=REP.L.filter(x=>!x.archived_at);
+  const DIAS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const pd=[0,0,0,0,0,0,0];
+  act.forEach(l=>{const f=l.happened_at||l.created_at;if(f)pd[new Date(f).getDay()]++});
+  const mxd=Math.max(1,...pd);
+  const orden=[1,2,3,4,5,6,0];
+  const fd=orden.map(i=>[DIAS[i],pd[i],pct(pd[i],act.length),
+    '<div class="repbar" style="width:'+Math.max(3,Math.round(pd[i]*100/mxd))+'%"></div>']);
+  const reales=act.filter(l=>{const f=l.happened_at;if(!f)return false;
+    const d=new Date(f);return !(d.getHours()===12&&d.getMinutes()===0&&d.getSeconds()===0)});
+  const BLOQ=[[6,9,'Madrugada y temprano (6–9h)'],[9,12,'Mañana (9–12h)'],[12,15,'Mediodía (12–15h)'],
+              [15,18,'Tarde (15–18h)'],[18,21,'Noche (18–21h)'],[21,30,'Noche tarde (21–6h)']];
+  const fh=BLOQ.map(([a,b,nom])=>{
+    const n=reales.filter(l=>{const h=new Date(l.happened_at).getHours();return b>24?(h>=a||h<6):(h>=a&&h<b)}).length;
+    return [nom,n,pct(n,reales.length)];
+  });
+  return tablaHTML('📆 Leads por día de la semana',['Día','#Leads','#% del total','Volumen'],fd,
+    'La fecha sí es real en los '+act.length+' leads. Si el fin de semana pesa, ahí necesitas guardia.')
+    +tablaHTML('🕐 Leads por hora del día ('+reales.length+' con hora real)',['Franja','#Leads','#%'],fh,
+      reales.length<30
+        ? '⚠️ Todavía hay pocos datos: '+ (act.length-reales.length) +' leads entraron por importación masiva y traen hora ficticia (12:00), así que los excluí. Este reporte se vuelve confiable conforme entren leads nuevos en vivo.'
+        : 'Las franjas con más entrada son donde no puedes dejar el WhatsApp sin contestar.');
+}
+
+function repCosto(){
+  const PORTAL={easybroker:'EasyBroker',inmuebles24:'Inmuebles24'};
+  const SRC={easybroker:'easybroker',inmuebles24:'inmuebles24_email'};
+  if(!REP.COST.length)return tablaHTML('💸 Costo por lead',['Aviso'],[['Todavía no hay costos de portal cargados.']],null);
+  const meses=[...new Set(REP.VOL.map(v=>v.mes))].sort().reverse().slice(0,4);
+  const mezcla={};
+  Object.keys(SRC).forEach(k=>{
+    const ls=REP.L.filter(l=>l.source===SRC[k]);
+    const cli=ls.filter(l=>((REP.cMap[l.contact_id]||{}).contact_type)==='client').length;
+    mezcla[k]={n:ls.length,cli,pctCli:ls.length?cli/ls.length:0};
+  });
+  const filas=[];
+  REP.COST.forEach(c=>{
+    const vols=REP.VOL.filter(v=>v.portal===c.portal&&meses.indexOf(v.mes)>=0);
+    const prom=vols.length?Math.round(vols.reduce((s,v)=>s+v.consultas,0)/vols.length):0;
+    const m=mezcla[c.portal]||{pctCli:0,n:0};
+    const clientes=Math.round(prom*m.pctCli);
+    filas.push([
+      '<strong>'+(PORTAL[c.portal]||esc(c.portal))+'</strong><br><small style="color:rgba(255,255,255,.45)">'+esc(c.nota||'')+'</small>',
+      fmt(c.monto_mensual)+'/mes',
+      prom||'—',
+      prom?'<strong>'+fmt(Math.round(c.monto_mensual/prom))+'</strong>':'—',
+      m.n?Math.round(m.pctCli*100)+'%':'—',
+      clientes||'—',
+      clientes?'<strong>'+fmt(Math.round(c.monto_mensual/clientes))+'</strong>':'—'
+    ]);
+  });
+  const totalMes=REP.COST.reduce((s,c)=>s+Number(c.monto_mensual),0);
+  const det=meses.map(mes=>{
+    const f=[mes];
+    REP.COST.forEach(c=>{
+      const v=REP.VOL.find(x=>x.portal===c.portal&&x.mes===mes);
+      f.push(v?v.consultas+' · '+fmt(Math.round(c.monto_mensual/v.consultas)):'—');
+    });
+    return f;
+  });
+  return tablaHTML('💸 Costo por lead por portal',
+    ['Portal','#Inversión','#Consultas/mes','#Costo x consulta','#% clientes','#Clientes/mes','#Costo x cliente'],filas,
+    'Inviertes <b>'+fmt(totalMes)+' al mes</b> en portales. La columna que manda es <b>Costo por cliente</b>: las consultas de colegas no te traen comprador, te traen comisión compartida.')
+   +tablaHTML('📆 Consultas y costo, mes a mes',['Mes'].concat(REP.COST.map(c=>'#'+(PORTAL[c.portal]||c.portal))),det,
+    'Si las consultas de un portal bajan mes con mes y el pago es fijo, tu costo por lead sube solo. Ahí es cuando conviene renegociar o mover la inversión.');
+}
+
+async function renderReportes(){
+  const host=$('#reportes');
+  host.innerHTML='<div class="vacio"><span class="vi">⏳</span>Cargando datos para reportes...</div>';
+  try{await cargarDatosRep();}catch(e){host.innerHTML=vacioHTML('No se pudieron cargar los datos: '+esc(e.message),'⚠️');return;}
+  const b=(id,txt)=>'<button class="repbtn" id="'+id+'">'+txt+'</button>';
+  host.innerHTML='<div class="repwrap">'
+    +'<div class="repsec"><div class="reph">⬇️ Descargar datos (CSV — se abre en Excel)</div><div class="repgrid">'
+    +b('exp-leads','📋 Leads completos')+b('exp-clientes','👤 Clientes')+b('exp-props','🏠 Propiedades')+b('exp-asesores','👔 Asesores')+b('exp-inter','⚡ Actividad')
+    +'</div></div>'
+    +'<div class="repsec"><div class="reph">📊 Reportes en pantalla</div><div class="repgrid">'
+    +b('rep-resumen','📈 Resumen general')+b('rep-embudo','🔻 Embudo de conversión')+b('rep-asesor','👔 Por asesor')+b('rep-prop','🏠 Por propiedad')+b('rep-zonas','📍 Zonas y precios')+b('rep-diahora','📆 Día y hora')+b('rep-costo','💸 Costo por lead')+b('rep-mes','📅 Por mes y fuente')+b('rep-frias','🧊 Sin demanda')
+    +'</div></div><div id="repout"></div></div>';
+  const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter };
+  Object.entries(acc).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=fn;});
+  const reps={ 'rep-resumen':repResumen,'rep-embudo':repEmbudo,'rep-asesor':repAsesor,'rep-prop':repProp,'rep-zonas':repZonas,'rep-diahora':repDiaHora,'rep-costo':repCosto,'rep-mes':repMes,'rep-frias':repFrias };
+  Object.entries(reps).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=()=>{
+    document.querySelectorAll('.repgrid .repbtn').forEach(x=>{if(reps[x.id])x.classList.remove('on')});
+    el.classList.add('on');
+    document.getElementById('repout').innerHTML=fn();
+  };});
+  const primero=document.getElementById('rep-resumen');
+  if(primero){primero.classList.add('on');document.getElementById('repout').innerHTML=repResumen();}
+}
+
 cargar();
+renderReportes();
 </script>
 
 </body>
