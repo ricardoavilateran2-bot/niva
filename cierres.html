@@ -206,6 +206,11 @@ textarea { resize: vertical; min-height: 80px; }
 <div class="toast" id="toast"></div>
 
 <script type="module">
+async function esperarAuthListo(){
+  let tries=0;
+  while(!window.__nivaSb && tries<100){ await new Promise(r=>setTimeout(r,50)); tries++; }
+}
+await esperarAuthListo();
 const sb = window.__nivaSb;
 const session = window.__nivaSession;
 const $=s=>document.querySelector(s);
