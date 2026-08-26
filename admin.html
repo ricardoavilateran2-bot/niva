@@ -146,6 +146,30 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .hbars .hb-top b{color:var(--white)}
 .hbars .hb-track{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
 .hbars .hb-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+
+.applayout{position:relative;z-index:1;display:flex;min-height:100vh}
+.asidebar{width:230px;flex-shrink:0;padding:26px 16px;position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column}
+.alogo{padding:0 6px 22px}
+.anav{display:flex;flex-direction:column;gap:4px;flex:1}
+.anav-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;color:rgba(255,255,255,.6);font-size:13.5px;font-weight:700;cursor:pointer;background:none;border:0;text-align:left;font-family:'Inter',sans-serif;width:100%}
+.anav-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.anav-item.on{background:rgba(201,168,76,.15);color:var(--gold)}
+.back-btn2{font-size:.72rem;color:rgba(255,255,255,.4);padding:10px 13px;text-decoration:none;white-space:nowrap;margin-top:10px}
+.back-btn2:hover{color:var(--gold)}
+.acontent{flex:1;min-width:0;padding:32px 28px 80px;max-width:1040px}
+.asec{display:none}
+.asec.on{display:block}
+@media (max-width:820px){
+  .applayout{flex-direction:column}
+  .asidebar{width:100%;height:auto;position:relative;border-right:0;border-bottom:1px solid rgba(255,255,255,.08);padding:16px}
+  .anav{flex-direction:row;overflow-x:auto;gap:6px}
+  .anav-item{white-space:nowrap;width:auto}
+  .acontent{padding:24px 16px 60px}
+}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.sec-head h2{font-size:20px;font-weight:900;letter-spacing:-.01em}
+.vertodo-btn{padding:8px 14px;border-radius:9px;border:1px solid rgba(201,168,76,.4);background:rgba(201,168,76,.08);color:var(--gold);font-size:12.5px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap}
+.vertodo-btn:hover{background:rgba(201,168,76,.18)}
 </style>
 </head>
 <body>
@@ -153,61 +177,63 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 <div class="bg-pattern"></div>
 <div class="bg-grid"></div>
 
-<div class="page">
-  <header>
-    <div>
+<div class="applayout">
+  <aside class="asidebar">
+    <div class="alogo">
       <div class="logo-block">
-        <span class="logo-niva">NIVA</span>
+        <span class="logo-niva" style="font-size:26px">NIVA</span>
         <div class="logo-dot"></div>
       </div>
-      <div class="logo-sub">Inmobiliaria · Monterrey</div>
+      <div class="logo-sub">Administrador</div>
     </div>
-    <a href="index.html" class="back-btn">← Panel principal</a>
-  </header>
+    <nav class="anav" id="anav">
+      <button class="anav-item on" data-sec="inicio">🏁 Panel de inicio</button>
+      <button class="anav-item" data-sec="sindueno">⚠️ Sin dueño</button>
+      <button class="anav-item" data-sec="propasesor">🏠 Propiedades y asesores</button>
+      <button class="anav-item" data-sec="reportes">📊 Reportes</button>
+    </nav>
+    <a href="index.html" class="back-btn2">← Panel principal</a>
+  </aside>
 
-  <div class="page-hero">
-    <div class="badge">🛡️ Portal de Administrador</div>
-    <h1>Visión general de <span>captaciones y asignaciones</span></h1>
-    <p>Aquí ves todas las propiedades captadas por el equipo y puedes asignar asesor a las que el sistema no supo identificar — en cuanto le pones dueño, los leads de esa propiedad (los que ya llegaron y los que lleguen después) caen directo con ese asesor.</p>
-  </div>
+  <main class="acontent">
 
-  <div class="section-title"><span>🏁 Panel de inicio</span></div>
-  <div class="dash-grid" id="dash-kpis"></div>
-  <div class="chart-grid" id="dash-charts"></div>
+    <section class="asec on" id="sec-inicio">
+      <div class="page-hero" style="padding-top:4px">
+        <div class="badge">🛡️ Portal de Administrador</div>
+        <h1>Visión general de <span>la inmobiliaria</span></h1>
+        <p>Aquí ves cómo va NIVA día a día: leads, captaciones y la asignación de propiedades a tus asesores.</p>
+      </div>
+      <div class="dash-grid" id="dash-kpis"></div>
+      <div class="chart-grid" id="dash-charts"></div>
+      <div class="stats" id="stats">
+        <div class="stat"><div class="sn" id="s-total">–</div><div class="sl">Propiedades activas</div></div>
+        <div class="stat"><div class="sn" id="s-sindueno">–</div><div class="sl">Sin dueño asignado</div></div>
+        <div class="stat"><div class="sn" id="s-sinlead">–</div><div class="sl">Leads sin asesor</div></div>
+      </div>
+    </section>
 
-  <div class="stats" id="stats">
-    <div class="stat"><div class="sn" id="s-total">–</div><div class="sl">Propiedades activas</div></div>
-    <div class="stat"><div class="sn" id="s-sindueno">–</div><div class="sl">Sin dueño asignado</div></div>
-    <div class="stat"><div class="sn" id="s-sinlead">–</div><div class="sl">Leads sin asesor</div></div>
-  </div>
-
-  <details class="secdet" open>
-    <summary><span>⚠️ Propiedades sin dueño</span><span class="car">▶</span></summary>
-    <div class="secbody">
-      <div class="repnote" style="margin-top:-4px">Al poner dueño, el sistema le pasa también los leads huérfanos de esa propiedad y los que lleguen después.</div>
+    <section class="asec" id="sec-sindueno">
+      <div class="sec-head"><h2>⚠️ Propiedades sin dueño</h2><button class="vertodo-btn" id="sd-vertodo">Ver todo</button></div>
+      <div class="repnote" style="margin-top:-8px">Al poner dueño, el sistema le pasa también los leads huérfanos de esa propiedad y los que lleguen después.</div>
       <div id="sindueno"></div>
-    </div>
-  </details>
+    </section>
 
-  <details class="secdet" open>
-    <summary><span>🏠 Propiedades y asesores</span><span class="car">▶</span></summary>
-    <div class="secbody">
+    <section class="asec" id="sec-propasesor">
+      <div class="sec-head"><h2>🏠 Propiedades y asesores</h2><button class="vertodo-btn" id="pa-vertodo">Ver todo</button></div>
       <div class="filtros2" id="prop-filtros">
         <button class="on" data-f="todas">Todas</button>
         <button data-f="capturadas">📸 Capturadas por el equipo</button>
       </div>
       <input type="text" class="searchbox" id="prop-buscar" placeholder="Buscar por propiedad, folio o asesor...">
       <div id="propasesor"></div>
-    </div>
-  </details>
+    </section>
 
-  <details class="secdet">
-    <summary><span>📊 Reportes del CRM</span><span class="car">▶</span></summary>
-    <div class="secbody">
+    <section class="asec" id="sec-reportes">
+      <div class="sec-head"><h2>📊 Reportes del CRM</h2></div>
       <div id="reportes"></div>
-    </div>
-  </details>
+    </section>
 
+  </main>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -352,13 +378,22 @@ function nomAsesor(id){
   return a?a.n:'Asesor';
 }
 
+let SIN_EXPANDED=false;
+const SIN_LIMITE=5;
 function renderSinDueno(){
   const host=$('#sindueno');
+  const btn=$('#sd-vertodo');
   host.innerHTML='';
-  const sin=PROPS.filter(p=>!DUENOS[p.id]);
-  if(!sin.length){ host.innerHTML=vacioHTML('Todas las propiedades activas tienen dueño. ✅','🎯'); return; }
+  const sinTodas=PROPS.filter(p=>!DUENOS[p.id]).slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||'')));
+  if(!sinTodas.length){ host.innerHTML=vacioHTML('Todas las propiedades activas tienen dueño. ✅','🎯'); if(btn)btn.classList.add('hidden'); return; }
+  if(btn){
+    btn.classList.remove('hidden');
+    btn.textContent = SIN_EXPANDED ? 'Ver menos' : 'Ver todo ('+sinTodas.length+')';
+    btn.classList.toggle('hidden', sinTodas.length<=SIN_LIMITE);
+  }
+  const sin = SIN_EXPANDED ? sinTodas : sinTodas.slice(0,SIN_LIMITE);
   const leadsDe=(id)=>LEADS.filter(l=>l.eb_public_id && PROPS.find(x=>x.id===id && x.eb_public_id===l.eb_public_id)).length;
-  sin.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||''))).forEach(p=>{
+  sin.forEach(p=>{
     const d=document.createElement('div');
     d.className='sagrupo';
     const n=leadsDe(p.id);
@@ -383,28 +418,36 @@ function renderSinDueno(){
   });
 }
 
-let PA_FILTRO='todas', PA_Q='';
+let PA_FILTRO='todas', PA_Q='', PA_EXPANDED=false;
+const PA_LIMITE=8;
 function renderPropAsesor(){
   const host=$('#propasesor');
+  const btn=$('#pa-vertodo');
   host.innerHTML='';
-  let lista = PA_FILTRO==='capturadas' ? PROPS.filter(p=>p.captured_by_advisor_id) : PROPS.slice();
+  let listaTodas = PA_FILTRO==='capturadas' ? PROPS.filter(p=>p.captured_by_advisor_id) : PROPS.slice();
   if(PA_Q){
     const q=PA_Q.toLowerCase();
-    lista = lista.filter(p=>
+    listaTodas = listaTodas.filter(p=>
       (p.title||'').toLowerCase().includes(q) ||
       (p.eb_public_id||'').toLowerCase().includes(q) ||
       nomAsesor(DUENOS[p.id]).toLowerCase().includes(q)
     );
   }
-  lista = lista.slice().sort((a,b)=>{
+  listaTodas = listaTodas.slice().sort((a,b)=>{
     const na=DUENOS[a.id]?nomAsesor(DUENOS[a.id]):'zzz', nb=DUENOS[b.id]?nomAsesor(DUENOS[b.id]):'zzz';
     if(na!==nb) return na.localeCompare(nb);
     return String(a.title||'').localeCompare(String(b.title||''));
   });
-  if(!lista.length){
+  if(!listaTodas.length){
     host.innerHTML=vacioHTML(PA_FILTRO==='capturadas'?'Todavía no hay propiedades captadas desde el módulo de Captaciones.':'No hay propiedades que coincidan.','📭');
+    if(btn)btn.classList.add('hidden');
     return;
   }
+  if(btn){
+    btn.textContent = PA_EXPANDED ? 'Ver menos' : 'Ver todo ('+listaTodas.length+')';
+    btn.classList.toggle('hidden', listaTodas.length<=PA_LIMITE);
+  }
+  const lista = PA_EXPANDED ? listaTodas : listaTodas.slice(0,PA_LIMITE);
   const wrap=document.createElement('div');
   wrap.className='proptabla';
   lista.forEach(p=>{
@@ -430,6 +473,17 @@ $('#prop-filtros').addEventListener('click',e=>{
 $('#prop-buscar').addEventListener('input',e=>{
   PA_Q=e.target.value.trim();
   renderPropAsesor();
+});
+$('#pa-vertodo').addEventListener('click',()=>{ PA_EXPANDED=!PA_EXPANDED; renderPropAsesor(); });
+$('#sd-vertodo').addEventListener('click',()=>{ SIN_EXPANDED=!SIN_EXPANDED; renderSinDueno(); });
+
+// ===== Navegación lateral =====
+$('#anav').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-sec]');
+  if(!b)return;
+  const sec=b.dataset.sec;
+  document.querySelectorAll('#anav .anav-item').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.asec').forEach(s=>s.classList.toggle('on', s.id==='sec-'+sec));
 });
 
 // ===== Reportes del CRM (misma lógica que en el CRM, sección Reportes) =====
