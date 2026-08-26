@@ -9,7 +9,7 @@
 :root{
   --navy:#1B2A4A; --navy2:#0f1e36; --gold:#C9A84C; --gold2:#e8c96a;
   --bg:#f4f6fa; --card:#fff; --txt:#1e293b; --mut:#64748b; --border:#e2e8f0;
-  --ok:#16a34a; --new:#2563eb; --warn:#d97706; --bad:#9ca3af; --radius:14px;
+  --ok:#eab308; --new:#2563eb; --warn:#16a34a; --bad:#dc2626; --radius:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
@@ -159,10 +159,10 @@ body[data-vista="tablero"] #buscar{max-width:640px}
 .kbcard{background:#fff;border-radius:10px;padding:9px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.09);cursor:grab;border-left:3px solid #cbd3de;overflow-wrap:anywhere}
 .kbcard:hover{box-shadow:0 3px 10px rgba(0,0,0,.14)}
 .kbcard.arrastrando{opacity:.4}
-.kbcard.s-new{border-left-color:#2f8f4e}
-.kbcard.s-contacted{border-left-color:#c9a84c}
-.kbcard.s-attended{border-left-color:#3d6b4a}
-.kbcard.s-cancelled{border-left-color:#b4451f}
+.kbcard.s-new{border-left-color:#2563eb}
+.kbcard.s-contacted{border-left-color:#16a34a}
+.kbcard.s-attended{border-left-color:#eab308}
+.kbcard.s-cancelled{border-left-color:#dc2626}
 .kbt{font-weight:800;font-size:13.5px;color:var(--navy);line-height:1.25}
 .kbp{font-size:12px;color:var(--txt);line-height:1.3;margin-top:3px}
 .kbm{font-size:11px;color:var(--mut);margin-top:5px;display:flex;justify-content:space-between;gap:8px}
@@ -605,7 +605,7 @@ function pintar(){
   const visibles=ordenado.slice(0,SHOWN);
   let nCount=0;
   if(FIL==='todos'&&nuevos.length&&resto.length){
-    const h1=document.createElement('div');h1.className='lsec';h1.innerHTML='🟢 NUEVOS <span>'+nuevos.length+'</span>';host.appendChild(h1);
+    const h1=document.createElement('div');h1.className='lsec';h1.innerHTML='🔵 NUEVOS <span>'+nuevos.length+'</span>';host.appendChild(h1);
     let restoHeader=false;
     for(const l of visibles){
       if(l.status!=='new'&&!restoHeader){
@@ -762,7 +762,7 @@ function renderSinAsignar(host){
 }
 
 // ── Tablero por etapas (estilo pipeline) ─────────────────────────────
-const COLS=[['new','🟢 Nuevos'],['contacted','🟡 Activos'],['attended','🌤️ Tibios'],['cancelled','⛔ Cancelados']];
+const COLS=[['new','🔵 Nuevos'],['contacted','🟢 Activos'],['attended','🟡 Tibios'],['cancelled','🔴 Cancelados']];
 const fechaLead=(l)=>new Date(l.happened_at||l.created_at||0).getTime();
 function abrirFicha(l){
   const m=document.createElement('div');m.id='modalFicha';
