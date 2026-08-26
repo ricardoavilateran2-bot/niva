@@ -113,6 +113,14 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .proprow .pown{font-size:11.5px;font-weight:800;padding:5px 11px;border-radius:20px;white-space:nowrap}
 .proprow .pown.asig{background:rgba(74,222,128,.15);color:#4ade80}
 .proprow .pown.sin{background:rgba(248,113,113,.15);color:#f87171}
+.proprow .pown-edit{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.proprow .pown-sel{font-size:11.5px;font-weight:700;padding:5px 8px;border-radius:20px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:var(--white);max-width:150px;cursor:pointer}
+.proprow .pown-edit.asig .pown-sel{background:rgba(74,222,128,.12);color:#4ade80;border-color:rgba(74,222,128,.3)}
+.proprow .pown-edit.sin .pown-sel{background:rgba(248,113,113,.12);color:#f87171;border-color:rgba(248,113,113,.3)}
+.proprow .pown-sel option{background:#1a1a2e;color:#fff}
+.proprow .pown-save{font-size:11px;font-weight:800;padding:5px 10px;border-radius:20px;border:none;background:var(--gold,#c9a35d);color:#111;cursor:pointer;white-space:nowrap}
+.proprow .pown-save.hidden{display:none}
+.proprow .pown-save:disabled{opacity:.6;cursor:default}
 .searchbox{width:100%;padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--white);font-family:'Inter',sans-serif;font-size:13.5px;margin-bottom:14px}
 .searchbox::placeholder{color:rgba(255,255,255,.3)}
 
@@ -454,14 +462,45 @@ function renderPropAsesor(){
     const dueno=DUENOS[p.id];
     const row=document.createElement('div');
     row.className='proprow';
+    const opts='<option value="">Sin dueño</option>'+ASESORES.map(a=>'<option value="'+esc(a.id)+'"'+(String(dueno)===String(a.id)?' selected':'')+'>'+esc(a.n||'Asesor')+'</option>').join('');
     row.innerHTML='<div class="pmain"><div class="pt">'+esc(p.title||p.eb_public_id||'Sin título')+(p.captured_by_advisor_id?' 📸':'')+'</div>'
       +'<div class="pm">'+[esc(p.eb_public_id||''),
           p.price_amount?fmt(p.price_amount)+(p.operation_type==='rental'?'/mes':''):'',
           esc(p.property_type||''), esc(p.location_name||'')].filter(Boolean).join(' · ')+'</div></div>'
-      +'<div class="pown '+(dueno?'asig':'sin')+'">'+(dueno?esc(nomAsesor(dueno)):'Sin dueño')+'</div>';
+      +'<div class="pown-edit '+(dueno?'asig':'sin')+'" data-pid="'+esc(p.id)+'">'
+        +'<select class="pown-sel">'+opts+'</select>'
+        +'<button class="pown-save hidden" type="button">Guardar</button>'
+      +'</div>';
     wrap.appendChild(row);
   });
   host.appendChild(wrap);
+  wrap.addEventListener('change',e=>{
+    const sel=e.target.closest('.pown-sel');
+    if(!sel)return;
+    const cont=sel.closest('.pown-edit');
+    const btn=cont.querySelector('.pown-save');
+    btn.classList.remove('hidden');
+  });
+  wrap.addEventListener('click',async e=>{
+    const btn=e.target.closest('.pown-save');
+    if(!btn)return;
+    const cont=btn.closest('.pown-edit');
+    const sel=cont.querySelector('.pown-sel');
+    const pid=cont.dataset.pid;
+    const advisorId=sel.value||null;
+    btn.disabled=true;
+    btn.textContent='...';
+    try{
+      const {error}=await sb.rpc('asignar_dueno_propiedad',{p_property_id:pid,p_advisor_id:advisorId});
+      if(error) throw error;
+      toast('Asesor actualizado');
+      await cargar();
+    }catch(err){
+      toast('Error: '+(err.message||'no se pudo actualizar'));
+      btn.disabled=false;
+      btn.textContent='Guardar';
+    }
+  });
 }
 $('#prop-filtros').addEventListener('click',e=>{
   const b=e.target.closest('button[data-f]');
