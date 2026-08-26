@@ -569,6 +569,21 @@ function tablaHTML(titulo,heads,filas,nota){
     +'</tbody></table>'+(nota?'<div class="repnote">'+nota+'</div>':'')+'</div>';
 }
 function fFecha(d){return d?new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'}):''}
+function descargarTablaActual(nombre){
+  const tablas=document.querySelectorAll('#repout table.reptable');
+  if(!tablas.length){toast('No hay datos para descargar');return;}
+  let heads=null, filas=[];
+  tablas.forEach((t,ti)=>{
+    const h=[...t.querySelectorAll('thead th')].map(th=>th.textContent.trim());
+    if(ti>0) filas.push(h.map(()=>''));
+    if(!heads) heads=h; else if(h.length>heads.length) heads=h;
+    t.querySelectorAll('tbody tr').forEach(tr=>{
+      const celdas=[...tr.querySelectorAll('td')].map(td=>td.textContent.trim());
+      filas.push(celdas);
+    });
+  });
+  descargarCSV(nombre,heads,filas);
+}
 
 function expLeads(){
   descargarCSV('leads',
@@ -793,28 +808,55 @@ function repCosto(){
     'Si las consultas de un portal bajan mes con mes y el pago es fijo, tu costo por lead sube solo. Ahí es cuando conviene renegociar o mover la inversión.');
 }
 
+const REP_META={
+  'rep-resumen':{fn:()=>repResumen(),label:'📈 Resumen general',archivo:'resumen_general'},
+  'rep-embudo':{fn:()=>repEmbudo(),label:'🔻 Embudo de conversión',archivo:'embudo_conversion'},
+  'rep-asesor':{fn:()=>repAsesor(),label:'👔 Por asesor',archivo:'reporte_por_asesor'},
+  'rep-prop':{fn:()=>repProp(),label:'🏠 Por propiedad',archivo:'reporte_por_propiedad'},
+  'rep-zonas':{fn:()=>repZonas(),label:'📍 Zonas y precios',archivo:'zonas_y_precios'},
+  'rep-frias':{fn:()=>repFrias(),label:'🧊 Sin demanda',archivo:'propiedades_sin_demanda'},
+  'rep-mes':{fn:()=>repMes(),label:'📅 Por mes y fuente',archivo:'leads_por_mes_y_fuente'},
+  'rep-diahora':{fn:()=>repDiaHora(),label:'📆 Día y hora',archivo:'leads_por_dia_y_hora'},
+  'rep-costo':{fn:()=>repCosto(),label:'💸 Costo por lead',archivo:'costo_por_lead'},
+};
+const REP_CATS=[
+  {title:'📈 Resumen y desempeño',ids:['rep-resumen','rep-embudo','rep-asesor']},
+  {title:'🏠 Propiedades y demanda',ids:['rep-prop','rep-zonas','rep-frias']},
+  {title:'📅 Tiempo, fuentes y costos',ids:['rep-mes','rep-diahora','rep-costo']},
+];
 async function renderReportes(){
   const host=$('#reportes');
   host.innerHTML='<div class="vacio"><span class="vi">⏳</span>Cargando datos para reportes...</div>';
   try{await cargarDatosRep();}catch(e){host.innerHTML=vacioHTML('No se pudieron cargar los datos: '+esc(e.message),'⚠️');return;}
   const b=(id,txt)=>'<button class="repbtn" id="'+id+'">'+txt+'</button>';
-  host.innerHTML='<div class="repwrap">'
-    +'<div class="repsec"><div class="reph">⬇️ Descargar datos (CSV — se abre en Excel)</div><div class="repgrid">'
+  let htm='<div class="repwrap">'
+    +'<div class="repsec"><div class="reph">⬇️ Descargar datos completos (CSV — se abre en Excel)</div><div class="repgrid">'
     +b('exp-leads','📋 Leads completos')+b('exp-clientes','👤 Clientes')+b('exp-props','🏠 Propiedades')+b('exp-asesores','👔 Asesores')+b('exp-inter','⚡ Actividad')
-    +'</div></div>'
-    +'<div class="repsec"><div class="reph">📊 Reportes en pantalla</div><div class="repgrid">'
-    +b('rep-resumen','📈 Resumen general')+b('rep-embudo','🔻 Embudo de conversión')+b('rep-asesor','👔 Por asesor')+b('rep-prop','🏠 Por propiedad')+b('rep-zonas','📍 Zonas y precios')+b('rep-diahora','📆 Día y hora')+b('rep-costo','💸 Costo por lead')+b('rep-mes','📅 Por mes y fuente')+b('rep-frias','🧊 Sin demanda')
-    +'</div></div><div id="repout"></div></div>';
+    +'</div></div>';
+  REP_CATS.forEach(cat=>{
+    htm+='<div class="repsec"><div class="reph">'+cat.title+'</div><div class="repgrid">'
+      +cat.ids.map(id=>b(id,REP_META[id].label)).join('')
+      +'</div></div>';
+  });
+  htm+='<div class="repsec"><div class="reph" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+    +'<span id="rep-titulo-actual">Reporte</span>'
+    +'<button class="repbtn" id="rep-download" style="background:linear-gradient(135deg,var(--gold),#b8922e);color:var(--navy2);border-color:transparent">⬇️ Descargar este reporte en Excel</button>'
+    +'</div><div id="repout"></div></div></div>';
+  host.innerHTML=htm;
   const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter };
   Object.entries(acc).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=fn;});
-  const reps={ 'rep-resumen':repResumen,'rep-embudo':repEmbudo,'rep-asesor':repAsesor,'rep-prop':repProp,'rep-zonas':repZonas,'rep-diahora':repDiaHora,'rep-costo':repCosto,'rep-mes':repMes,'rep-frias':repFrias };
-  Object.entries(reps).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=()=>{
-    document.querySelectorAll('.repgrid .repbtn').forEach(x=>{if(reps[x.id])x.classList.remove('on')});
+  let reporteActual='resumen_general';
+  Object.entries(REP_META).forEach(([id,meta])=>{const el=document.getElementById(id);if(el)el.onclick=()=>{
+    document.querySelectorAll('.repgrid .repbtn').forEach(x=>{if(REP_META[x.id])x.classList.remove('on')});
     el.classList.add('on');
-    document.getElementById('repout').innerHTML=fn();
+    document.getElementById('repout').innerHTML=meta.fn();
+    document.getElementById('rep-titulo-actual').textContent=meta.label;
+    reporteActual=meta.archivo;
   };});
+  const dl=document.getElementById('rep-download');
+  if(dl)dl.onclick=()=>descargarTablaActual(reporteActual);
   const primero=document.getElementById('rep-resumen');
-  if(primero){primero.classList.add('on');document.getElementById('repout').innerHTML=repResumen();}
+  if(primero){primero.classList.add('on');document.getElementById('repout').innerHTML=repResumen();document.getElementById('rep-titulo-actual').textContent=REP_META['rep-resumen'].label;}
 }
 
 cargar();
