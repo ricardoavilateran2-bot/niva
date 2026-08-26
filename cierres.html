@@ -289,18 +289,24 @@ async function guardarCierre(){
   const ubicacion=$('#ci-ubicacion').value.trim()||null;
   const estatusInicial = TIPO==='apartado' ? 'apartado' : 'pendiente';
   err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
-  const {error}=await sb.from('cierres').insert({
-    property_id:propId, property_externa:propExterna,
-    contact_id:contactId, cliente_nombre:clienteNombre,
-    advisor_id:advisorId, advisor_nombre:advisorNombre, operation_type:op,
-    compartida:COMPARTIDA, trae:COMPARTIDA?TRAIGO:null,
-    monto_comision:monto, porcentaje_niva:MI_ASESOR?MI_ASESOR.pn:20,
-    valor_propiedad:valorProp, ubicacion:ubicacion,
-    estatus:estatusInicial,
-    notas:notas||null, registrado_por:USUARIO
-  });
+  let error=null;
+  try{
+    const r=await sb.from('cierres').insert({
+      property_id:propId, property_externa:propExterna,
+      contact_id:contactId, cliente_nombre:clienteNombre,
+      advisor_id:advisorId, advisor_nombre:advisorNombre, operation_type:op,
+      compartida:COMPARTIDA, trae:COMPARTIDA?TRAIGO:null,
+      monto_comision:monto, porcentaje_niva:MI_ASESOR?MI_ASESOR.pn:20,
+      valor_propiedad:valorProp, ubicacion:ubicacion,
+      estatus:estatusInicial,
+      notas:notas||null, registrado_por:USUARIO
+    });
+    error=r.error;
+  }catch(ex){
+    error=ex;
+  }
   btn.disabled=false;btn.textContent = TIPO==='apartado' ? 'Registrar apartado (en verde)' : 'Registrar cierre';
-  if(error){err.textContent=error.message||'No se pudo registrar el cierre.';return}
+  if(error){err.textContent=error.message||'No se pudo registrar el cierre. Verifica tu conexión e intenta de nuevo.';return}
   toast(TIPO==='apartado' ? 'Apartado registrado 🟢' : 'Cierre registrado — pendiente de aprobación ✅');
   $('#ci-monto').value='';$('#ci-notas').value='';$('#ci-valor').value='';$('#ci-ubicacion').value='';
   $('#ci-prop').value='';$('#ci-cliente').value='';
