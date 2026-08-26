@@ -261,7 +261,7 @@ async function cargar(){
     .sort((x,y)=>x.n.localeCompare(y.n));
   MI_ASESOR = ASESORES.find(a=>a.fn===uname.toLowerCase())||null;
   CIERRES = ci.error?[]:(ci.data||[]);
-  CIERRES.sort((a,b)=>new Date(b.fecha_cierre||b.created_at)-new Date(a.fecha_cierre||a.created_at));
+  CIERRES.sort((a,b)=>new Date(a.fecha_cierre||a.created_at)-new Date(b.fecha_cierre||b.created_at));
   poblarSelects();
   renderLista();
   if(ESADMIN) renderAdminZona();
