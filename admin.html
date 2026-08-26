@@ -115,6 +115,37 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .proprow .pown.sin{background:rgba(248,113,113,.15);color:#f87171}
 .searchbox{width:100%;padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--white);font-family:'Inter',sans-serif;font-size:13.5px;margin-bottom:14px}
 .searchbox::placeholder{color:rgba(255,255,255,.3)}
+
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+@media (max-width:820px){.dash-grid{grid-template-columns:1fr 1fr}}
+.dkpi{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+.dkpi::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold)}
+.dkpi .dl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:8px}
+.dkpi .dv{font-size:32px;font-weight:900;color:var(--white);line-height:1}
+.dkpi .dd{font-size:12px;font-weight:700;margin-top:8px;display:inline-flex;align-items:center;gap:4px}
+.dkpi .dd.up{color:#4ade80}
+.dkpi .dd.down{color:#f87171}
+.dkpi .dd.flat{color:rgba(255,255,255,.4)}
+.chart-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:8px}
+@media (max-width:820px){.chart-grid{grid-template-columns:1fr}}
+.chart-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:var(--radius);padding:20px}
+.chart-card .ch-t{font-size:11.5px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:.07em;text-transform:uppercase;margin-bottom:16px}
+.barchart{display:flex;align-items:flex-end;gap:6px;height:130px}
+.barchart .bc-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px}
+.barchart .bc-bar{width:100%;max-width:22px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--gold2),var(--gold));min-height:2px;transition:opacity .15s}
+.barchart .bc-bar:hover{opacity:.75}
+.barchart .bc-lbl{font-size:10px;color:rgba(255,255,255,.4);white-space:nowrap}
+.donutwrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.donutlegend{display:flex;flex-direction:column;gap:9px;flex:1;min-width:140px}
+.donutlegend .dli{display:flex;align-items:center;gap:8px;font-size:12.5px;color:rgba(255,255,255,.75)}
+.donutlegend .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.donutlegend .dli b{color:var(--white);margin-left:auto}
+.hbars{display:flex;flex-direction:column;gap:12px}
+.hbars .hb-row{display:flex;flex-direction:column;gap:4px}
+.hbars .hb-top{display:flex;justify-content:space-between;font-size:12.5px;color:rgba(255,255,255,.7)}
+.hbars .hb-top b{color:var(--white)}
+.hbars .hb-track{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.hbars .hb-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--gold2))}
 </style>
 </head>
 <body>
@@ -139,6 +170,10 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     <h1>Visión general de <span>captaciones y asignaciones</span></h1>
     <p>Aquí ves todas las propiedades captadas por el equipo y puedes asignar asesor a las que el sistema no supo identificar — en cuanto le pones dueño, los leads de esa propiedad (los que ya llegaron y los que lleguen después) caen directo con ese asesor.</p>
   </div>
+
+  <div class="section-title"><span>🏁 Panel de inicio</span></div>
+  <div class="dash-grid" id="dash-kpis"></div>
+  <div class="chart-grid" id="dash-charts"></div>
 
   <div class="stats" id="stats">
     <div class="stat"><div class="sn" id="s-total">–</div><div class="sl">Propiedades activas</div></div>
@@ -201,9 +236,86 @@ function skeleton(host){
   }
 }
 
+function pct2(n,d){return d?Math.round(n*100/d)+'%':'0%'}
+function donutSVG(segments){
+  const total=segments.reduce((s,x)=>s+x.v,0)||1;
+  let cum=0;
+  const R=42, C=2*Math.PI*R;
+  const circles=segments.filter(s=>s.v>0).map(seg=>{
+    const frac=seg.v/total;
+    const dash=frac*C;
+    const offset=C*(1-cum);
+    cum+=frac;
+    return '<circle r="'+R+'" cx="60" cy="60" fill="none" stroke="'+seg.c+'" stroke-width="16" stroke-dasharray="'+dash+' '+(C-dash)+'" stroke-dashoffset="'+offset+'" transform="rotate(-90 60 60)"/>';
+  }).join('');
+  return '<svg width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0">'+circles+'<circle r="26" cx="60" cy="60" fill="#0f1e36"/></svg>';
+}
+
+function renderDashboard(){
+  const host=$('#dash-kpis'), chartHost=$('#dash-charts');
+  const leadFecha=(l)=>l.happened_at||l.created_at;
+  const now=new Date();
+  const startOfDay=(d)=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
+  const hoy0=startOfDay(now);
+  const diasAtras=(n)=>{const d=new Date(hoy0);d.setDate(d.getDate()-n);return d};
+  const activos=LEADS.filter(l=>!l.archived_at);
+
+  const leadsHoy=activos.filter(l=>{const f=leadFecha(l);return f && new Date(f)>=hoy0}).length;
+  const semAct=activos.filter(l=>{const f=leadFecha(l);return f && new Date(f)>=diasAtras(6)}).length;
+  const semPrev=activos.filter(l=>{const f=leadFecha(l);if(!f)return false;const d=new Date(f);return d>=diasAtras(13)&&d<diasAtras(6)}).length;
+  const deltaSem = semPrev? Math.round((semAct-semPrev)*100/semPrev) : (semAct?100:null);
+  const capSemana = PROPS.filter(p=>p.captured_by_advisor_id && p.created_at && new Date(p.created_at)>=diasAtras(6)).length;
+  const nuevosSinAtender = activos.filter(l=>l.status==='new').length;
+
+  const deltaHTML=(d)=>{
+    if(d==null) return '<span class="dd flat">— sin datos previos</span>';
+    if(d>0) return '<span class="dd up">▲ '+d+'% vs semana pasada</span>';
+    if(d<0) return '<span class="dd down">▼ '+Math.abs(d)+'% vs semana pasada</span>';
+    return '<span class="dd flat">= igual que la semana pasada</span>';
+  };
+
+  host.innerHTML =
+    '<div class="dkpi"><div class="dl">Leads hoy</div><div class="dv">'+leadsHoy+'</div></div>'
+   +'<div class="dkpi"><div class="dl">Leads esta semana</div><div class="dv">'+semAct+'</div>'+deltaHTML(deltaSem)+'</div>'
+   +'<div class="dkpi"><div class="dl">Captaciones nuevas (semana)</div><div class="dv">'+capSemana+'</div></div>'
+   +'<div class="dkpi"><div class="dl">Nuevos sin atender</div><div class="dv">'+nuevosSinAtender+'</div></div>';
+
+  const dias14=[];
+  for(let i=13;i>=0;i--) dias14.push(diasAtras(i));
+  const countsDia = dias14.map(d=>{
+    const d2=new Date(d); d2.setDate(d2.getDate()+1);
+    return activos.filter(l=>{const f=leadFecha(l);if(!f)return false;const x=new Date(f);return x>=d&&x<d2}).length;
+  });
+  const maxDia=Math.max(1,...countsDia);
+  const diaBars = dias14.map((d,i)=>
+    '<div class="bc-col"><div class="bc-bar" style="height:'+Math.max(3,Math.round(countsDia[i]*100/maxDia))+'%" title="'+countsDia[i]+' leads"></div><div class="bc-lbl">'+d.toLocaleDateString('es-MX',{day:'numeric'})+'</div></div>'
+  ).join('');
+
+  const EST_COLORS={new:'#60a5fa',contacted:'#fbbf24',attended:'#f97316',cancelled:'#f87171'};
+  const EST_NAMES={new:'Nuevos',contacted:'Activos',attended:'Tibios',cancelled:'Cancelados'};
+  const totalAct=activos.length||1;
+  const porEstado=['new','contacted','attended','cancelled'].map(st=>({st,n:activos.filter(l=>l.status===st).length}));
+  const donutHTML = donutSVG(porEstado.map(x=>({v:x.n,c:EST_COLORS[x.st]})));
+  const legend = porEstado.map(x=>'<div class="dli"><span class="dot" style="background:'+EST_COLORS[x.st]+'"></span>'+EST_NAMES[x.st]+'<b>'+x.n+' ('+pct2(x.n,totalAct)+')</b></div>').join('');
+
+  const FTE2={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Directo',manual_asesor:'Directo'};
+  const porFuente={};
+  activos.forEach(l=>{const f=FTE2[l.source]||l.source||'Otro'; porFuente[f]=(porFuente[f]||0)+1});
+  const maxFte=Math.max(1,...Object.values(porFuente));
+  const hbarsHTML = Object.entries(porFuente).sort((a,b)=>b[1]-a[1]).map(([k,v])=>
+    '<div class="hb-row"><div class="hb-top"><span>'+esc(k)+'</span><b>'+v+'</b></div><div class="hb-track"><div class="hb-fill" style="width:'+Math.max(3,Math.round(v*100/maxFte))+'%"></div></div></div>'
+  ).join('') || '<div class="repnote">Todavía no hay leads con fuente registrada.</div>';
+
+  chartHost.innerHTML =
+    '<div class="chart-card"><div class="ch-t">📈 Leads por día (últimos 14 días)</div><div class="barchart">'+diaBars+'</div></div>'
+   +'<div class="chart-card"><div class="ch-t">🎯 Leads por estado</div><div class="donutwrap">'+donutHTML+'<div class="donutlegend">'+legend+'</div></div></div>'
+   +'<div class="chart-card" style="grid-column:1/-1"><div class="ch-t">📡 Leads por fuente</div><div class="hbars">'+hbarsHTML+'</div></div>';
+}
+
 async function cargar(){
   skeleton($('#sindueno'));
   skeleton($('#propasesor'));
+  $('#dash-kpis').innerHTML='<div class="skel"><div class="l" style="width:60%"></div><div class="l" style="width:40%;margin-bottom:0"></div></div>';
   try{
     const [p,l,a,d] = await Promise.all([
       sb.from('my_properties').select('*'),
@@ -227,6 +339,7 @@ async function cargar(){
 
     renderSinDueno();
     renderPropAsesor();
+    renderDashboard();
   }catch(e){
     console.error('[admin] error de carga:', e);
     $('#sindueno').innerHTML='<div class="vacio">⚠️ No se pudieron cargar los datos'+(e.message?': '+esc(e.message):'')+'.</div>';
