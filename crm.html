@@ -45,27 +45,19 @@ input,select,textarea{font-family:inherit}
 .sback:hover{color:var(--gold);border-color:rgba(201,168,76,.4)}
 .snuevo{display:block;width:calc(100% - 16px);margin:10px 8px 2px;padding:10px 12px;border-radius:9px;font-size:13px;font-weight:800;color:#0d1a2e;background:var(--gold);border:0;cursor:pointer;transition:filter .18s}
 .snuevo:hover{filter:brightness(1.08)}
-#modalNuevo,#modalCierre{position:fixed;inset:0;background:rgba(8,14,26,.62);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
-#modalNuevo .mbox,#modalCierre .mbox{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:92vh;overflow-y:auto}
-#modalNuevo h3,#modalCierre h3{margin:0 0 14px;font-size:17px;color:var(--navy)}
-#modalNuevo label,#modalCierre label{display:block;font-size:12.5px;font-weight:700;color:var(--mut);margin:12px 0 5px}
-#modalNuevo label small,#modalCierre label small{font-weight:500;opacity:.8}
-#modalNuevo input,#modalNuevo select,#modalCierre input,#modalCierre select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;font-family:inherit}
-#modalNuevo input:focus,#modalNuevo select:focus,#modalCierre input:focus,#modalCierre select:focus{outline:none;border-color:rgba(201,168,76,.7);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
-#modalNuevo .merr,#modalCierre .merr{min-height:18px;margin-top:10px;font-size:12.5px;color:#c0392b;font-weight:600}
-#modalNuevo .macc,#modalCierre .macc{display:flex;gap:10px;margin-top:6px}
-#modalNuevo .macc button,#modalCierre .macc button{flex:1;padding:12px;border-radius:10px;font-size:14.5px;font-weight:700;border:0;cursor:pointer}
-#modalNuevo .mcancel,#modalCierre .mcancel{background:#eef1f5;color:var(--mut)}
-#modalNuevo .msave,#modalCierre .msave{background:var(--navy);color:#fff}
-#modalNuevo .msave:disabled,#modalCierre .msave:disabled{opacity:.6;cursor:default}
-.cierrerow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px}
-.cierrerow .cmain{flex:1;min-width:220px}
-.cierrerow .ct{font-weight:700;font-size:13.5px;color:var(--navy)}
-.cierrerow .cm{font-size:12px;color:var(--mut);margin-top:2px}
-.cierrebadge{font-size:11px;font-weight:800;padding:5px 11px;border-radius:20px;white-space:nowrap}
-.cierrebadge.pendiente{background:rgba(234,179,8,.15);color:#b45309}
-.cierrebadge.aprobado{background:rgba(74,222,128,.15);color:#15803d}
-.cierrebadge.rechazado{background:rgba(248,113,113,.15);color:#b91c1c}
+#modalNuevo{position:fixed;inset:0;background:rgba(8,14,26,.62);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
+#modalNuevo .mbox{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:92vh;overflow-y:auto}
+#modalNuevo h3{margin:0 0 14px;font-size:17px;color:var(--navy)}
+#modalNuevo label{display:block;font-size:12.5px;font-weight:700;color:var(--mut);margin:12px 0 5px}
+#modalNuevo label small{font-weight:500;opacity:.8}
+#modalNuevo input,#modalNuevo select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;font-family:inherit}
+#modalNuevo input:focus,#modalNuevo select:focus{outline:none;border-color:rgba(201,168,76,.7);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
+#modalNuevo .merr{min-height:18px;margin-top:10px;font-size:12.5px;color:#c0392b;font-weight:600}
+#modalNuevo .macc{display:flex;gap:10px;margin-top:6px}
+#modalNuevo .macc button{flex:1;padding:12px;border-radius:10px;font-size:14.5px;font-weight:700;border:0;cursor:pointer}
+#modalNuevo .mcancel{background:#eef1f5;color:var(--mut)}
+#modalNuevo .msave{background:var(--navy);color:#fff}
+#modalNuevo .msave:disabled{opacity:.6;cursor:default}
 .snav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
 .tab{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:10px;background:none;font-size:13px;font-weight:600;border:0;color:rgba(255,255,255,.75);text-align:left;cursor:pointer;white-space:nowrap;transition:background .15s}
 .tab:hover{background:rgba(255,255,255,.07)}
@@ -261,14 +253,12 @@ body[data-tab="props"] main{max-width:1280px}
   </div>
   <a class="sback" href="./index.html">← Volver a NIVA OS</a>
   <button id="btn-nuevo" class="snuevo">➕ Cliente directo</button>
-  <button id="btn-cierre" class="snuevo" style="background:var(--gold,#C9A84C)">🤝 Registrar cierre</button>
   <nav class="snav">
     <button class="tab on" data-t="clientes">👤 Clientes<span class="n hot" id="n-clientes">–</span></button>
     <button class="tab" data-t="asesores">👔 Asesores<span class="n" id="n-asesores">–</span></button>
     <button class="tab" data-t="sinid" id="tab-sinid" style="display:none">❓ Sin identificar<span class="n" id="n-sinid">–</span></button>
     <button class="tab" data-t="todos">📋 Todos<span class="n" id="n-todos">–</span></button>
     <button class="tab" data-t="props">🏠 Propiedades<span class="n" id="n-props">–</span></button>
-    <button class="tab" data-t="cierres" id="tab-cierres">🤝 Cierres<span class="n" id="n-cierres">–</span></button>
     <button class="tab" data-t="archivados" id="tab-arch">🗄️ Archivados<span class="n" id="n-arch">–</span></button>
     <button class="tab" data-t="sinasignar" id="tab-sinasig" style="display:none">⚠️ Sin asignar<span class="n" id="n-sinasig">–</span></button>
     <button class="tab" data-t="reportes" id="tab-rep" style="display:none">📊 Reportes</button>
@@ -337,32 +327,6 @@ body[data-tab="props"] main{max-width:1280px}
     </div>
   </div>
 </div>
-<div id="modalCierre" class="hidden">
-  <div class="mbox">
-    <h3>🤝 Registrar cierre</h3>
-    <label for="ci-prop">Propiedad cerrada</label>
-    <select id="ci-prop"><option value="">— Selecciona una propiedad —</option></select>
-    <label for="ci-asesor">Asesor responsable</label>
-    <select id="ci-asesor"><option value="">— Selecciona el asesor —</option></select>
-    <label for="ci-cliente">Nombre del cliente</label>
-    <input id="ci-cliente" autocomplete="off" placeholder="Nombre completo del cliente">
-    <label for="ci-op">Tipo de operación</label>
-    <select id="ci-op"><option value="sale">Venta</option><option value="rental">Renta</option></select>
-    <label for="ci-compartida" style="display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer">
-      <input type="checkbox" id="ci-compartida" style="width:auto;margin:0">
-      <span style="margin:0;font-weight:700;font-size:12.5px;color:var(--mut)">Fue una operación compartida con otro asesor externo</span>
-    </label>
-    <label for="ci-monto">Comisión total recibida (antes del pago a NIVA)</label>
-    <input id="ci-monto" inputmode="decimal" autocomplete="off" placeholder="Ej. 45000">
-    <label for="ci-notas">Notas <small>(opcional)</small></label>
-    <input id="ci-notas" autocomplete="off" placeholder="Detalles adicionales del cierre">
-    <div class="merr" id="ci-err"></div>
-    <div class="macc">
-      <button id="ci-cancel" class="mcancel">Cancelar</button>
-      <button id="ci-save" class="msave">Registrar cierre</button>
-    </div>
-  </div>
-</div>
 </div>
 
 <script type="module">
@@ -370,7 +334,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
 const sb = createClient(cfg.url, cfg.anon);
 const $ = (s)=>document.querySelector(s);
-let LEADS=[], PROPS=[], ASESORES=[], DUENOS={}, TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='', CIERRES=[];
+let LEADS=[], PROPS=[], ASESORES=[], DUENOS={}, TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='';
 let SUBSA='leads'; // dentro de "Sin asignar": leads | props
 let SHOWN=60; // paginación incremental
 const tipoLead=(l)=>l.contact_type||'unidentified';
@@ -518,15 +482,13 @@ async function cargar(){
     LEADS=l.data??[];PROPS=p.data??[];
     guardarCache();
     REP=null; // los reportes se recalculan con datos frescos
-    if(!ASESORES.length){
-      const a=await sb.from('advisors').select('id,first_name,last_name,niva_code,status,porcentaje_niva');
-      if(!a.error)ASESORES=(a.data||[]).filter(x=>x.status!=='inactive')
-        .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor',pn:Number(x.porcentaje_niva??20)}))
-        .sort((x,y)=>x.n.localeCompare(y.n));
-    }
-    const ci=await sb.from('cierres').select('*').order('created_at',{ascending:false});
-    CIERRES=ci.error?[]:(ci.data||[]);
     if(ESADMIN){
+      if(!ASESORES.length){
+        const a=await sb.from('advisors').select('id,first_name,last_name,niva_code,status');
+        if(!a.error)ASESORES=(a.data||[]).filter(x=>x.status!=='inactive')
+          .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor'}))
+          .sort((x,y)=>x.n.localeCompare(y.n));
+      }
       const d=await sb.from('property_advisors').select('property_id,advisor_id');
       DUENOS={};
       if(!d.error)(d.data||[]).forEach(x=>{DUENOS[x.property_id]=x.advisor_id});
@@ -559,12 +521,11 @@ function pintar(){
   document.body.dataset.tab=TAB;
   const enTablero=(VISTA==='tablero'&&FIL==='todos'&&['clientes','asesores','sinid','todos','archivados'].indexOf(TAB)>=0);
   document.body.dataset.vista=enTablero?'tablero':'lista';
-  $('#barra').style.display=(TAB==='props'||TAB==='reportes'||TAB==='sinasignar'||TAB==='cierres')?'none':'';
+  $('#barra').style.display=(TAB==='props'||TAB==='reportes'||TAB==='sinasignar')?'none':'';
   $('#pbarra').classList.toggle('hidden',TAB!=='props');
   const host=$('#lista');host.innerHTML='';
   if(TAB==='reportes'){renderReportes(host);return;}
   if(TAB==='sinasignar'){renderSinAsignar(host);return;}
-  if(TAB==='cierres'){renderCierres(host);return;}
   if(TAB==='props'){
     const canc=(PE==='canceladas');
     const base=canc?PROPSC:PROPS;
@@ -1063,32 +1024,7 @@ function cargarContadores(){
     nsa.textContent=sa;
     nsa.classList.toggle('hot',sa>0);
   }
-  const ncierres=$('#n-cierres');
-  if(ncierres){
-    const pend=CIERRES.filter(c=>c.estatus==='pendiente').length;
-    ncierres.textContent=pend>0?pend:CIERRES.length;
-    ncierres.classList.toggle('hot',pend>0);
-    ncierres.title=pend>0?(pend+' cierres pendientes de aprobación'):(CIERRES.length+' cierres registrados');
-  }
 }
-const nomAsesorCrm=(id)=>{const a=(ASESORES||[]).find(x=>x.id===id);return a?a.n:'Asesor'};
-const nomPropCrm=(id)=>{const p=(PROPS||[]).find(x=>x.id===id);return p?(p.title||p.eb_public_id||'Propiedad'):'Propiedad'};
-function renderCierres(host){
-  if(!CIERRES.length){host.innerHTML=vacioHTML('Todavía no hay cierres registrados. Usa el botón "🤝 Registrar cierre" del menú.','🤝');return}
-  const lista=CIERRES.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  const ESTL={pendiente:'⏳ Pendiente',aprobado:'✅ Aprobado',rechazado:'❌ Rechazado'};
-  const wrap=document.createElement('div');
-  lista.forEach(c=>{
-    const row=document.createElement('div');
-    row.className='cierrerow';
-    row.innerHTML='<div class="cmain"><div class="ct">'+esc(nomPropCrm(c.property_id))+' · '+esc(c.cliente_nombre||'Cliente')+'</div>'
-      +'<div class="cm">'+[esc(nomAsesorCrm(c.advisor_id)),c.operation_type==='rental'?'Renta':'Venta',c.compartida?'Compartida':'Directa',fmt(c.monto_comision),fFechaCrm(c.fecha_cierre||c.created_at)].filter(Boolean).join(' · ')+'</div></div>'
-      +'<div class="cierrebadge '+esc(c.estatus)+'">'+(ESTL[c.estatus]||c.estatus)+'</div>';
-    wrap.appendChild(row);
-  });
-  host.appendChild(wrap);
-}
-function fFechaCrm(d){return d?new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'}):''}
 // ── Reportes y descargas (solo admin) ────────────────────────────────
 let REP=null;
 async function cargarDatosRep(){
@@ -1418,57 +1354,6 @@ $('#nc-save').onclick=guardarNuevoCliente;
 $('#modalNuevo').addEventListener('click',e=>{if(e.target.id==='modalNuevo')cerrarNuevoCliente()});
 $('#nc-tel').addEventListener('keydown',e=>{if(e.key==='Enter')guardarNuevoCliente()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modalNuevo').classList.contains('hidden'))cerrarNuevoCliente()});
-
-// ── Registro de cierres ──────────────────────────────────────────────
-function abrirCierre(){
-  const selP=$('#ci-prop'), selA=$('#ci-asesor');
-  const ps=PROPS.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||'')));
-  selP.innerHTML='<option value="">— Selecciona una propiedad —</option>'
-    +ps.map(p=>'<option value="'+esc(p.id)+'" data-op="'+esc(p.operation_type||'')+'">'+esc(p.title||p.eb_public_id||'')+'</option>').join('');
-  selA.innerHTML='<option value="">— Selecciona el asesor —</option>'
-    +ASESORES.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.n)+'</option>').join('');
-  selP.value='';selA.value='';
-  $('#ci-cliente').value='';$('#ci-op').value='sale';$('#ci-compartida').checked=false;$('#ci-monto').value='';$('#ci-notas').value='';
-  $('#ci-err').textContent='';
-  $('#modalCierre').classList.remove('hidden');
-  setTimeout(()=>selP.focus(),50);
-}
-function cerrarCierre(){$('#modalCierre').classList.add('hidden')}
-$('#ci-prop').addEventListener('change',()=>{
-  const op=$('#ci-prop').selectedOptions[0]?.dataset.op;
-  if(op==='rental'||op==='sale')$('#ci-op').value=op;
-});
-async function guardarCierre(){
-  const propId=$('#ci-prop').value;
-  const advisorId=$('#ci-asesor').value;
-  const cliente=$('#ci-cliente').value.trim();
-  const op=$('#ci-op').value;
-  const compartida=$('#ci-compartida').checked;
-  const monto=Number($('#ci-monto').value);
-  const notas=$('#ci-notas').value.trim();
-  const err=$('#ci-err'), btn=$('#ci-save');
-  if(!propId){err.textContent='Elige la propiedad que se cerró.';return}
-  if(!advisorId){err.textContent='Elige el asesor responsable.';return}
-  if(cliente.length<3){err.textContent='Escribe el nombre del cliente.';return}
-  if(!monto||monto<=0){err.textContent='Escribe la comisión total recibida.';return}
-  const asesor=ASESORES.find(a=>a.id===advisorId);
-  err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
-  const {error}=await sb.from('cierres').insert({
-    property_id:propId,advisor_id:advisorId,cliente_nombre:cliente,operation_type:op,
-    compartida:compartida,monto_comision:monto,porcentaje_niva:asesor?asesor.pn:20,
-    notas:notas||null,registrado_por:USUARIO
-  });
-  btn.disabled=false;btn.textContent='Registrar cierre';
-  if(error){err.textContent=error.message||'No se pudo registrar el cierre.';return}
-  cerrarCierre();
-  toast('Cierre registrado — pendiente de aprobación ✅');
-  await cargar();
-}
-$('#btn-cierre').onclick=abrirCierre;
-$('#ci-cancel').onclick=cerrarCierre;
-$('#ci-save').onclick=guardarCierre;
-$('#modalCierre').addEventListener('click',e=>{if(e.target.id==='modalCierre')cerrarCierre()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modalCierre').classList.contains('hidden'))cerrarCierre()});
 
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');
