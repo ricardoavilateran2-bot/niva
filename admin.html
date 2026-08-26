@@ -121,6 +121,20 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .proprow .pown-save{font-size:11px;font-weight:800;padding:5px 10px;border-radius:20px;border:none;background:var(--gold,#c9a35d);color:#111;cursor:pointer;white-space:nowrap}
 .proprow .pown-save.hidden{display:none}
 .proprow .pown-save:disabled{opacity:.6;cursor:default}
+.pctrow{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:10px 16px;margin-bottom:8px}
+.pctrow .pn{flex:1;font-weight:700;font-size:13.5px;color:var(--white)}
+.pctrow input.pctinput{width:70px;padding:7px 9px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:var(--white);font-size:13px;text-align:right;font-family:'Inter',sans-serif}
+.pctrow .pctsave{font-size:11px;font-weight:800;padding:6px 12px;border-radius:20px;border:none;background:var(--gold);color:#111;cursor:pointer}
+.pctrow .pctsave.hidden{display:none}
+.cierrepend{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(234,179,8,.3);border-radius:12px;padding:12px 16px;margin-bottom:10px}
+.cierrepend .cmain{flex:1;min-width:220px}
+.cierrepend .ct{font-weight:700;font-size:13.5px;color:var(--white)}
+.cierrepend .cm{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px}
+.cierrepend .cbtns{display:flex;gap:8px}
+.cierrepend .cbtn{font-size:11.5px;font-weight:800;padding:7px 13px;border-radius:20px;border:none;cursor:pointer}
+.cierrepend .cbtn.ok{background:rgba(74,222,128,.18);color:#4ade80}
+.cierrepend .cbtn.no{background:rgba(248,113,113,.18);color:#f87171}
+.cierrepend .cbtn:disabled{opacity:.5;cursor:default}
 .searchbox{width:100%;padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--white);font-family:'Inter',sans-serif;font-size:13.5px;margin-bottom:14px}
 .searchbox::placeholder{color:rgba(255,255,255,.3)}
 
@@ -198,6 +212,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <button class="anav-item on" data-sec="inicio">🏁 Panel de inicio</button>
       <button class="anav-item" data-sec="sindueno">⚠️ Sin dueño</button>
       <button class="anav-item" data-sec="propasesor">🏠 Propiedades y asesores</button>
+      <button class="anav-item" data-sec="cierres">🤝 Cierres</button>
       <button class="anav-item" data-sec="reportes">📊 Reportes</button>
     </nav>
     <a href="index.html" class="back-btn2">← Panel principal</a>
@@ -236,6 +251,13 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <div id="propasesor"></div>
     </section>
 
+    <section class="asec" id="sec-cierres">
+      <div class="sec-head"><h2>🤝 Cierres</h2></div>
+      <div id="cierres-pct"></div>
+      <div id="cierres-pendientes"></div>
+      <div id="cierres-reportes"></div>
+    </section>
+
     <section class="asec" id="sec-reportes">
       <div class="sec-head"><h2>📊 Reportes del CRM</h2></div>
       <div id="reportes"></div>
@@ -259,7 +281,7 @@ const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
 function vacioHTML(m,i){return '<div class="vacio"><span class="vi">'+(i||'📭')+'</span>'+esc(m)+'</div>'}
 
-let PROPS=[], LEADS=[], ASESORES=[], DUENOS={};
+let PROPS=[], LEADS=[], ASESORES=[], DUENOS={}, CIERRES=[];
 
 function skeleton(host){
   host.innerHTML='';
@@ -351,21 +373,23 @@ async function cargar(){
   skeleton($('#propasesor'));
   $('#dash-kpis').innerHTML='<div class="skel"><div class="l" style="width:60%"></div><div class="l" style="width:40%;margin-bottom:0"></div></div>';
   try{
-    const [p,l,a,d] = await Promise.all([
+    const [p,l,a,d,ci] = await Promise.all([
       sb.from('my_properties').select('*'),
       sb.from('my_leads').select('*'),
-      sb.from('advisors').select('id,first_name,last_name,niva_code,status'),
-      sb.from('property_advisors').select('property_id,advisor_id')
+      sb.from('advisors').select('id,first_name,last_name,niva_code,status,porcentaje_niva'),
+      sb.from('property_advisors').select('property_id,advisor_id'),
+      sb.from('cierres').select('*').order('created_at',{ascending:false})
     ]);
     if(p.error) throw new Error(p.error.message||'propiedades');
     if(l.error) throw new Error(l.error.message||'leads');
     PROPS = p.data||[];
     LEADS = l.data||[];
     ASESORES = (a.data||[]).filter(x=>x.status!=='inactive')
-      .map(x=>({id:x.id, n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor'}))
+      .map(x=>({id:x.id, n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor', pn:Number(x.porcentaje_niva??20)}))
       .sort((x,y)=>x.n.localeCompare(y.n));
     DUENOS={};
     (d.data||[]).forEach(x=>{DUENOS[x.property_id]=x.advisor_id});
+    CIERRES = ci.error?[]:(ci.data||[]);
 
     $('#s-total').textContent = PROPS.length;
     $('#s-sindueno').textContent = PROPS.filter(x=>!DUENOS[x.id]).length;
@@ -374,6 +398,9 @@ async function cargar(){
     renderSinDueno();
     renderPropAsesor();
     renderDashboard();
+    renderCierresPct();
+    renderCierresPendientes();
+    renderCierresReportes();
   }catch(e){
     console.error('[admin] error de carga:', e);
     $('#sindueno').innerHTML='<div class="vacio">⚠️ No se pudieron cargar los datos'+(e.message?': '+esc(e.message):'')+'.</div>';
@@ -515,6 +542,136 @@ $('#prop-buscar').addEventListener('input',e=>{
 });
 $('#pa-vertodo').addEventListener('click',()=>{ PA_EXPANDED=!PA_EXPANDED; renderPropAsesor(); });
 $('#sd-vertodo').addEventListener('click',()=>{ SIN_EXPANDED=!SIN_EXPANDED; renderSinDueno(); });
+
+// ===== Cierres =====
+const nomAsesorAd=(id)=>{const a=ASESORES.find(x=>x.id===id);return a?a.n:'Asesor'};
+const nomPropAd=(id)=>{const p=PROPS.find(x=>x.id===id);return p?(p.title||p.eb_public_id||'Propiedad'):'Propiedad'};
+const fFechaAd=(d)=>d?new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'}):'';
+function renderCierresPct(){
+  const host=$('#cierres-pct');
+  if(!host)return;
+  let htm='<div class="sec-head" style="margin-bottom:6px"><h3 style="margin:0;font-size:15px;color:var(--white)">⚙️ % que te corresponde por asesor</h3></div>'
+    +'<div class="repnote" style="margin:-2px 0 12px">Este % se aplica automáticamente al aprobar cada cierre para calcular lo que te toca de esa comisión.</div>';
+  ASESORES.forEach(a=>{
+    htm+='<div class="pctrow" data-aid="'+esc(a.id)+'"><div class="pn">'+esc(a.n)+'</div>'
+      +'<input type="number" class="pctinput" min="0" max="100" step="0.5" value="'+esc(a.pn)+'">'
+      +'<button class="pctsave hidden" type="button">Guardar</button></div>';
+  });
+  host.innerHTML=htm;
+  host.addEventListener('input',e=>{
+    const inp=e.target.closest('.pctinput');
+    if(!inp)return;
+    inp.closest('.pctrow').querySelector('.pctsave').classList.remove('hidden');
+  });
+  host.addEventListener('click',async e=>{
+    const btn=e.target.closest('.pctsave');
+    if(!btn)return;
+    const row=btn.closest('.pctrow');
+    const aid=row.dataset.aid;
+    const val=Number(row.querySelector('.pctinput').value);
+    btn.disabled=true;btn.textContent='...';
+    try{
+      const {error}=await sb.from('advisors').update({porcentaje_niva:val}).eq('id',aid);
+      if(error)throw error;
+      const a=ASESORES.find(x=>x.id===aid); if(a)a.pn=val;
+      toast('% actualizado');
+      btn.classList.add('hidden');btn.disabled=false;btn.textContent='Guardar';
+    }catch(err){
+      toast('Error: '+(err.message||'no se pudo actualizar'));
+      btn.disabled=false;btn.textContent='Guardar';
+    }
+  });
+}
+function renderCierresPendientes(){
+  const host=$('#cierres-pendientes');
+  if(!host)return;
+  const pend=CIERRES.filter(c=>c.estatus==='pendiente').sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  let htm='<div class="sec-head" style="margin-bottom:6px"><h3 style="margin:0;font-size:15px;color:var(--white)">⏳ Cierres pendientes de aprobación ('+pend.length+')</h3></div>';
+  if(!pend.length){htm+=vacioHTML('No hay cierres esperando aprobación.','✅')}
+  host.innerHTML=htm;
+  if(!pend.length)return;
+  const wrap=document.createElement('div');
+  pend.forEach(c=>{
+    const row=document.createElement('div');
+    row.className='cierrepend';
+    row.dataset.cid=c.id;
+    const montoNiva=(c.monto_comision*c.porcentaje_niva/100);
+    row.innerHTML='<div class="cmain"><div class="ct">'+esc(nomPropAd(c.property_id))+' · '+esc(c.cliente_nombre||'Cliente')+'</div>'
+      +'<div class="cm">'+[esc(nomAsesorAd(c.advisor_id)),c.operation_type==='rental'?'Renta':'Venta',c.compartida?'Compartida':'Directa',
+        fmt(c.monto_comision)+' comisión total',fmt(montoNiva)+' te corresponde ('+c.porcentaje_niva+'%)',fFechaAd(c.fecha_cierre||c.created_at)].filter(Boolean).join(' · ')+'</div></div>'
+      +'<div class="cbtns"><button class="cbtn ok" data-a="aprobado">✅ Aprobar</button><button class="cbtn no" data-a="rechazado">❌ Rechazar</button></div>';
+    wrap.appendChild(row);
+  });
+  host.appendChild(wrap);
+  wrap.addEventListener('click',async e=>{
+    const btn=e.target.closest('.cbtn');
+    if(!btn)return;
+    const row=btn.closest('.cierrepend');
+    const cid=row.dataset.cid;
+    const nuevoEstatus=btn.dataset.a;
+    row.querySelectorAll('.cbtn').forEach(b=>b.disabled=true);
+    btn.textContent='...';
+    try{
+      const {error}=await sb.from('cierres').update({estatus:nuevoEstatus,approved_at:new Date().toISOString()}).eq('id',cid);
+      if(error)throw error;
+      toast(nuevoEstatus==='aprobado'?'Cierre aprobado ✅':'Cierre rechazado');
+      await cargar();
+    }catch(err){
+      toast('Error: '+(err.message||'no se pudo actualizar'));
+      row.querySelectorAll('.cbtn').forEach(b=>b.disabled=false);
+    }
+  });
+}
+function renderCierresReportes(){
+  const host=$('#cierres-reportes');
+  if(!host)return;
+  const aprobados=CIERRES.filter(c=>c.estatus==='aprobado');
+  if(!aprobados.length){
+    host.innerHTML='<div class="sec-head" style="margin-bottom:6px"><h3 style="margin:0;font-size:15px;color:var(--white)">📊 Reportes de cierres</h3></div>'+vacioHTML('Todavía no hay cierres aprobados para generar reportes.','📭');
+    return;
+  }
+  const totalComision=aprobados.reduce((s,c)=>s+Number(c.monto_comision),0);
+  const totalNiva=aprobados.reduce((s,c)=>s+Number(c.monto_comision)*Number(c.porcentaje_niva)/100,0);
+  const resumen=tablaHTML('📈 Resumen de cierres aprobados',['Indicador','#Valor'],[
+    ['<strong>Cierres cerrados</strong>',aprobados.length],
+    ['<strong>Comisión total generada</strong>',fmt(totalComision)],
+    ['<strong>Lo que te corresponde a ti (NIVA)</strong>',fmt(totalNiva)],
+    ['Directas',aprobados.filter(c=>!c.compartida).length],
+    ['Compartidas',aprobados.filter(c=>c.compartida).length],
+  ],null);
+  const gA={};aprobados.forEach(c=>{(gA[c.advisor_id]=gA[c.advisor_id]||[]).push(c)});
+  const filasA=Object.entries(gA).map(([id,cs])=>({n:nomAsesorAd(id),cs}))
+    .sort((a,b)=>b.cs.length-a.cs.length)
+    .map(r=>[esc(r.n),r.cs.length,fmt(r.cs.reduce((s,c)=>s+Number(c.monto_comision),0)),fmt(r.cs.reduce((s,c)=>s+Number(c.monto_comision)*Number(c.porcentaje_niva)/100,0))]);
+  const porAsesor=tablaHTML('👔 Cierres por asesor',['Asesor','#Cierres','#Comisión total','#Te corresponde'],filasA,null);
+  const filasCli=aprobados.slice().sort((a,b)=>new Date(b.fecha_cierre||b.created_at)-new Date(a.fecha_cierre||a.created_at))
+    .map(c=>[esc(c.cliente_nombre||''),esc(nomPropAd(c.property_id)),esc(nomAsesorAd(c.advisor_id)),c.operation_type==='rental'?'Renta':'Venta',c.compartida?'Compartida':'Directa',fmt(c.monto_comision),fmt(Number(c.monto_comision)*Number(c.porcentaje_niva)/100),fFechaAd(c.fecha_cierre||c.created_at)]);
+  const porCliente=tablaHTML('👤 Cierres por cliente',['Cliente','Propiedad','Asesor','Tipo','#Modalidad','#Comisión','#Te corresponde','#Fecha'],filasCli,null);
+  const gM={};aprobados.forEach(c=>{const k=mesDeAd(c.fecha_cierre||c.created_at);(gM[k]=gM[k]||[]).push(c)});
+  const filasM=Object.entries(gM).sort((a,b)=>a[0]<b[0]?1:-1)
+    .map(([k,cs])=>[k,cs.length,fmt(cs.reduce((s,c)=>s+Number(c.monto_comision),0)),fmt(cs.reduce((s,c)=>s+Number(c.monto_comision)*Number(c.porcentaje_niva)/100,0))]);
+  const porMes=tablaHTML('📅 Cierres por mes',['Mes','#Cierres','#Comisión total','#Te corresponde'],filasM,null);
+  host.innerHTML='<div class="sec-head" style="margin-bottom:6px"><h3 style="margin:0;font-size:15px;color:var(--white)">📊 Reportes de cierres</h3>'
+    +'<button class="vertodo-btn" id="ci-download">⬇️ Descargar en Excel</button></div>'
+    +'<div id="ci-repout">'+resumen+porAsesor+porCliente+porMes+'</div>';
+  const dl=document.getElementById('ci-download');
+  if(dl)dl.onclick=()=>descargarTablaActualDe('ci-repout','cierres');
+}
+function mesDeAd(d){const t=new Date(d);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')}
+function descargarTablaActualDe(hostId,nombre){
+  const tablas=document.querySelectorAll('#'+hostId+' table.reptable');
+  if(!tablas.length){toast('No hay datos para descargar');return}
+  let heads=null, filas=[];
+  tablas.forEach((t,ti)=>{
+    const h=[...t.querySelectorAll('thead th')].map(th=>th.textContent.trim());
+    if(ti>0) filas.push(h.map(()=>''));
+    if(!heads) heads=h; else if(h.length>heads.length) heads=h;
+    t.querySelectorAll('tbody tr').forEach(tr=>{
+      filas.push([...tr.querySelectorAll('td')].map(td=>td.textContent.trim()));
+    });
+  });
+  descargarCSV(nombre,heads,filas);
+}
 
 // ===== Navegación lateral =====
 $('#anav').addEventListener('click',e=>{
