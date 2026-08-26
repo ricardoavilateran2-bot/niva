@@ -287,8 +287,8 @@ body[data-tab="props"] main{max-width:1280px}
   <div class="filtros" id="filtros">
     <button class="f on" data-f="todos">Todos</button>
     <button class="f" data-f="new">Nuevos</button>
-    <button class="f" data-f="contacted">Contactados</button>
-    <button class="f" data-f="attended">Atendidos</button>
+    <button class="f" data-f="contacted">Activos</button>
+    <button class="f" data-f="attended">Tibios</button>
     <button class="f" data-f="cancelled">Cancelados</button>
     <span class="fsep"></span>
     <button class="f v on" data-v="tablero">▦ Tablero</button>
@@ -407,7 +407,7 @@ const tipoLead=(l)=>l.contact_type||'unidentified';
 const esArchivado=(l)=>!!l.archived_at;
 let PT='todas', PO='todo', PS='pmin', PQ='', PE='activas', PROPSC=[];
 let VISTA='tablero'; // tablero | lista
-const EST={new:'NUEVO',contacted:'CONTACTADO',attended:'ATENDIDO',cancelled:'CANCELADO'};
+const EST={new:'NUEVO',contacted:'ACTIVO',attended:'TIBIO',cancelled:'CANCELADO'};
 const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa'};
 const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
 const ftel=(t)=>t?t.replace('+52',''):'';
@@ -747,7 +747,7 @@ function renderSinAsignar(host){
 }
 
 // ── Tablero por etapas (estilo pipeline) ─────────────────────────────
-const COLS=[['new','🟢 Nuevos'],['contacted','🟡 Contactados'],['attended','✅ Atendidos'],['cancelled','⛔ Cancelados']];
+const COLS=[['new','🟢 Nuevos'],['contacted','🟡 Activos'],['attended','🌤️ Tibios'],['cancelled','⛔ Cancelados']];
 const fechaLead=(l)=>new Date(l.happened_at||l.created_at||0).getTime();
 function abrirFicha(l){
   const m=document.createElement('div');m.id='modalFicha';
@@ -795,6 +795,7 @@ function renderTablero(host,arr){
   const kb=document.createElement('div');kb.className='kb';
   for(const [st,titulo] of COLS){
     const items=arr.filter(l=>l.status===st).sort((a,b)=>fechaLead(b)-fechaLead(a));
+    if(st==='new'&&!items.length)continue; // sin nuevos: no mostrar esa columna, que Activos quede primero
     const col=document.createElement('div');col.className='kbcol';col.dataset.st=st;
     col.innerHTML='<div class="kbh"><span>'+titulo+'</span><span class="kbn">'+items.length+'</span></div>';
     if(!items.length)col.insertAdjacentHTML('beforeend','<div class="kbvacia">Vacío</div>');
@@ -899,7 +900,7 @@ function cardLead(l){
     const msg=wab.querySelector('textarea').value;
     window.open('https://wa.me/'+l.phone_normalized.replace('+','')+'?text='+encodeURIComponent(msg),'_blank');
     await sb.from('lead_interactions').insert({lead_id:l.id,type:'whatsapp_click',actor:'advisor',payload:{message:msg}});
-    if(l.status==='new'){await sb.from('leads').update({status:'contacted'}).eq('id',l.id);l.status='contacted';toast('Lead marcado como CONTACTADO');pintar();cargarContadores()}
+    if(l.status==='new'){await sb.from('leads').update({status:'contacted'}).eq('id',l.id);l.status='contacted';toast('Lead marcado como ACTIVO');pintar();cargarContadores()}
   };
   const telA=d.querySelector('.tel');
   if(telA)telA.addEventListener('click',()=>{sb.from('lead_interactions').insert({lead_id:l.id,type:'call_click',actor:'advisor',payload:{}})});
@@ -1086,8 +1087,8 @@ function repResumen(){
     fila('Leads activos',act.length),
     fila('Leads archivados',L.length-act.length),
     fila('· Nuevos sin atender',st('new')+' ('+pct(st('new'),act.length)+')'),
-    fila('· Contactados',st('contacted')+' ('+pct(st('contacted'),act.length)+')'),
-    fila('· Atendidos',st('attended')+' ('+pct(st('attended'),act.length)+')'),
+    fila('· Activos',st('contacted')+' ('+pct(st('contacted'),act.length)+')'),
+    fila('· Tibios',st('attended')+' ('+pct(st('attended'),act.length)+')'),
     fila('· Cancelados',st('cancelled')+' ('+pct(st('cancelled'),act.length)+')'),
     fila('Clientes',tipo('client')),
     fila('Asesores externos (colegas)',tipo('agent')),
@@ -1110,10 +1111,10 @@ function repEmbudo(){
   const bar=(n)=>'<div class="repbar" style="width:'+(t?Math.max(2,Math.round(n*100/t)):0)+'%"></div>';
   return tablaHTML('🔻 Embudo de conversión',['Etapa','#Leads','#% del total','Avance'],[
     ['Leads recibidos',t,'100%',bar(t)],
-    ['Contactados o más',cont,pct(cont,t),bar(cont)],
-    ['Atendidos',aten,pct(aten,t),bar(aten)],
+    ['Activos o más',cont,pct(cont,t),bar(cont)],
+    ['Tibios',aten,pct(aten,t),bar(aten)],
     ['Cancelados',canc,pct(canc,t),bar(canc)],
-  ],'De los contactados, el '+pct(aten,cont)+' llegó a atendido. El objetivo: que "Nuevos sin atender" tienda a cero.');
+  ],'De los activos, el '+pct(aten,cont)+' llegó a tibio. El objetivo: que "Nuevos sin atender" tienda a cero.');
 }
 function repAsesor(){
   const g={};REP.L.filter(x=>!x.archived_at).forEach(l=>{const k=l.advisor_id||'—';(g[k]=g[k]||[]).push(l)});
@@ -1125,7 +1126,7 @@ function repAsesor(){
       r.ls.filter(x=>x.status==='attended').length,
       pct(r.ls.filter(x=>x.status==='attended').length,r.ls.length),
       r.ls.filter(x=>x.source==='manual_asesor').length]);
-  return tablaHTML('👔 Desempeño por asesor',['Asesor','#Leads','#Nuevos','#Contactados','#Atendidos','#% atención','#Capturas directas'],filas,
+  return tablaHTML('👔 Desempeño por asesor',['Asesor','#Leads','#Nuevos','#Activos','#Tibios','#% atención','#Capturas directas'],filas,
     '"Sin asignar" son los leads de portales que aún no tienen asesor. Asignarlos es la palanca más rápida para subir la atención.');
 }
 function repProp(){
@@ -1454,4 +1455,3 @@ const {data:{session}}=await sb.auth.getSession();
 if(session)iniciar();
 </script>
 </body></html>
-<!-- captaciones module deploy retry -->
