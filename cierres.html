@@ -163,13 +163,11 @@ textarea { resize: vertical; min-height: 80px; }
     <div class="form-grid">
       <div class="form-group" id="ci-prop-wrap">
         <label for="ci-prop">Propiedad</label>
-        <select id="ci-prop"><option value="">— Selecciona una propiedad —</option></select>
-        <button type="button" class="addtoggle" id="ci-prop-add">+ Agregar propiedad nueva (no está en el CRM)</button>
+        <input id="ci-prop" placeholder="Dirección o referencia de la propiedad">
       </div>
       <div class="form-group" id="ci-cliente-wrap">
         <label for="ci-cliente">Cliente</label>
-        <select id="ci-cliente"><option value="">— Selecciona un cliente —</option></select>
-        <button type="button" class="addtoggle" id="ci-cliente-add">+ Agregar cliente nuevo (no está en el CRM)</button>
+        <input id="ci-cliente" placeholder="Nombre del cliente">
       </div>
       <div class="form-group">
         <label for="ci-asesor">Asesor responsable</label>
@@ -248,68 +246,7 @@ function poblarSelects(){
   const selA=$('#ci-asesor');
   selA.innerHTML='<option value="">— Selecciona el asesor —</option>'
     +ASESORES.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.n)+'</option>').join('');
-  actualizarPropiedad();
-  actualizarSelectCliente();
 }
-let PROP_MANUAL=false, CLI_MANUAL=false;
-function propForzadoManual(){ return COMPARTIDA && TRAIGO!=='propiedad'; }
-function cliForzadoManual(){ return COMPARTIDA && TRAIGO!=='cliente'; }
-function propEsManual(){ return propForzadoManual() || PROP_MANUAL; }
-function cliEsManual(){ return cliForzadoManual() || CLI_MANUAL; }
-
-function actualizarSelectCliente(){
-  const addBtn=$('#ci-cliente-add');
-  const forzado=cliForzadoManual();
-  const manual=cliEsManual();
-  addBtn.classList.toggle('hidden',forzado);
-  addBtn.textContent = manual ? '↺ Usar lista de clientes del CRM' : '+ Agregar cliente nuevo (no está en el CRM)';
-  const old=$('#ci-cliente');
-  let el;
-  if(!manual){
-    el=document.createElement('select'); el.id='ci-cliente';
-    el.innerHTML='<option value="">— Selecciona un cliente —</option>'
-      +CONTACTS.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.full_name||c.phone_normalized||'Cliente')+'</option>').join('');
-  }else{
-    el=document.createElement('input'); el.id='ci-cliente';
-    el.placeholder = forzado ? 'Nombre del cliente (lo trajo el otro asesor)' : 'Nombre del cliente nuevo';
-  }
-  old.replaceWith(el);
-  const lbl=$('label[for="ci-cliente"]');
-  if(lbl) lbl.innerHTML = 'Cliente'+(forzado?' <small>(lo trajo el otro asesor)</small>':'');
-}
-function actualizarPropiedad(){
-  const addBtn=$('#ci-prop-add');
-  const forzado=propForzadoManual();
-  const manual=propEsManual();
-  addBtn.classList.toggle('hidden',forzado);
-  addBtn.textContent = manual ? '↺ Usar lista de propiedades del CRM' : '+ Agregar propiedad nueva (no está en el CRM)';
-  const old=$('#ci-prop');
-  let el;
-  if(!manual){
-    const ps=PROPS.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||'')));
-    el=document.createElement('select'); el.id='ci-prop';
-    el.innerHTML='<option value="">— Selecciona una propiedad —</option>'
-      +ps.map(p=>'<option value="'+esc(p.id)+'" data-op="'+esc(p.operation_type||'')+'">'+esc(p.title||p.eb_public_id||'')+'</option>').join('');
-    el.addEventListener('change',()=>{
-      const opt=el.selectedOptions[0];
-      const op=opt?.dataset.op;
-      if(op==='rental'||op==='sale')$('#ci-op').value=op;
-      const p=PROPS.find(x=>x.id===opt?.value);
-      if(p){
-        if(p.price_amount && !$('#ci-valor').value) $('#ci-valor').value=p.price_amount;
-        if(p.location_name && !$('#ci-ubicacion').value) $('#ci-ubicacion').value=p.location_name;
-      }
-    });
-  }else{
-    el=document.createElement('input'); el.id='ci-prop';
-    el.placeholder = forzado ? 'Dirección o referencia de la propiedad (la trajo el otro asesor)' : 'Dirección o referencia de la propiedad nueva';
-  }
-  old.replaceWith(el);
-  const lbl=$('label[for="ci-prop"]');
-  if(lbl) lbl.innerHTML = 'Propiedad'+(forzado?' <small>(la trajo el otro asesor)</small>':'');
-}
-$('#ci-prop-add').addEventListener('click',()=>{ PROP_MANUAL=!PROP_MANUAL; actualizarPropiedad(); });
-$('#ci-cliente-add').addEventListener('click',()=>{ CLI_MANUAL=!CLI_MANUAL; actualizarSelectCliente(); });
 $('#ci-tipo-tog').addEventListener('click',e=>{
   const b=e.target.closest('button[data-v]');
   if(!b)return;
@@ -323,42 +260,29 @@ $('#ci-compartida-tog').addEventListener('click',e=>{
   document.querySelectorAll('#ci-compartida-tog button').forEach(x=>x.classList.toggle('on',x===b));
   COMPARTIDA = b.dataset.v==='si';
   $('#ci-traigo-wrap').classList.toggle('hidden',!COMPARTIDA);
-  actualizarPropiedad();
-  actualizarSelectCliente();
 });
 $('#ci-traigo-tog').addEventListener('click',e=>{
   const b=e.target.closest('button[data-v]');
   if(!b)return;
   document.querySelectorAll('#ci-traigo-tog button').forEach(x=>x.classList.toggle('on',x===b));
   TRAIGO=b.dataset.v;
-  actualizarPropiedad();
-  actualizarSelectCliente();
 });
 
 async function guardarCierre(){
   const propEl=$('#ci-prop'), cliEl=$('#ci-cliente');
-  const propEsCrm = !propEsManual();
-  const cliEsCrm = !cliEsManual();
   const advisorId=$('#ci-asesor').value;
   const op=$('#ci-op').value;
   const monto=Number($('#ci-monto').value);
   const notas=$('#ci-notas').value.trim();
   const err=$('#ci-err'), btn=$('#ci-save');
 
-  let propId=null, propExterna=null;
-  if(propEsCrm){ if(!propEl.value){err.textContent='Elige la propiedad que se cerró.';return} propId=propEl.value; }
-  else { const t=propEl.value.trim(); if(t.length<3){err.textContent='Escribe la propiedad (referencia del otro asesor).';return} propExterna=t; }
+  const propExterna=propEl.value.trim();
+  if(propExterna.length<3){err.textContent='Escribe la propiedad que se cerró.';return}
+  const propId=null;
 
-  let contactId=null, clienteNombre='';
-  if(cliEsCrm){
-    if(!cliEl.value){err.textContent='Elige el cliente.';return}
-    contactId=cliEl.value;
-    const c=CONTACTS.find(x=>x.id===contactId);
-    clienteNombre=c?(c.full_name||c.phone_normalized||'Cliente'):'Cliente';
-  }else{
-    const t=cliEl.value.trim(); if(t.length<3){err.textContent='Escribe el nombre del cliente (lo trajo el otro asesor).';return}
-    clienteNombre=t;
-  }
+  const clienteNombre=cliEl.value.trim();
+  if(clienteNombre.length<3){err.textContent='Escribe el nombre del cliente.';return}
+  const contactId=null;
 
   if(!advisorId){err.textContent='Elige el asesor responsable.';return}
   if(!monto||monto<=0){err.textContent='Escribe la comisión total recibida.';return}
@@ -381,6 +305,7 @@ async function guardarCierre(){
   if(error){err.textContent=error.message||'No se pudo registrar el cierre.';return}
   toast(TIPO==='apartado' ? 'Apartado registrado 🟢' : 'Cierre registrado — pendiente de aprobación ✅');
   $('#ci-monto').value='';$('#ci-notas').value='';$('#ci-valor').value='';$('#ci-ubicacion').value='';
+  $('#ci-prop').value='';$('#ci-cliente').value='';
   await cargar();
 }
 $('#ci-save').onclick=guardarCierre;
