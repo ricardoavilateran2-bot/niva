@@ -88,6 +88,7 @@ textarea { resize: vertical; min-height: 80px; }
 .cierrebadge.pendiente{background:rgba(234,179,8,.15);color:#eab308}
 .cierrebadge.aprobado{background:rgba(74,222,128,.15);color:#4ade80}
 .cierrebadge.rechazado{background:rgba(248,113,113,.15);color:#f87171}
+.cierrebadge.apartado{background:rgba(74,222,128,.15);color:#4ade80}
 .pctrow{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:10px 16px;margin-bottom:8px}
 .pctrow .pn{flex:1;font-weight:700;font-size:13.5px;color:var(--white)}
 .pctrow input.pctinput{width:70px;padding:7px 9px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:var(--white);font-size:13px;text-align:right;font-family:'Inter',sans-serif}
@@ -137,6 +138,13 @@ textarea { resize: vertical; min-height: 80px; }
   <div class="section-title"><span>Nuevo cierre</span></div>
   <div class="form-card">
     <div class="form-group full">
+      <label>¿Qué estás registrando?</label>
+      <div class="filtros2" id="ci-tipo-tog">
+        <button class="on" data-v="confirmado">✅ Cierre confirmado</button>
+        <button data-v="apartado">🟢 Apartado / posible cierre (en verde)</button>
+      </div>
+    </div>
+    <div class="form-group full">
       <label>¿Fue una operación compartida con otro asesor?</label>
       <div class="filtros2" id="ci-compartida-tog">
         <button class="on" data-v="no">No, fue directa</button>
@@ -171,6 +179,14 @@ textarea { resize: vertical; min-height: 80px; }
         <label for="ci-monto">Comisión total recibida <small>(antes del pago a NIVA)</small></label>
         <input id="ci-monto" inputmode="decimal" placeholder="Ej. 45000">
       </div>
+      <div class="form-group">
+        <label for="ci-valor">Valor de la propiedad <small>(portafolio, opcional)</small></label>
+        <input id="ci-valor" inputmode="decimal" placeholder="Ej. 3200000">
+      </div>
+      <div class="form-group">
+        <label for="ci-ubicacion">Ubicación <small>(opcional)</small></label>
+        <input id="ci-ubicacion" placeholder="Ej. Cumbres, Monterrey">
+      </div>
       <div class="form-group full">
         <label for="ci-notas">Notas <small>(opcional)</small></label>
         <textarea id="ci-notas" rows="2" placeholder="Detalles adicionales del cierre"></textarea>
@@ -200,7 +216,7 @@ function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');se
 function vacioHTML(txt,icon){return '<div class="vacio"><span class="vi">'+(icon||'📭')+'</span>'+txt+'</div>'}
 
 let PROPS=[], CONTACTS=[], ASESORES=[], CIERRES=[], ESADMIN=false, USUARIO='';
-let COMPARTIDA=false, TRAIGO='propiedad';
+let COMPARTIDA=false, TRAIGO='propiedad', TIPO='confirmado';
 
 async function cargar(){
   const uname=(session.user?.email||'').split('@')[0];
@@ -247,13 +263,26 @@ function actualizarPropiedad(){
     wrap.innerHTML='<label for="ci-prop">Propiedad</label><select id="ci-prop"><option value="">— Selecciona una propiedad —</option>'
       +ps.map(p=>'<option value="'+esc(p.id)+'" data-op="'+esc(p.operation_type||'')+'">'+esc(p.title||p.eb_public_id||'')+'</option>').join('')+'</select>';
     $('#ci-prop').addEventListener('change',()=>{
-      const op=$('#ci-prop').selectedOptions[0]?.dataset.op;
+      const opt=$('#ci-prop').selectedOptions[0];
+      const op=opt?.dataset.op;
       if(op==='rental'||op==='sale')$('#ci-op').value=op;
+      const p=PROPS.find(x=>x.id===opt?.value);
+      if(p){
+        if(p.price_amount && !$('#ci-valor').value) $('#ci-valor').value=p.price_amount;
+        if(p.location_name && !$('#ci-ubicacion').value) $('#ci-ubicacion').value=p.location_name;
+      }
     });
   }else{
     wrap.innerHTML='<label for="ci-prop">Propiedad <small>(la trajo el otro asesor)</small></label><input id="ci-prop" placeholder="Dirección o referencia de la propiedad">';
   }
 }
+$('#ci-tipo-tog').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-v]');
+  if(!b)return;
+  document.querySelectorAll('#ci-tipo-tog button').forEach(x=>x.classList.toggle('on',x===b));
+  TIPO=b.dataset.v;
+  $('#ci-save').textContent = TIPO==='apartado' ? 'Registrar apartado (en verde)' : 'Registrar cierre';
+});
 $('#ci-compartida-tog').addEventListener('click',e=>{
   const b=e.target.closest('button[data-v]');
   if(!b)return;
@@ -299,7 +328,10 @@ async function guardarCierre(){
 
   if(!advisorId){err.textContent='Elige el asesor responsable.';return}
   if(!monto||monto<=0){err.textContent='Escribe la comisión total recibida.';return}
+  const valorProp=Number($('#ci-valor').value)||null;
+  const ubicacion=$('#ci-ubicacion').value.trim()||null;
   const asesor=ASESORES.find(a=>a.id===advisorId);
+  const estatusInicial = TIPO==='apartado' ? 'apartado' : 'pendiente';
   err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
   const {error}=await sb.from('cierres').insert({
     property_id:propId, property_externa:propExterna,
@@ -307,12 +339,14 @@ async function guardarCierre(){
     advisor_id:advisorId, operation_type:op,
     compartida:COMPARTIDA, trae:COMPARTIDA?TRAIGO:null,
     monto_comision:monto, porcentaje_niva:asesor?asesor.pn:20,
+    valor_propiedad:valorProp, ubicacion:ubicacion,
+    estatus:estatusInicial,
     notas:notas||null, registrado_por:USUARIO
   });
-  btn.disabled=false;btn.textContent='Registrar cierre';
+  btn.disabled=false;btn.textContent = TIPO==='apartado' ? 'Registrar apartado (en verde)' : 'Registrar cierre';
   if(error){err.textContent=error.message||'No se pudo registrar el cierre.';return}
-  toast('Cierre registrado — pendiente de aprobación ✅');
-  $('#ci-monto').value='';$('#ci-notas').value='';
+  toast(TIPO==='apartado' ? 'Apartado registrado 🟢' : 'Cierre registrado — pendiente de aprobación ✅');
+  $('#ci-monto').value='';$('#ci-notas').value='';$('#ci-valor').value='';$('#ci-ubicacion').value='';
   await cargar();
 }
 $('#ci-save').onclick=guardarCierre;
@@ -322,7 +356,7 @@ function nomProp(c){ if(c.property_externa) return c.property_externa+' (externa
 function renderLista(){
   const host=$('#ci-lista');
   if(!CIERRES.length){host.innerHTML=vacioHTML('Todavía no hay cierres registrados. Usa el formulario de arriba.','🤝');return}
-  const ESTL={pendiente:'⏳ Pendiente',aprobado:'✅ Aprobado',rechazado:'❌ Rechazado'};
+  const ESTL={pendiente:'⏳ Pendiente',aprobado:'✅ Aprobado',rechazado:'❌ Rechazado',apartado:'🟢 En verde'};
   const wrap=document.createElement('div');
   CIERRES.forEach(c=>{
     const row=document.createElement('div');
@@ -359,9 +393,11 @@ function renderAdminZona(){
   const host=$('#admin-zona');
   host.innerHTML='<div class="section-title"><span>⚙️ % que te corresponde por asesor</span></div><div id="az-pct"></div>'
     +'<div class="section-title"><span>⏳ Pendientes de aprobación</span></div><div id="az-pend"></div>'
+    +'<div class="section-title"><span>🟢 Apartados / posibles cierres (en verde)</span></div><div id="az-verde"></div>'
     +'<div class="section-title" style="display:flex;justify-content:space-between"><span>📊 Reportes de cierres</span><button class="vertodo-btn" id="az-download">⬇️ Descargar en Excel</button></div><div id="az-rep"></div>';
   renderPct();
   renderPend();
+  renderApartados();
   renderRep();
   const dl=$('#az-download');
   if(dl)dl.onclick=()=>descargarTablaActual();
@@ -436,6 +472,43 @@ function renderPend(){
     }
   });
 }
+function renderApartados(){
+  const host=$('#az-verde');
+  const verdes=CIERRES.filter(c=>c.estatus==='apartado');
+  if(!verdes.length){host.innerHTML=vacioHTML('No hay apartados o posibles cierres registrados.','🟢');return}
+  const wrap=document.createElement('div');
+  verdes.forEach(c=>{
+    const row=document.createElement('div');
+    row.className='cierrepend';
+    row.dataset.cid=c.id;
+    const montoNiva=(c.monto_comision*c.porcentaje_niva/100);
+    row.innerHTML='<div class="cmain"><div class="ct">'+esc(nomProp(c))+' · '+esc(c.cliente_nombre||'Cliente')+'</div>'
+      +'<div class="cm">'+[esc(nomAsesor(c.advisor_id)),c.operation_type==='rental'?'Renta':'Venta',c.compartida?'Compartida':'Directa',
+        fmt(c.monto_comision)+' comisión estimada',fmt(montoNiva)+' te corresponde ('+c.porcentaje_niva+'%)',fFecha(c.fecha_cierre||c.created_at)].filter(Boolean).join(' · ')+'</div></div>'
+      +'<div class="cbtns"><button class="cbtn ok" data-a="cerrar">✅ Ya se cerró</button><button class="cbtn no" data-a="cancelar">❌ Cayó</button></div>';
+    wrap.appendChild(row);
+  });
+  host.innerHTML='';
+  host.appendChild(wrap);
+  wrap.addEventListener('click',async e=>{
+    const btn=e.target.closest('.cbtn');
+    if(!btn)return;
+    const row=btn.closest('.cierrepend');
+    const cid=row.dataset.cid;
+    const nuevoEstatus=btn.dataset.a==='cerrar'?'pendiente':'rechazado';
+    row.querySelectorAll('.cbtn').forEach(b=>b.disabled=true);
+    btn.textContent='...';
+    try{
+      const {error}=await sb.from('cierres').update({estatus:nuevoEstatus}).eq('id',cid);
+      if(error)throw error;
+      toast(nuevoEstatus==='pendiente'?'Pasó a pendiente de aprobación ⏳':'Apartado cancelado');
+      await cargar();
+    }catch(err){
+      toast('Error: '+(err.message||'no se pudo actualizar'));
+      row.querySelectorAll('.cbtn').forEach(b=>b.disabled=false);
+    }
+  });
+}
 function renderRep(){
   const host=$('#az-rep');
   const aprobados=CIERRES.filter(c=>c.estatus==='aprobado');
@@ -461,7 +534,28 @@ function renderRep(){
   const filasM=Object.entries(gM).sort((a,b)=>a[0]<b[0]?1:-1)
     .map(([k,cs])=>[k,cs.length,fmt(cs.reduce((s,c)=>s+Number(c.monto_comision),0)),fmt(cs.reduce((s,c)=>s+Number(c.monto_comision)*Number(c.porcentaje_niva)/100,0))]);
   const porMes=tablaHTML('📅 Por mes',['Mes','#Cierres','#Comisión total','#Te corresponde'],filasM,null);
-  host.innerHTML=resumen+porAsesor+porCliente+porMes;
+  host.innerHTML=resumen+porAsesor+porCliente+porMes+renderHojaPorAsesor(aprobados);
+}
+function mesEtiqueta(d){return d?new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}):''}
+function renderHojaPorAsesor(aprobados){
+  let out='<div class="section-title"><span>📋 Hoja por asesor (pagado vs. en verde)</span></div>';
+  ASESORES.forEach(a=>{
+    const pagados=aprobados.filter(c=>c.advisor_id===a.id);
+    const verdes=CIERRES.filter(c=>c.estatus==='apartado' && c.advisor_id===a.id);
+    if(!pagados.length && !verdes.length) return;
+    const filasPag=pagados.map(c=>[mesEtiqueta(c.fecha_cierre||c.created_at),fmt(c.monto_comision),c.porcentaje_niva+'%',fmt(c.monto_comision*c.porcentaje_niva/100),c.valor_propiedad?fmt(c.valor_propiedad):'',esc(c.ubicacion||nomProp(c))]);
+    const totPagFact=pagados.reduce((s,c)=>s+Number(c.monto_comision),0);
+    const totPagNiva=pagados.reduce((s,c)=>s+Number(c.monto_comision)*Number(c.porcentaje_niva)/100,0);
+    filasPag.push(['<strong>TOTAL</strong>','<strong>'+fmt(totPagFact)+'</strong>','','<strong>'+fmt(totPagNiva)+'</strong>','','']);
+    const tablaPag=tablaHTML('✅ Pagado — '+esc(a.n),['Mes','#Facturación','%','#Pagado (a NIVA)','#Portafolio','Ubicación'],filasPag,null);
+    const filasVerde=verdes.map(c=>[fmt(c.monto_comision),c.porcentaje_niva+'%',fmt(c.monto_comision*c.porcentaje_niva/100)]);
+    const totVerFact=verdes.reduce((s,c)=>s+Number(c.monto_comision),0);
+    const totVerNiva=verdes.reduce((s,c)=>s+Number(c.monto_comision)*Number(c.porcentaje_niva)/100,0);
+    filasVerde.push(['<strong>'+fmt(totVerFact)+'</strong>','','<strong>'+fmt(totVerNiva)+'</strong>']);
+    const tablaVerde=tablaHTML('🟢 En verde (posibles) — '+esc(a.n),['#Facturación','%','#X pagar'],filasVerde,null);
+    out+='<div class="form-grid">'+'<div class="form-group full">'+tablaPag+'</div><div class="form-group full">'+tablaVerde+'</div></div>';
+  });
+  return out;
 }
 function descargarTablaActual(){
   const tablas=document.querySelectorAll('#az-rep table.reptable');
