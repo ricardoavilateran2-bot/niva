@@ -128,6 +128,18 @@ textarea { resize: vertical; min-height: 80px; }
 .hojasec{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 @media (max-width: 760px){.hojasec{grid-template-columns:1fr}}
 .vertodo-btn{padding:9px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--gold),#b8922e);color:var(--navy2);font-size:12.5px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif}
+.cierrerow{position:relative}
+.edit-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:11.5px;font-weight:700;padding:7px 12px;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap}
+.edit-btn:hover{background:rgba(201,168,76,.18);border-color:rgba(201,168,76,.4);color:var(--gold2)}
+.modalbg{position:fixed;inset:0;z-index:100;background:rgba(5,10,20,.72);display:flex;align-items:center;justify-content:center;padding:20px}
+.modalbg.hidden{display:none}
+.modalbox{background:#16233d;border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:24px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto}
+.modalhead{display:flex;align-items:center;justify-content:space-between;font-size:16px;font-weight:800;color:var(--white);margin-bottom:18px}
+.modalx{background:none;border:none;color:rgba(255,255,255,.5);font-size:16px;cursor:pointer;padding:4px}
+.modalx:hover{color:#fff}
+.modalbtns{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.mdel{margin-top:8px;padding:13px 20px;background:rgba(248,113,113,.14);color:#f87171;border:1px solid rgba(248,113,113,.3);border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.mdel:hover{background:rgba(248,113,113,.22)}
 </style>
 </head>
 <body>
@@ -220,6 +232,51 @@ textarea { resize: vertical; min-height: 80px; }
 
   <div id="admin-zona"></div>
 
+</div>
+
+<div class="modalbg hidden" id="edit-modal">
+  <div class="modalbox">
+    <div class="modalhead"><span>✏️ Editar cierre</span><button id="edit-close" class="modalx" type="button">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="ed-prop">Propiedad</label>
+        <input id="ed-prop">
+      </div>
+      <div class="form-group">
+        <label for="ed-cliente">Cliente</label>
+        <input id="ed-cliente">
+      </div>
+      <div class="form-group">
+        <label for="ed-op">Tipo de operación</label>
+        <select id="ed-op"><option value="sale">Venta</option><option value="rental">Renta</option></select>
+      </div>
+      <div class="form-group">
+        <label for="ed-fecha">Fecha del cierre</label>
+        <input id="ed-fecha" type="date">
+      </div>
+      <div class="form-group full">
+        <label for="ed-monto">Comisión total recibida</label>
+        <input id="ed-monto" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label for="ed-valor">Valor de la propiedad <small>(opcional)</small></label>
+        <input id="ed-valor" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label for="ed-ubicacion">Ubicación <small>(opcional)</small></label>
+        <input id="ed-ubicacion">
+      </div>
+      <div class="form-group full">
+        <label for="ed-notas">Notas <small>(opcional)</small></label>
+        <textarea id="ed-notas" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="merr" id="ed-err"></div>
+    <div class="modalbtns">
+      <button id="ed-save" class="msave" type="button">Guardar cambios</button>
+      <button id="ed-del" class="mdel" type="button">🗑️ Eliminar cierre</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -347,9 +404,10 @@ function nomAsesor(id){const a=ASESORES.find(x=>x.id===id);return a?a.n:'Asesor'
 function nomAsesorCierre(c){ if(c.advisor_id) return nomAsesor(c.advisor_id); return c.advisor_nombre||'Asesor' }
 function nomProp(c){ if(c.property_externa) return c.property_externa; const p=PROPS.find(x=>x.id===c.property_id); return p?(p.title||p.eb_public_id||'Propiedad'):'Propiedad' }
 function filaCierreHTML(c){
-  return '<div class="cierrerow"><div class="cmain"><div class="ct">'+esc(nomProp(c))+' · '+esc(c.cliente_nombre||'Cliente')+'</div>'
+  return '<div class="cierrerow" data-cid="'+esc(c.id)+'"><div class="cmain"><div class="ct">'+esc(nomProp(c))+' · '+esc(c.cliente_nombre||'Cliente')+'</div>'
     +'<div class="cm">'+[esc(nomAsesorCierre(c)),c.compartida?('Compartida · trajiste '+(c.trae==='propiedad'?'la propiedad':'el cliente')):'Directa',fFecha(c.fecha_cierre||c.created_at)].filter(Boolean).join(' · ')+'</div></div>'
-    +'<div class="cmonto">'+fmt(c.monto_comision)+'</div></div>';
+    +'<div class="cmonto">'+fmt(c.monto_comision)+'</div>'
+    +'<button type="button" class="edit-btn" data-editcierre="'+esc(c.id)+'">✏️ Editar</button></div>';
 }
 function esMiCierre(c){
   if(MI_ASESOR) return c.advisor_id===MI_ASESOR.id || (!c.advisor_id && (c.advisor_nombre||'').trim().toLowerCase()===MI_ASESOR.n.trim().toLowerCase());
@@ -376,7 +434,76 @@ function renderLista(){
   const totalGeneral=ordenados.reduce((s,c)=>s+Number(c.monto_comision),0);
   out+='<div class="citotal"><span class="ct">Total ('+ordenados.length+' cierres)</span><span class="cmonto">'+fmt(totalGeneral)+'</span></div>';
   host.innerHTML=out;
+  host.querySelectorAll('[data-editcierre]').forEach(btn=>{
+    btn.onclick=()=>abrirEdicion(btn.dataset.editcierre);
+  });
 }
+
+// ===== Edición de cierres ya guardados =====
+let EDIT_ID=null;
+function abrirEdicion(cid){
+  const c=CIERRES.find(x=>x.id===cid);
+  if(!c)return;
+  if(!ESADMIN && !esMiCierre(c)){toast('Solo puedes editar tus propios cierres.');return}
+  EDIT_ID=cid;
+  $('#ed-prop').value=c.property_externa||'';
+  $('#ed-cliente').value=c.cliente_nombre||'';
+  $('#ed-op').value=c.operation_type==='rental'?'rental':'sale';
+  $('#ed-fecha').value=(c.fecha_cierre||'').slice(0,10)||new Date(c.created_at).toISOString().slice(0,10);
+  $('#ed-monto').value=c.monto_comision??'';
+  $('#ed-valor').value=c.valor_propiedad??'';
+  $('#ed-ubicacion').value=c.ubicacion||'';
+  $('#ed-notas').value=c.notas||'';
+  $('#ed-err').textContent='';
+  $('#edit-modal').classList.remove('hidden');
+}
+function cerrarEdicion(){ $('#edit-modal').classList.add('hidden'); EDIT_ID=null; }
+$('#edit-close').onclick=cerrarEdicion;
+$('#edit-modal').addEventListener('click',e=>{ if(e.target.id==='edit-modal') cerrarEdicion(); });
+$('#ed-save').onclick=async()=>{
+  if(!EDIT_ID)return;
+  const propExterna=$('#ed-prop').value.trim();
+  const clienteNombre=$('#ed-cliente').value.trim();
+  const monto=Number($('#ed-monto').value);
+  const err=$('#ed-err'), btn=$('#ed-save');
+  if(propExterna.length<3){err.textContent='Escribe la propiedad.';return}
+  if(clienteNombre.length<3){err.textContent='Escribe el cliente.';return}
+  if(!monto||monto<=0){err.textContent='Escribe la comisión total recibida.';return}
+  const fecha=$('#ed-fecha').value || new Date().toISOString().slice(0,10);
+  const valorProp=Number($('#ed-valor').value)||null;
+  const ubicacion=$('#ed-ubicacion').value.trim()||null;
+  const notas=$('#ed-notas').value.trim()||null;
+  err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
+  let error=null;
+  try{
+    const r=await sb.from('cierres').update({
+      property_externa:propExterna, cliente_nombre:clienteNombre,
+      operation_type:$('#ed-op').value, monto_comision:monto,
+      fecha_cierre:fecha, valor_propiedad:valorProp, ubicacion:ubicacion, notas:notas
+    }).eq('id',EDIT_ID);
+    error=r.error;
+  }catch(ex){ error=ex; }
+  btn.disabled=false;btn.textContent='Guardar cambios';
+  if(error){err.textContent=error.message||'No se pudo guardar el cambio.';return}
+  toast('Cierre actualizado ✅');
+  cerrarEdicion();
+  await cargar();
+};
+$('#ed-del').onclick=async()=>{
+  if(!EDIT_ID)return;
+  if(!confirm('¿Seguro que quieres eliminar este cierre? Esta acción no se puede deshacer.'))return;
+  const btn=$('#ed-del'); btn.disabled=true;btn.textContent='Eliminando...';
+  try{
+    const {error}=await sb.from('cierres').delete().eq('id',EDIT_ID);
+    if(error)throw error;
+    toast('Cierre eliminado');
+    cerrarEdicion();
+    await cargar();
+  }catch(err){
+    $('#ed-err').textContent=err.message||'No se pudo eliminar.';
+    btn.disabled=false;btn.textContent='🗑️ Eliminar cierre';
+  }
+};
 
 // ===== Zona de administrador =====
 function tablaHTML(titulo,heads,filas,nota,hoja){
