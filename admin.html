@@ -164,6 +164,9 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .anav-item.on{background:rgba(201,168,76,.15);color:var(--gold)}
 .back-btn2{font-size:.72rem;color:rgba(255,255,255,.4);padding:10px 13px;text-decoration:none;white-space:nowrap;margin-top:10px}
 .back-btn2:hover{color:var(--gold)}
+.niva-backfab{position:fixed;top:14px;left:14px;z-index:99999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:8px 14px;border-radius:9px;text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);display:inline-flex;align-items:center;gap:6px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .22s ease,transform .22s ease}
+.niva-backfab.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.niva-backfab:hover{background:#22345c}
 .acontent{flex:1;min-width:0;padding:32px 28px 80px;max-width:1040px}
 .asec{display:none}
 .asec.on{display:block}
@@ -181,6 +184,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 </style>
 </head>
 <body>
+<a href="./index.html" id="niva-backfab" class="niva-backfab">&larr; NIVA OS</a>
 
 <div class="bg-pattern"></div>
 <div class="bg-grid"></div>
@@ -201,7 +205,6 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <a class="anav-item" href="cierres.html" style="text-decoration:none;display:flex">🤝 Cierres</a>
       <button class="anav-item" data-sec="reportes">📊 Reportes</button>
     </nav>
-    <a href="index.html" class="back-btn2">← Panel principal</a>
   </aside>
 
   <main class="acontent">
@@ -862,6 +865,20 @@ async function renderReportes(){
 
 cargar();
 renderReportes();
+
+(function(){
+  var btn=document.getElementById('niva-backfab');
+  if(!btn) return;
+  var lastY=window.pageYOffset||0, ticking=false;
+  function upd(){
+    var y=window.pageYOffset||0;
+    if(y<40 || y<lastY-4){ btn.classList.add('show'); }
+    else if(y>lastY+4){ btn.classList.remove('show'); }
+    lastY=y; ticking=false;
+  }
+  window.addEventListener('scroll',function(){ if(!ticking){requestAnimationFrame(upd);ticking=true;} },{passive:true});
+  upd();
+})();
 </script>
 
 </body>

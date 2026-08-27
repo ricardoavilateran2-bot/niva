@@ -32,6 +32,9 @@ a{color:#c9a84c;text-decoration:none}
 .top-bar .logo span{color:#c9a84c}
 .top-bar .back{font-size:.8rem;color:#c9a84c;padding:5px 12px;border:1px solid #c9a84c;border-radius:6px}
 .top-bar .back:hover{background:#c9a84c;color:#0a1628}
+.niva-backfab{position:fixed;top:14px;left:14px;z-index:99999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:8px 14px;border-radius:9px;text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);display:inline-flex;align-items:center;gap:6px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .22s ease,transform .22s ease}
+.niva-backfab.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.niva-backfab:hover{background:#22345c}
 .top-bar h1{font-size:1rem;color:#ccc;margin-left:auto;margin-right:auto;font-weight:400}
 
 /* ---- DOC TABS ---- */
@@ -273,13 +276,12 @@ a{color:#c9a84c;text-decoration:none}
 </style>
 </head>
 <body>
-<a href="./index.html" id="nivaOsFloat" style="position:fixed;top:12px;left:12px;z-index:999999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:7px 14px;border-radius:8px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);">&larr; NIVA OS</a>
+<a href="./index.html" id="niva-backfab" class="niva-backfab">&larr; NIVA OS</a>
 
 <!-- HEADER -->
 <div class="top-bar">
   <div class="logo">NIVA <span>INMOBILIARIA</span></div>
   <h1>Generador de Documentos</h1>
-  <a href="index.html" class="back">← Inicio</a>
 </div>
 
 <!-- DOCUMENT TYPE TABS -->
@@ -3010,6 +3012,20 @@ function nivaDownloadWord(){
   a.click();
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
 }
+
+(function(){
+  var btn=document.getElementById('niva-backfab');
+  if(!btn) return;
+  var lastY=window.pageYOffset||0, ticking=false;
+  function upd(){
+    var y=window.pageYOffset||0;
+    if(y<40 || y<lastY-4){ btn.classList.add('show'); }
+    else if(y>lastY+4){ btn.classList.remove('show'); }
+    lastY=y; ticking=false;
+  }
+  window.addEventListener('scroll',function(){ if(!ticking){requestAnimationFrame(upd);ticking=true;} },{passive:true});
+  upd();
+})();
 </script>
 </body>
 </html>

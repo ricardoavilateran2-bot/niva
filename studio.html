@@ -315,10 +315,13 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
   #flyer,#ficha{box-shadow:none;max-width:100%;border-radius:0}
   .empty{display:none}
 }
+.niva-backfab{position:fixed;top:14px;left:14px;z-index:99999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:8px 14px;border-radius:9px;text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);display:inline-flex;align-items:center;gap:6px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .22s ease,transform .22s ease}
+.niva-backfab.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.niva-backfab:hover{background:#22345c}
 </style>
 </head>
 <body>
-<a href="./index.html" style="position:fixed;top:12px;left:12px;z-index:999999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:7px 14px;border-radius:8px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);">&larr; NIVA OS</a>
+<a href="./index.html" id="niva-backfab" class="niva-backfab">&larr; NIVA OS</a>
 
 
 <div class="hdr no-print">
@@ -10243,5 +10246,20 @@ function esMusicManualSearch() {}
   <div>Cache hits: <span id="statHits">0</span></div>
   <div>Cache misses: <span id="statMisses">0</span></div>
 </div>
+<script>
+(function(){
+  var btn=document.getElementById('niva-backfab');
+  if(!btn) return;
+  var lastY=window.pageYOffset||0, ticking=false;
+  function upd(){
+    var y=window.pageYOffset||0;
+    if(y<40 || y<lastY-4){ btn.classList.add('show'); }
+    else if(y>lastY+4){ btn.classList.remove('show'); }
+    lastY=y; ticking=false;
+  }
+  window.addEventListener('scroll',function(){ if(!ticking){requestAnimationFrame(upd);ticking=true;} },{passive:true});
+  upd();
+})();
+</script>
 </body>
 </html>

@@ -48,6 +48,9 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .logo-sub { font-size: 11px; font-weight: 600; letter-spacing: .18em; color: rgba(201,168,76,.7); text-transform: uppercase; margin-left: 2px; padding-bottom: 2px; }
 .back-btn { font-size: .75rem; color: var(--gold); padding: 6px 14px; border: 1px solid rgba(201,168,76,.4); border-radius: 8px; text-decoration: none; white-space: nowrap; transition: all .2s; }
 .back-btn:hover { background: var(--gold); color: var(--navy2); }
+.niva-backfab{position:fixed;top:14px;left:14px;z-index:99999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:8px 14px;border-radius:9px;text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);display:inline-flex;align-items:center;gap:6px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .22s ease,transform .22s ease}
+.niva-backfab.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.niva-backfab:hover{background:#22345c}
 .page-hero { padding: 40px 0 32px; }
 .badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(201,168,76,.12); border: 1px solid rgba(201,168,76,.25); border-radius: 40px; padding: 6px 18px; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--gold); text-transform: uppercase; margin-bottom: 18px; }
 .page-hero h1 { font-size: clamp(28px,5vw,42px); font-weight: 900; line-height: 1.1; letter-spacing: -.02em; margin-bottom: 12px; }
@@ -93,6 +96,7 @@ textarea { resize: vertical; min-height: 90px; }
 </style>
 </head>
 <body>
+<a href="./index.html" id="niva-backfab" class="niva-backfab">&larr; NIVA OS</a>
 
 <div class="bg-pattern"></div>
 <div class="bg-grid"></div>
@@ -106,7 +110,6 @@ textarea { resize: vertical; min-height: 90px; }
       </div>
       <div class="logo-sub">Inmobiliaria · Monterrey</div>
     </div>
-    <a href="index.html" class="back-btn">← Panel principal</a>
   </header>
 
   <div class="page-hero">
@@ -287,6 +290,20 @@ $('#cap-fotos').onchange=(e)=>{
 $('#cap-save').onclick=guardarCaptacion;
 
 cargar();
+
+(function(){
+  var btn=document.getElementById('niva-backfab');
+  if(!btn) return;
+  var lastY=window.pageYOffset||0, ticking=false;
+  function upd(){
+    var y=window.pageYOffset||0;
+    if(y<40 || y<lastY-4){ btn.classList.add('show'); }
+    else if(y>lastY+4){ btn.classList.remove('show'); }
+    lastY=y; ticking=false;
+  }
+  window.addEventListener('scroll',function(){ if(!ticking){requestAnimationFrame(upd);ticking=true;} },{passive:true});
+  upd();
+})();
 </script>
 
 </body>
