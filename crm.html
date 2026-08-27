@@ -344,6 +344,17 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
 const sb = createClient(cfg.url, cfg.anon);
 const $ = (s)=>document.querySelector(s);
+async function ebToggle(propertyId, action, motivo){
+  const { data:{ session } } = await sb.auth.getSession();
+  const r = await fetch(cfg.url+'/functions/v1/eb-toggle-publish', {
+    method:'POST',
+    headers:{ 'Authorization':'Bearer '+(session?.access_token||''), 'Content-Type':'application/json' },
+    body: JSON.stringify({ property_id: propertyId, action, motivo: motivo||null })
+  });
+  let j={}; try{ j=await r.json(); }catch(_e){}
+  if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
+  return { data: j };
+}
 let LEADS=[], PROPS=[], ASESORES=[], DUENOS={}, TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='';
 let SUBSA='leads'; // dentro de "Sin asignar": leads | props
 let SHOWN=60; // paginación incremental
@@ -568,25 +579,25 @@ function pintar(){
           +'<div class="pr-tipo">'+esc(p.property_type||'')+'</div>'
           +'<div class="pr-specs">'+specs+'</div>'
           +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>'
-          +(ESADMIN?'<button class="pr-cancel'+(canc?' rea':'')+'">'+(canc?'↩️ Reactivar':'🚫 Cancelar')+'</button>':'');
+          +'<button class="pr-cancel'+(canc?' rea':'')+'">'+(canc?'↩️ Reactivar':'🚫 Archivar')+'</button>';
         if(canc)fila.classList.add('cancelada');
         const bc=fila.querySelector('.pr-cancel');
         if(bc)bc.onclick=async(e)=>{
           e.preventDefault();e.stopPropagation();
           if(canc){
-            if(!confirm('¿Reactivar "'+(p.title||p.eb_public_id)+'"?\n\nVuelve a la lista de propiedades activas.'))return;
+            if(!confirm('¿Reactivar "'+(p.title||p.eb_public_id)+'"?\n\nVuelve a la lista de propiedades activas y se vuelve a publicar en EasyBroker.'))return;
             bc.disabled=true;bc.textContent='...';
-            const r=await sb.rpc('reactivar_propiedad',{p_property_id:p.id});
-            if(r.error){bc.disabled=false;bc.textContent='↩️ Reactivar';toast(r.error.message||'No se pudo');return}
-            toast('Propiedad reactivada');
+            const r=await ebToggle(p.id,'publish');
+            if(r.error){bc.disabled=false;bc.textContent='↩️ Reactivar';toast(r.error||'No se pudo');return}
+            toast('Propiedad reactivada y publicada en EasyBroker');
           } else {
-            if(!confirm('¿Cancelar "'+(p.title||p.eb_public_id)+'"?\n\nSale de la lista de propiedades activas y de los reportes.\nSus leads se conservan. Puedes reactivarla cuando quieras.\n\nOjo: esto NO la despublica de EasyBroker ni de Inmuebles24.'))return;
-            const mot=prompt('¿Por qué la cancelas? (opcional)\nEj: se vendió, se rentó, el dueño la retiró, terminó exclusiva','');
+            if(!confirm('¿Archivar "'+(p.title||p.eb_public_id)+'"?\n\nSale de la lista de propiedades activas y de los reportes, y se despublica automáticamente en EasyBroker.\nSus leads se conservan. Puedes reactivarla cuando quieras.'))return;
+            const mot=prompt('¿Por qué la archivas? (opcional)\nEj: se vendió, se rentó, el dueño la retiró, terminó exclusiva','');
             if(mot===null)return;
             bc.disabled=true;bc.textContent='...';
-            const r=await sb.rpc('cancelar_propiedad',{p_property_id:p.id,p_motivo:mot||null});
-            if(r.error){bc.disabled=false;bc.textContent='🚫 Cancelar';toast(r.error.message||'No se pudo');return}
-            toast('Propiedad cancelada');
+            const r=await ebToggle(p.id,'archive',mot);
+            if(r.error){bc.disabled=false;bc.textContent='🚫 Archivar';toast(r.error||'No se pudo');return}
+            toast('Propiedad archivada y despublicada en EasyBroker');
           }
           await cargar();
         };
@@ -713,13 +724,13 @@ function renderPropsSinDueno(host){
     };
     const belim=d.querySelector('.elimg');
     if(belim)belim.onclick=async()=>{
-      if(!confirm('¿Cancelar "'+(p.title||p.eb_public_id||'esta propiedad')+'"?\n\nSe quita de activas y de esta lista. No se borra: la puedes reactivar después desde Propiedades → Canceladas.'))return;
-      const motivo=prompt('¿Por qué la cancelas? (opcional)','');
+      if(!confirm('¿Archivar "'+(p.title||p.eb_public_id||'esta propiedad')+'"?\n\nSe quita de activas y de esta lista, y se despublica automáticamente en EasyBroker. No se borra: la puedes reactivar después desde Propiedades → Archivados.'))return;
+      const motivo=prompt('¿Por qué la archivas? (opcional)','');
       if(motivo===null)return;
-      belim.disabled=true;belim.textContent='Cancelando...';
-      const r=await sb.rpc('cancelar_propiedad',{p_property_id:p.id,p_motivo:motivo||null});
-      if(r.error){belim.disabled=false;belim.textContent='🚫 Cancelar propiedad';toast(r.error.message||'No se pudo cancelar');return}
-      toast('Propiedad cancelada');
+      belim.disabled=true;belim.textContent='Archivando...';
+      const r=await ebToggle(p.id,'archive',motivo);
+      if(r.error){belim.disabled=false;belim.textContent='🚫 Cancelar propiedad';toast(r.error||'No se pudo archivar');return}
+      toast('Propiedad archivada y despublicada en EasyBroker');
       await cargar();
     };
     host.appendChild(d);
