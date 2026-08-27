@@ -494,7 +494,12 @@ async function guardarCaptacion(){
     }
     let out={};
     try{ out=await res.json(); }catch(_e){}
-    if(!res.ok)throw new Error(out.error||out.detail||('EasyBroker rechazó la publicación (HTTP '+res.status+'). Revisa que todos los campos obligatorios estén completos.'));
+    if(!res.ok){
+      let detalle = out.detalle || out.detail;
+      if(detalle && typeof detalle !== 'string') detalle = JSON.stringify(detalle);
+      const msgBase = out.error || ('EasyBroker rechazó la publicación (HTTP '+res.status+').');
+      throw new Error(detalle ? (msgBase+' — Motivo: '+detalle) : (msgBase+' Revisa que todos los campos obligatorios estén completos.'));
+    }
     toast('Captación publicada ✅');
     $('#cap-tipo').value='Casa';$('#cap-op').value='rental';$('#cap-precio').value='';
     $('#cap-titulo').value='';$('#cap-desc').value='';
