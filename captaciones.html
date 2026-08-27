@@ -74,8 +74,18 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: rgba(20
 input::placeholder, textarea::placeholder { color: rgba(255,255,255,.25); }
 select option { background: #1B2A4A; color: #fff; }
 textarea { resize: vertical; min-height: 90px; }
-#cap-fotos-prev { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-#cap-fotos-prev img { width: 68px; height: 68px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,.12); }
+#cap-fotos-prev { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.cap-thumb { position: relative; width: 68px; height: 68px; cursor: grab; }
+.cap-thumb.dragging { opacity: .35; }
+.cap-thumb.dragover { outline: 2px dashed var(--gold); outline-offset: 2px; }
+.cap-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,.12); display: block; pointer-events: none; }
+.cap-thumb .cap-x { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #dc2626; color: #fff; border: 2px solid var(--navy2); font-size: 12px; font-weight: 800; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.cap-thumb .cap-x:hover { background: #ef4444; }
+.cap-thumb .cap-cover { position: absolute; bottom: -6px; left: 0; right: 0; text-align: center; background: var(--gold); color: var(--navy2); font-size: 8.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: 5px; padding: 1px 0; }
+.cap-fotos-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+.cap-fotos-hint { font-size: 11.5px; color: rgba(255,255,255,.4); }
+.cap-borrar-todas { border: 1px solid rgba(248,113,113,.4); background: rgba(248,113,113,.08); color: #f87171; font-size: 11.5px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+.cap-borrar-todas:hover { background: rgba(248,113,113,.18); }
 .merr { min-height: 18px; margin-top: 10px; font-size: 12.5px; color: #f87171; font-weight: 600; }
 .msave { margin-top: 8px; padding: 13px 26px; background: linear-gradient(135deg, var(--gold), #b8922e); color: var(--navy2); border: 0; border-radius: 10px; font-size: 14.5px; font-weight: 800; cursor: pointer; }
 .msave:disabled { opacity: .6; cursor: default; }
@@ -209,6 +219,10 @@ textarea { resize: vertical; min-height: 90px; }
         <label for="cap-fotos">Fotos</label>
         <input id="cap-fotos" type="file" accept="image/*" multiple>
         <div id="cap-fotos-prev"></div>
+        <div class="cap-fotos-actions hidden" id="cap-fotos-actions">
+          <span class="cap-fotos-hint">Arrastra una foto para reordenar. La primera es la portada.</span>
+          <button type="button" class="cap-borrar-todas" id="cap-borrar-todas">🗑️ Borrar todas</button>
+        </div>
       </div>
       <div class="merr" id="cap-err"></div>
       <button id="cap-save" class="msave">Publicar captación</button>
@@ -383,9 +397,53 @@ function renderHistorial(){
   host.innerHTML='';host.appendChild(wrap);
 }
 
+let _dragIdx=null;
 function pintarFotosCap(){
-  $('#cap-fotos-prev').innerHTML=CAP_FOTOS.map(f=>'<img src="'+f.previewUrl+'">').join('');
+  const host=$('#cap-fotos-prev');
+  $('#cap-fotos-actions').classList.toggle('hidden',!CAP_FOTOS.length);
+  host.innerHTML='';
+  CAP_FOTOS.forEach((f,i)=>{
+    const d=document.createElement('div');
+    d.className='cap-thumb';
+    d.draggable=true;
+    d.dataset.idx=i;
+    d.innerHTML='<img src="'+f.previewUrl+'">'
+      +'<button type="button" class="cap-x" title="Quitar esta foto">✕</button>'
+      +(i===0?'<span class="cap-cover">Portada</span>':'');
+    d.querySelector('.cap-x').onclick=(e)=>{
+      e.preventDefault();e.stopPropagation();
+      CAP_FOTOS.splice(i,1);
+      pintarFotosCap();
+    };
+    d.addEventListener('dragstart',(e)=>{
+      _dragIdx=i; d.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    d.addEventListener('dragend',()=>{ d.classList.remove('dragging'); });
+    d.addEventListener('dragover',(e)=>{
+      e.preventDefault();
+      if(_dragIdx===null||_dragIdx===i)return;
+      d.classList.add('dragover');
+    });
+    d.addEventListener('dragleave',()=>{ d.classList.remove('dragover'); });
+    d.addEventListener('drop',(e)=>{
+      e.preventDefault(); d.classList.remove('dragover');
+      if(_dragIdx===null||_dragIdx===i)return;
+      const moved=CAP_FOTOS.splice(_dragIdx,1)[0];
+      CAP_FOTOS.splice(i,0,moved);
+      _dragIdx=null;
+      pintarFotosCap();
+    });
+    host.appendChild(d);
+  });
 }
+$('#cap-borrar-todas').onclick=()=>{
+  if(!CAP_FOTOS.length)return;
+  if(!confirm('¿Quitar las '+CAP_FOTOS.length+' fotos seleccionadas?'))return;
+  CAP_FOTOS=[];
+  $('#cap-fotos').value='';
+  pintarFotosCap();
+};
 
 async function guardarCaptacion(){
   const err=$('#cap-err'), btn=$('#cap-save');
@@ -400,10 +458,17 @@ async function guardarCaptacion(){
   err.textContent='';btn.disabled=true;btn.textContent='Subiendo fotos...';
   try{
     const photoUrls=[];
-    for(const f of CAP_FOTOS){
+    for(let i=0;i<CAP_FOTOS.length;i++){
+      const f=CAP_FOTOS[i];
+      btn.textContent='Subiendo foto '+(i+1)+' de '+CAP_FOTOS.length+'...';
       const path=Date.now()+'_'+Math.random().toString(36).slice(2)+'_'+f.file.name.replace(/[^a-zA-Z0-9.]/g,'_');
-      const up=await sb.storage.from('captaciones').upload(path,f.file);
-      if(up.error)throw new Error('No se pudo subir una foto: '+up.error.message);
+      let up=await sb.storage.from('captaciones').upload(path,f.file);
+      if(up.error){
+        // reintento una vez: fallas de red intermitentes ("Load failed") son comunes con muchas fotos seguidas
+        await new Promise(r=>setTimeout(r,900));
+        up=await sb.storage.from('captaciones').upload(path,f.file);
+      }
+      if(up.error)throw new Error('No se pudo subir la foto '+(i+1)+' de '+CAP_FOTOS.length+' ('+f.file.name+'): '+up.error.message);
       const pu=sb.storage.from('captaciones').getPublicUrl(path);
       photoUrls.push(pu.data.publicUrl);
     }
@@ -417,13 +482,19 @@ async function guardarCaptacion(){
       photos:photoUrls
     };
     const {data:{session}}=await sb.auth.getSession();
-    const res=await fetch(cfg.url+'/functions/v1/niva-crear-captacion',{
-      method:'POST',
-      headers:{'content-type':'application/json',Authorization:'Bearer '+session.access_token},
-      body:JSON.stringify(body)
-    });
-    const out=await res.json();
-    if(!res.ok)throw new Error(out.error||'No se pudo publicar la captación');
+    let res;
+    try{
+      res=await fetch(cfg.url+'/functions/v1/niva-crear-captacion',{
+        method:'POST',
+        headers:{'content-type':'application/json',Authorization:'Bearer '+session.access_token},
+        body:JSON.stringify(body)
+      });
+    }catch(netErr){
+      throw new Error('No se pudo conectar para publicar en EasyBroker (revisa tu conexión a internet e inténtalo de nuevo). Detalle: '+(netErr.message||netErr));
+    }
+    let out={};
+    try{ out=await res.json(); }catch(_e){}
+    if(!res.ok)throw new Error(out.error||out.detail||('EasyBroker rechazó la publicación (HTTP '+res.status+'). Revisa que todos los campos obligatorios estén completos.'));
     toast('Captación publicada ✅');
     $('#cap-tipo').value='Casa';$('#cap-op').value='rental';$('#cap-precio').value='';
     $('#cap-titulo').value='';$('#cap-desc').value='';
