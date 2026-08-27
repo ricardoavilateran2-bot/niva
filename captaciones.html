@@ -93,6 +93,39 @@ textarea { resize: vertical; min-height: 90px; }
 .vacio .vi { display: block; font-size: 34px; margin-bottom: 10px; }
 .toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%,20px); background: var(--navy); color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: all .25s; z-index: 80; }
 .toast.show { opacity: 1; transform: translate(-50%,0); }
+.modetabs{display:flex;gap:10px;margin:8px 0 28px;flex-wrap:wrap}
+.modetab{padding:11px 20px;border-radius:10px;border:1px solid rgba(201,168,76,.3);background:rgba(255,255,255,.03);color:rgba(255,255,255,.6);font-size:13.5px;font-weight:700;cursor:pointer;transition:all .18s}
+.modetab.on{background:linear-gradient(135deg,var(--gold),#b8922e);color:var(--navy2);border-color:transparent}
+.modetab:hover:not(.on){border-color:rgba(201,168,76,.6);color:var(--white)}
+.hidden{display:none !important}
+.pfiltros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.pf{padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(255,255,255,.6);font-size:12.5px;font-weight:700;cursor:pointer}
+.pf.on{background:var(--gold);color:var(--navy2);border-color:transparent}
+.pfbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.pfbar select,.pfbar input{flex:0 0 auto}
+.pfbar input{flex:1;min-width:180px}
+.psecs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-top:18px}
+@media(max-width:760px){.psecs{grid-template-columns:1fr}}
+.psec-h{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--gold);padding:6px 2px;border-bottom:2px solid rgba(201,168,76,.4);margin-bottom:8px;display:flex;align-items:center;gap:8px;text-transform:uppercase}
+.psec-h span{background:var(--gold);color:var(--navy2);border-radius:999px;padding:1px 9px;font-size:11.5px}
+.ptabla{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;overflow:hidden}
+.prow{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid rgba(255,255,255,.07);text-decoration:none;color:inherit}
+.prow:last-child{border-bottom:0}
+.prow:hover{background:rgba(255,255,255,.05)}
+.prow img{width:44px;height:44px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,.08);flex-shrink:0}
+.prow.cancelada{opacity:.6}
+.pr-main{flex:1;min-width:0}
+.pr-t{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--white)}
+.pr-m{font-size:11.5px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-tipo{font-size:10px;color:rgba(255,255,255,.45);width:54px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-specs{font-size:10px;color:rgba(255,255,255,.45);width:74px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-precio{font-size:13.5px;font-weight:800;color:var(--gold2);width:92px;flex-shrink:0;text-align:right}
+.pr-precio small{font-weight:600;color:rgba(255,255,255,.45);font-size:10.5px}
+@media(max-width:560px){.pr-tipo,.pr-specs{display:none}.pr-precio{width:auto}}
+.pr-cancel{border:0;background:transparent;color:#f87171;border-radius:6px;padding:0;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap;width:24px;height:24px;flex-shrink:0;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1}
+.pr-cancel:hover{background:rgba(248,113,113,.15)}
+.pr-cancel.rea{color:#4ade80}
+.pr-cancel.rea:hover{background:rgba(74,222,128,.15)}
 </style>
 </head>
 <body>
@@ -114,69 +147,105 @@ textarea { resize: vertical; min-height: 90px; }
 
   <div class="page-hero">
     <div class="badge">📸 Módulo de Captaciones</div>
-    <h1>Da de alta una <span>propiedad nueva</span></h1>
-    <p>Llena el formulario y la propiedad se publica automáticamente en EasyBroker y queda asignada a tu nombre.</p>
+    <h1>Alta y <span>consulta de propiedades</span></h1>
+    <p>Sube una propiedad nueva o revisa el inventario de propiedades — se publica automáticamente en EasyBroker y queda asignada a tu nombre.</p>
   </div>
 
-  <div class="section-title"><span>Nueva captación</span></div>
-  <div class="form-card">
-    <div class="form-grid">
-      <div class="form-group">
-        <label for="cap-tipo">Tipo de propiedad</label>
-        <select id="cap-tipo">
-          <option value="Casa">Casa</option>
-          <option value="Departamento">Departamento</option>
-          <option value="Terreno">Terreno</option>
-          <option value="Local comercial">Local comercial</option>
-          <option value="Oficina">Oficina</option>
-          <option value="Bodega">Bodega</option>
-          <option value="Edificio">Edificio</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="cap-op">Operación</label>
-        <select id="cap-op">
-          <option value="rental">Renta</option>
-          <option value="sale">Venta</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="cap-precio">Precio (MXN)</label>
-        <input id="cap-precio" inputmode="numeric" placeholder="Ej. 25000">
-      </div>
-      <div class="form-group">
-        <label for="cap-zona">Zona / colonia</label>
-        <select id="cap-zona"></select>
-        <input id="cap-zona-otra" placeholder="Escribe la zona" style="display:none;margin-top:8px">
-      </div>
-      <div class="form-group full">
-        <label for="cap-titulo">Título <small>(opcional — se genera automático si lo dejas vacío)</small></label>
-        <input id="cap-titulo" placeholder="Ej. Casa en venta en Cumbres">
-      </div>
-      <div class="form-group full">
-        <label for="cap-desc">Descripción</label>
-        <textarea id="cap-desc" rows="4" placeholder="Describe la propiedad: características, amenidades, estado..."></textarea>
-      </div>
-    </div>
-    <div class="form-grid-3">
-      <div class="form-group"><label for="cap-rec">Recámaras</label><input id="cap-rec" inputmode="numeric"></div>
-      <div class="form-group"><label for="cap-bano">Baños</label><input id="cap-bano" inputmode="numeric"></div>
-      <div class="form-group"><label for="cap-mbano">Medios baños</label><input id="cap-mbano" inputmode="numeric"></div>
-      <div class="form-group"><label for="cap-est">Estacionamientos</label><input id="cap-est" inputmode="numeric"></div>
-      <div class="form-group"><label for="cap-m2c">M² construcción</label><input id="cap-m2c" inputmode="numeric"></div>
-      <div class="form-group"><label for="cap-m2t">M² terreno</label><input id="cap-m2t" inputmode="numeric"></div>
-    </div>
-    <div class="form-group full">
-      <label for="cap-fotos">Fotos</label>
-      <input id="cap-fotos" type="file" accept="image/*" multiple>
-      <div id="cap-fotos-prev"></div>
-    </div>
-    <div class="merr" id="cap-err"></div>
-    <button id="cap-save" class="msave">Publicar captación</button>
+  <div class="modetabs">
+    <button class="modetab on" id="mt-subir">📤 Subir propiedad</button>
+    <button class="modetab" id="mt-ver">🏠 Ver propiedades</button>
   </div>
 
-  <div class="section-title"><span>Mis captaciones</span></div>
-  <div id="cap-historial"></div>
+  <div id="modo-subir">
+    <div class="section-title"><span>Nueva captación</span></div>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="cap-tipo">Tipo de propiedad</label>
+          <select id="cap-tipo">
+            <option value="Casa">Casa</option>
+            <option value="Departamento">Departamento</option>
+            <option value="Terreno">Terreno</option>
+            <option value="Local comercial">Local comercial</option>
+            <option value="Oficina">Oficina</option>
+            <option value="Bodega">Bodega</option>
+            <option value="Edificio">Edificio</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cap-op">Operación</label>
+          <select id="cap-op">
+            <option value="rental">Renta</option>
+            <option value="sale">Venta</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cap-precio">Precio (MXN)</label>
+          <input id="cap-precio" inputmode="numeric" placeholder="Ej. 25000">
+        </div>
+        <div class="form-group">
+          <label for="cap-zona">Zona / colonia</label>
+          <select id="cap-zona"></select>
+          <input id="cap-zona-otra" placeholder="Escribe la zona" style="display:none;margin-top:8px">
+        </div>
+        <div class="form-group full">
+          <label for="cap-titulo">Título <small>(opcional — se genera automático si lo dejas vacío)</small></label>
+          <input id="cap-titulo" placeholder="Ej. Casa en venta en Cumbres">
+        </div>
+        <div class="form-group full">
+          <label for="cap-desc">Descripción</label>
+          <textarea id="cap-desc" rows="4" placeholder="Describe la propiedad: características, amenidades, estado..."></textarea>
+        </div>
+      </div>
+      <div class="form-grid-3">
+        <div class="form-group"><label for="cap-rec">Recámaras</label><input id="cap-rec" inputmode="numeric"></div>
+        <div class="form-group"><label for="cap-bano">Baños</label><input id="cap-bano" inputmode="numeric"></div>
+        <div class="form-group"><label for="cap-mbano">Medios baños</label><input id="cap-mbano" inputmode="numeric"></div>
+        <div class="form-group"><label for="cap-est">Estacionamientos</label><input id="cap-est" inputmode="numeric"></div>
+        <div class="form-group"><label for="cap-m2c">M² construcción</label><input id="cap-m2c" inputmode="numeric"></div>
+        <div class="form-group"><label for="cap-m2t">M² terreno</label><input id="cap-m2t" inputmode="numeric"></div>
+      </div>
+      <div class="form-group full">
+        <label for="cap-fotos">Fotos</label>
+        <input id="cap-fotos" type="file" accept="image/*" multiple>
+        <div id="cap-fotos-prev"></div>
+      </div>
+      <div class="merr" id="cap-err"></div>
+      <button id="cap-save" class="msave">Publicar captación</button>
+    </div>
+
+    <div class="section-title"><span>Mis captaciones</span></div>
+    <div id="cap-historial"></div>
+  </div>
+
+  <div id="modo-ver" class="hidden">
+    <div class="section-title"><span>Propiedades</span></div>
+    <div class="pfiltros" id="pf-tipo">
+      <button class="pf on" data-f="todas">Todas</button>
+      <button class="pf" data-f="casa">Casas</button>
+      <button class="pf" data-f="depa">Departamentos</button>
+      <button class="pf" data-f="otro">Otros</button>
+    </div>
+    <div class="pfiltros" id="pf-estado">
+      <button class="pf on" data-e="activas">🏠 Activas</button>
+      <button class="pf" data-e="canceladas">🚫 Archivadas</button>
+    </div>
+    <div class="pfiltros" id="pf-op">
+      <button class="pf on" data-f="todo">Renta y venta</button>
+      <button class="pf" data-f="rental">Renta</button>
+      <button class="pf" data-f="sale">Venta</button>
+    </div>
+    <div class="pfbar">
+      <select id="pf-sort">
+        <option value="pmin">Precio: menor a mayor</option>
+        <option value="pmax">Precio: mayor a menor</option>
+        <option value="az">Ordenar: A → Z</option>
+        <option value="za">Ordenar: Z → A</option>
+      </select>
+      <input id="pbuscar" placeholder="Buscar por nombre, folio, zona...">
+    </div>
+    <div id="props-lista"></div>
+  </div>
 
 </div>
 
@@ -193,18 +262,106 @@ const esc=(v)=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 function vacioHTML(txt,icon){return '<div class="vacio"><span class="vi">'+(icon||'📭')+'</span>'+txt+'</div>'}
+async function ebToggle(propertyId, action, motivo){
+  const { data:{ session } } = await sb.auth.getSession();
+  const r = await fetch(cfg.url+'/functions/v1/eb-toggle-publish', {
+    method:'POST',
+    headers:{ 'Authorization':'Bearer '+(session?.access_token||''), 'Content-Type':'application/json' },
+    body: JSON.stringify({ property_id: propertyId, action, motivo: motivo||null })
+  });
+  let j={}; try{ j=await r.json(); }catch(_e){}
+  if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
+  return { data: j };
+}
 
-let PROPS=[], ESADMIN=false, CAP_FOTOS=[];
+let PROPS=[], PROPSC=[], ESADMIN=false, CAP_FOTOS=[];
+let PT='todas', PO='todo', PS='pmin', PQ='', PE='activas';
+
+function tipoDe(p){
+  const t=(p.property_type||'').toLowerCase();
+  if(t.includes('depa')||t.includes('departamento'))return 'depa';
+  if(t.includes('casa'))return 'casa';
+  return 'otro';
+}
+function m2ok(v){return v!=null && v!==''}
 
 async function cargar(){
   const uname=(session.user?.email||'').split('@')[0];
   ESADMIN=(uname==='admin');
-  const {data,error}=await sb.from('my_properties').select('*');
-  PROPS = error? [] : (data||[]);
+  const [p,pc]=await Promise.all([
+    sb.from('my_properties').select('*'),
+    sb.from('my_properties_canceladas').select('*')
+  ]);
+  PROPS = p.error? [] : (p.data||[]);
+  PROPSC = pc.error? [] : (pc.data||[]);
   const zsel=$('#cap-zona');
   const zonas=[...new Set(PROPS.map(p=>p.location_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   zsel.innerHTML=zonas.map(z=>'<option value="'+esc(z)+'">'+esc(z)+'</option>').join('')+'<option value="__otra__">✏️ Otra zona...</option>';
   renderHistorial();
+  renderProps();
+}
+
+function renderProps(){
+  const host=$('#props-lista');
+  const canc=(PE==='canceladas');
+  const base=canc?PROPSC:PROPS;
+  if(!base.length){host.innerHTML=vacioHTML(canc?'No hay propiedades archivadas.':'No tienes propiedades activas asignadas.',canc?'🚫':'🏠');return}
+  let ps=base.slice();
+  if(PT!=='todas')ps=ps.filter(p=>tipoDe(p)===PT);
+  if(PO!=='todo')ps=ps.filter(p=>p.operation_type===PO);
+  if(PQ){const q=PQ.toLowerCase();ps=ps.filter(p=>[p.title,p.eb_public_id,p.location_name,p.property_type].join(' ').toLowerCase().includes(q))}
+  const tt=(p)=>(p.title||p.eb_public_id||'').toLowerCase();
+  if(PS==='az')ps.sort((a,b)=>tt(a).localeCompare(tt(b)));
+  else if(PS==='za')ps.sort((a,b)=>tt(b).localeCompare(tt(a)));
+  else if(PS==='pmin')ps.sort((a,b)=>(a.price_amount??Infinity)-(b.price_amount??Infinity));
+  else if(PS==='pmax')ps.sort((a,b)=>(b.price_amount??-1)-(a.price_amount??-1));
+  if(!ps.length){host.innerHTML=vacioHTML('Sin propiedades con esos filtros.','🔍');return}
+  host.innerHTML='';
+  const secciones=[['rental','RENTA'],['sale','VENTA']];
+  const wrapper=document.createElement('div');wrapper.className='psecs';
+  for(const [op,titulo] of secciones){
+    const grupo=ps.filter(p=>p.operation_type===op);
+    if(!grupo.length)continue;
+    const sec=document.createElement('div');
+    sec.innerHTML='<div class="psec-h">'+titulo+' <span>'+grupo.length+'</span></div>';
+    const tabla=document.createElement('div');tabla.className='ptabla';
+    for(const p of grupo){
+      const fila=document.createElement('a');fila.className='prow';
+      if(p.public_url){fila.href=p.public_url;fila.target='_blank';fila.rel='noopener'}
+      const specs=[p.bedrooms?p.bedrooms+'r':null,p.bathrooms?p.bathrooms+'b':null,m2ok(p.construction_size)?p.construction_size+'m²':null].filter(Boolean).join(' · ');
+      fila.innerHTML='<img loading="lazy" src="'+esc(p.title_image_url||'')+'" onerror="this.style.visibility=\'hidden\'">'
+        +'<div class="pr-main"><div class="pr-t">'+esc(p.title||p.eb_public_id)+'</div>'
+        +'<div class="pr-m">'+esc(p.eb_public_id)+(p.location_name?' · '+esc(p.location_name):'')+'</div></div>'
+        +'<div class="pr-tipo">'+esc(p.property_type||'')+'</div>'
+        +'<div class="pr-specs">'+specs+'</div>'
+        +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>'
+        +'<button class="pr-cancel'+(canc?' rea':'')+'" title="'+(canc?'Reactivar':'Archivar')+'">'+(canc?'↩️':'🗑️')+'</button>';
+      if(canc)fila.classList.add('cancelada');
+      const bc=fila.querySelector('.pr-cancel');
+      bc.onclick=async(e)=>{
+        e.preventDefault();e.stopPropagation();
+        if(canc){
+          if(!confirm('¿Reactivar "'+(p.title||p.eb_public_id)+'"?\n\nVuelve a la lista de propiedades activas y se vuelve a publicar en EasyBroker.'))return;
+          bc.disabled=true;bc.textContent='...';
+          const r=await ebToggle(p.id,'publish');
+          if(r.error){bc.disabled=false;bc.textContent='↩️';toast(r.error||'No se pudo');return}
+          toast('Propiedad reactivada y publicada en EasyBroker');
+        } else {
+          if(!confirm('¿Archivar "'+(p.title||p.eb_public_id)+'"?\n\nSale de la lista de propiedades activas y de los reportes, y se despublica automáticamente en EasyBroker.\nSus leads se conservan. Puedes reactivarla cuando quieras.'))return;
+          const mot=prompt('¿Por qué la archivas? (opcional)\nEj: se vendió, se rentó, el dueño la retiró, terminó exclusiva','');
+          if(mot===null)return;
+          bc.disabled=true;bc.textContent='...';
+          const r=await ebToggle(p.id,'archive',mot);
+          if(r.error){bc.disabled=false;bc.textContent='🗑️';toast(r.error||'No se pudo');return}
+          toast('Propiedad archivada y despublicada en EasyBroker');
+        }
+        await cargar();
+      };
+      tabla.appendChild(fila);
+    }
+    sec.appendChild(tabla);wrapper.appendChild(sec);
+  }
+  host.appendChild(wrapper);
 }
 
 function renderHistorial(){
@@ -281,6 +438,29 @@ async function guardarCaptacion(){
   }
 }
 
+$('#mt-subir').onclick=()=>{
+  $('#mt-subir').classList.add('on');$('#mt-ver').classList.remove('on');
+  $('#modo-subir').classList.remove('hidden');$('#modo-ver').classList.add('hidden');
+};
+$('#mt-ver').onclick=()=>{
+  $('#mt-ver').classList.add('on');$('#mt-subir').classList.remove('on');
+  $('#modo-ver').classList.remove('hidden');$('#modo-subir').classList.add('hidden');
+};
+document.querySelectorAll('#pf-tipo .pf').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#pf-tipo .pf').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  PT=b.dataset.f;renderProps();
+});
+document.querySelectorAll('#pf-estado .pf').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#pf-estado .pf').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  PE=b.dataset.e;renderProps();
+});
+document.querySelectorAll('#pf-op .pf').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#pf-op .pf').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  PO=b.dataset.f;renderProps();
+});
+$('#pf-sort').onchange=(e)=>{PS=e.target.value;renderProps()};
+let _dpq=null;
+$('#pbuscar').oninput=(e)=>{clearTimeout(_dpq);_dpq=setTimeout(()=>{PQ=e.target.value;renderProps()},180)};
 $('#cap-zona').onchange=(e)=>{$('#cap-zona-otra').style.display=(e.target.value==='__otra__')?'':'none'};
 $('#cap-fotos').onchange=(e)=>{
   const files=Array.from(e.target.files||[]).slice(0,20);

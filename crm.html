@@ -129,11 +129,6 @@ details p{font-size:13.5px;background:#f1f3f7;border-radius:8px;padding:8px;marg
 .acc:hover{opacity:.9}
 .wa{background:#25d366}.tel{background:var(--navy)}.ver{background:#64748b}
 .arch{background:#8a94a6}.desarch{background:#3d6b4a}.elim{background:#b4451f}
-.pr-cancel{border:0;background:transparent;color:#c0392b;border-radius:6px;padding:0;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap;width:22px;height:22px;flex-shrink:0;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1}
-.pr-cancel:hover{background:#f6e8e4}
-.pr-cancel.rea{color:#3d6b4a}
-.pr-cancel.rea:hover{background:#e3ede5}
-.pr-fila.cancelada{opacity:.62}
 .fsep{width:1px;background:var(--border);margin:2px 4px;flex-shrink:0}
 .sagrupo{background:#fff;border:1px solid var(--border);border-left:3px solid #c9a84c;border-radius:var(--radius);padding:13px 15px;margin-bottom:11px}
 .sagrupo.sinprop{border-left-color:#b4451f}
@@ -214,30 +209,6 @@ body[data-vista="tablero"] #buscar{max-width:640px}
 .wabox .go{margin-top:8px;width:100%;padding:11px;background:#25d366;color:#fff;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
 .vermas{width:100%;padding:12px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;font-weight:700;color:var(--navy);cursor:pointer;margin-top:4px}
 .vermas:hover{border-color:rgba(201,168,76,.6)}
-#pbarra{padding:12px 12px 0;max-width:760px;margin:0 auto}
-#pbarra .filtros{margin-bottom:8px}
-.psort{display:flex;gap:8px;flex-wrap:wrap}
-.psort select{flex:0 0 auto;border:1px solid var(--border);border-radius:10px;padding:9px 10px;font-size:13.5px;background:#fff}
-.psort input{flex:1;min-width:160px;border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:14px}
-body[data-tab="props"] main{max-width:1280px}
-.psecs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
-@media(max-width:640px){.psecs{grid-template-columns:1fr}}
-.psec{margin-bottom:0}
-.psec-h{font-size:13px;font-weight:800;letter-spacing:.12em;color:var(--navy);padding:6px 2px;border-bottom:2px solid var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.psec-h span{background:var(--navy);color:#fff;border-radius:999px;padding:1px 9px;font-size:11.5px}
-.ptabla{background:var(--card);border-radius:12px;box-shadow:0 1px 3px rgba(15,23,42,.06);border:1px solid rgba(226,232,240,.7);overflow:hidden}
-.prow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #eef0f4;text-decoration:none;color:var(--txt)}
-.prow:last-child{border-bottom:0}
-.prow:hover{background:#f8f9fc}
-.prow img{width:44px;height:44px;border-radius:8px;object-fit:cover;background:#e8ecf2;flex-shrink:0}
-.pr-main{flex:1;min-width:0}
-.pr-t{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pr-m{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pr-tipo{font-size:10px;color:var(--mut);width:54px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pr-specs{font-size:10px;color:var(--mut);width:74px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pr-precio{font-size:13.5px;font-weight:800;color:var(--navy);width:92px;flex-shrink:0;text-align:right}
-.pr-precio small{font-weight:600;color:var(--mut);font-size:10.5px}
-@media(max-width:560px){.pr-tipo,.pr-specs{display:none}.pr-precio{width:auto}}
 .vacio{text-align:center;color:var(--mut);padding:56px 20px;font-size:14.5px;background:var(--card);border-radius:var(--radius);border:1px dashed var(--border)}
 .vacio .vi{font-size:34px;display:block;margin-bottom:10px}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:999px;font-size:13.5px;opacity:0;transition:.3s;pointer-events:none;z-index:50;box-shadow:0 8px 30px rgba(0,0,0,.25)}
@@ -269,7 +240,6 @@ body[data-tab="props"] main{max-width:1280px}
     <button class="tab" data-t="asesores">👔 Asesores<span class="n" id="n-asesores">–</span></button>
     <button class="tab" data-t="sinid" id="tab-sinid" style="display:none">❓ Sin identificar<span class="n" id="n-sinid">–</span></button>
     <button class="tab" data-t="todos">📋 Todos<span class="n" id="n-todos">–</span></button>
-    <button class="tab" data-t="props">🏠 Propiedades<span class="n" id="n-props">–</span></button>
     <button class="tab" data-t="archivados" id="tab-arch">🗄️ Archivados<span class="n" id="n-arch">–</span></button>
     <button class="tab" data-t="sinasignar" id="tab-sinasig" style="display:none">⚠️ Sin asignar<span class="n" id="n-sinasig">–</span></button>
     <button class="tab" data-t="reportes" id="tab-rep" style="display:none">📊 Reportes</button>
@@ -290,32 +260,6 @@ body[data-tab="props"] main{max-width:1280px}
     <button class="f v" data-v="lista">☰ Lista</button>
   </div>
   <input id="buscar" placeholder="Buscar: nombre, teléfono, propiedad, folio, portal...">
-</div>
-<div id="pbarra" class="hidden">
-  <div class="filtros" id="pf-tipo">
-    <button class="f on" data-f="todas">Todas</button>
-    <button class="f" data-f="casa">Casas</button>
-    <button class="f" data-f="depa">Departamentos</button>
-    <button class="f" data-f="otro">Otros</button>
-  </div>
-  <div class="filtros" id="pf-estado">
-    <button class="f on" data-e="activas">🏠 Activas</button>
-    <button class="f" data-e="canceladas">🚫 Canceladas<span class="n" id="n-canc">–</span></button>
-  </div>
-  <div class="filtros" id="pf-op">
-    <button class="f on" data-f="todo">Renta y venta</button>
-    <button class="f" data-f="rental">Renta</button>
-    <button class="f" data-f="sale">Venta</button>
-  </div>
-  <div class="psort">
-    <select id="pf-sort">
-      <option value="pmin">Precio: menor a mayor</option>
-      <option value="pmax">Precio: mayor a menor</option>
-      <option value="az">Ordenar: A → Z</option>
-      <option value="za">Ordenar: Z → A</option>
-    </select>
-    <input id="pbuscar" placeholder="Buscar por nombre, folio, zona...">
-  </div>
 </div>
 <div id="lista"></div>
 </main>
@@ -361,7 +305,6 @@ let SUBSA='leads'; // dentro de "Sin asignar": leads | props
 let SHOWN=60; // paginación incremental
 const tipoLead=(l)=>l.contact_type||'unidentified';
 const esArchivado=(l)=>!!l.archived_at;
-let PT='todas', PO='todo', PS='pmin', PQ='', PE='activas', PROPSC=[];
 let VISTA='tablero'; // tablero | lista
 const EST={new:'NUEVO',contacted:'ACTIVO',attended:'TIBIO',cancelled:'CANCELADO'};
 const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa'};
@@ -514,8 +457,6 @@ async function cargar(){
       const d=await sb.from('property_advisors').select('property_id,advisor_id');
       DUENOS={};
       if(!d.error)(d.data||[]).forEach(x=>{DUENOS[x.property_id]=x.advisor_id});
-      const pc=await sb.from('my_properties_canceladas').select('*');
-      PROPSC=pc.error?[]:(pc.data||[]);
     }
     cargarContadores();
     pintar();
@@ -543,72 +484,10 @@ function pintar(){
   document.body.dataset.tab=TAB;
   const enTablero=(VISTA==='tablero'&&FIL==='todos'&&['clientes','asesores','sinid','todos','archivados'].indexOf(TAB)>=0);
   document.body.dataset.vista=enTablero?'tablero':'lista';
-  $('#barra').style.display=(TAB==='props'||TAB==='reportes'||TAB==='sinasignar')?'none':'';
-  $('#pbarra').classList.toggle('hidden',TAB!=='props');
+  $('#barra').style.display=(TAB==='reportes'||TAB==='sinasignar')?'none':'';
   const host=$('#lista');host.innerHTML='';
   if(TAB==='reportes'){renderReportes(host);return;}
   if(TAB==='sinasignar'){renderSinAsignar(host);return;}
-  if(TAB==='props'){
-    const canc=(PE==='canceladas');
-    const base=canc?PROPSC:PROPS;
-    if(!base.length){host.innerHTML=vacioHTML(canc?'No has cancelado ninguna propiedad.':'No tienes propiedades activas asignadas.',canc?'🚫':'🏠');return}
-    let ps=base.slice();
-    if(PT!=='todas')ps=ps.filter(p=>tipoDe(p)===PT);
-    if(PO!=='todo')ps=ps.filter(p=>p.operation_type===PO);
-    if(PQ){const q=PQ.toLowerCase();ps=ps.filter(p=>[p.title,p.eb_public_id,p.location_name,p.property_type].join(' ').toLowerCase().includes(q))}
-    const tt=(p)=>(p.title||p.eb_public_id||'').toLowerCase();
-    if(PS==='az')ps.sort((a,b)=>tt(a).localeCompare(tt(b)));
-    else if(PS==='za')ps.sort((a,b)=>tt(b).localeCompare(tt(a)));
-    else if(PS==='pmin')ps.sort((a,b)=>(a.price_amount??Infinity)-(b.price_amount??Infinity));
-    else if(PS==='pmax')ps.sort((a,b)=>(b.price_amount??-1)-(a.price_amount??-1));
-    if(!ps.length){host.innerHTML=vacioHTML('Sin propiedades con esos filtros.','🔍');return}
-    const secciones=[['rental','RENTA'],['sale','VENTA']];
-    const wrapper=document.createElement('div');wrapper.className='psecs';
-    for(const [op,titulo] of secciones){
-      const grupo=ps.filter(p=>p.operation_type===op);
-      if(!grupo.length)continue;
-      const sec=document.createElement('div');sec.className='psec';
-      sec.innerHTML='<div class="psec-h">'+titulo+' <span>'+grupo.length+'</span></div>';
-      const tabla=document.createElement('div');tabla.className='ptabla';
-      for(const p of grupo){
-        const fila=document.createElement('a');fila.className='prow';
-        if(p.public_url){fila.href=p.public_url;fila.target='_blank';fila.rel='noopener'}
-        const specs=[p.bedrooms?p.bedrooms+'r':null,p.bathrooms?p.bathrooms+'b':null,m2ok(p.construction_size)?p.construction_size+'m²':null].filter(Boolean).join(' · ');
-        fila.innerHTML='<img loading="lazy" src="'+esc(p.title_image_url||'')+'" onerror="this.style.visibility=\'hidden\'">'
-          +'<div class="pr-main"><div class="pr-t">'+esc(p.title||p.eb_public_id)+'</div>'
-          +'<div class="pr-m">'+esc(p.eb_public_id)+(p.location_name?' · '+esc(p.location_name):'')+'</div></div>'
-          +'<div class="pr-tipo">'+esc(p.property_type||'')+'</div>'
-          +'<div class="pr-specs">'+specs+'</div>'
-          +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>'
-          +'<button class="pr-cancel'+(canc?' rea':'')+'" title="'+(canc?'Reactivar':'Archivar')+'">'+(canc?'↩️':'🗑️')+'</button>';
-        if(canc)fila.classList.add('cancelada');
-        const bc=fila.querySelector('.pr-cancel');
-        if(bc)bc.onclick=async(e)=>{
-          e.preventDefault();e.stopPropagation();
-          if(canc){
-            if(!confirm('¿Reactivar "'+(p.title||p.eb_public_id)+'"?\n\nVuelve a la lista de propiedades activas y se vuelve a publicar en EasyBroker.'))return;
-            bc.disabled=true;bc.textContent='...';
-            const r=await ebToggle(p.id,'publish');
-            if(r.error){bc.disabled=false;bc.textContent='↩️ Reactivar';toast(r.error||'No se pudo');return}
-            toast('Propiedad reactivada y publicada en EasyBroker');
-          } else {
-            if(!confirm('¿Archivar "'+(p.title||p.eb_public_id)+'"?\n\nSale de la lista de propiedades activas y de los reportes, y se despublica automáticamente en EasyBroker.\nSus leads se conservan. Puedes reactivarla cuando quieras.'))return;
-            const mot=prompt('¿Por qué la archivas? (opcional)\nEj: se vendió, se rentó, el dueño la retiró, terminó exclusiva','');
-            if(mot===null)return;
-            bc.disabled=true;bc.textContent='...';
-            const r=await ebToggle(p.id,'archive',mot);
-            if(r.error){bc.disabled=false;bc.textContent='🚫 Archivar';toast(r.error||'No se pudo');return}
-            toast('Propiedad archivada y despublicada en EasyBroker');
-          }
-          await cargar();
-        };
-        tabla.appendChild(fila);
-      }
-      sec.appendChild(tabla);wrapper.appendChild(sec);
-    }
-    host.appendChild(wrapper);
-    return;
-  }
   let arr=LEADS.slice();
   if(TAB==='archivados')arr=arr.filter(esArchivado);
   else arr=arr.filter(l=>!esArchivado(l));
@@ -1069,9 +948,6 @@ function cargarContadores(){
   $('#n-asesores').textContent=activos.filter(l=>tipoLead(l)==='agent').length;
   $('#n-sinid').textContent=activos.filter(l=>tipoLead(l)==='unidentified').length;
   $('#n-todos').textContent=activos.length;
-  $('#n-props').textContent=PROPS.length;
-  const ncanc=$('#n-canc'); if(ncanc)ncanc.textContent=PROPSC.length;
-  const fe=document.getElementById('pf-estado'); if(fe)fe.style.display=ESADMIN?'':'none';
   $('#n-arch').textContent=LEADS.filter(esArchivado).length;
   const nsa=$('#n-sinasig');
   if(nsa){
@@ -1430,21 +1306,6 @@ document.querySelectorAll('#filtros .f.v').forEach(b=>b.onclick=()=>{
 // P2: debounce en búsquedas
 let _dq=null;
 $('#buscar').oninput=(e)=>{clearTimeout(_dq);_dq=setTimeout(()=>{Q=e.target.value;SHOWN=60;pintar()},180)};
-document.querySelectorAll('#pf-tipo .f').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#pf-tipo .f').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  PT=b.dataset.f;pintar();
-});
-document.querySelectorAll('#pf-estado .f').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#pf-estado .f').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  PE=b.dataset.e;pintar();
-});
-document.querySelectorAll('#pf-op .f').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#pf-op .f').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  PO=b.dataset.f;pintar();
-});
-$('#pf-sort').onchange=(e)=>{PS=e.target.value;pintar()};
-let _dpq=null;
-$('#pbuscar').oninput=(e)=>{clearTimeout(_dpq);_dpq=setTimeout(()=>{PQ=e.target.value;pintar()},180)};
 // sesion existente
 const {data:{session}}=await sb.auth.getSession();
 if(session)iniciar();
