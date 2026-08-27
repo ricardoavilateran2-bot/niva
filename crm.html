@@ -214,6 +214,10 @@ body[data-vista="tablero"] #buscar{max-width:640px}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:999px;font-size:13.5px;opacity:0;transition:.3s;pointer-events:none;z-index:50;box-shadow:0 8px 30px rgba(0,0,0,.25)}
 #syncBanner{position:fixed;top:0;left:0;right:0;z-index:60;background:var(--warn);color:#fff;text-align:center;font-size:13px;font-weight:700;padding:8px 12px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 #toast.show{opacity:1}
+#newBanner{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-60px);z-index:65;background:var(--navy);color:#fff;font-size:13.5px;font-weight:700;padding:10px 18px;border-radius:999px;box-shadow:0 8px 30px rgba(0,0,0,.28);cursor:pointer;display:flex;align-items:center;gap:8px;transition:transform .25s ease;border:1px solid rgba(201,168,76,.5)}
+#newBanner.show{transform:translateX(-50%) translateY(0)}
+#newBanner .nb-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;animation:nbpulse 1.4s infinite}
+@keyframes nbpulse{0%,100%{opacity:1}50%{opacity:.35}}
 </style></head><body>
 <a href="./index.html" id="niva-backfab" class="niva-backfab">&larr; NIVA OS</a>
 
@@ -266,6 +270,7 @@ body[data-vista="tablero"] #buscar{max-width:640px}
 </div>
 <div id="toast"></div>
 <div id="syncBanner" class="hidden"></div>
+<div id="newBanner"><span class="nb-dot"></span><span id="nb-text">Nuevo lead — toca para ver</span></div>
 <div id="modalNuevo" class="hidden">
   <div class="mbox">
     <h3>➕ Nuevo cliente directo</h3>
@@ -377,6 +382,29 @@ window.addEventListener('online',()=>{actualizarBadgeSync();sincronizar();});
 window.addEventListener('offline',actualizarBadgeSync);
 setInterval(()=>{if(navigator.onLine)sincronizar();},30000);
 
+// P1: aviso de leads nuevos sin recargar manualmente
+let LASTLEADIDS=null;
+async function checkNuevos(){
+  if(!navigator.onLine || document.hidden) return;
+  if(!$('#login').classList.contains('hidden')) return; // aún no ha iniciado sesión
+  try{
+    const {data,error}=await sb.from('my_leads').select('id');
+    if(error||!data||!LASTLEADIDS)return;
+    const nuevos=data.filter(x=>!LASTLEADIDS.has(x.id)).length;
+    if(nuevos>0)mostrarBannerNuevos(nuevos);
+  }catch(e){}
+}
+function mostrarBannerNuevos(n){
+  $('#nb-text').textContent=(n===1?'1 lead nuevo':n+' leads nuevos')+' — toca para ver';
+  $('#newBanner').classList.add('show');
+}
+$('#newBanner').onclick=async()=>{
+  $('#newBanner').classList.remove('show');
+  await cargar();
+};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkNuevos();});
+setInterval(checkNuevos,45000);
+
 async function entrar(){
   const u=$('#lu').value.trim().toLowerCase(), p=$('#lp').value;
   if(!u||!p){$('#lerr').textContent='Escribe usuario y contraseña';return}
@@ -461,6 +489,8 @@ async function cargar(){
     cargarContadores();
     pintar();
     actualizarBadgeSync();
+    LASTLEADIDS=new Set(LEADS.map(x=>x.id));
+    $('#newBanner').classList.remove('show');
   }catch(e){
     console.error('[CRM] error de carga:',e);
     const c=cargarCache();
