@@ -311,6 +311,7 @@ async function cargar(){
   const zsel=$('#cap-zona');
   const zonas=[...new Set(PROPS.map(p=>p.location_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   zsel.innerHTML=zonas.map(z=>'<option value="'+esc(z)+'">'+esc(z)+'</option>').join('')+'<option value="__otra__">✏️ Otra zona...</option>';
+  $('#cap-zona-otra').style.display=(zsel.value==='__otra__')?'':'none';
   renderHistorial();
   renderProps();
 }
