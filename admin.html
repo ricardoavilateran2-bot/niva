@@ -10,7 +10,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     const { data:{ session } } = await sb.auth.getSession();
     if(!session){ window.location.replace('./index.html'); return; }
     const uname=(session.user?.email||'').split('@')[0];
-    if(uname!=='admin' && uname!=='ricardo'){ window.location.replace('./index.html'); return; }
+    if(uname!=='admin'){ window.location.replace('./index.html'); return; }
     sb.auth.onAuthStateChange((_e, s)=>{ if(!s) window.location.replace('./index.html'); });
   }catch(e){ console.error('niva-auth-guard', e); window.location.replace('./index.html'); }
 })();

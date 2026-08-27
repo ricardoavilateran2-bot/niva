@@ -302,7 +302,7 @@ let MI_ASESOR=null;
 
 async function cargar(){
   const uname=(session.user?.email||'').split('@')[0];
-  USUARIO=uname; ESADMIN=(uname==='admin'||uname==='ricardo');
+  USUARIO=uname; ESADMIN=(uname==='admin');
   const [p,c,a,ci] = await Promise.all([
     sb.from('my_properties').select('*'),
     sb.from('contacts').select('id,full_name,phone_normalized').order('full_name'),

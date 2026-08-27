@@ -471,7 +471,7 @@ function showPortal(email){
   $('#hname').textContent = email || '';
   const uname=(email||'').split('@')[0];
   const cardAdmin=$('#card-admin');
-  if(cardAdmin) cardAdmin.classList.toggle('hidden', !(uname==='admin'||uname==='ricardo'));
+  if(cardAdmin) cardAdmin.classList.toggle('hidden', uname!=='admin');
 }
 function showLogin(){
   $('#portal').classList.add('hidden');

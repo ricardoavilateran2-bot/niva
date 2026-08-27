@@ -195,7 +195,7 @@ let PROPS=[], ESADMIN=false, CAP_FOTOS=[];
 
 async function cargar(){
   const uname=(session.user?.email||'').split('@')[0];
-  ESADMIN=(uname==='admin'||uname==='ricardo');
+  ESADMIN=(uname==='admin');
   const {data,error}=await sb.from('my_properties').select('*');
   PROPS = error? [] : (data||[]);
   const zsel=$('#cap-zona');
