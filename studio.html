@@ -5015,13 +5015,14 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
     target: new ArrayBufferTarget(),
     video: { codec: 'avc', width: W, height: H },
     fastStart: 'in-memory',
+    firstTimestampBehavior: 'offset',
   };
   if (hasAudio) muxerConfig.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 };
   const muxer = new Muxer(muxerConfig);
 
   let encodeErr = null;
   const videoEncoder = new VideoEncoder({
-    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+    output: (chunk, meta) => { try { muxer.addVideoChunk(chunk, meta); } catch(e) { encodeErr = encodeErr || e; } },
     error: (e) => { encodeErr = e; }
   });
   videoEncoder.configure({ codec: videoCodec, width: W, height: H, bitrate: vBitrate, framerate: 30 });
@@ -5038,11 +5039,13 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
     function onFrame(now, metadata) {
       if (settled) return;
       if (encodeErr) { finish(); return; }
-      cctx.drawImage(video, 0, 0, W, H);
-      const vf = new VideoFrame(canvas, { timestamp: Math.round(metadata.mediaTime * 1e6), duration: frameDurationUs });
-      videoEncoder.encode(vf, { keyFrame: frameCount % 30 === 0 });
-      vf.close();
-      frameCount++;
+      try {
+        cctx.drawImage(video, 0, 0, W, H);
+        const vf = new VideoFrame(canvas, { timestamp: Math.round(metadata.mediaTime * 1e6), duration: frameDurationUs });
+        videoEncoder.encode(vf, { keyFrame: frameCount % 30 === 0 });
+        vf.close();
+        frameCount++;
+      } catch(e) { encodeErr = encodeErr || e; finish(); return; }
       if (!video.ended) video.requestVideoFrameCallback(onFrame);
       else finish();
     }
@@ -5062,7 +5065,7 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
 
   if (hasAudio) {
     const audioEncoder = new AudioEncoder({
-      output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+      output: (chunk, meta) => { try { muxer.addAudioChunk(chunk, meta); } catch(e) { encodeErr = encodeErr || e; } },
       error: (e) => { encodeErr = e; }
     });
     audioEncoder.configure({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 224_000 });
