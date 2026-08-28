@@ -7832,6 +7832,7 @@ async function playVideoEL() {
         }
       };
       mediaRecorder.onstop = async () => {
+        window.__nivaOnstopRan = true;
         console.log('[NIVA][RECORDER] onstop | chunks:', chunkCount, '| bytes:', totalChunkBytes, '| mime:', _recordedMimeType);
         // Limpiar recursos DESPUÉS de construir el blob — no antes
         const finalMime = mediaRecorder.mimeType || _recordedMimeType;
@@ -7846,7 +7847,8 @@ async function playVideoEL() {
         else updateDiagStep('done', 'err');
       };
       const provLabel = usedProvider === 'elevenlabs' ? '🎙️ ElevenLabs' : usedProvider === 'upload' ? '📁 Audio propio' : '🎙️ Audio';
-      vidStatus('🎬 Grabando con voz ' + provLabel + '… no cierres esta ventana', 'loading');
+      window.__nivaOnstopRan = false;
+      vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + '] con voz ' + provLabel + '… no cierres esta ventana', 'loading');
       updateDiagStep('render', 'pending');
       // Safari (grabación MP4): NO usar timeslice — su muxer MP4 con cortes periódicos
       // puede no producir dataavailable nunca. Sin timeslice entrega un solo blob al stop.
@@ -7910,6 +7912,12 @@ async function playVideoEL() {
         setTimeout(() => {
           if (activeMusicSource) { try { activeMusicSource.stop(); activeMusicSource = null; } catch(e){} }
           setTimeout(() => stopVideo(), 500);
+          setTimeout(() => {
+            if (!window.__nivaOnstopRan) {
+              vidStatus('❌ La grabación no entregó datos en este navegador [' + String(_recordedMimeType || '') + ']. Recarga la página e intenta de nuevo; si persiste, genera el video desde Chrome en computadora.', 'err');
+              updateDiagStep('done', 'err');
+            }
+          }, 15000);
         }, finalDurMs);
       };
       audio.onloadedmetadata = () => beginRenderOnce('loadedmetadata');
