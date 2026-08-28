@@ -498,6 +498,7 @@ async function guardarCaptacion(){
     if(!res.ok){
       let detalle = out.detalle || out.detail;
       if(detalle && typeof detalle !== 'string') detalle = JSON.stringify(detalle);
+      if(out.enviado) detalle = (detalle||'') + ' | Ubicación enviada a EasyBroker: ' + JSON.stringify(out.enviado);
       const msgBase = out.error || ('EasyBroker rechazó la publicación (HTTP '+res.status+').');
       throw new Error(detalle ? (msgBase+' — Motivo: '+detalle) : (msgBase+' Revisa que todos los campos obligatorios estén completos.'));
     }
