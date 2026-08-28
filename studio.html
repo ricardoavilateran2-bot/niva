@@ -2027,7 +2027,7 @@ function onMusicVolChange(val) {
 }
 
 function scoreMusicForAnalysis(track, analysis) {
-  if (!analysis) return Math.round(track.luxury_score * 0.5 + track.real_estate_score * 0.5);
+  if (!analysis) return Math.round((track.luxury_score || 50) * 0.5 + (track.real_estate_score || 50) * 0.5);
   const recMoods   = analysis.moods || [];
   const bpmRange   = (analysis.bpm_rango || '80-120').split('-').map(Number);
   const energy     = analysis.energia ?? 50;
@@ -2035,7 +2035,7 @@ function scoreMusicForAnalysis(track, analysis) {
 
   let score = 0;
   // Mood match (25)
-  const moodMatches = track.mood.filter(m => recMoods.includes(m)).length;
+  const moodMatches = (track.mood || []).filter(m => recMoods.includes(m)).length;
   score += Math.min(25, moodMatches * 9);
   // Property match via AI rec (20)
   if (recIds.includes(track.id)) score += 20;
@@ -2530,13 +2530,28 @@ function addPhotos(input) {
   if (!input.files || !input.files.length) return;
   Array.from(input.files).forEach(f => {
     const r = new FileReader();
-    r.onload = e => { photos.push(e.target.result); renderPhotoGrid(); };
+    r.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const MAXW = 1600;
+        const sc = Math.min(1, MAXW / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width * sc));
+        c.height = Math.max(1, Math.round(img.height * sc));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        photos.push(c.toDataURL('image/jpeg', 0.88));
+        renderPhotoGrid();
+      };
+      img.onerror = () => { photos.push(e.target.result); renderPhotoGrid(); };
+      img.src = e.target.result;
+    };
     r.readAsDataURL(f);
   });
   input.value = '';
 }
 
 function removePhoto(i) { photos.splice(i, 1); renderPhotoGrid(); }
+function movePhoto(i, d) { const j = i + d; if (j < 0 || j >= photos.length) return; const t = photos[i]; photos[i] = photos[j]; photos[j] = t; renderPhotoGrid(); }
 
 let _dragIdx = null;
 
@@ -2548,7 +2563,7 @@ function renderPhotoGrid() {
     div.className = 'ph-thumb';
     div.draggable = true;
     const badgeTxt = i === 0 ? '⭐ Principal' : i <= 4 ? 'Flyer ' + i : 'Extra';
-    div.innerHTML = `<img src="${u}"><span class="ph-badge">${badgeTxt}</span><button class="ph-rm" onclick="removePhoto(${i})">×</button>`;
+    div.innerHTML = `<img src="${u}"><span class="ph-badge">${badgeTxt}</span><button class="ph-rm" onclick="removePhoto(${i})">×</button><button class="ph-rm" style="top:auto;bottom:2px;right:26px;width:20px;height:20px" onclick="movePhoto(${i},-1)">◀</button><button class="ph-rm" style="top:auto;bottom:2px;right:2px;width:20px;height:20px" onclick="movePhoto(${i},1)">▶</button>`;
 
     div.addEventListener('dragstart', e => {
       _dragIdx = i;
@@ -4653,6 +4668,13 @@ let activeMusicSource = null;
 // Prueba MediaRecorder.isTypeSupported para elegir el mejor codec disponible.
 // Nunca asume MP4 — WebM es el formato nativo de MediaRecorder en todos los navegadores modernos.
 function getBestSupportedVideoMime(needsAudio) {
+  // iPad/iPhone/Safari: grabar MP4 nativo — la conversión WebM a MP4 no es confiable ahí
+  const uaNIVA = navigator.userAgent;
+  const isAppleNIVA = /iPad|iPhone|iPod/.test(uaNIVA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || (uaNIVA.includes('Safari') && !uaNIVA.includes('Chrome') && !uaNIVA.includes('Chromium') && !uaNIVA.includes('Edg'));
+  if (isAppleNIVA && window.MediaRecorder) {
+    const mp4NIVA = needsAudio ? ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4'] : ['video/mp4;codecs=avc1.42E01E', 'video/mp4'];
+    for (const mN of mp4NIVA) { if (MediaRecorder.isTypeSupported(mN)) return mN; }
+  }
   // VP8 primero — es más estable para grabación con MediaRecorder en Chrome.
   // VP9 puede producir WebM con EBML headers malformados a alta resolución/bitrate.
   const candidates = needsAudio
