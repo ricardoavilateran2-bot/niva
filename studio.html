@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.7';
+const NIVA_BUILD_VERSION = '2026-08-29.8';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -7782,6 +7782,20 @@ async function playVideoEL() {
   if (audioBlob) {
     const provLabel = usedProvider === 'elevenlabs' ? '🎙️ ElevenLabs' : '📁 Audio propio';
     vidStatus('🎬 Grabando con ' + provLabel + '… no cierres esta ventana', 'loading');
+    let _nivaSetupBegunSec = 0;
+    const _nivaSetupTicker = setInterval(() => {
+      _nivaSetupBegunSec++;
+      console.log('[NIVA][SETUP] preparando grabación… ' + _nivaSetupBegunSec + 's');
+      vidStatus('🎬 Preparando grabación… ' + _nivaSetupBegunSec + 's · no cierres esta ventana', 'loading');
+    }, 1000);
+    const _nivaSetupFailsafe = setTimeout(() => {
+      console.error('[NIVA][SETUP] VIGILANTE DE ARRANQUE: pasaron 20s y el setup de grabación nunca terminó.');
+      clearInterval(_nivaSetupTicker);
+      vidStatus('❌ El navegador se quedó atorado preparando la grabación (audio/canvas) y no respondió en 20s. Esto es un problema conocido de Safari — intenta de nuevo desde Google Chrome.', 'err');
+      updateDiagStep('render', 'err');
+      updateDiagStep('done', 'err');
+      try { _showPlayBtn(); } catch(e) {}
+    }, 20000);
     try {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
@@ -7789,7 +7803,15 @@ async function playVideoEL() {
       // Safari crea el AudioContext "suspendido" — sin resume() el track de audio no
       // produce muestras y el MediaRecorder MP4 de Safari se queda esperando (0 chunks).
       // En Chrome es un no-op inofensivo si ya está "running".
-      try { await audioCtx.resume(); } catch(e) { console.warn('[NIVA][AUDIO] resume() falló:', e); }
+      try {
+        await Promise.race([
+          audioCtx.resume(),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('audioCtx.resume() no respondió en 4s')), 4000))
+        ]);
+        console.log('[NIVA][AUDIO] audioCtx.resume() OK - state:', audioCtx.state);
+      } catch(e) {
+        console.warn('[NIVA][AUDIO] resume() falló o no respondió a tiempo:', (e && e.message), '| state:', audioCtx.state, '- continuando de todos modos.');
+      }
       const dest = audioCtx.createMediaStreamDestination();
       const masterGain = audioCtx.createGain();
       masterGain.connect(dest);
@@ -7862,8 +7884,8 @@ async function playVideoEL() {
       const vTracks = canvasStream.getVideoTracks();
       const aTracks = dest.stream.getAudioTracks();
       console.log('[NIVA][TRACKS] video tracks:', vTracks.length, '| audio tracks:', aTracks.length);
-      if (!vTracks.length) { vidStatus('❌ Canvas no produce video tracks — captureStream falló', 'err'); return; }
-      if (!aTracks.length) { vidStatus('❌ AudioDestination no produce audio tracks', 'err'); return; }
+      if (!vTracks.length) { clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe); vidStatus('❌ Canvas no produce video tracks — captureStream falló', 'err'); return; }
+      if (!aTracks.length) { clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe); vidStatus('❌ AudioDestination no produce audio tracks', 'err'); return; }
 
       const combined = new MediaStream([...vTracks, ...aTracks]);
 
@@ -7881,6 +7903,7 @@ async function playVideoEL() {
         console.error('[NIVA][RECORDER] Ningún codec soportado (ni webm ni mp4) — abortando grabación.');
         vidStatus('❌ Tu navegador no admite la grabación de video compatible con NIVA. Actualiza Chrome o Safari a su última versión.', 'err');
         document.getElementById('btn-dl-video').style.display = 'none';
+        clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe);
         return;
       }
 
@@ -7891,6 +7914,7 @@ async function playVideoEL() {
         console.error('[NIVA][RECORDER] Video track no está "live":', _vTrackCheck && _vTrackCheck.readyState);
         vidStatus('❌ El canvas no está produciendo un video track activo — no se puede grabar.', 'err');
         document.getElementById('btn-dl-video').style.display = 'none';
+        clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe);
         return;
       }
 
@@ -7961,6 +7985,8 @@ async function playVideoEL() {
         if (ok) updateDiagStep('done', 'ok');
         else updateDiagStep('done', 'err');
       };
+      clearInterval(_nivaSetupTicker);
+      clearTimeout(_nivaSetupFailsafe);
       const provLabel = usedProvider === 'elevenlabs' ? '🎙️ ElevenLabs' : usedProvider === 'upload' ? '📁 Audio propio' : '🎙️ Audio';
       window.__nivaOnstopRan = false;
       vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + '] con voz ' + provLabel + '… no cierres esta ventana', 'loading');
@@ -8069,6 +8095,7 @@ async function playVideoEL() {
       vidStatus('❌ Error preparando el audio para el video: ' + (err.message || err), 'err');
       document.getElementById('btn-play-video').style.display = 'flex';
       document.getElementById('btn-stop-video').style.display = 'none';
+      try { clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe); } catch(e2) {}
     }
   }
 }
