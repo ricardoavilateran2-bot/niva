@@ -306,6 +306,18 @@ async function ebToggle(propertyId, action, motivo){
   return { data: j };
 }
 let LEADS=[], PROPS=[], ASESORES=[], DUENOS={}, TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='';
+// Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
+async function resolveAdvisorDisplayName(uname){
+  try{
+    const {data}=await sb.from('advisors').select('first_name,last_name');
+    const rows=data||[];
+    const norm=s=>(s||'').trim().toLowerCase();
+    let match=rows.find(r=>norm(r.first_name)===uname);
+    if(!match){ const tok=uname.split(/[._]/)[0]; match=rows.find(r=>norm(r.first_name)===tok); }
+    if(match) return ((match.first_name||'')+' '+(match.last_name||'')).trim();
+  }catch(e){}
+  return uname.split(/[._]/).filter(Boolean).map(s=>s[0].toUpperCase()+s.slice(1)).join(' ');
+}
 let SUBSA='leads'; // dentro de "Sin asignar": leads | props
 let SHOWN=60; // paginación incremental
 const tipoLead=(l)=>l.contact_type||'unidentified';
@@ -423,7 +435,8 @@ async function iniciar(){
   $('#login').classList.add('hidden');$('#app').classList.remove('hidden');
   const {data:{user}}=await sb.auth.getUser();
   const uname=(user?.email??'').split('@')[0];
-  $('#hname').textContent=uname;
+  $('#hname').textContent=uname; // placeholder inmediato mientras resuelve el nombre
+  resolveAdvisorDisplayName(uname).then(n=>{ $('#hname').textContent=n; });
   USUARIO=uname;
   ESADMIN=(uname==='admin');
   const tabSinId=$('#tab-sinid');
