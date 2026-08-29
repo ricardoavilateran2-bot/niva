@@ -1134,7 +1134,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.22';
+const NIVA_BUILD_VERSION = '2026-08-29.23';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -1190,7 +1190,8 @@ function _nivaIsMobileLayout() {
 // ══════════════════════════════════════════════
 //  GLOBALS
 // ══════════════════════════════════════════════
-let photos = [];         // Array of data URLs
+let photos = [];         // Array of data URLs (el orden = orden manual del video)
+let mainPhotoUrl = null; // Foto Principal (Cambio 3): marcador independiente del orden/posición en el video
 const showAsesor = true; // Asesor siempre visible en todo el contenido
 let videoAnim = null;    // RAF handle
 // videoSynth (browser TTS) eliminado — solo ElevenLabs y audio propio
@@ -2657,15 +2658,31 @@ function movePhoto(i, d) { const j = i + d; if (j < 0 || j >= photos.length) ret
 
 let _dragIdx = null;
 
+function toggleMainPhoto(i){
+  // Foto Principal (Cambio 3): marcador independiente del orden — se guarda por identidad (URL),
+  // no por índice, así sobrevive a reordenamientos y solo se limpia si esa foto se elimina.
+  const url = photos[i];
+  mainPhotoUrl = (mainPhotoUrl === url) ? null : url;
+  renderPhotoGrid();
+}
+function getMainPhotoUrl(){
+  // Para uso futuro (ej. sugerir portada): si no hay marcador explícito, cae a la primera foto del orden.
+  if (mainPhotoUrl && photos.includes(mainPhotoUrl)) return mainPhotoUrl;
+  return photos[0] || null;
+}
 function renderPhotoGrid() {
   const g = document.getElementById('phGrid');
   g.innerHTML = '';
+  // Si la foto marcada como principal fue eliminada, se limpia el marcador.
+  if (mainPhotoUrl && !photos.includes(mainPhotoUrl)) mainPhotoUrl = null;
   photos.forEach((u, i) => {
     const div = document.createElement('div');
     div.className = 'ph-thumb';
     div.draggable = true;
-    const badgeTxt = i === 0 ? '⭐ Principal' : i <= 4 ? 'Flyer ' + i : 'Extra';
-    div.innerHTML = `<img src="${u}"><span class="ph-badge">${badgeTxt}</span><button class="ph-rm" onclick="removePhoto(${i})">×</button><button class="ph-rm" style="top:auto;bottom:2px;right:26px;width:20px;height:20px" onclick="movePhoto(${i},-1)">◀</button><button class="ph-rm" style="top:auto;bottom:2px;right:2px;width:20px;height:20px" onclick="movePhoto(${i},1)">▶</button>`;
+    const flyerTag = i === 0 ? 'Flyer: Ppal' : i <= 4 ? 'Flyer ' + i : 'Extra';
+    const badgeTxt = '#' + (i + 1) + ' · ' + flyerTag;
+    const isMain = (u === mainPhotoUrl);
+    div.innerHTML = `<img src="${u}"><span class="ph-badge">${badgeTxt}</span><button class="ph-rm" style="top:2px;left:2px;right:auto;background:${isMain ? '#C9A84C' : 'rgba(0,0,0,.55)'};color:${isMain ? '#0b1220' : '#fff'}" onclick="toggleMainPhoto(${i})" title="Marcar como Foto Principal">${isMain ? '⭐' : '☆'}</button><button class="ph-rm" onclick="removePhoto(${i})">×</button><button class="ph-rm" style="top:auto;bottom:2px;right:26px;width:20px;height:20px" onclick="movePhoto(${i},-1)">◀</button><button class="ph-rm" style="top:auto;bottom:2px;right:2px;width:20px;height:20px" onclick="movePhoto(${i},1)">▶</button>`;
 
     div.addEventListener('dragstart', e => {
       _dragIdx = i;
@@ -6921,7 +6938,7 @@ Responde en JSON:
     ta.value = fitNarracionADuracion(parsed.narracion_completa || '', durTarget);
     vidCountChars();
 
-    vidScenes = parsed.escenas || [];
+    vidScenes = remapEscenasAOrdenManual(parsed.escenas || []);
 
     // Store CTA from concept
     if (parsed.cta_texto) {
@@ -6969,6 +6986,17 @@ function buildScriptPlantilla(v, hook, meta) {
   s += `Todo esto por ${precio}${v.esMes?' al mes':''}.\n\n`;
   s += `¿La quieres conocer? Mándame mensaje y te paso todos los detalles.\n\nNIVA Inmobiliaria, ${ciudad}.`;
   return s;
+}
+
+function remapEscenasAOrdenManual(escenas) {
+  // Cambio 3 — "Orden de Fotos": el guión de IA asigna foto_idx por lógica narrativa/clasificación,
+  // no necesariamente en el orden manual que el asesor definió en la galería. Aquí se fuerza a que
+  // cada escena use la foto que le corresponde según el ORDEN MANUAL (photos[]), sin tocar ninguna
+  // otra propiedad de la escena (duración, cámara, transición, texto, narración, etc.).
+  if (!Array.isArray(escenas) || !escenas.length) return escenas;
+  const n = Math.max(photos.length, 1);
+  escenas.forEach((s, i) => { s.foto_idx = Math.min(i, n - 1); });
+  return escenas;
 }
 
 function buildScenesPlantilla(v, hook, script) {
