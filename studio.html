@@ -1229,7 +1229,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.41';
+const NIVA_BUILD_VERSION = '2026-08-29.42';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -8845,7 +8845,8 @@ async function playVideoEL() {
         try {
           // Calcular duración final: usa el selector o la IA
           const ta = document.getElementById('vid-script-ta');
-          const scriptLen = (ta && ta.value) ? ta.value.length : 0;
+          const scriptTxt = (ta && ta.value) ? ta.value : '';
+          const scriptLen = scriptTxt.length;
           const finalDuration = resolveVideoDuration(photoList.length, scriptLen);
           videoDurationSeconds = finalDuration;
           const finalDurMs = finalDuration * 1000;
@@ -8861,7 +8862,7 @@ async function playVideoEL() {
           // Debug info
           console.log('[VIDEO_DURATION] finalDuration=' + finalDuration + 's | audioDuration=' + (audio.duration||0).toFixed(1) + 's | audioMode=' + audioMode + ' | photos=' + photoList.length + ' | scriptLen=' + scriptLen);
 
-          startVideoAnimation(photoList, finalDurMs);
+          startVideoAnimation(photoList, finalDurMs, scriptTxt);
           if (musicSource) {
             activeMusicSource = musicSource;
             try { musicSource.start(0); } catch(eStart) { console.warn('[NIVA][RENDER] musicSource.start() falló (probablemente reutilizado de un intento previo) — se continúa sin música:', eStart); activeMusicSource = null; }
@@ -8940,8 +8941,50 @@ function updateVoiceStatus(msg, ok) {
 }
 // _useBrowserTTSOnce eliminado — browser TTS removido del sistema
 
+// ── Duración real de cada escena a partir del alignment de ElevenLabs (timestamps
+// reales por carácter), en vez de repartir proporcionalmente duracion_seg. Devuelve un
+// array de durMs (uno por escena, mismo orden) o null si no hay alignment confiable
+// para el guion actual (p.ej. proveedor "Audio propio", o el texto no coincide) — en
+// ese caso el llamador sigue usando el reparto proporcional de siempre.
+function _nivaAlignmentDurations(scenes, ttsScript) {
+  const al = _lastElevenLabsAlignment;
+  const fullText = ttsScript || '';
+  if (!al || !al.characters || !al.character_start_times_seconds || !al.character_end_times_seconds || !fullText) return null;
+  const chars = al.characters;
+  const starts = al.character_start_times_seconds;
+  const ends = al.character_end_times_seconds;
+  if (!chars.length || chars.length !== starts.length || chars.length !== ends.length) return null;
+  // El alignment debe corresponder AL MISMO texto que se mandó a hablar — si el conteo
+  // de caracteres no cuadra (más allá de una pequeña tolerancia por normalización de
+  // ElevenLabs), no confiamos en el mapeo y se usa el reparto proporcional de respaldo.
+  if (Math.abs(chars.length - fullText.length) > Math.max(5, fullText.length * 0.03)) return null;
+
+  let searchFrom = 0;
+  const ranges = scenes.map(s => {
+    const frag = (s.narracion_frag || '').trim();
+    if (!frag) return null;
+    const idx = fullText.indexOf(frag, searchFrom);
+    if (idx === -1) return null;
+    searchFrom = idx + frag.length;
+    return { start: idx, end: idx + frag.length - 1 };
+  });
+  if (ranges.some(r => r === null)) return null; // algún fragmento no se ubicó — no arriesgar
+
+  const startSec = ranges.map(r => starts[Math.min(r.start, chars.length - 1)]);
+  const endSec = ranges.map(r => ends[Math.min(r.end, chars.length - 1)]);
+
+  return scenes.map((s, i) => {
+    const realStart = startSec[i];
+    // Cada escena dura hasta que empieza a hablar la siguiente (incluye la pausa entre
+    // frases), así la foto se queda en pantalla mientras el narrador respira en vez de
+    // cambiar antes de tiempo. La última escena usa su propio cierre hablado + un remate.
+    const realEndBoundary = (i < scenes.length - 1) ? startSec[i + 1] : Math.max(endSec[i], realStart) + 1.2;
+    return Math.max(300, (realEndBoundary - realStart) * 1000);
+  });
+}
+
 // ── ANIMACIÓN ── (motor cinematográfico — time-based, no frame-based)
-function startVideoAnimation(photoList, totalMs) {
+function startVideoAnimation(photoList, totalMs, ttsScript) {
   vidFrame = 0; vidStartT = null;
   _nivaPosterDataUrl = null; _nivaPosterCaptured = false;
   prevSceneIdx = -1; prevSceneImg = null; prevKenBurnsVariant = null;
@@ -8954,9 +8997,20 @@ function startVideoAnimation(photoList, totalMs) {
   const ctx = cv.getContext('2d', { alpha: false }); // alpha:false → compositing más rápido
 
   let scenes = vidScenes.length > 0 ? vidScenes : buildDefaultScenes(vidV, photoList.length);
-  const totalSceneDur = scenes.reduce((a,s) => a+(s.duracion_seg||5), 0) * 1000;
-  const scaleTime = totalMs > 0 ? totalMs / totalSceneDur : 1;
-  const scaledScenes = scenes.map(s => ({...s, durMs: (s.duracion_seg||5)*1000*scaleTime}));
+  // A petición de Ricardo: sincronizar la foto que se ve con lo que REALMENTE dice la
+  // voz en ese instante, en vez de repartir proporcionalmente duracion_seg (que podía
+  // desincronizarse — p.ej. la foto de "Cocina" aparecía antes o después de que la voz
+  // dijera "Cocina para Chef"). Si hay alignment real de ElevenLabs para este guion, se
+  // usa; si no, se cae al reparto proporcional de siempre.
+  const alignedDurMs = _nivaAlignmentDurations(scenes, ttsScript);
+  let scaledScenes;
+  if (alignedDurMs) {
+    scaledScenes = scenes.map((s, i) => ({...s, durMs: alignedDurMs[i]}));
+  } else {
+    const totalSceneDur = scenes.reduce((a,s) => a+(s.duracion_seg||5), 0) * 1000;
+    const scaleTime = totalMs > 0 ? totalMs / totalSceneDur : 1;
+    scaledScenes = scenes.map(s => ({...s, durMs: (s.duracion_seg||5)*1000*scaleTime}));
+  }
   // ── Garantizar duración mínima de la escena de cierre ──
   // El nuevo drawOutroScene necesita al menos 2.8s para mostrar los 3 elementos con jerarquía.
   if (NIVA_FLAGS.newOutro && scaledScenes.length > 0) {
