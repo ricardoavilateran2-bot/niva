@@ -94,6 +94,9 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .ph-rm:hover{background:#ef4444}
 .ph-drag-hint{font-size:10px;color:#94a3b8;text-align:center;margin-top:5px;display:none}
 .ph-drag-hint.show{display:block}
+.ph-thumb.ph-unused{opacity:.4;filter:grayscale(.4)}
+.ph-thumb.ph-unused .ph-badge{background:#94a3b8;color:#1B2A4A}
+.ph-usage-hint{font-size:10.5px;color:#C9A84C;text-align:center;margin-top:6px;font-weight:600}
 .btn-more-photos{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:7px;background:white;border:1.5px dashed var(--border);border-radius:7px;font-size:11.5px;color:#64748b;cursor:pointer;font-family:inherit;margin-top:5px;transition:all .2s}
 .btn-more-photos:hover{border-color:var(--navy);color:var(--navy)}
 
@@ -487,6 +490,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 </div>
 <div class="ph-grid" id="phGrid"></div>
 <div class="ph-drag-hint" id="phDragHint">↔ Arrastra las fotos para cambiar el orden del video · ⭐ Marca tu Foto Principal</div>
+<div class="ph-usage-hint" id="phUsageHint" style="display:none"></div>
 <button class="btn-more-photos" id="btnMorePhotos" style="display:none" onclick="document.getElementById('fotoInput').click()">➕ Agregar más fotos</button>
 
 
@@ -1132,7 +1136,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.26';
+const NIVA_BUILD_VERSION = '2026-08-29.27';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -2683,11 +2687,16 @@ function renderPhotoGrid() {
   g.innerHTML = '';
   // Si la foto marcada como principal fue eliminada, se limpia el marcador.
   if (mainPhotoUrl && !photos.includes(mainPhotoUrl)) mainPhotoUrl = null;
+  // Cambio 3 — de cuántas fotos (en orden) toma escenas el guion actual (si ya se generó uno).
+  const usedCount = (typeof vidScenes !== 'undefined' && vidScenes && vidScenes.length)
+    ? Math.min(vidScenes.length, photos.length)
+    : null;
   photos.forEach((u, i) => {
     const div = document.createElement('div');
-    div.className = 'ph-thumb';
+    const isUnused = usedCount !== null && i >= usedCount;
+    div.className = 'ph-thumb' + (isUnused ? ' ph-unused' : '');
     div.draggable = true;
-    const badgeTxt = '#' + (i + 1);
+    const badgeTxt = '#' + (i + 1) + (isUnused ? ' · fuera del video' : '');
     const isMain = (u === mainPhotoUrl);
     div.innerHTML = `<img src="${u}"><span class="ph-badge">${badgeTxt}</span><button class="ph-rm" style="top:2px;left:2px;right:auto;background:${isMain ? '#C9A84C' : 'rgba(0,0,0,.55)'};color:${isMain ? '#0b1220' : '#fff'}" onclick="toggleMainPhoto(${i})" title="Marcar como Foto Principal">${isMain ? '⭐' : '☆'}</button><button class="ph-rm" onclick="removePhoto(${i})">×</button><button class="ph-rm" style="top:auto;bottom:2px;right:26px;width:20px;height:20px" onclick="movePhoto(${i},-1)">◀</button><button class="ph-rm" style="top:auto;bottom:2px;right:2px;width:20px;height:20px" onclick="movePhoto(${i},1)">▶</button>`;
 
@@ -2723,6 +2732,19 @@ function renderPhotoGrid() {
   document.getElementById('btnMorePhotos').style.display = hasPhotos ? 'flex' : 'none';
   const hint = document.getElementById('phDragHint');
   if (hint) hint.className = 'ph-drag-hint' + (photos.length > 1 ? ' show' : '');
+  // Cambio 3 — avisar hasta qué foto llega el guion de video actual (si ya existe uno).
+  const usageHint = document.getElementById('phUsageHint');
+  if (usageHint) {
+    if (usedCount !== null && usedCount < photos.length) {
+      usageHint.textContent = `🎬 El guion actual usa tus primeras ${usedCount} fotos (de ${photos.length}) — las demás no aparecen en este video.`;
+      usageHint.style.display = 'block';
+    } else if (usedCount !== null) {
+      usageHint.textContent = `🎬 El guion actual usa las ${usedCount} fotos que subiste.`;
+      usageHint.style.display = 'block';
+    } else {
+      usageHint.style.display = 'none';
+    }
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -7271,7 +7293,7 @@ function buildScenesPlantillaV2(v, hook, concept, meta) {
 function renderScenes() {
   const box = document.getElementById('vid-scenes-box');
   const list = document.getElementById('vid-scenes-list');
-  if (!vidScenes.length) { box.style.display='none'; return; }
+  if (!vidScenes.length) { box.style.display='none'; renderPhotoGrid(); return; }
   box.style.display = 'block';
   list.innerHTML = vidScenes.map(s =>
     `<div class="vid-scene-item">
@@ -7285,6 +7307,8 @@ function renderScenes() {
   ).join('');
   // Reconstruir segmentos de subtítulo cuando cambian las escenas (siempre, no solo si están ON)
   _rebuildSubtitleSegments();
+  // Cambio 3 — reflejar en la galería de fotos hasta dónde llega el guion actual.
+  renderPhotoGrid();
 }
 
 function renderScore(score) {
