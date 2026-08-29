@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.13';
+const NIVA_BUILD_VERSION = '2026-08-29.14';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -7836,6 +7836,9 @@ async function playVideoEL() {
     try {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
+      audio.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
+      audio.setAttribute('playsinline', '');
+      document.body.appendChild(audio);
       const audioCtx = _nivaWarmAudioCtx;
       async function _nivaTryResume(ctx) {
         try {
@@ -7875,6 +7878,9 @@ async function playVideoEL() {
         const baseVol = (isFinite(rawVol) && rawVol >= 0) ? rawVol : 0.15;
         const duckEnabled = (audioMode === "both");
         const musicEl    = musicHandle.audioEl;
+        musicEl.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
+        musicEl.setAttribute('playsinline', '');
+        document.body.appendChild(musicEl);
         // createMediaElementSource funciona con file:// — no usa fetch
         const mediaSrc   = audioCtx.createMediaElementSource(musicEl);
         musicGain = audioCtx.createGain();
@@ -8028,6 +8034,8 @@ async function playVideoEL() {
         // Ahora sí limpiar audioCtx y audioUrl (después de que el blob ya fue validado)
         try { URL.revokeObjectURL(audioUrl); } catch(e) {}
         try { audioCtx.close(); } catch(e) {}
+        try { if (audio && audio.parentNode) audio.parentNode.removeChild(audio); } catch(e) {}
+        try { if (activeMusicSource && activeMusicSource._mediaEl && activeMusicSource._mediaEl.parentNode) activeMusicSource._mediaEl.parentNode.removeChild(activeMusicSource._mediaEl); } catch(e) {}
         updateDiagStep('validacion', ok ? 'ok' : 'err');
         if (ok) updateDiagStep('done', 'ok');
         else updateDiagStep('done', 'err');
