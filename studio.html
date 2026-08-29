@@ -1025,47 +1025,9 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
       </div>
     </div>
 
-    <!-- PASO 4: CANVAS + CONTROLES -->
-    <div class="video-wrap">
-      <div id="niva-safari-warning" style="display:none;background:#3a2a0a;border:1.5px solid #C9A84C;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:#f5d78a;line-height:1.5">
-        📱 <strong>Generando video en iPhone/iPad:</strong> el navegador (sea Safari o Chrome — en iPhone ambos usan el mismo motor) puede tardar un poco más porque el audio y el video se graban por separado y luego se unen automáticamente. No cierres esta ventana mientras dice "Uniendo video y audio". En computadora (Mac o Windows) esto no aplica.
-      </div>
-      <div class="video-canvas-box" id="niva-canvas-box"><canvas id="cv-video" width="1080" height="1920"></canvas></div>
-      <!-- Reproductor del video ya generado: aparece cuando el MP4 final está listo, con -->
-      <!-- controles nativos (▶/⏸ y barra para adelantar/atrasar) para revisarlo sin descargarlo. -->
-      <!-- Sustituye al canvas de grabación (que se queda congelado en el último cuadro) para -->
-      <!-- que no parezca que se generaron dos videos, uno arriba y otro abajo. -->
-      <div class="video-canvas-box" id="niva-video-preview-box" style="display:none;margin-top:10px">
-        <video id="niva-video-preview" controls playsinline></video>
-      </div>
-      <!-- DIAGNÓSTICO PRE-RENDER (P10) -->
-      <div id="vid-diagnostics" style="display:none;background:#0f172a;border:1.5px solid #1e3a5f;border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:11px;color:#94a3b8;font-family:monospace">
-        <div style="color:#C9A84C;font-weight:800;font-size:12px;margin-bottom:10px;letter-spacing:1px">📊 DIAGNÓSTICO PRE-RENDER <span style="float:right;color:#475569;font-weight:400;font-size:9px;letter-spacing:0" id="niva-build-tag"></span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px" id="vid-diag-grid"></div>
-        <div id="vid-diag-checks" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
-      </div>
-      <div class="video-controls">
-        <button class="btn-play" id="btn-play-video" onclick="playVideoEL()">🎬 Generar Video</button>
-        <button class="btn-stop" id="btn-stop-video" onclick="stopVideo()" style="display:none">⏹ Detener</button>
-        <button class="btn-dl" id="btn-dl-video" onclick="downloadVideo()" style="display:none">⬇️ Descargar MP4 HD</button>
-        <button class="btn-dl" id="btn-retry-mp4" onclick="retryMp4Conversion()" style="display:none;background:#7c5a00">🔄 Reintentar conversión</button>
-        <button class="btn-dl" id="btn-dl-webm-fallback" onclick="downloadWebmFallback()" style="display:none;background:#374151;font-size:11px">⬇️ Descargar WebM (fallback técnico)</button>
-      </div>
-      <div id="vid-status-msg" class="vid-status info" style="display:none"></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;justify-content:center;flex-wrap:wrap">
-        <label style="font-size:10px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#64748b">
-          <input type="checkbox" id="subtitles-toggle" onchange="toggleSubtitles(this.checked)" style="accent-color:#C9A84C">
-          💬 Subtítulos de voz
-        </label>
-        <label style="font-size:10px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#64748b">
-          <input type="checkbox" id="portada-intro-toggle" checked onchange="vidPortadaIntro = this.checked" style="accent-color:#C9A84C">
-          🖼️ Portada como primera escena
-        </label>
-      </div>
-      <p class="vid-tip-sm">🎙️ ElevenLabs · 📁 Audio propio<br>Descarga en MP4 HD · Subtítulos opcionales</p>
-    </div>
-
     <!-- ── INICIO DEL VIDEO (antes "Portada del Reel") ── -->
+    <!-- Se colocó ANTES del resultado final (canvas/generar) a propósito: primero se -->
+    <!-- ajustan todas las configuraciones del video, y hasta el final se ve/genera el resultado. -->
     <div class="card" id="portada-section" style="margin-top:12px">
       <div class="card-title" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="togglePortadaSection()">
         🎬 INICIO DEL VIDEO
@@ -1132,6 +1094,46 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         <p id="portada-status" style="font-size:10px;color:#64748b;text-align:center;margin:4px 0 0"></p>
       </div>
     </div>
+
+    <!-- PASO 4: CANVAS + CONTROLES — el RESULTADO FINAL, hasta abajo -->
+    <div class="video-wrap">
+      <div id="niva-safari-warning" style="display:none;background:#3a2a0a;border:1.5px solid #C9A84C;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:#f5d78a;line-height:1.5">
+        📱 <strong>Generando video en iPhone/iPad:</strong> el navegador (sea Safari o Chrome — en iPhone ambos usan el mismo motor) puede tardar un poco más porque el audio y el video se graban por separado y luego se unen automáticamente. No cierres esta ventana mientras dice "Uniendo video y audio". En computadora (Mac o Windows) esto no aplica.
+      </div>
+      <div class="video-canvas-box" id="niva-canvas-box"><canvas id="cv-video" width="1080" height="1920"></canvas></div>
+      <!-- Reproductor del video ya generado: aparece cuando el MP4 final está listo, con -->
+      <!-- controles nativos (▶/⏸ y barra para adelantar/atrasar) para revisarlo sin descargarlo. -->
+      <!-- Sustituye al canvas de grabación (que se queda congelado en el último cuadro) para -->
+      <!-- que no parezca que se generaron dos videos, uno arriba y otro abajo. -->
+      <div class="video-canvas-box" id="niva-video-preview-box" style="display:none;margin-top:10px">
+        <video id="niva-video-preview" controls playsinline></video>
+      </div>
+      <!-- DIAGNÓSTICO PRE-RENDER (P10) -->
+      <div id="vid-diagnostics" style="display:none;background:#0f172a;border:1.5px solid #1e3a5f;border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:11px;color:#94a3b8;font-family:monospace">
+        <div style="color:#C9A84C;font-weight:800;font-size:12px;margin-bottom:10px;letter-spacing:1px">📊 DIAGNÓSTICO PRE-RENDER <span style="float:right;color:#475569;font-weight:400;font-size:9px;letter-spacing:0" id="niva-build-tag"></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px" id="vid-diag-grid"></div>
+        <div id="vid-diag-checks" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
+      </div>
+      <div class="video-controls">
+        <button class="btn-play" id="btn-play-video" onclick="playVideoEL()">🎬 Generar Video</button>
+        <button class="btn-stop" id="btn-stop-video" onclick="stopVideo()" style="display:none">⏹ Detener</button>
+        <button class="btn-dl" id="btn-dl-video" onclick="downloadVideo()" style="display:none">⬇️ Descargar MP4 HD</button>
+        <button class="btn-dl" id="btn-retry-mp4" onclick="retryMp4Conversion()" style="display:none;background:#7c5a00">🔄 Reintentar conversión</button>
+        <button class="btn-dl" id="btn-dl-webm-fallback" onclick="downloadWebmFallback()" style="display:none;background:#374151;font-size:11px">⬇️ Descargar WebM (fallback técnico)</button>
+      </div>
+      <div id="vid-status-msg" class="vid-status info" style="display:none"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;justify-content:center;flex-wrap:wrap">
+        <label style="font-size:10px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#64748b">
+          <input type="checkbox" id="subtitles-toggle" onchange="toggleSubtitles(this.checked)" style="accent-color:#C9A84C">
+          💬 Subtítulos de voz
+        </label>
+        <label style="font-size:10px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#64748b">
+          <input type="checkbox" id="portada-intro-toggle" checked onchange="vidPortadaIntro = this.checked" style="accent-color:#C9A84C">
+          🖼️ Portada como primera escena
+        </label>
+      </div>
+      <p class="vid-tip-sm">🎙️ ElevenLabs · 📁 Audio propio<br>Descarga en MP4 HD · Subtítulos opcionales</p>
+    </div>
   </div>
 
 </div>
@@ -1196,7 +1198,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.35';
+const NIVA_BUILD_VERSION = '2026-08-29.36';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -4830,6 +4832,10 @@ function genSlide4(v) {
 //  VIDEO ENGINE v2 — NIVA Motor de Contenido
 // ══════════════════════════════════════════════
 let vidV = null, vidFrame = 0, vidPhotoIdx = 0, vidStartT = null, vidImages = [];
+// Miniatura/poster del reproductor: se captura UNA vez, del primer cuadro real del video
+// (mismo diseño de la Portada), para que se vea ANTES de darle play — no solo al reproducirse.
+let _nivaPosterDataUrl = null;
+let _nivaPosterCaptured = false;
 let _nivaDrawFrameCount = 0; // cuenta cuántas veces corrió draw() — diagnóstico de "0 chunks"
 window.__nivaRecDiag = {}; // snapshot de estado al arrancar la grabación — usado si termina en 0 chunks
 let vidScaledImages = []; // imágenes pre-escaladas a resolución de render
@@ -4900,6 +4906,9 @@ function _nivaMostrarPreviewVideo(blob) {
     const url = URL.createObjectURL(blob);
     vidEl.dataset.blobUrl = url;
     vidEl.src = url;
+    // Miniatura/poster: se ve ANTES de darle play — usa el cuadro real capturado durante
+    // la grabación (mismo diseño de la Portada), no un genérico ni el primer cuadro en negro.
+    if (_nivaPosterDataUrl) { vidEl.poster = _nivaPosterDataUrl; }
     // Se oculta el canvas de grabación (queda congelado en el último cuadro) para que solo
     // se vea UN video en pantalla — el reproductor final — y no parezca que se duplicó.
     if (canvasBox) canvasBox.style.display = 'none';
@@ -4915,6 +4924,7 @@ function _nivaOcultarPreviewVideo() {
     if (vidEl.dataset.blobUrl) { try { URL.revokeObjectURL(vidEl.dataset.blobUrl); } catch(e) {} }
     vidEl.removeAttribute('src');
     vidEl.dataset.blobUrl = '';
+    vidEl.removeAttribute('poster');
   }
   if (box) box.style.display = 'none';
   // Al empezar una nueva grabación se vuelve a mostrar el canvas.
@@ -8788,6 +8798,7 @@ function updateVoiceStatus(msg, ok) {
 // ── ANIMACIÓN ── (motor cinematográfico — time-based, no frame-based)
 function startVideoAnimation(photoList, totalMs) {
   vidFrame = 0; vidStartT = null;
+  _nivaPosterDataUrl = null; _nivaPosterCaptured = false;
   prevSceneIdx = -1; prevSceneImg = null; prevKenBurnsVariant = null;
 
   const W = 1080, H = 1920;
@@ -8956,6 +8967,13 @@ function startVideoAnimation(photoList, totalMs) {
           : 1 - (elapsed - TITLE_MS) / TITLE_FADE_MS;
         titleAlpha = Math.max(0, Math.min(1, titleAlpha)) * Math.min(fadeIn, fadeOut);
         if (titleAlpha > 0) drawPortadaIntroOverlay(ctx, titleAlpha, W, H);
+        // ── Captura la miniatura/poster del reproductor UNA sola vez, apenas el cuadro ──
+        // está totalmente visible (sin el fundido de entrada) — así el reproductor muestra
+        // esta imagen ANTES de darle play, en vez de quedar en negro o sin nada.
+        if (!_nivaPosterCaptured && titleAlpha > 0.9) {
+          _nivaPosterCaptured = true;
+          try { _nivaPosterDataUrl = cv.toDataURL('image/jpeg', 0.85); } catch(e) { console.error('[NIVA] error capturando poster', e); }
+        }
       }
     }
 
