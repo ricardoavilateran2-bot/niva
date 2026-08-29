@@ -233,6 +233,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .video-wrap{max-width:340px;margin:0 auto}
 .video-canvas-box{border-radius:14px;overflow:hidden;box-shadow:0 6px 32px rgba(0,0,0,.22);position:relative;background:var(--navy)}
 .video-canvas-box canvas{display:block;width:100%;height:auto}
+.video-canvas-box video{display:block;width:100%;height:auto;background:#000}
 .video-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
 .btn-play{background:linear-gradient(135deg,var(--navy),#1e3a6e);color:white;border:none;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 12px rgba(27,42,74,.28)}
 .btn-play:hover{opacity:.87}
@@ -1024,6 +1025,11 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         📱 <strong>Generando video en iPhone/iPad:</strong> el navegador (sea Safari o Chrome — en iPhone ambos usan el mismo motor) puede tardar un poco más porque el audio y el video se graban por separado y luego se unen automáticamente. No cierres esta ventana mientras dice "Uniendo video y audio". En computadora (Mac o Windows) esto no aplica.
       </div>
       <div class="video-canvas-box"><canvas id="cv-video" width="1080" height="1920"></canvas></div>
+      <!-- Reproductor del video ya generado: aparece cuando el MP4 final está listo, con -->
+      <!-- controles nativos (▶/⏸ y barra para adelantar/atrasar) para revisarlo sin descargarlo. -->
+      <div class="video-canvas-box" id="niva-video-preview-box" style="display:none;margin-top:10px">
+        <video id="niva-video-preview" controls playsinline></video>
+      </div>
       <!-- DIAGNÓSTICO PRE-RENDER (P10) -->
       <div id="vid-diagnostics" style="display:none;background:#0f172a;border:1.5px solid #1e3a5f;border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:11px;color:#94a3b8;font-family:monospace">
         <div style="color:#C9A84C;font-weight:800;font-size:12px;margin-bottom:10px;letter-spacing:1px">📊 DIAGNÓSTICO PRE-RENDER <span style="float:right;color:#475569;font-weight:400;font-size:9px;letter-spacing:0" id="niva-build-tag"></span></div>
@@ -1164,7 +1170,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.29';
+const NIVA_BUILD_VERSION = '2026-08-29.30';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -4853,6 +4859,34 @@ let _nivaMp4Blob = null;       // Blob MP4 validado, listo para descarga
 let _nivaFFmpeg = null;        // Instancia cacheada de FFmpeg (@ffmpeg/ffmpeg)
 let _nivaFFmpegLoadPromise = null; // Evita cargar ffmpeg.wasm dos veces en paralelo
 let _nivaMp4Converting = false;
+
+// ── REPRODUCTOR DEL VIDEO GENERADO ──
+// Una vez que el MP4 final está validado, se muestra en un <video> con controles nativos
+// (▶/⏸ y barra para adelantar/atrasar) para que el usuario lo revise sin tener que
+// descargarlo primero. No reemplaza el canvas de grabación — se muestra debajo de él.
+function _nivaMostrarPreviewVideo(blob) {
+  try {
+    const box = document.getElementById('niva-video-preview-box');
+    const vidEl = document.getElementById('niva-video-preview');
+    if (!box || !vidEl || !blob) return;
+    if (vidEl.dataset.blobUrl) { try { URL.revokeObjectURL(vidEl.dataset.blobUrl); } catch(e) {} }
+    const url = URL.createObjectURL(blob);
+    vidEl.dataset.blobUrl = url;
+    vidEl.src = url;
+    box.style.display = 'block';
+  } catch(e) { console.error('[NIVA] error mostrando preview de video', e); }
+}
+function _nivaOcultarPreviewVideo() {
+  const box = document.getElementById('niva-video-preview-box');
+  const vidEl = document.getElementById('niva-video-preview');
+  if (vidEl) {
+    try { vidEl.pause(); } catch(e) {}
+    if (vidEl.dataset.blobUrl) { try { URL.revokeObjectURL(vidEl.dataset.blobUrl); } catch(e) {} }
+    vidEl.removeAttribute('src');
+    vidEl.dataset.blobUrl = '';
+  }
+  if (box) box.style.display = 'none';
+}
 let activeMusicSource = null;
 
 // ── Detección de iOS (Safari, Chrome-iOS, Firefox-iOS — todos usan WebKit por obligación de Apple) ──
@@ -5100,6 +5134,7 @@ async function finalizeRecording(mimeType, preBuiltBlob) {
   if (/^video\/mp4/i.test(realMime)) {
     _nivaMp4Blob = blob;
     _nivaWebmBlob = null;
+    _nivaMostrarPreviewVideo(blob);
     updateDiagStep('validacion', 'ok');
     updateDiagStep('mp4', 'ok');
     updateDiagStep('done', 'ok');
@@ -5541,6 +5576,7 @@ async function runMp4ConversionPipeline(durationSeconds) {
     if (!result.ok) throw new Error(result.reason || 'Validación de MP4 falló');
 
     _nivaMp4Blob = mp4;
+    _nivaMostrarPreviewVideo(mp4);
     const sizeMB = (mp4.size / 1024 / 1024).toFixed(2);
     const durLabel = result.duration.toFixed(1) + 's';
     updateDiagStep('mp4', 'ok');
@@ -8087,6 +8123,7 @@ async function playVideoEL() {
   document.getElementById('btn-dl-video').style.display = 'none';
   document.getElementById('btn-retry-mp4').style.display = 'none';
   document.getElementById('btn-dl-webm-fallback').style.display = 'none';
+  _nivaOcultarPreviewVideo();
   recordedChunks = [];
   // Nueva grabación — descartar WebM/MP4 de una toma anterior (ya no son válidos para este render).
   _nivaWebmBlob = null;
