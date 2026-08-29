@@ -1134,7 +1134,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.23';
+const NIVA_BUILD_VERSION = '2026-08-29.24';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -1156,13 +1156,23 @@ document.addEventListener('DOMContentLoaded', () => {
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
 
   // Header: mostrar únicamente el nombre del asesor autenticado (nada de correo/avatar/rol/ID).
+  // NOTA: el auth-guard (script module al inicio de <head>) resuelve window.__nivaSession de forma
+  // asíncrona (fetch + supabase), y puede no estar listo todavía cuando dispara DOMContentLoaded —
+  // por eso aquí se reintenta con polling en vez de leerlo una sola vez.
   const advisorEl = document.getElementById('niva-advisor-name');
   if (advisorEl) {
-    const email = (window.__nivaSession && window.__nivaSession.user && window.__nivaSession.user.email) || '';
-    const uname = email.split('@')[0];
-    if (uname) {
-      resolveAdvisorDisplayName(uname).then(n => { advisorEl.textContent = n; });
-    }
+    let _advIntentos = 0;
+    const _advIntentar = () => {
+      const email = (window.__nivaSession && window.__nivaSession.user && window.__nivaSession.user.email) || '';
+      const uname = email.split('@')[0];
+      if (uname) {
+        resolveAdvisorDisplayName(uname).then(n => { advisorEl.textContent = n; });
+        return;
+      }
+      _advIntentos++;
+      if (_advIntentos < 60) setTimeout(_advIntentar, 150); // hasta ~9s esperando la sesión
+    };
+    _advIntentar();
   }
   // Aviso proactivo: Safari (Mac/iPhone/iPad) tiene un problema conocido y no
   // resuelto con la grabación canvas+audio del Motor de Video — se queda
