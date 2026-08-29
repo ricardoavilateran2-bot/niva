@@ -342,6 +342,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
     <div class="hdr-title">Content Studio</div>
   </div>
   <div class="hdr-nav">
+    <span id="niva-advisor-name" style="color:#C9A84C;font-weight:700;font-size:12.5px;letter-spacing:.2px;margin-right:6px"></span>
     <a href="index.html">⌂ Inicio</a>
     <a href="docs.html">📄 Documentación</a>
   </div>
@@ -1133,10 +1134,36 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.21';
+const NIVA_BUILD_VERSION = '2026-08-29.22';
+
+// Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
+async function resolveAdvisorDisplayName(uname){
+  try{
+    const sbClient = window.__nivaSb;
+    if (!sbClient) throw new Error('sin cliente supabase');
+    const {data}=await sbClient.from('advisors').select('first_name,last_name');
+    const rows=data||[];
+    const norm=s=>(s||'').trim().toLowerCase();
+    let match=rows.find(r=>norm(r.first_name)===uname);
+    if(!match){ const tok=uname.split(/[._]/)[0]; match=rows.find(r=>norm(r.first_name)===tok); }
+    if(match) return ((match.first_name||'')+' '+(match.last_name||'')).trim();
+  }catch(e){}
+  return uname.split(/[._]/).filter(Boolean).map(s=>s[0].toUpperCase()+s.slice(1)).join(' ');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
+
+  // Header: mostrar únicamente el nombre del asesor autenticado (nada de correo/avatar/rol/ID).
+  const advisorEl = document.getElementById('niva-advisor-name');
+  if (advisorEl) {
+    const email = (window.__nivaSession && window.__nivaSession.user && window.__nivaSession.user.email) || '';
+    const uname = email.split('@')[0];
+    if (uname) {
+      resolveAdvisorDisplayName(uname).then(n => { advisorEl.textContent = n; });
+    }
+  }
   // Aviso proactivo: Safari (Mac/iPhone/iPad) tiene un problema conocido y no
   // resuelto con la grabación canvas+audio del Motor de Video — se queda
   // "pensando" sin error, tanto en computadora como en celular. Mientras se
