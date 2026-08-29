@@ -289,6 +289,11 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .vid-scene-func{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:700}
 .vid-scene-text{color:#1e293b;font-weight:600;margin:1px 0}
 .vid-scene-dur{font-size:9px;color:#64748b}
+.vid-scene-caption-input{width:100%;font-size:11px;font-weight:700;color:#1e293b;border:1px solid #e2e8f0;border-radius:5px;padding:4px 7px;margin:3px 0 4px;font-family:inherit;box-sizing:border-box;background:white}
+.vid-scene-caption-input:focus{border-color:var(--navy);outline:none}
+.vid-scene-narr-input{width:100%;font-size:10.5px;color:#475569;border:1px solid #e2e8f0;border-radius:5px;padding:4px 7px;font-family:inherit;box-sizing:border-box;background:white;resize:vertical;min-height:34px;line-height:1.4}
+.vid-scene-narr-input:focus{border-color:var(--navy);outline:none}
+.vid-scene-caption-lbl{font-size:8.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
 .vid-warning{font-size:11px;color:#b45309;background:#fef3c7;border-radius:6px;padding:5px 9px;margin-bottom:4px}
 
 /* VALOR */
@@ -1014,7 +1019,8 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
       </div>
       <!-- Escenas -->
       <div id="vid-scenes-box" style="margin-top:12px;display:none">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:8px">🎬 Estructura de escenas</div>
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:2px">🎬 Estructura de escenas</div>
+        <p style="font-size:10px;color:#94a3b8;margin:0 0 8px">Edita cada escena por separado — el texto en pantalla y lo que dice la voz. Se actualiza el guión completo automáticamente.</p>
         <div id="vid-scenes-list" style="display:flex;flex-direction:column;gap:5px"></div>
       </div>
     </div>
@@ -1193,7 +1199,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.31';
+const NIVA_BUILD_VERSION = '2026-08-29.32';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -7391,18 +7397,51 @@ function buildScenesPlantillaV2(v, hook, concept, meta) {
   ];
 }
 
+// Escapa texto para insertarlo dentro de un atributo HTML (value="...") sin romper la comilla.
+function _escVidAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+// Escapa texto para insertarlo como contenido de un elemento (ej. dentro de <textarea>...</textarea>).
+function _escVidHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Edición del guión ESCENA POR ESCENA — la IA sigue generando el guión inicial completo;
+// esto permite ajustarlo fino por escena (ej. "si es la foto de la alberca, poner ALBERCA")
+// sin tener que reescribir todo el bloque de texto de una sola vez.
+function _updateSceneCaption(idx, val) {
+  if (!vidScenes[idx]) return;
+  // Texto en pantalla: igual que el resto del guión, en mayúsculas y corto (máx. 40 caracteres).
+  vidScenes[idx].texto_pantalla = (val || '').toUpperCase().slice(0, 40);
+}
+function _updateSceneNarracion(idx, val) {
+  if (!vidScenes[idx]) return;
+  vidScenes[idx].narracion_frag = val || '';
+  // El guión completo (el que realmente lee la voz y sincroniza los subtítulos) se
+  // reconstruye uniendo el fragmento de cada escena, en orden, para que quede sincronizado
+  // con lo que el asesor acaba de editar en esta escena.
+  const full = vidScenes.map(s => (s.narracion_frag || '').trim()).filter(Boolean).join('\n\n');
+  const ta = document.getElementById('vid-script-ta');
+  if (ta) {
+    ta.value = full;
+    vidCountChars();
+    _rebuildSubtitleSegments();
+  }
+}
+
 function renderScenes() {
   const box = document.getElementById('vid-scenes-box');
   const list = document.getElementById('vid-scenes-list');
   if (!vidScenes.length) { box.style.display='none'; renderPhotoGrid(); return; }
   box.style.display = 'block';
-  list.innerHTML = vidScenes.map(s =>
+  list.innerHTML = vidScenes.map((s, idx) =>
     `<div class="vid-scene-item">
       <div class="vid-scene-num">${s.num}</div>
       <div class="vid-scene-body">
         <div class="vid-scene-func">${s.funcion} · ${s.duracion_seg}s · foto ${(s.foto_idx||0)+1}</div>
-        <div class="vid-scene-text">"${s.texto_pantalla}"</div>
-        <div class="vid-scene-dur">${s.narracion_frag ? s.narracion_frag.substring(0,60)+'…' : ''}</div>
+        <input type="text" class="vid-scene-caption-input" value="${_escVidAttr(s.texto_pantalla)}" placeholder="Texto en pantalla (ej. ALBERCA)" oninput="_updateSceneCaption(${idx}, this.value)">
+        <div class="vid-scene-caption-lbl">🎙️ Lo que dice la voz en esta escena</div>
+        <textarea class="vid-scene-narr-input" placeholder="Ej. Disfruta de una alberca privada todo el año…" oninput="_updateSceneNarracion(${idx}, this.value)">${_escVidHtml(s.narracion_frag)}</textarea>
       </div>
     </div>`
   ).join('');
