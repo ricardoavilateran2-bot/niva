@@ -1063,14 +1063,14 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
       <p class="vid-tip-sm">🎙️ ElevenLabs · 📁 Audio propio<br>Descarga en MP4 HD · Subtítulos opcionales</p>
     </div>
 
-    <!-- ── PORTADA DEL REEL ── -->
+    <!-- ── INICIO DEL VIDEO (antes "Portada del Reel") ── -->
     <div class="card" id="portada-section" style="margin-top:12px">
       <div class="card-title" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="togglePortadaSection()">
-        🖼️ PORTADA DEL REEL
+        🎬 INICIO DEL VIDEO
         <span id="portada-arrow" style="font-size:11px;color:#94a3b8">▶</span>
       </div>
       <div id="portada-body" style="display:none;padding-top:8px">
-        <p style="font-size:11px;color:#64748b;margin:0 0 8px">Portada 1080×1920 para Instagram Reels / TikTok — independiente del video. Elige plantilla, ajusta el texto y descarga en PNG.</p>
+        <p style="font-size:11px;color:#64748b;margin:0 0 8px">Esto es lo que se ve al arrancar tu video (título, ubicación y precio) — igual que la portada de un Reel. Ya forma parte del video, no es una imagen aparte. Ajusta plantilla, color, texto y tamaño/posición aquí abajo.</p>
 
         <!-- Selector de plantilla -->
         <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px">
@@ -1124,14 +1124,9 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 
         <!-- Controles -->
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:8px">
-          <button class="btn-play" style="font-size:11px;padding:6px 12px" onclick="generatePortada()">🖼️ Regenerar</button>
-          <button class="btn-dl" id="btn-dl-portada" style="font-size:11px;padding:6px 12px;display:none" onclick="downloadPortada()">⬇️ Descargar PNG</button>
+          <button class="btn-play" style="font-size:11px;padding:6px 12px" onclick="generatePortada()">🔄 Actualizar vista previa</button>
         </div>
-        <!-- Selector manual de foto -->
-        <div id="portada-photo-selector" style="display:none">
-          <p style="font-size:10px;color:#94a3b8;margin:6px 0 4px;text-align:center">⭐ Toca una foto para usarla como portada</p>
-          <div id="portada-thumb-row" style="display:flex;gap:4px;overflow-x:auto;padding:4px 0"></div>
-        </div>
+        <p style="font-size:9.5px;color:#94a3b8;text-align:center;margin:0 0 4px">Usa siempre tu primera foto (según el orden que definiste arriba) — la misma que abre el video.</p>
         <p id="portada-status" style="font-size:10px;color:#64748b;text-align:center;margin:4px 0 0"></p>
       </div>
     </div>
@@ -1199,7 +1194,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.33';
+const NIVA_BUILD_VERSION = '2026-08-29.34';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -10048,7 +10043,6 @@ function togglePortadaSection() {
   body.style.display = open ? 'none' : 'block';
   arrow.textContent = open ? '▶' : '▼';
   if (!open) {
-    _buildPortadaThumbRow(); // construir thumbs al abrir
     try { if (vidImages && vidImages.length > 0) generatePortada(); } catch(e) {}
   }
 }
@@ -10359,7 +10353,9 @@ function generatePortada() {
   if (!cv) return;
   const ctx = cv.getContext('2d');
   const W = 1080, H = 1920;
-  const photoIdx = (vidCoverPhotoIdx !== null) ? vidCoverPhotoIdx : _bestHeroIdx();
+  // El inicio del video SIEMPRE usa la primera foto del orden manual (misma que la escena 1
+  // del video) — así la vista previa de aquí coincide exactamente con lo que arranca el video.
+  const photoIdx = 0;
   const img = vidImages[photoIdx];
   if (!img) {
     document.getElementById('portada-status').textContent = '⚠️ No hay fotos cargadas.';
@@ -10392,10 +10388,8 @@ function generatePortada() {
 
   if (_portadaSafeZone) _drawPortadaSafeZone(ctx, W, H);
 
-  // Habilitar descarga
-  document.getElementById('btn-dl-portada').style.display = '';
   const ps = document.getElementById('portada-status');
-  if (ps) ps.textContent = `✅ Portada generada — foto ${photoIdx + 1}`;
+  if (ps) ps.textContent = `✅ Así arranca tu video`;
 }
 
 function downloadPortada() {
