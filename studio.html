@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.9';
+const NIVA_BUILD_VERSION = '2026-08-29.10';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -7632,6 +7632,12 @@ function getActiveVoiceProvider() {
 async function playVideoEL() {
   if (!vidV) return;
   stopVideo();
+  if (_nivaLastVideoAudioCtx && _nivaLastVideoAudioCtx.state !== 'closed') {
+    try { _nivaLastVideoAudioCtx.close(); } catch(e) {}
+  }
+  const _nivaWarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  _nivaLastVideoAudioCtx = _nivaWarmAudioCtx;
+  try { _nivaWarmAudioCtx.resume().catch(()=>{}); } catch(e) {}
   const provider = getActiveVoiceProvider();
 
   // ── GUIÓN (fuente única de verdad — textarea) ──
@@ -7800,11 +7806,7 @@ async function playVideoEL() {
     try {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-      if (_nivaLastVideoAudioCtx && _nivaLastVideoAudioCtx.state !== 'closed') {
-        try { await _nivaLastVideoAudioCtx.close(); } catch(e) {}
-      }
-      let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      _nivaLastVideoAudioCtx = audioCtx;
+      const audioCtx = _nivaWarmAudioCtx;
       async function _nivaTryResume(ctx) {
         try {
           await Promise.race([
@@ -7816,18 +7818,11 @@ async function playVideoEL() {
         }
         return ctx.state === 'running';
       }
-      let _audioResumed = await _nivaTryResume(audioCtx);
-      if (!_audioResumed) {
-        console.warn('[NIVA][AUDIO] Reintentando con un AudioContext nuevo…');
-        try { await audioCtx.close(); } catch(e) {}
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        _nivaLastVideoAudioCtx = audioCtx;
-        _audioResumed = await _nivaTryResume(audioCtx);
-      }
+      const _audioResumed = await _nivaTryResume(audioCtx);
       if (!_audioResumed) {
         clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe);
-        console.error('[NIVA][AUDIO] AudioContext sigue "suspended" tras 2 intentos — abortando.');
-        vidStatus('❌ Safari bloqueó el audio para grabar (probablemente por varios intentos seguidos). Cierra Safari POR COMPLETO (no solo esta pestaña) y vuelve a intentar — o usa Google Chrome mientras tanto.', 'err');
+        console.error('[NIVA][AUDIO] AudioContext sigue "suspended" — abortando (habría grabado 0 chunks).');
+        vidStatus('❌ Safari bloqueó el audio para grabar. Cierra Safari POR COMPLETO (no solo esta pestaña) y vuelve a intentar — o usa Google Chrome mientras tanto.', 'err');
         updateDiagStep('render', 'err');
         updateDiagStep('done', 'err');
         try { _showPlayBtn(); } catch(e) {}
