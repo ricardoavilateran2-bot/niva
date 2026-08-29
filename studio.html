@@ -294,6 +294,23 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .vid-scene-narr-input{width:100%;font-size:10.5px;color:#475569;border:1px solid #e2e8f0;border-radius:5px;padding:4px 7px;font-family:inherit;box-sizing:border-box;background:white;resize:vertical;min-height:34px;line-height:1.4}
 .vid-scene-narr-input:focus{border-color:var(--navy);outline:none}
 .vid-scene-caption-lbl{font-size:8.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+.vid-scene-mini-lbl{font-size:8.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.vid-scene-row{display:flex;align-items:center;gap:6px;margin:2px 0 4px}
+.vid-scene-dur-input{width:52px;font-size:11px;font-weight:700;color:#1e293b;border:1px solid #e2e8f0;border-radius:5px;padding:3px 6px;font-family:inherit;background:white}
+.vid-scene-dur-input:focus{border-color:var(--navy);outline:none}
+.vid-scene-photostrip{display:flex;gap:4px;overflow-x:auto;padding:2px 0 4px}
+.vid-scene-photo-btn{flex-shrink:0;width:30px;height:30px;border-radius:5px;border:2px solid transparent;padding:0;cursor:pointer;overflow:hidden;background:#e2e8f0}
+.vid-scene-photo-btn img{width:100%;height:100%;object-fit:cover;display:block}
+.vid-scene-photo-btn.sel{border-color:var(--gold)}
+.vid-scene-actions{display:flex;gap:5px;margin-top:6px}
+.vid-scene-mini-btn{font-size:10px;font-weight:700;padding:4px 8px;border-radius:5px;border:1px solid #e2e8f0;background:white;color:#475569;cursor:pointer;font-family:inherit}
+.vid-scene-mini-btn:disabled{opacity:.35;cursor:not-allowed}
+.vid-scene-mini-btn:not(:disabled):hover{border-color:var(--navy);color:var(--navy)}
+.vid-scene-del{margin-left:auto;color:#b91c1c;border-color:#fecaca}
+.vid-scene-del:hover{border-color:#b91c1c!important;color:#b91c1c!important}
+.vid-scene-add-btn{width:100%;margin-top:6px;padding:9px;border-radius:8px;border:1.5px dashed var(--gold);background:var(--gold-light);color:#8a6d1f;font-weight:700;font-size:11.5px;cursor:pointer;font-family:inherit}
+.vid-scene-add-btn:hover{background:#fbeecb}
+.vid-scenes-total{font-size:10px;color:#64748b;margin:2px 0 8px}
 .vid-warning{font-size:11px;color:#b45309;background:#fef3c7;border-radius:6px;padding:5px 9px;margin-bottom:4px}
 
 /* VALOR */
@@ -1020,7 +1037,8 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
       <!-- Escenas -->
       <div id="vid-scenes-box" style="margin-top:12px;display:none">
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:2px">🎬 Estructura de escenas</div>
-        <p style="font-size:10px;color:#94a3b8;margin:0 0 8px">Edita cada escena por separado — el texto en pantalla y lo que dice la voz. Se actualiza el guión completo automáticamente.</p>
+        <p style="font-size:10px;color:#94a3b8;margin:0 0 4px">Edita cada escena: qué foto usa, cuánto dura, el texto en pantalla y lo que dice la voz. También puedes reordenarlas, quitarlas o agregar nuevas.</p>
+        <div id="vid-scenes-total" class="vid-scenes-total"></div>
         <div id="vid-scenes-list" style="display:flex;flex-direction:column;gap:5px"></div>
       </div>
     </div>
@@ -1198,7 +1216,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.38';
+const NIVA_BUILD_VERSION = '2026-08-29.39';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -7448,22 +7466,133 @@ function _updateSceneNarracion(idx, val) {
   }
 }
 
+// Reconstruye el guión completo (lo que realmente lee la voz) uniendo el fragmento de
+// narración de cada escena, en orden — se usa después de agregar/quitar/reordenar escenas,
+// donde el guión pudo cambiar de forma estructural (no solo texto de una escena).
+function _syncScriptFromScenes() {
+  const full = vidScenes.map(s => (s.narracion_frag || '').trim()).filter(Boolean).join('\n\n');
+  const ta = document.getElementById('vid-script-ta');
+  if (ta) { ta.value = full; vidCountChars(); }
+}
+
+// Renumera las escenas (1,2,3…) después de reordenar, agregar o quitar.
+function _renumberScenes() {
+  vidScenes.forEach((s, i) => { s.num = i + 1; });
+}
+
+// Duración de la escena (en segundos) — es un peso relativo entre escenas: el video final
+// siempre se ajusta a la duración real de la narración de voz, así que subir la duración
+// de una escena le quita tiempo proporcional a las demás, no alarga el video completo.
+function _updateSceneDuration(idx, val) {
+  if (!vidScenes[idx]) return;
+  let n = parseFloat(val);
+  if (!isFinite(n)) return;
+  n = Math.max(0.3, Math.min(20, n));
+  vidScenes[idx].duracion_seg = n;
+  _updateScenesTotalUI();
+  _rebuildSubtitleSegments();
+}
+
+// Qué foto usa esta escena — independiente del orden general de fotos; el asesor puede
+// poner cualquiera de sus fotos en cualquier escena.
+function _updateScenePhoto(idx, photoIdx) {
+  if (!vidScenes[idx]) return;
+  vidScenes[idx].foto_idx = photoIdx;
+  const strip = document.getElementById('vid-scene-photostrip-' + idx);
+  if (strip) {
+    strip.querySelectorAll('.vid-scene-photo-btn').forEach((btn, i) => {
+      btn.classList.toggle('sel', i === photoIdx);
+    });
+  }
+}
+
+function _moveScene(idx, dir) {
+  const j = idx + dir;
+  if (j < 0 || j >= vidScenes.length) return;
+  const tmp = vidScenes[idx];
+  vidScenes[idx] = vidScenes[j];
+  vidScenes[j] = tmp;
+  _renumberScenes();
+  renderScenes();
+}
+
+function _deleteScene(idx) {
+  if (!vidScenes[idx]) return;
+  if (vidScenes.length <= 1) { alert('Debe quedar al menos una escena en el video.'); return; }
+  vidScenes.splice(idx, 1);
+  _renumberScenes();
+  renderScenes();
+}
+
+// Agrega una escena nueva al final — con una foto siguiente en el ciclo, duración típica
+// (3s) y texto vacío para que el asesor la llene a su gusto.
+function _addScene() {
+  const nPhotos = photos.length;
+  const nextFotoIdx = nPhotos > 0 ? (vidScenes.length % nPhotos) : 0;
+  vidScenes.push({
+    num: vidScenes.length + 1,
+    funcion: 'Detalle',
+    bloque: 'RECORRIDO',
+    foto_idx: nextFotoIdx,
+    duracion_seg: 3,
+    texto_pantalla: '',
+    narracion_frag: ''
+  });
+  renderScenes();
+  setTimeout(() => {
+    const items = document.querySelectorAll('#vid-scenes-list .vid-scene-item');
+    const el = items[items.length - 1];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const ta = el.querySelector('.vid-scene-narr-input');
+      if (ta) ta.focus();
+    }
+  }, 60);
+}
+
+function _updateScenesTotalUI() {
+  const el = document.getElementById('vid-scenes-total');
+  if (!el) return;
+  const total = vidScenes.reduce((a, s) => a + (parseFloat(s.duracion_seg) || 0), 0);
+  el.textContent = `⏱️ ${vidScenes.length} escenas · ${total.toFixed(1)}s (peso relativo — el video real se ajusta a la duración de tu narración de voz)`;
+}
+
 function renderScenes() {
   const box = document.getElementById('vid-scenes-box');
   const list = document.getElementById('vid-scenes-list');
   if (!vidScenes.length) { box.style.display='none'; renderPhotoGrid(); return; }
   box.style.display = 'block';
-  list.innerHTML = vidScenes.map((s, idx) =>
-    `<div class="vid-scene-item">
-      <div class="vid-scene-num">${s.num}</div>
+  list.innerHTML = vidScenes.map((s, idx) => {
+    const nPhotos = photos.length;
+    const fIdx = Math.min(Math.max(s.foto_idx || 0, 0), Math.max(nPhotos - 1, 0));
+    const photoStrip = photos.map((u, pi) =>
+      `<button type="button" class="vid-scene-photo-btn${pi === fIdx ? ' sel' : ''}" onclick="_updateScenePhoto(${idx}, ${pi})" title="Foto ${pi + 1}"><img src="${u}" loading="lazy"></button>`
+    ).join('');
+    return `<div class="vid-scene-item">
+      <div class="vid-scene-num">${idx + 1}</div>
       <div class="vid-scene-body">
-        <div class="vid-scene-func">${s.funcion} · ${s.duracion_seg}s · foto ${(s.foto_idx||0)+1}</div>
+        <div class="vid-scene-func">${_escVidHtml(s.funcion || '')}</div>
+        <div class="vid-scene-row">
+          <span class="vid-scene-mini-lbl">⏱️ Duración</span>
+          <input type="number" class="vid-scene-dur-input" min="0.3" max="20" step="0.1" value="${(parseFloat(s.duracion_seg) || 3).toFixed(1)}" oninput="_updateSceneDuration(${idx}, this.value)"> s
+        </div>
+        <div class="vid-scene-mini-lbl">🖼️ Foto de esta escena</div>
+        <div class="vid-scene-photostrip" id="vid-scene-photostrip-${idx}">${photoStrip}</div>
         <input type="text" class="vid-scene-caption-input" value="${_escVidAttr(s.texto_pantalla)}" placeholder="Texto en pantalla (ej. ALBERCA)" oninput="_updateSceneCaption(${idx}, this.value)">
         <div class="vid-scene-caption-lbl">🎙️ Lo que dice la voz en esta escena</div>
         <textarea class="vid-scene-narr-input" placeholder="Ej. Disfruta de una alberca privada todo el año…" oninput="_updateSceneNarracion(${idx}, this.value)">${_escVidHtml(s.narracion_frag)}</textarea>
+        <div class="vid-scene-actions">
+          <button type="button" class="vid-scene-mini-btn" onclick="_moveScene(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="Mover arriba">↑ Subir</button>
+          <button type="button" class="vid-scene-mini-btn" onclick="_moveScene(${idx}, 1)" ${idx === vidScenes.length - 1 ? 'disabled' : ''} title="Mover abajo">↓ Bajar</button>
+          <button type="button" class="vid-scene-mini-btn vid-scene-del" onclick="_deleteScene(${idx})" title="Eliminar esta escena">🗑️ Eliminar</button>
+        </div>
       </div>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('') + `<button type="button" class="vid-scene-add-btn" onclick="_addScene()">➕ Agregar escena</button>`;
+  _updateScenesTotalUI();
+  // El guión completo puede haber cambiado de forma estructural (se agregó/quitó/reordenó
+  // una escena) — se resincroniza antes de reconstruir los subtítulos.
+  _syncScriptFromScenes();
   // Reconstruir segmentos de subtítulo cuando cambian las escenas (siempre, no solo si están ON)
   _rebuildSubtitleSegments();
   // Cambio 3 — reflejar en la galería de fotos hasta dónde llega el guion actual.
