@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.10';
+const NIVA_BUILD_VERSION = '2026-08-29.11';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -4698,6 +4698,8 @@ function genSlide4(v) {
 //  VIDEO ENGINE v2 — NIVA Motor de Contenido
 // ══════════════════════════════════════════════
 let vidV = null, vidFrame = 0, vidPhotoIdx = 0, vidStartT = null, vidImages = [];
+let _nivaDrawFrameCount = 0; // cuenta cuántas veces corrió draw() — diagnóstico de "0 chunks"
+window.__nivaRecDiag = {}; // snapshot de estado al arrancar la grabación — usado si termina en 0 chunks
 let vidScaledImages = []; // imágenes pre-escaladas a resolución de render
 
 // Pre-escalar imagen a un offscreen canvas de tamaño render
@@ -4911,7 +4913,17 @@ async function finalizeRecording(mimeType) {
   console.log('[NIVA][FINALIZE] chunks:', chunks, '| bytes:', totalBytes, '(' + sizeMB + ' MB)');
 
   if (chunks === 0) {
-    vidStatus('❌ Sin chunks grabados — MediaRecorder no produjo datos. Codec: ' + realMime, 'err');
+    const d = window.__nivaRecDiag || {};
+    const elapsedMs = d.startTs ? Math.round(performance.now() - d.startTs) : '?';
+    const diagStr = 'frames_dibujados=' + (typeof _nivaDrawFrameCount !== 'undefined' ? _nivaDrawFrameCount : '?') +
+      ' - arranque_via=' + (d.renderTrigger || '?') +
+      ' - ms_grabando=' + elapsedMs +
+      ' - v_track=' + (d.vTrackState || '?') +
+      ' - a_track=' + (d.aTrackState || '?') +
+      ' - audioCtx=' + (d.audioCtxState || '?') +
+      ' - mr_state=' + (mediaRecorder ? mediaRecorder.state : '?');
+    console.error('[NIVA][FINALIZE][0-CHUNKS] Diagnóstico:', diagStr);
+    vidStatus('❌ Sin chunks grabados — MediaRecorder no produjo datos. Codec: ' + realMime + ' - ' + diagStr, 'err');
     document.getElementById('btn-dl-video').style.display = 'none';
     return false;
   }
@@ -7983,7 +7995,7 @@ async function playVideoEL() {
         _nivaElapsedSec++;
         const st = (mediaRecorder && mediaRecorder.state) || '?';
         const vis = document.visibilityState;
-        vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + ']… ' + _nivaElapsedSec + 's · rec:' + st + ' · pantalla:' + vis + ' · no cierres esta ventana', 'loading');
+        vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + ']… ' + _nivaElapsedSec + 's · rec:' + st + ' · pantalla:' + vis + ' · frames:' + _nivaDrawFrameCount + ' · no cierres esta ventana', 'loading');
       }, 1000);
       mediaRecorder.onstop = async () => {
         window.__nivaOnstopRan = true;
@@ -8008,6 +8020,14 @@ async function playVideoEL() {
       window.__nivaOnstopRan = false;
       vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + '] con voz ' + provLabel + '… no cierres esta ventana', 'loading');
       updateDiagStep('render', 'pending');
+      _nivaDrawFrameCount = 0;
+      window.__nivaRecDiag = {
+        startTs: performance.now(),
+        renderTrigger: null,
+        vTrackState: vTracks[0] ? (vTracks[0].readyState + '-muted=' + vTracks[0].muted + '-enabled=' + vTracks[0].enabled) : 'sin-track',
+        aTrackState: aTracks[0] ? (aTracks[0].readyState + '-muted=' + aTracks[0].muted + '-enabled=' + aTracks[0].enabled) : 'sin-track',
+        audioCtxState: audioCtx.state
+      };
       // Safari (grabación MP4): NO usar timeslice — su muxer MP4 con cortes periódicos
       // puede no producir dataavailable nunca. Sin timeslice entrega un solo blob al stop.
       // Chrome (WebM) conserva el timeslice de 200ms de siempre.
@@ -8026,6 +8046,7 @@ async function playVideoEL() {
         if (_renderBegun) return;
         _renderBegun = true;
         console.log('[NIVA][RENDER] arranque vía:', via);
+        window.__nivaRecDiag.renderTrigger = via;
         // TODO EL CUERPO envuelto en try/catch: beginRenderOnce se invoca desde
         // callbacks async (onloadedmetadata/oncanplay/watchdog-3s) que YA NO están
         // dentro del try/catch exterior de AudioSetup — cualquier excepción síncrona
@@ -8173,6 +8194,7 @@ function startVideoAnimation(photoList, totalMs) {
   const drawFn = NIVA_FLAGS.advancedCameraMotion ? drawCameraMotion : drawPhotoWithKenBurns;
 
   function draw(ts) {
+    _nivaDrawFrameCount++;
     // ── Frame pacing: siempre basado en tiempo real (no frame counter) ──
     if (!vidStartT) { vidStartT = ts; }
     const elapsed = ts - vidStartT;
