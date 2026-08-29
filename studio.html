@@ -1086,6 +1086,29 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 <script>
 const DEBUG_MODE = false;
 // ══════════════════════════════════════════════
+//  FETCH CON TIMEOUT — evita que el Motor de Video se quede
+//  "pensando" para siempre cuando una llamada de red (OpenAI,
+//  ElevenLabs, etc.) nunca responde (comun en WiFi/datos de iPad).
+//  Cualquier hang ahora truena con un error claro y visible en
+//  vez de colgarse en silencio.
+// ══════════════════════════════════════════════
+async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
+  timeoutMs = timeoutMs || 45000;
+  const ctrl = new AbortController();
+  const mergedOpts = Object.assign({}, opts, { signal: ctrl.signal });
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, mergedOpts);
+  } catch (e) {
+    if (e && e.name === 'AbortError') {
+      throw new Error('⏱️ Tiempo de espera agotado conectando a ' + (new URL(url, location.href).hostname) + '. Revisa tu conexión a internet e intenta de nuevo.');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+// ══════════════════════════════════════════════
 //  GLOBALS
 // ══════════════════════════════════════════════
 let photos = [];         // Array of data URLs
@@ -1421,7 +1444,7 @@ async function generarPruebaVozEL() {
   setApiStatus('🟡', 'Conectando a ElevenLabs…', '#b45309');
 
   try {
-    const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    const resp = await fetchWithTimeoutNIVA(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2100,7 +2123,7 @@ BIBLIOTECA DISPONIBLE: ${JSON.stringify(NIVA_TRACKS.map(t=>({id:t.id,title:t.tit
 Devuelve JSON: {"tracks":["id1","id2","id3"],"mood":"descripción del mood elegido"}`;
 
   try {
-    const res  = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res  = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {'Authorization': 'Bearer '+oaKey, 'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -5920,7 +5943,7 @@ Los hooks deben ser concretos, con datos reales, generando curiosidad o urgencia
 Responde en JSON:
 {"hooks":[{"categoria":"Precio","emoji":"💰","texto":"..."},{"categoria":"Curiosidad","emoji":"🧠","texto":"..."},{"categoria":"Contraste","emoji":"⚖️","texto":"..."},{"categoria":"Retador","emoji":"🔥","texto":"..."},{"categoria":"Lifestyle","emoji":"🏡","texto":"..."},{"categoria":"Reveal","emoji":"👁️","texto":"..."},{"categoria":"Pregunta","emoji":"❓","texto":"..."},{"categoria":"Inversión","emoji":"📊","texto":"..."},{"categoria":"Ubicación","emoji":"📍","texto":"..."},{"categoria":"Opinión","emoji":"🎤","texto":"..."}],"mejor_hook_idx":0}`;
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {'Authorization':'Bearer '+oaKey,'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -6037,7 +6060,7 @@ Responde en JSON:
   "concepto_recomendado": "A"
 }`;
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + oaKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -6284,7 +6307,7 @@ wow_score: nivel de impacto emocional (10=muy impresionante)
 visual_score: calidad fotográfica y composición (10=excelente)
 narrative_score: qué tan bien cuenta la historia de la propiedad (10=muy descriptiva)`;
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + oaKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -6541,7 +6564,7 @@ Responde en JSON:
 }
 }`;
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {'Authorization':'Bearer '+oaKey,'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -7341,7 +7364,7 @@ async function generarVersionAlternativa() {
   }
   try {
     const currentScript = (document.getElementById('vid-script-ta')?.value || '').trim();
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + oaKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -7379,7 +7402,7 @@ async function regenerarCTA() {
   const ta = document.getElementById('vid-script-ta');
   const currentScript = ta.value;
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
       method:'POST',
       headers:{'Authorization':'Bearer '+oaKeyCTA,'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -7462,7 +7485,7 @@ async function generateVoiceOpenAI(script) {
   apiUsageStats.cacheMisses++;
   updateApiUsageDisplay();
 
-  const resp = await fetch('https://api.openai.com/v1/audio/speech', {
+  const resp = await fetchWithTimeoutNIVA('https://api.openai.com/v1/audio/speech', {
     method: 'POST',
     headers: {'Authorization': 'Bearer '+oaKey, 'Content-Type': 'application/json'},
     body: JSON.stringify({
@@ -7502,7 +7525,7 @@ async function getElevenLabsAudio(script, apiKey, voiceId) {
   updateApiUsageDisplay();
 
   // Usar endpoint with-timestamps para obtener alignment real de caracteres
-  const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps`, {
+  const resp = await fetchWithTimeoutNIVA(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps`, {
     method: 'POST',
     headers: {'xi-api-key': apiKey, 'Content-Type': 'application/json'},
     body: JSON.stringify({
@@ -9658,11 +9681,19 @@ function stopVideo() {
   if (activeMusicSource) { try { activeMusicSource.stop(); activeMusicSource = null; } catch(e){} }
   // videoSynth removido — browser TTS eliminado
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    try {
-      // requestData() fuerza el último chunk antes de stop()
-      // Garantiza que el chunk final llegue a ondataavailable antes de onstop
-      if (mediaRecorder.state === 'recording') mediaRecorder.requestData();
-    } catch(e) {}
+    // Safari (grabación MP4, sin timeslice): NO llamar requestData() antes de stop().
+    // Su muxer MP4 nativo entrega el blob completo en un solo dataavailable al hacer
+    // stop() — forzar requestData() antes rompe esa entrega y el recorder termina
+    // con 0 chunks ("Sin chunks grabados"). Solo se usa en WebM (Chrome), que sí
+    // graba con timeslice de 200ms y se beneficia de forzar el último chunk.
+    const isMp4Rec = /^video\/mp4/i.test(_recordedMimeType || '');
+    if (!isMp4Rec) {
+      try {
+        // requestData() fuerza el último chunk antes de stop()
+        // Garantiza que el chunk final llegue a ondataavailable antes de onstop
+        if (mediaRecorder.state === 'recording') mediaRecorder.requestData();
+      } catch(e) {}
+    }
     // Pequeño delay para dar tiempo al último chunk de llegar
     setTimeout(() => {
       try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch(e) {}
