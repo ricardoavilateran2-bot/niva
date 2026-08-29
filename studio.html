@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.12';
+const NIVA_BUILD_VERSION = '2026-08-29.13';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -7645,7 +7645,17 @@ function getActiveVoiceProvider() {
 // ── PLAY VIDEO — Solo ElevenLabs o Audio Propio. SIN browser TTS. SIN OpenAI TTS. ──
 async function playVideoEL() {
   if (!vidV) return;
+  const _btnPlayCheck = document.getElementById('btn-play-video');
+  if (_btnPlayCheck && _btnPlayCheck.style.display === 'none') {
+    console.warn('[NIVA][RENDER] playVideoEL() ignorado — ya hay una generación en curso.');
+    return;
+  }
+  if (_btnPlayCheck) _btnPlayCheck.style.display = 'none';
+  const _btnStopCheck = document.getElementById('btn-stop-video');
+  if (_btnStopCheck) _btnStopCheck.style.display = 'flex';
   stopVideo();
+  if (_btnPlayCheck) _btnPlayCheck.style.display = 'none';
+  if (_btnStopCheck) _btnStopCheck.style.display = 'flex';
   if (_nivaLastVideoAudioCtx && _nivaLastVideoAudioCtx.state !== 'closed') {
     try { _nivaLastVideoAudioCtx.close(); } catch(e) {}
   }
