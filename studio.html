@@ -19,7 +19,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NIVA Content Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&family=Montserrat:wght@600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
@@ -1047,12 +1047,11 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
     <!-- Se colocó ANTES del resultado final (canvas/generar) a propósito: primero se -->
     <!-- ajustan todas las configuraciones del video, y hasta el final se ve/genera el resultado. -->
     <div class="card" id="portada-section" style="margin-top:12px">
-      <div class="card-title" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="togglePortadaSection()">
-        🎬 INICIO DEL VIDEO
-        <span id="portada-arrow" style="font-size:11px;color:#94a3b8">▶</span>
+      <div class="card-title">
+        🎬 INICIO DEL VIDEO — edítalo, es lo primero que ve la gente
       </div>
-      <div id="portada-body" style="display:none;padding-top:8px">
-        <p style="font-size:11px;color:#64748b;margin:0 0 8px">Esto es lo que se ve al arrancar tu video (título, ubicación y precio) — igual que la portada de un Reel. Ya forma parte del video, no es una imagen aparte. Ajusta plantilla, color, texto y tamaño/posición aquí abajo.</p>
+      <div id="portada-body" style="display:block;padding-top:8px">
+        <p style="font-size:11px;color:#64748b;margin:0 0 8px">Esto es lo que se ve al arrancar tu video (título, ubicación y precio) — igual que la portada de un Reel. Ya forma parte del video, no es una imagen aparte. Ajusta plantilla, color, tipo de letra, texto y la posición de cada elemento aquí abajo.</p>
 
         <!-- Selector de plantilla -->
         <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px">
@@ -1073,6 +1072,18 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
           <button type="button" class="portada-color-sw" data-c="#ffffff" onclick="setPortadaColor('#ffffff')" title="Blanco" style="width:20px;height:20px;border-radius:50%;background:#ffffff;border:2px solid #cbd5e1;cursor:pointer;padding:0"></button>
         </div>
 
+        <!-- Tipo de letra -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:10px;color:#94a3b8">Tipo de letra:</span>
+          <select id="portada-font-select" onchange="setPortadaFont(this.value)" style="font-size:11px;padding:5px 8px;border-radius:6px;border:1.5px solid #e2e8f0;font-family:inherit;color:#334155;background:white;cursor:pointer">
+            <option value="inter">Inter — Moderno</option>
+            <option value="playfair">Playfair Display — Editorial</option>
+            <option value="montserrat">Montserrat — Clásico inmobiliario</option>
+            <option value="poppins">Poppins — Amigable</option>
+            <option value="georgia">Georgia — Serif elegante</option>
+          </select>
+        </div>
+
         <!-- Texto editable -->
         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
           <input type="text" id="portada-title-input" placeholder="Título (ej. RESIDENCIA EN VENTA)" oninput="_portadaFieldEdited('title');generatePortada()" style="font-size:11px;padding:7px 9px;border-radius:7px;border:1.5px solid #e2e8f0;font-family:inherit;width:100%;box-sizing:border-box">
@@ -1080,24 +1091,44 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
           <input type="text" id="portada-price-input" placeholder="Precio (ej. $43.5 MDP)" oninput="_portadaFieldEdited('price');generatePortada()" style="font-size:11px;padding:7px 9px;border-radius:7px;border:1.5px solid #e2e8f0;font-family:inherit;width:100%;box-sizing:border-box">
         </div>
 
-        <!-- Tamaño y posición del texto -->
+        <!-- Tamaño y posición general del bloque de texto -->
         <div style="background:#f8fafc;border-radius:8px;padding:8px 10px;margin-bottom:8px">
           <label style="font-size:10.5px;font-weight:700;color:#1B2A4A;display:flex;justify-content:space-between;margin-bottom:3px">
-            <span>🔠 Tamaño del texto</span><span id="portadaScaleVal">100%</span>
+            <span>🔠 Tamaño del texto (todo el bloque)</span><span id="portadaScaleVal">100%</span>
           </label>
           <input type="range" id="portadaScaleSlider" min="70" max="160" step="5" value="100" oninput="setPortadaScale(this.value)" style="width:100%;accent-color:#C9A84C;margin-bottom:8px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div>
-              <label style="font-size:10.5px;font-weight:700;color:#1B2A4A">↔️ Posición horizontal</label>
+              <label style="font-size:10.5px;font-weight:700;color:#1B2A4A">↔️ Mover todo el bloque</label>
               <input type="range" id="portadaOffsetXSlider" min="-150" max="150" step="5" value="0" oninput="setPortadaOffset('x',this.value)" style="width:100%;accent-color:#C9A84C">
             </div>
             <div>
-              <label style="font-size:10.5px;font-weight:700;color:#1B2A4A">↕️ Posición vertical</label>
+              <label style="font-size:10.5px;font-weight:700;color:#1B2A4A">↕️ Mover todo el bloque</label>
               <input type="range" id="portadaOffsetYSlider" min="-300" max="300" step="5" value="0" oninput="setPortadaOffset('y',this.value)" style="width:100%;accent-color:#C9A84C">
             </div>
           </div>
-          <button type="button" onclick="resetPortadaPosicion()" style="margin-top:8px;width:100%;padding:6px;background:white;border:1.5px solid #e2e8f0;border-radius:7px;font-size:10.5px;color:#64748b;cursor:pointer;font-family:inherit;font-weight:600">↺ Restablecer tamaño/posición</button>
         </div>
+
+        <!-- Posición individual de cada elemento -->
+        <div style="background:#f8fafc;border-radius:8px;padding:8px 10px;margin-bottom:8px">
+          <label style="font-size:10.5px;font-weight:700;color:#1B2A4A;display:block;margin-bottom:6px">🎯 Mover cada elemento por separado</label>
+          <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 8px;align-items:center">
+            <span style="font-size:10px;color:#64748b;font-weight:600">🔤 Título</span>
+            <input type="range" id="portada-title-x-slider" min="-150" max="150" step="5" value="0" oninput="setPortadaElementOffset('title','x',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover título horizontal">
+            <input type="range" id="portada-title-y-slider" min="-250" max="250" step="5" value="0" oninput="setPortadaElementOffset('title','y',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover título vertical">
+            <span style="font-size:10px;color:#64748b;font-weight:600">📍 Ubicación</span>
+            <input type="range" id="portada-sub-x-slider" min="-150" max="150" step="5" value="0" oninput="setPortadaElementOffset('sub','x',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover ubicación horizontal">
+            <input type="range" id="portada-sub-y-slider" min="-250" max="250" step="5" value="0" oninput="setPortadaElementOffset('sub','y',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover ubicación vertical">
+            <span style="font-size:10px;color:#64748b;font-weight:600">💰 Precio</span>
+            <input type="range" id="portada-price-x-slider" min="-150" max="150" step="5" value="0" oninput="setPortadaElementOffset('price','x',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover precio horizontal">
+            <input type="range" id="portada-price-y-slider" min="-250" max="250" step="5" value="0" oninput="setPortadaElementOffset('price','y',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover precio vertical">
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:#94a3b8;margin-top:4px;padding:0 2px">
+            <span>↔️ horizontal</span><span>↕️ vertical</span>
+          </div>
+        </div>
+
+        <button type="button" onclick="resetPortadaPosicion()" style="width:100%;padding:6px;background:white;border:1.5px solid #e2e8f0;border-radius:7px;font-size:10.5px;color:#64748b;cursor:pointer;font-family:inherit;font-weight:600;margin-bottom:8px">↺ Restablecer tamaño y posición</button>
 
         <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:#64748b;justify-content:center;margin-bottom:8px;cursor:pointer">
           <input type="checkbox" id="portada-safezone-toggle" onchange="_portadaSafeZone=this.checked;generatePortada()" style="accent-color:#C9A84C">
@@ -1216,7 +1247,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.39';
+const NIVA_BUILD_VERSION = '2026-08-29.40';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -10204,15 +10235,30 @@ let portadaTextScale = 1;     // 1 = tamaño normal del bloque de texto (título
 let portadaTextOffsetX = 0;   // desplazamiento horizontal del bloque de texto, en px del canvas 1080×1920
 let portadaTextOffsetY = 0;   // desplazamiento vertical del bloque de texto, en px del canvas 1080×1920
 
-function togglePortadaSection() {
-  const body = document.getElementById('portada-body');
-  const arrow = document.getElementById('portada-arrow');
-  const open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : 'block';
-  arrow.textContent = open ? '▶' : '▼';
-  if (!open) {
-    try { if (vidImages && vidImages.length > 0) generatePortada(); } catch(e) {}
-  }
+// A petición de Ricardo: la portada ya no vive escondida detrás de un acordeón — el
+// panel #portada-body ahora se muestra siempre abierto (ver HTML) para que sea algo
+// que los asesores tengan que revisar y ajustar, no algo que puedan ignorar.
+// Tipo de letra elegible para el bloque de texto (título+ubicación+precio) de la portada.
+let portadaFontFamily = 'Inter, Arial, sans-serif';
+const NIVA_PORTADA_FONTS = {
+  inter:      'Inter, Arial, sans-serif',
+  playfair:   '"Playfair Display", Georgia, serif',
+  montserrat: 'Montserrat, Arial, sans-serif',
+  poppins:    'Poppins, Arial, sans-serif',
+  georgia:    'Georgia, "Times New Roman", serif'
+};
+function setPortadaFont(key) {
+  portadaFontFamily = NIVA_PORTADA_FONTS[key] || NIVA_PORTADA_FONTS.inter;
+  generatePortada();
+}
+
+// Posición individual de cada elemento (título / ubicación / precio), además del
+// ajuste general de todo el bloque (portadaTextScale/OffsetX/Y de arriba).
+let portadaElOffset = { title: {x:0,y:0}, sub: {x:0,y:0}, price: {x:0,y:0} };
+function setPortadaElementOffset(el, axis, v) {
+  if (!portadaElOffset[el]) return;
+  portadaElOffset[el][axis] = Number(v);
+  generatePortada();
 }
 
 function setPortadaTemplate(idx) {
@@ -10248,6 +10294,7 @@ function setPortadaOffset(axis, v) {
 }
 function resetPortadaPosicion() {
   portadaTextScale = 1; portadaTextOffsetX = 0; portadaTextOffsetY = 0;
+  portadaElOffset = { title: {x:0,y:0}, sub: {x:0,y:0}, price: {x:0,y:0} };
   const sc = document.getElementById('portadaScaleSlider');
   const sv = document.getElementById('portadaScaleVal');
   const ox = document.getElementById('portadaOffsetXSlider');
@@ -10256,6 +10303,12 @@ function resetPortadaPosicion() {
   if (sv) sv.textContent = '100%';
   if (ox) ox.value = 0;
   if (oy) oy.value = 0;
+  ['title','sub','price'].forEach(el => {
+    ['x','y'].forEach(axis => {
+      const s = document.getElementById('portada-' + el + '-' + axis + '-slider');
+      if (s) s.value = 0;
+    });
+  });
   generatePortada();
 }
 
@@ -10351,10 +10404,11 @@ function _drawPortadaEditorial(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt)
   ctx.translate(-cx2, -H * 0.5);
 
   ctx.save();
+  ctx.translate(portadaElOffset.title.x, portadaElOffset.title.y);
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = 'rgba(255,255,255,0.98)';
   ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 26;
-  const titleFont = `800 ${W * 0.072}px Inter, Arial, sans-serif`;
+  const titleFont = `800 ${W * 0.072}px ${portadaFontFamily}`;
   const titleLines = _wrapPortadaText(ctx, titleTxt, W * 0.86, titleFont).slice(0, 3);
   ctx.font = titleFont;
   let ty = H * 0.155;
@@ -10363,8 +10417,9 @@ function _drawPortadaEditorial(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt)
 
   if (subTxt) {
     ctx.save();
+    ctx.translate(portadaElOffset.sub.x, portadaElOffset.sub.y);
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.font = `600 ${W * 0.030}px Inter, Arial, sans-serif`;
+    ctx.font = `600 ${W * 0.030}px ${portadaFontFamily}`;
     ctx.fillStyle = 'rgba(255,255,255,0.82)';
     ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 16;
     ctx.fillText(subTxt.toUpperCase(), cx2, ty + W * 0.02);
@@ -10377,7 +10432,8 @@ function _drawPortadaEditorial(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt)
 
   if (priceTxt) {
     ctx.save();
-    ctx.font = `800 ${W * 0.040}px Inter, Arial, sans-serif`;
+    ctx.translate(portadaElOffset.price.x, portadaElOffset.price.y);
+    ctx.font = `800 ${W * 0.040}px ${portadaFontFamily}`;
     const padX = W * 0.045, padY = H * 0.016;
     const tw = ctx.measureText(priceTxt).width;
     const boxW = tw + padX * 2, boxH = W * 0.040 + padY * 2;
@@ -10433,16 +10489,18 @@ function _drawPortadaInferior(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt) 
   ctx.fillRect(cx2 - lineW / 2, baseY - 72, lineW, 2);
 
   ctx.save();
+  ctx.translate(portadaElOffset.title.x, portadaElOffset.title.y);
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.font = `700 ${W * 0.030}px Inter, Arial, sans-serif`;
+  ctx.font = `700 ${W * 0.030}px ${portadaFontFamily}`;
   ctx.fillStyle = 'rgba(255,255,255,0.65)';
   ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 20;
   ctx.fillText(titleTxt, cx2, baseY - 24);
   ctx.restore();
 
   ctx.save();
+  ctx.translate(portadaElOffset.sub.x, portadaElOffset.sub.y);
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.font = `600 ${W * 0.042}px Inter, Arial, sans-serif`;
+  ctx.font = `600 ${W * 0.042}px ${portadaFontFamily}`;
   ctx.fillStyle = 'rgba(255,255,255,0.97)';
   ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 24;
   ctx.fillText(subTxt || 'Monterrey', cx2, baseY + 36);
@@ -10450,8 +10508,9 @@ function _drawPortadaInferior(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt) 
 
   if (priceTxt) {
     ctx.save();
+    ctx.translate(portadaElOffset.price.x, portadaElOffset.price.y);
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.font = `900 ${W * 0.058}px Inter, Arial, sans-serif`;
+    ctx.font = `900 ${W * 0.058}px ${portadaFontFamily}`;
     ctx.fillStyle = GOLD;
     ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 28;
     ctx.fillText(priceTxt, cx2, baseY + 110);
