@@ -1136,7 +1136,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.27';
+const NIVA_BUILD_VERSION = '2026-08-29.28';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -6031,9 +6031,15 @@ function onTranscriptInput() {
 function vidStatus(msg, type) {
   const el = document.getElementById('vid-status-msg');
   if (!el) return;
-  el.textContent = msg;
-  el.className = 'vid-status ' + (type || 'info');
-  el.style.display = msg ? 'block' : 'none';
+  // Evitar escrituras al DOM redundantes: durante la grabación, el ticker de "Xs · frames:Y"
+  // llama esto una vez por segundo — reescribir className/style aunque no cambien fuerza un
+  // recalculo de estilos innecesario justo cuando el hilo principal debe estar dibujando el
+  // siguiente frame del canvas, lo cual puede verse como una pequeña traba periódica.
+  if (el.textContent !== msg) el.textContent = msg;
+  const cls = 'vid-status ' + (type || 'info');
+  if (el.className !== cls) el.className = cls;
+  const disp = msg ? 'block' : 'none';
+  if (el.style.display !== disp) el.style.display = disp;
 }
 function vidCountChars() {
   const ta = document.getElementById('vid-script-ta');
