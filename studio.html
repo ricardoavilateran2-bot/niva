@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.11';
+const NIVA_BUILD_VERSION = '2026-08-29.12';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -4921,7 +4921,9 @@ async function finalizeRecording(mimeType) {
       ' - v_track=' + (d.vTrackState || '?') +
       ' - a_track=' + (d.aTrackState || '?') +
       ' - audioCtx=' + (d.audioCtxState || '?') +
-      ' - mr_state=' + (mediaRecorder ? mediaRecorder.state : '?');
+      ' - mr_state=' + (mediaRecorder ? mediaRecorder.state : '?') +
+      (d.playError ? (' - playError=' + d.playError) : '') +
+      (d.beginRenderOnceError ? (' - beginRenderOnceError=' + d.beginRenderOnceError) : '');
     console.error('[NIVA][FINALIZE][0-CHUNKS] Diagnóstico:', diagStr);
     vidStatus('❌ Sin chunks grabados — MediaRecorder no produjo datos. Codec: ' + realMime + ' - ' + diagStr, 'err');
     document.getElementById('btn-dl-video').style.display = 'none';
@@ -7650,6 +7652,12 @@ async function playVideoEL() {
   const _nivaWarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
   _nivaLastVideoAudioCtx = _nivaWarmAudioCtx;
   try { _nivaWarmAudioCtx.resume().catch(()=>{}); } catch(e) {}
+  try {
+    const _nivaUnlockAudio = new Audio('data:audio/wav;base64,UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA');
+    _nivaUnlockAudio.volume = 0;
+    const _p = _nivaUnlockAudio.play();
+    if (_p && _p.then) _p.then(() => { try { _nivaUnlockAudio.pause(); } catch(e){} }).catch(()=>{});
+  } catch(e) {}
   const provider = getActiveVoiceProvider();
 
   // ── GUIÓN (fuente única de verdad — textarea) ──
@@ -8095,7 +8103,10 @@ async function playVideoEL() {
           }
           // En modo "Solo música", el audio de voz no debe controlar duración
           if (audioMode !== 'music') {
-            audio.play().catch(err => { vidStatus('❌ Error: '+err.message, 'err'); stopVideo(); });
+            audio.play().catch(err => {
+              console.error('[NIVA][RENDER] audio.play() rechazado:', err && err.message);
+              window.__nivaRecDiag.playError = (err && err.name) + ':' + (err && err.message);
+            });
           }
           // El video SIEMPRE dura exactamente finalDuration segundos
           setTimeout(() => {
@@ -8110,6 +8121,7 @@ async function playVideoEL() {
           }, finalDurMs);
         } catch (errBR) {
           console.error('[NIVA][RENDER][beginRenderOnce]', errBR);
+          window.__nivaRecDiag.beginRenderOnceError = (errBR && errBR.message) || String(errBR);
           vidStatus('❌ Error preparando la grabación: ' + (errBR && errBR.message || errBR) + '. Intenta de nuevo — si persiste, recarga la página.', 'err');
           updateDiagStep('render', 'err');
           updateDiagStep('done', 'err');
