@@ -1018,7 +1018,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
     <!-- PASO 4: CANVAS + CONTROLES -->
     <div class="video-wrap">
       <div id="niva-safari-warning" style="display:none;background:#3a2a0a;border:1.5px solid #C9A84C;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:#f5d78a;line-height:1.5">
-        📱 <strong>Antes de generar el video en iPhone:</strong> revisa que el switch físico de silencio (a un lado del celular) esté en modo <strong>timbre, NO silencio</strong>. Si está en silencio, iOS apaga el audio de la grabación aunque nunca vaya a sonar por la bocina, y el video sale sin voz. Este aviso solo aplica a iPhone/iPad — en computadora (Mac o Windows) no afecta.
+        📱 <strong>Generando video en iPhone/iPad:</strong> el navegador (sea Safari o Chrome — en iPhone ambos usan el mismo motor) puede tardar un poco más porque el audio y el video se graban por separado y luego se unen automáticamente. No cierres esta ventana mientras dice "Uniendo video y audio". En computadora (Mac o Windows) esto no aplica.
       </div>
       <div class="video-canvas-box"><canvas id="cv-video" width="1080" height="1920"></canvas></div>
       <!-- DIAGNÓSTICO PRE-RENDER (P10) -->
@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.15';
+const NIVA_BUILD_VERSION = '2026-08-29.16';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -1143,8 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // investiga a fondo, se le avisa al usuario ANTES de que lo intente, en vez
   // de dejar que pierda tiempo esperando algo que probablemente no va a
   // terminar.
-  const ua = navigator.userAgent;
-  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isIOS = _nivaIsIOS();
   if (isIOS) {
     const warn = document.getElementById('niva-safari-warning');
     if (warn) warn.style.display = 'block';
@@ -4732,6 +4731,15 @@ function preScaleImage(img, renderW, renderH, maxKBScale) {
 let mediaRecorder = null, recordedChunks = [];
 let _recordedMimeType = 'video/webm'; // MIME real del último recording
 let _nivaLastVideoAudioCtx = null;
+// ── iOS dual-recorder (workaround audio silencioso) ──
+// En iOS (Safari Y Chrome — ambos corren sobre WebKit ahí, Apple lo obliga) grabar
+// video+audio juntos en un solo MediaRecorder produce audio 100% silencioso (-91dB),
+// aunque el AudioContext esté "running" y los tracks "live". Workaround: grabar video
+// y audio en DOS MediaRecorder separados y unirlos después con WebCodecs (ver
+// combineIOSVideoAudio). audioRecorder/recordedAudioChunks solo se usan en ese modo.
+let audioRecorder = null, recordedAudioChunks = [];
+let _recordedAudioMimeType = '';
+let _nivaVideoRecStopped = false, _nivaAudioRecStopped = false;
 
 // ── EXPORTACIÓN MP4 (P11) ──
 // WebM sigue siendo el formato INTERNO de grabación (MediaRecorder nunca intenta video/mp4).
@@ -4745,6 +4753,22 @@ let _nivaFFmpeg = null;        // Instancia cacheada de FFmpeg (@ffmpeg/ffmpeg)
 let _nivaFFmpegLoadPromise = null; // Evita cargar ffmpeg.wasm dos veces en paralelo
 let _nivaMp4Converting = false;
 let activeMusicSource = null;
+
+// ── Detección de iOS (Safari, Chrome-iOS, Firefox-iOS — todos usan WebKit por obligación de Apple) ──
+function _nivaIsIOS() {
+  const ua = navigator.userAgent;
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+// Mejor MIME para grabar SOLO audio (usado en el modo dual-recorder de iOS).
+function getBestSupportedAudioOnlyMime() {
+  if (!window.MediaRecorder) return '';
+  const candidates = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/aac', 'audio/webm;codecs=opus', 'audio/webm'];
+  for (const c of candidates) {
+    try { if (MediaRecorder.isTypeSupported(c)) return c; } catch(e) {}
+  }
+  return '';
+}
 
 // ── DETECCIÓN DE FORMATO DE VIDEO SOPORTADO ──
 // Prueba MediaRecorder.isTypeSupported para elegir el mejor codec disponible.
@@ -4902,48 +4926,56 @@ async function validateVideoBlob(blob) {
 }
 
 // ── FINALIZACIÓN SEGURA DEL RECORDING ──
-async function finalizeRecording(mimeType) {
+// preBuiltBlob: si viene un blob ya armado (p.ej. el MP4 unido por combineIOSVideoAudio en
+// el modo dual-recorder de iOS), se usa directo y se salta la construcción desde
+// recordedChunks — pero sigue pasando por la misma validación que todo lo demás.
+async function finalizeRecording(mimeType, preBuiltBlob) {
   const realMime = mimeType || _recordedMimeType || 'video/webm';
-  const chunks = recordedChunks.length;
-  const totalBytes = recordedChunks.reduce((s, c) => s + c.size, 0);
-  const sizeMB = (totalBytes / 1024 / 1024).toFixed(2);
 
-  console.log('[NIVA][FINALIZE] ══════════════════');
-  console.log('[NIVA][FINALIZE] MIME:', realMime);
-  console.log('[NIVA][FINALIZE] chunks:', chunks, '| bytes:', totalBytes, '(' + sizeMB + ' MB)');
+  if (!preBuiltBlob) {
+    const chunks = recordedChunks.length;
+    const totalBytes = recordedChunks.reduce((s, c) => s + c.size, 0);
+    const sizeMB = (totalBytes / 1024 / 1024).toFixed(2);
 
-  if (chunks === 0) {
-    const d = window.__nivaRecDiag || {};
-    const elapsedMs = d.startTs ? Math.round(performance.now() - d.startTs) : '?';
-    const diagStr = 'frames_dibujados=' + (typeof _nivaDrawFrameCount !== 'undefined' ? _nivaDrawFrameCount : '?') +
-      ' - arranque_via=' + (d.renderTrigger || '?') +
-      ' - ms_grabando=' + elapsedMs +
-      ' - v_track=' + (d.vTrackState || '?') +
-      ' - a_track=' + (d.aTrackState || '?') +
-      ' - audioCtx=' + (d.audioCtxState || '?') +
-      ' - mr_state=' + (mediaRecorder ? mediaRecorder.state : '?') +
-      (d.playError ? (' - playError=' + d.playError) : '') +
-      (d.beginRenderOnceError ? (' - beginRenderOnceError=' + d.beginRenderOnceError) : '');
-    console.error('[NIVA][FINALIZE][0-CHUNKS] Diagnóstico:', diagStr);
-    vidStatus('❌ Sin chunks grabados — MediaRecorder no produjo datos. Codec: ' + realMime + ' - ' + diagStr, 'err');
-    document.getElementById('btn-dl-video').style.display = 'none';
-    return false;
+    console.log('[NIVA][FINALIZE] ══════════════════');
+    console.log('[NIVA][FINALIZE] MIME:', realMime);
+    console.log('[NIVA][FINALIZE] chunks:', chunks, '| bytes:', totalBytes, '(' + sizeMB + ' MB)');
+
+    if (chunks === 0) {
+      const d = window.__nivaRecDiag || {};
+      const elapsedMs = d.startTs ? Math.round(performance.now() - d.startTs) : '?';
+      const diagStr = 'frames_dibujados=' + (typeof _nivaDrawFrameCount !== 'undefined' ? _nivaDrawFrameCount : '?') +
+        ' - arranque_via=' + (d.renderTrigger || '?') +
+        ' - ms_grabando=' + elapsedMs +
+        ' - v_track=' + (d.vTrackState || '?') +
+        ' - a_track=' + (d.aTrackState || '?') +
+        ' - audioCtx=' + (d.audioCtxState || '?') +
+        ' - mr_state=' + (mediaRecorder ? mediaRecorder.state : '?') +
+        (d.playError ? (' - playError=' + d.playError) : '') +
+        (d.beginRenderOnceError ? (' - beginRenderOnceError=' + d.beginRenderOnceError) : '');
+      console.error('[NIVA][FINALIZE][0-CHUNKS] Diagnóstico:', diagStr);
+      vidStatus('❌ Sin chunks grabados — MediaRecorder no produjo datos. Codec: ' + realMime + ' - ' + diagStr, 'err');
+      document.getElementById('btn-dl-video').style.display = 'none';
+      return false;
+    }
   }
 
-  const blob = new Blob(recordedChunks, { type: realMime });
-  vidStatus('🔍 Validando · ' + realMime + ' · ' + sizeMB + ' MB · ' + chunks + ' chunks…', 'loading');
+  const blob = preBuiltBlob || new Blob(recordedChunks, { type: realMime });
+  const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
+  const chunksLabel = preBuiltBlob ? '(unido iOS)' : (recordedChunks.length + ' chunks');
+  vidStatus('🔍 Validando · ' + realMime + ' · ' + sizeMB + ' MB · ' + chunksLabel + '…', 'loading');
 
   const v = await validateVideoBlob(blob);
   console.log('[NIVA][FINALIZE] validateVideoBlob →', v);
 
   if (!v.ok) {
     const diagMsg = '❌ FALLO · ' + v.reason.replace(/\n/g, ' ') +
-      ' · MIME: ' + realMime + ' · ' + sizeMB + ' MB · ' + chunks + ' chunks';
+      ' · MIME: ' + realMime + ' · ' + sizeMB + ' MB · ' + chunksLabel;
     vidStatus(diagMsg, 'err');
     console.error('[NIVA][FINALIZE] DIAGNÓSTICO COMPLETO:');
     console.error('  MIME:', realMime);
-    console.error('  Tamaño:', sizeMB, 'MB (' + totalBytes + ' bytes)');
-    console.error('  Chunks:', chunks);
+    console.error('  Tamaño:', sizeMB, 'MB (' + blob.size + ' bytes)');
+    console.error('  Chunks:', chunksLabel);
     console.error('  Razón:', v.reason);
     document.getElementById('btn-dl-video').style.display = 'none';
     return false;
@@ -5194,6 +5226,150 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
   const { buffer } = muxer.target;
   audioBuffer = null; // liberar PCM decodificado — ya no se necesita
   return new Blob([buffer], { type: 'video/mp4' });
+}
+
+// ── iOS: unir grabación de VIDEO (sin audio) + grabación de AUDIO (separada) en un MP4 ──
+// En iOS (Safari y Chrome — mismo motor WebKit ahí) grabar video+audio juntos en un solo
+// MediaRecorder produce un track de audio 100% silencioso (-91dB), confirmado en pruebas
+// reales incluso con AudioContext "running", tracks "live" y el switch de silencio en
+// timbre. El workaround: playVideoEL() graba video y audio en DOS MediaRecorder
+// independientes (modo dual, ver más abajo) y esta función los une con WebCodecs +
+// mp4-muxer — la misma técnica ya probada en convertWebmToMp4, sin WASM ni servidor.
+// Devuelve {blob, hasAudio} — hasAudio=false si el audio grabado no pudo decodificarse
+// (para poder avisar claramente en vez de entregar un video mudo sin explicación).
+async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
+  if (typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') {
+    throw new Error('Este navegador no soporta WebCodecs (VideoEncoder/AudioEncoder) — no se puede unir audio y video.');
+  }
+  const { Muxer, ArrayBufferTarget } = await loadMp4MuxerLib();
+  vidStatus('🔧 Uniendo video y audio (iOS)…', 'loading');
+  updateDiagStep('mp4', 'pending');
+
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  const videoURL = URL.createObjectURL(videoBlob);
+  video.src = videoURL;
+  await new Promise((resolve, reject) => {
+    video.onloadedmetadata = resolve;
+    video.onerror = () => reject(new Error('No se pudo leer el video grabado (' + (videoBlob.size/1024).toFixed(0) + ' KB) para unirlo con el audio'));
+  });
+  const W = video.videoWidth, H = video.videoHeight;
+  if (!W || !H) throw new Error('El video grabado no tiene dimensiones válidas');
+
+  const dur = durationSeconds && durationSeconds > 0 ? durationSeconds : 30;
+  const vBitrate = dur > 45 ? 9_000_000 : 12_000_000;
+
+  const videoCodecCandidates = ['avc1.640028', 'avc1.4D401F', 'avc1.42E01E'];
+  let videoCodec = null;
+  for (const c of videoCodecCandidates) {
+    try {
+      const sup = await VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: vBitrate, framerate: 30 });
+      if (sup.supported) { videoCodec = c; break; }
+    } catch(e) {}
+  }
+  if (!videoCodec) throw new Error('Ningún perfil H.264 soportado por este navegador');
+
+  // Decodificar el audio grabado por separado (blob independiente del video).
+  let audioBuffer = null;
+  let audioDecodeError = null;
+  try {
+    const buf = await audioBlob.arrayBuffer();
+    const tmpCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+    audioBuffer = await tmpCtx.decodeAudioData(buf);
+    try { tmpCtx.close(); } catch(e) {}
+  } catch (e) {
+    audioDecodeError = e;
+    audioBuffer = null;
+  }
+  const hasAudio = !!(audioBuffer && audioBuffer.length > 0);
+  if (!hasAudio) {
+    console.error('[NIVA][IOS-MUX] Audio grabado (' + (audioBlob ? audioBlob.size : 0) + ' bytes) pero no se pudo decodificar — el video final saldrá SIN audio. Error:', audioDecodeError && audioDecodeError.message);
+  }
+
+  const muxerConfig = {
+    target: new ArrayBufferTarget(),
+    video: { codec: 'avc', width: W, height: H },
+    fastStart: 'in-memory',
+    firstTimestampBehavior: 'offset',
+  };
+  if (hasAudio) muxerConfig.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 };
+  const muxer = new Muxer(muxerConfig);
+
+  let encodeErr = null;
+  const videoEncoder = new VideoEncoder({
+    output: (chunk, meta) => { try { muxer.addVideoChunk(chunk, meta); } catch(e) { encodeErr = encodeErr || e; } },
+    error: (e) => { encodeErr = e; }
+  });
+  videoEncoder.configure({ codec: videoCodec, width: W, height: H, bitrate: vBitrate, framerate: 30 });
+
+  const canvas = (typeof OffscreenCanvas !== 'undefined') ? new OffscreenCanvas(W, H) : Object.assign(document.createElement('canvas'), {width: W, height: H});
+  const cctx = canvas.getContext('2d');
+  let frameCount = 0;
+  const frameDurationUs = Math.round(1e6 / 30);
+
+  await video.play();
+  await new Promise(resolve => {
+    let settled = false;
+    const finish = () => { if (!settled) { settled = true; resolve(); } };
+    function onFrame(now, metadata) {
+      if (settled) return;
+      if (encodeErr) { finish(); return; }
+      try {
+        cctx.drawImage(video, 0, 0, W, H);
+        const vf = new VideoFrame(canvas, { timestamp: Math.round(metadata.mediaTime * 1e6), duration: frameDurationUs });
+        videoEncoder.encode(vf, { keyFrame: frameCount % 30 === 0 });
+        vf.close();
+        frameCount++;
+      } catch(e) { encodeErr = encodeErr || e; finish(); return; }
+      if (!video.ended) video.requestVideoFrameCallback(onFrame);
+      else finish();
+    }
+    video.requestVideoFrameCallback(onFrame);
+    video.onended = finish;
+    setTimeout(finish, (dur + 15) * 1000);
+  });
+  try { video.pause(); } catch(e) {}
+  try { URL.revokeObjectURL(videoURL); } catch(e) {}
+  try { video.removeAttribute('src'); video.load(); } catch(e) {}
+  await videoEncoder.flush();
+  videoEncoder.close();
+  await new Promise(r => setTimeout(r, 0));
+  if (encodeErr) throw encodeErr;
+  if (frameCount === 0) throw new Error('No se extrajo ningún frame del video grabado');
+
+  if (hasAudio) {
+    const audioEncoder = new AudioEncoder({
+      output: (chunk, meta) => { try { muxer.addAudioChunk(chunk, meta); } catch(e) { encodeErr = encodeErr || e; } },
+      error: (e) => { encodeErr = e; }
+    });
+    audioEncoder.configure({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 224_000 });
+    const numFrames = audioBuffer.length;
+    const chLeft = audioBuffer.getChannelData(0);
+    const chRight = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : chLeft;
+    const interleaved = new Float32Array(numFrames * 2);
+    for (let i = 0; i < numFrames; i++) { interleaved[i*2] = chLeft[i]; interleaved[i*2+1] = chRight[i]; }
+    const chunkFrames = 48000;
+    for (let offset = 0; offset < numFrames; offset += chunkFrames) {
+      const len = Math.min(chunkFrames, numFrames - offset);
+      const slice = new Float32Array(len * 2);
+      slice.set(interleaved.subarray(offset*2, (offset+len)*2));
+      const ad = new AudioData({
+        format: 'f32', sampleRate: audioBuffer.sampleRate, numberOfFrames: len, numberOfChannels: 2,
+        timestamp: Math.round(offset / audioBuffer.sampleRate * 1e6), data: slice,
+      });
+      audioEncoder.encode(ad);
+      ad.close();
+    }
+    await audioEncoder.flush();
+    audioEncoder.close();
+    if (encodeErr) throw encodeErr;
+  }
+
+  muxer.finalize();
+  const { buffer: outBuffer } = muxer.target;
+  audioBuffer = null;
+  return { blob: new Blob([outBuffer], { type: 'video/mp4' }), hasAudio };
 }
 
 // Orquesta la conversión completa: WebM validado → MP4 → validar MP4 → mostrar descarga.
@@ -7940,30 +8116,10 @@ async function playVideoEL() {
       if (!vTracks.length) { clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe); vidStatus('❌ Canvas no produce video tracks — captureStream falló', 'err'); return; }
       if (!aTracks.length) { clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe); vidStatus('❌ AudioDestination no produce audio tracks', 'err'); return; }
 
-      const combined = new MediaStream([...vTracks, ...aTracks]);
-
-      // ── Selección de codec — VP8 primero (más estable), VP9 segundo ──
-      // VP9 a alta resolución/bitrate puede producir WebM con EBML headers malformados en algunos Chrome builds.
-      // getBestSupportedVideoMime ya intenta en orden: vp8,opus → vp9,opus → vp8 → vp9 → webm
-      const mimeType = getBestSupportedVideoMime(true);
-
-      // ── GUARDIA CRÍTICA — nunca dejar que el navegador elija su propio default ──
-      // getBestSupportedVideoMime intenta webm (Chrome/Edge/Firefox) y luego mp4 explícito
-      // (Safari). Si NINGUNO pasa isTypeSupported, NO crear el MediaRecorder sin mimeType:
-      // un default desconocido puede no producir chunks → "video 0 segundos".
-      // Mejor abortar con diagnóstico claro.
-      if (!mimeType) {
-        console.error('[NIVA][RECORDER] Ningún codec soportado (ni webm ni mp4) — abortando grabación.');
-        vidStatus('❌ Tu navegador no admite la grabación de video compatible con NIVA. Actualiza Chrome o Safari a su última versión.', 'err');
-        document.getElementById('btn-dl-video').style.display = 'none';
-        clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe);
-        return;
-      }
-
       // Validar el track de video antes de grabar (canvas.captureStream puede
       // devolver un stream cuyo track no está realmente "live").
       const _vTrackCheck = vTracks[0];
-      if (!(combined instanceof MediaStream) || !_vTrackCheck || _vTrackCheck.readyState !== 'live') {
+      if (!_vTrackCheck || _vTrackCheck.readyState !== 'live') {
         console.error('[NIVA][RECORDER] Video track no está "live":', _vTrackCheck && _vTrackCheck.readyState);
         vidStatus('❌ El canvas no está produciendo un video track activo — no se puede grabar.', 'err');
         document.getElementById('btn-dl-video').style.display = 'none';
@@ -7971,80 +8127,160 @@ async function playVideoEL() {
         return;
       }
 
-      // NO fijar _recordedMimeType aquí — leer de mediaRecorder.mimeType después de construirlo
-      const mrOpts = { videoBitsPerSecond: 4_000_000, mimeType }; // 4 Mbps — más estable que 8 Mbps en 1080×1920
-
-      let totalChunkBytes = 0, chunkCount = 0;
-      mediaRecorder = new MediaRecorder(combined, mrOpts);
-      // Leer el MIME que MediaRecorder realmente usa (puede diferir de mrOpts.mimeType)
-      _recordedMimeType = mediaRecorder.mimeType || mimeType || 'video/webm';
-      console.log('[NIVA][RECORDER] mimeType solicitado:', mimeType, '| mimeType real:', _recordedMimeType);
-
-      mediaRecorder.ondataavailable = e => {
-        if (e.data && e.data.size > 0) {
-          recordedChunks.push(e.data);
-          chunkCount++;
-          totalChunkBytes += e.data.size;
-        }
-      };
-      // ── VIGILANTE ABSOLUTO ──
-      // Pase lo que pase en el resto del pipeline (un throw no capturado en algún
-      // punto nuevo, un evento que nunca llega, el navegador que sea) esto
-      // GARANTIZA que la grabación nunca se quede "pensando" más de
-      // NIVA_HARD_FAILSAFE_MS: si sigue en estado "recording" pasado ese tiempo,
-      // se fuerza el stop y se muestra un error claro.
+      // ── iOS: video y audio en DOS MediaRecorder separados (ver combineIOSVideoAudio) ──
+      // En cualquier otro navegador se conserva EXACTAMENTE el flujo original (un solo
+      // MediaRecorder combinado) — ya confirmado funcionando en Chrome y Safari escritorio.
+      const _nivaDualIOS = _nivaIsIOS() && !!window.MediaRecorder;
+      let _nivaHardFailsafeTimer, _nivaTicker;
       const NIVA_HARD_FAILSAFE_MS = 90000;
-      let _nivaHardFailsafeTimer = setTimeout(() => {
-        // Antes solo revisaba mediaRecorder.state === 'recording'; si por
-        // alguna razón el estado no era exactamente ese string (p.ej. quedó en
-        // un estado raro en algún WebKit) el vigilante nunca disparaba. Ahora
-        // se basa en __nivaOnstopRan: si onstop nunca corrió, es un cuelgue,
-        // sin importar qué diga mediaRecorder.state.
-        if (!window.__nivaOnstopRan) {
-          console.error('[NIVA][RENDER] VIGILANTE ABSOLUTO: pasaron ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's y onstop nunca corrió — forzando stop. mediaRecorder.state=' + (mediaRecorder && mediaRecorder.state));
-          vidStatus('❌ La generación tardó demasiado (más de ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's) y fue detenida automáticamente. Intenta de nuevo; si persiste, prueba desde Chrome en computadora.', 'err');
-          updateDiagStep('render', 'err');
-          updateDiagStep('done', 'err');
-          try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch(e) {}
-          stopVideo();
+
+      if (_nivaDualIOS) {
+        console.log('[NIVA][IOS-DUAL] Activando modo dual-recorder (video y audio por separado).');
+        const videoOnlyStream = new MediaStream(vTracks);
+        const audioOnlyStream = new MediaStream(aTracks);
+        const videoMime = getBestSupportedVideoMime(false);
+        const audioMime = getBestSupportedAudioOnlyMime();
+        if (!videoMime || !audioMime) {
+          console.error('[NIVA][IOS-DUAL] Codec no soportado — video:', videoMime, '| audio:', audioMime);
+          vidStatus('❌ Tu navegador no admite la grabación de video/audio compatible con NIVA.', 'err');
+          document.getElementById('btn-dl-video').style.display = 'none';
+          clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe);
+          return;
         }
-      }, NIVA_HARD_FAILSAFE_MS);
-      // ── CRONÓMETRO VISIBLE ── (diagnóstico) — si esto se congela en pantalla,
-      // significa que iOS suspendió los timers de JS (pantalla bloqueada / Safari
-      // en segundo plano) y NINGÚN watchdog basado en setTimeout puede dispararse
-      // hasta que el usuario vuelva a la pestaña. Si sigue avanzando pero nada más
-      // pasa, el problema está en otro lado y esto lo aísla.
-      let _nivaElapsedSec = 0;
-      const _nivaTicker = setInterval(() => {
-        _nivaElapsedSec++;
-        const st = (mediaRecorder && mediaRecorder.state) || '?';
-        const vis = document.visibilityState;
-        vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + ']… ' + _nivaElapsedSec + 's · rec:' + st + ' · pantalla:' + vis + ' · frames:' + _nivaDrawFrameCount + ' · no cierres esta ventana', 'loading');
-      }, 1000);
-      mediaRecorder.onstop = async () => {
-        window.__nivaOnstopRan = true;
-        clearTimeout(_nivaHardFailsafeTimer);
-        clearInterval(_nivaTicker);
-        console.log('[NIVA][RECORDER] onstop | chunks:', chunkCount, '| bytes:', totalChunkBytes, '| mime:', _recordedMimeType);
-        // Limpiar recursos DESPUÉS de construir el blob — no antes
-        const finalMime = mediaRecorder.mimeType || _recordedMimeType;
-        _recordedMimeType = finalMime;
-        updateDiagStep('validacion', 'pending');
-        const ok = await finalizeRecording(finalMime);
-        // Ahora sí limpiar audioCtx y audioUrl (después de que el blob ya fue validado)
-        try { URL.revokeObjectURL(audioUrl); } catch(e) {}
-        try { audioCtx.close(); } catch(e) {}
-        try { if (audio && audio.parentNode) audio.parentNode.removeChild(audio); } catch(e) {}
-        try { if (activeMusicSource && activeMusicSource._mediaEl && activeMusicSource._mediaEl.parentNode) activeMusicSource._mediaEl.parentNode.removeChild(activeMusicSource._mediaEl); } catch(e) {}
-        updateDiagStep('validacion', ok ? 'ok' : 'err');
-        if (ok) updateDiagStep('done', 'ok');
-        else updateDiagStep('done', 'err');
-      };
+        recordedChunks = []; recordedAudioChunks = [];
+        mediaRecorder = new MediaRecorder(videoOnlyStream, { videoBitsPerSecond: 4_000_000, mimeType: videoMime });
+        audioRecorder = new MediaRecorder(audioOnlyStream, { mimeType: audioMime });
+        _recordedMimeType = mediaRecorder.mimeType || videoMime;
+        _recordedAudioMimeType = audioRecorder.mimeType || audioMime;
+        console.log('[NIVA][IOS-DUAL] video mime:', _recordedMimeType, '| audio mime:', _recordedAudioMimeType);
+
+        mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+        audioRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedAudioChunks.push(e.data); };
+
+        _nivaHardFailsafeTimer = setTimeout(() => {
+          if (!window.__nivaOnstopRan) {
+            console.error('[NIVA][IOS-DUAL] VIGILANTE ABSOLUTO: pasaron ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's sin terminar — forzando stop.');
+            vidStatus('❌ La generación tardó demasiado (más de ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's) y fue detenida automáticamente. Intenta de nuevo.', 'err');
+            updateDiagStep('render', 'err'); updateDiagStep('done', 'err');
+            try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch(e) {}
+            try { if (audioRecorder && audioRecorder.state !== 'inactive') audioRecorder.stop(); } catch(e) {}
+            stopVideo();
+          }
+        }, NIVA_HARD_FAILSAFE_MS);
+
+        let _nivaElapsedSec = 0;
+        _nivaTicker = setInterval(() => {
+          _nivaElapsedSec++;
+          const vst = (mediaRecorder && mediaRecorder.state) || '?';
+          const ast = (audioRecorder && audioRecorder.state) || '?';
+          vidStatus('🎬 Grabando [iOS dual]… ' + _nivaElapsedSec + 's · video:' + vst + ' audio:' + ast + ' · frames:' + _nivaDrawFrameCount + ' · no cierres esta ventana', 'loading');
+        }, 1000);
+
+        const _nivaFinishDualIfBothStopped = async () => {
+          if (!_nivaVideoRecStopped || !_nivaAudioRecStopped) return;
+          window.__nivaOnstopRan = true;
+          clearTimeout(_nivaHardFailsafeTimer);
+          clearInterval(_nivaTicker);
+          const vBytes = recordedChunks.reduce((s,c)=>s+c.size,0);
+          const aBytes = recordedAudioChunks.reduce((s,c)=>s+c.size,0);
+          console.log('[NIVA][IOS-DUAL] ambos detenidos | video: ' + recordedChunks.length + ' chunks/' + vBytes + 'b | audio: ' + recordedAudioChunks.length + ' chunks/' + aBytes + 'b');
+          updateDiagStep('validacion', 'pending');
+          let ok = false;
+          if (recordedChunks.length === 0) {
+            vidStatus('❌ El video no produjo datos — MediaRecorder de video vacío (0 bytes).', 'err');
+          } else if (recordedAudioChunks.length === 0) {
+            vidStatus('❌ El audio no produjo datos — MediaRecorder de audio vacío, aunque el video sí grabó (' + (vBytes/1024).toFixed(0) + ' KB). Confirma que el bloqueo de audio de iOS ocurre incluso grabando por separado.', 'err');
+          } else {
+            try {
+              const videoBlob = new Blob(recordedChunks, { type: _recordedMimeType });
+              const audioBlob = new Blob(recordedAudioChunks, { type: _recordedAudioMimeType });
+              const { blob: mergedBlob, hasAudio } = await combineIOSVideoAudio(videoBlob, audioBlob, videoDurationSeconds);
+              if (!hasAudio) {
+                vidStatus('⚠️ El video se generó, pero el audio grabado (' + (aBytes/1024).toFixed(0) + ' KB) no se pudo decodificar al unirlo — el video queda sin voz.', 'err');
+              }
+              ok = await finalizeRecording('video/mp4', mergedBlob);
+            } catch (eMux) {
+              console.error('[NIVA][IOS-DUAL][MUX]', eMux);
+              vidStatus('❌ No se pudo unir audio y video: ' + (eMux && eMux.message || eMux) + ' — video=' + (vBytes/1024).toFixed(0) + 'KB, audio=' + (aBytes/1024).toFixed(0) + 'KB (ambos SÍ se grabaron por separado; el problema fue al unirlos).', 'err');
+            }
+          }
+          try { URL.revokeObjectURL(audioUrl); } catch(e) {}
+          try { audioCtx.close(); } catch(e) {}
+          try { if (audio && audio.parentNode) audio.parentNode.removeChild(audio); } catch(e) {}
+          try { if (activeMusicSource && activeMusicSource._mediaEl && activeMusicSource._mediaEl.parentNode) activeMusicSource._mediaEl.parentNode.removeChild(activeMusicSource._mediaEl); } catch(e) {}
+          updateDiagStep('validacion', ok ? 'ok' : 'err');
+          updateDiagStep('done', ok ? 'ok' : 'err');
+        };
+        mediaRecorder.onstop = () => { _nivaVideoRecStopped = true; console.log('[NIVA][IOS-DUAL] video onstop | chunks:', recordedChunks.length); _nivaFinishDualIfBothStopped(); };
+        audioRecorder.onstop = () => { _nivaAudioRecStopped = true; console.log('[NIVA][IOS-DUAL] audio onstop | chunks:', recordedAudioChunks.length); _nivaFinishDualIfBothStopped(); };
+      } else {
+        // ══════ MODO ORIGINAL — un solo MediaRecorder combinado (Chrome / Safari escritorio) ══════
+        const combined = new MediaStream([...vTracks, ...aTracks]);
+        const mimeType = getBestSupportedVideoMime(true);
+        if (!mimeType) {
+          console.error('[NIVA][RECORDER] Ningún codec soportado (ni webm ni mp4) — abortando grabación.');
+          vidStatus('❌ Tu navegador no admite la grabación de video compatible con NIVA. Actualiza Chrome o Safari a su última versión.', 'err');
+          document.getElementById('btn-dl-video').style.display = 'none';
+          clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe);
+          return;
+        }
+
+        const mrOpts = { videoBitsPerSecond: 4_000_000, mimeType }; // 4 Mbps — más estable que 8 Mbps en 1080×1920
+        let totalChunkBytes = 0, chunkCount = 0;
+        mediaRecorder = new MediaRecorder(combined, mrOpts);
+        _recordedMimeType = mediaRecorder.mimeType || mimeType || 'video/webm';
+        console.log('[NIVA][RECORDER] mimeType solicitado:', mimeType, '| mimeType real:', _recordedMimeType);
+
+        mediaRecorder.ondataavailable = e => {
+          if (e.data && e.data.size > 0) {
+            recordedChunks.push(e.data);
+            chunkCount++;
+            totalChunkBytes += e.data.size;
+          }
+        };
+        // ── VIGILANTE ABSOLUTO ──
+        _nivaHardFailsafeTimer = setTimeout(() => {
+          if (!window.__nivaOnstopRan) {
+            console.error('[NIVA][RENDER] VIGILANTE ABSOLUTO: pasaron ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's y onstop nunca corrió — forzando stop. mediaRecorder.state=' + (mediaRecorder && mediaRecorder.state));
+            vidStatus('❌ La generación tardó demasiado (más de ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's) y fue detenida automáticamente. Intenta de nuevo; si persiste, prueba desde Chrome en computadora.', 'err');
+            updateDiagStep('render', 'err');
+            updateDiagStep('done', 'err');
+            try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch(e) {}
+            stopVideo();
+          }
+        }, NIVA_HARD_FAILSAFE_MS);
+        let _nivaElapsedSec = 0;
+        _nivaTicker = setInterval(() => {
+          _nivaElapsedSec++;
+          const st = (mediaRecorder && mediaRecorder.state) || '?';
+          const vis = document.visibilityState;
+          vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + ']… ' + _nivaElapsedSec + 's · rec:' + st + ' · pantalla:' + vis + ' · frames:' + _nivaDrawFrameCount + ' · no cierres esta ventana', 'loading');
+        }, 1000);
+        mediaRecorder.onstop = async () => {
+          window.__nivaOnstopRan = true;
+          clearTimeout(_nivaHardFailsafeTimer);
+          clearInterval(_nivaTicker);
+          console.log('[NIVA][RECORDER] onstop | chunks:', chunkCount, '| bytes:', totalChunkBytes, '| mime:', _recordedMimeType);
+          const finalMime = mediaRecorder.mimeType || _recordedMimeType;
+          _recordedMimeType = finalMime;
+          updateDiagStep('validacion', 'pending');
+          const ok = await finalizeRecording(finalMime);
+          try { URL.revokeObjectURL(audioUrl); } catch(e) {}
+          try { audioCtx.close(); } catch(e) {}
+          try { if (audio && audio.parentNode) audio.parentNode.removeChild(audio); } catch(e) {}
+          try { if (activeMusicSource && activeMusicSource._mediaEl && activeMusicSource._mediaEl.parentNode) activeMusicSource._mediaEl.parentNode.removeChild(activeMusicSource._mediaEl); } catch(e) {}
+          updateDiagStep('validacion', ok ? 'ok' : 'err');
+          if (ok) updateDiagStep('done', 'ok');
+          else updateDiagStep('done', 'err');
+        };
+      }
+
       clearInterval(_nivaSetupTicker);
       clearTimeout(_nivaSetupFailsafe);
       const provLabel = usedProvider === 'elevenlabs' ? '🎙️ ElevenLabs' : usedProvider === 'upload' ? '📁 Audio propio' : '🎙️ Audio';
       window.__nivaOnstopRan = false;
-      vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + '] con voz ' + provLabel + '… no cierres esta ventana', 'loading');
+      _nivaVideoRecStopped = false; _nivaAudioRecStopped = false;
+      vidStatus('🎬 Grabando [' + (_nivaDualIOS ? 'iOS dual' : String(_recordedMimeType || '').split(';')[0]) + '] con voz ' + provLabel + '… no cierres esta ventana', 'loading');
       updateDiagStep('render', 'pending');
       _nivaDrawFrameCount = 0;
       window.__nivaRecDiag = {
@@ -8056,8 +8292,12 @@ async function playVideoEL() {
       };
       // Safari (grabación MP4): NO usar timeslice — su muxer MP4 con cortes periódicos
       // puede no producir dataavailable nunca. Sin timeslice entrega un solo blob al stop.
-      // Chrome (WebM) conserva el timeslice de 200ms de siempre.
-      if (/^video\/mp4/i.test(_recordedMimeType)) {
+      // Chrome (WebM) conserva el timeslice de 200ms de siempre. iOS dual: ambos recorders
+      // arrancan juntos, también sin timeslice (mismo motivo que Safari MP4 nativo).
+      if (_nivaDualIOS) {
+        mediaRecorder.start();
+        audioRecorder.start();
+      } else if (/^video\/mp4/i.test(_recordedMimeType)) {
         mediaRecorder.start();
       } else {
         mediaRecorder.start(200);
@@ -9902,6 +10142,12 @@ function stopVideo() {
     // Pequeño delay para dar tiempo al último chunk de llegar
     setTimeout(() => {
       try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch(e) {}
+    }, 100);
+  }
+  // ── iOS dual-recorder: detener también el MediaRecorder de audio (independiente del de video) ──
+  if (audioRecorder && audioRecorder.state !== 'inactive') {
+    setTimeout(() => {
+      try { if (audioRecorder && audioRecorder.state !== 'inactive') audioRecorder.stop(); } catch(e) {}
     }, 100);
   }
   const btnStop = document.getElementById('btn-stop-video');
