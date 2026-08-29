@@ -1060,9 +1060,10 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         </div>
 
         <!-- Preview canvas -->
-        <div style="display:flex;justify-content:center;margin-bottom:10px">
-          <canvas id="cvPortada" width="1080" height="1920" style="width:240px;height:427px;border-radius:8px;border:1px solid #e2e8f0;background:#0f172a"></canvas>
+        <div style="display:flex;justify-content:center;margin-bottom:6px">
+          <canvas id="cvPortada" width="1080" height="1920" style="width:240px;height:427px;border-radius:8px;border:1px solid #e2e8f0;background:#0f172a;cursor:grab;touch-action:none"></canvas>
         </div>
+        <p style="font-size:10px;color:#8a6d1f;font-weight:700;text-align:center;margin:0 0 10px">🖐️ Toca y arrastra el título, la ubicación o el precio directamente aquí arriba para moverlos</p>
 
         <!-- Color de acento -->
         <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
@@ -1106,25 +1107,6 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
               <label style="font-size:10.5px;font-weight:700;color:#1B2A4A">↕️ Mover todo el bloque</label>
               <input type="range" id="portadaOffsetYSlider" min="-300" max="300" step="5" value="0" oninput="setPortadaOffset('y',this.value)" style="width:100%;accent-color:#C9A84C">
             </div>
-          </div>
-        </div>
-
-        <!-- Posición individual de cada elemento -->
-        <div style="background:#f8fafc;border-radius:8px;padding:8px 10px;margin-bottom:8px">
-          <label style="font-size:10.5px;font-weight:700;color:#1B2A4A;display:block;margin-bottom:6px">🎯 Mover cada elemento por separado</label>
-          <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 8px;align-items:center">
-            <span style="font-size:10px;color:#64748b;font-weight:600">🔤 Título</span>
-            <input type="range" id="portada-title-x-slider" min="-150" max="150" step="5" value="0" oninput="setPortadaElementOffset('title','x',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover título horizontal">
-            <input type="range" id="portada-title-y-slider" min="-250" max="250" step="5" value="0" oninput="setPortadaElementOffset('title','y',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover título vertical">
-            <span style="font-size:10px;color:#64748b;font-weight:600">📍 Ubicación</span>
-            <input type="range" id="portada-sub-x-slider" min="-150" max="150" step="5" value="0" oninput="setPortadaElementOffset('sub','x',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover ubicación horizontal">
-            <input type="range" id="portada-sub-y-slider" min="-250" max="250" step="5" value="0" oninput="setPortadaElementOffset('sub','y',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover ubicación vertical">
-            <span style="font-size:10px;color:#64748b;font-weight:600">💰 Precio</span>
-            <input type="range" id="portada-price-x-slider" min="-150" max="150" step="5" value="0" oninput="setPortadaElementOffset('price','x',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover precio horizontal">
-            <input type="range" id="portada-price-y-slider" min="-250" max="250" step="5" value="0" oninput="setPortadaElementOffset('price','y',this.value)" style="width:100%;accent-color:#C9A84C" title="Mover precio vertical">
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:9px;color:#94a3b8;margin-top:4px;padding:0 2px">
-            <span>↔️ horizontal</span><span>↕️ vertical</span>
           </div>
         </div>
 
@@ -1247,7 +1229,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.40';
+const NIVA_BUILD_VERSION = '2026-08-29.41';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -2856,6 +2838,9 @@ function renderPhotoGrid() {
       usageHint.style.display = 'none';
     }
   }
+  // La portada (siempre visible) debe reflejar la foto #1 en cuanto haya fotos —
+  // no solo hasta que se genere el video.
+  try { if (photos && photos.length) generatePortada(); } catch (e) {}
 }
 
 // ══════════════════════════════════════════════
@@ -10261,6 +10246,103 @@ function setPortadaElementOffset(el, axis, v) {
   generatePortada();
 }
 
+// ── Arrastrar directamente en la vista previa (petición de Ricardo: "no me gusta editar
+// de esta manera, me gustaría hacerlo dándole clic a la imagen y moviéndola") ──
+// _portadaHit guarda, por cada elemento dibujado en el último generatePortada(), su caja
+// (en coordenadas LOCALES, antes de aplicar su propio transform) y el DOMMatrix que
+// getTransform() reportó en ese momento — así un clic en píxeles del canvas se puede
+// convertir a coordenadas locales (para saber qué se tocó) sin rehacer a mano la
+// matemática de translate/scale que ya hacen las funciones _drawPortada*.
+let _portadaHit = { title: null, sub: null, price: null };
+let _portadaDrag = null; // { el, invTransform, startLocalX, startLocalY, startOffX, startOffY, pointerId }
+let _portadaFallbackImg = null; // vista previa antes de generar el video: usa photos[0]
+
+function _portadaHexToRgba(hex, alpha) {
+  const h = (hex || '#C9A84C').replace('#', '');
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const r = parseInt(full.substring(0, 2), 16); const rr = isNaN(r) ? 201 : r;
+  const g = parseInt(full.substring(2, 4), 16); const gg = isNaN(g) ? 168 : g;
+  const b = parseInt(full.substring(4, 6), 16); const bb = isNaN(b) ? 76 : b;
+  return `rgba(${rr},${gg},${bb},${alpha})`;
+}
+
+function _portadaSetHit(ctx, key, lx, ly, lw, lh) {
+  try { _portadaHit[key] = { transform: ctx.getTransform(), x: lx, y: ly, w: lw, h: lh }; }
+  catch (e) { _portadaHit[key] = null; }
+}
+
+function _portadaCanvasPointFromEvent(cv, evt) {
+  const rect = cv.getBoundingClientRect();
+  const scaleX = cv.width / rect.width;
+  const scaleY = cv.height / rect.height;
+  return { x: (evt.clientX - rect.left) * scaleX, y: (evt.clientY - rect.top) * scaleY };
+}
+
+function _portadaHitTest(px, py) {
+  const pad = 40; // margen extra en unidades locales para que sea fácil tocar en móvil
+  const order = ['price', 'sub', 'title'];
+  for (const key of order) {
+    const h = _portadaHit[key];
+    if (!h) continue;
+    try {
+      const lp = h.transform.inverse().transformPoint(new DOMPoint(px, py));
+      if (lp.x >= h.x - pad && lp.x <= h.x + h.w + pad && lp.y >= h.y - pad && lp.y <= h.y + h.h + pad) return key;
+    } catch (e) {}
+  }
+  return null;
+}
+
+function _portadaPointerDown(evt) {
+  const cv = document.getElementById('cvPortada');
+  if (!cv) return;
+  const pt = _portadaCanvasPointFromEvent(cv, evt);
+  const key = _portadaHitTest(pt.x, pt.y);
+  if (!key) return;
+  evt.preventDefault();
+  const h = _portadaHit[key];
+  const inv = h.transform.inverse();
+  const lp = inv.transformPoint(new DOMPoint(pt.x, pt.y));
+  _portadaDrag = {
+    el: key, pointerId: evt.pointerId, invTransform: inv,
+    startLocalX: lp.x, startLocalY: lp.y,
+    startOffX: portadaElOffset[key].x, startOffY: portadaElOffset[key].y
+  };
+  cv.style.cursor = 'grabbing';
+  try { cv.setPointerCapture(evt.pointerId); } catch (e) {}
+}
+
+function _portadaPointerMove(evt) {
+  if (!_portadaDrag) return;
+  const cv = document.getElementById('cvPortada');
+  if (!cv) return;
+  evt.preventDefault();
+  const pt = _portadaCanvasPointFromEvent(cv, evt);
+  const lp = _portadaDrag.invTransform.transformPoint(new DOMPoint(pt.x, pt.y));
+  const dx = lp.x - _portadaDrag.startLocalX;
+  const dy = lp.y - _portadaDrag.startLocalY;
+  const clamp = (v, lim) => Math.max(-lim, Math.min(lim, v));
+  portadaElOffset[_portadaDrag.el].x = clamp(_portadaDrag.startOffX + dx, 220);
+  portadaElOffset[_portadaDrag.el].y = clamp(_portadaDrag.startOffY + dy, 320);
+  generatePortada();
+}
+
+function _portadaPointerUp(evt) {
+  if (!_portadaDrag) return;
+  const cv = document.getElementById('cvPortada');
+  if (cv) { cv.style.cursor = 'grab'; try { cv.releasePointerCapture(evt.pointerId); } catch (e) {} }
+  _portadaDrag = null;
+}
+
+function _portadaInitCanvasDrag() {
+  const cv = document.getElementById('cvPortada');
+  if (!cv || cv.dataset.nivaDragBound) return;
+  cv.dataset.nivaDragBound = '1';
+  cv.addEventListener('pointerdown', _portadaPointerDown);
+  cv.addEventListener('pointermove', _portadaPointerMove);
+  window.addEventListener('pointerup', _portadaPointerUp);
+  window.addEventListener('pointercancel', _portadaPointerUp);
+}
+
 function setPortadaTemplate(idx) {
   portadaTemplate = idx;
   document.querySelectorAll('.portada-tpl-btn').forEach(b => {
@@ -10303,12 +10385,6 @@ function resetPortadaPosicion() {
   if (sv) sv.textContent = '100%';
   if (ox) ox.value = 0;
   if (oy) oy.value = 0;
-  ['title','sub','price'].forEach(el => {
-    ['x','y'].forEach(axis => {
-      const s = document.getElementById('portada-' + el + '-' + axis + '-slider');
-      if (s) s.value = 0;
-    });
-  });
   generatePortada();
 }
 
@@ -10395,60 +10471,106 @@ function _drawPortadaEditorial(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt)
   ctx.fillStyle = gradBot;
   ctx.fillRect(0, H * 0.78, W, H * 0.22);
 
-  // Permite agrandar/mover el bloque de texto (título+ubicación+precio) sin afectar
-  // el fondo ni la marca de agua "NIVA INMOBILIARIA".
-  ctx.save();
-  ctx.translate(portadaTextOffsetX, portadaTextOffsetY);
-  ctx.translate(cx2, H * 0.5);
-  ctx.scale(portadaTextScale, portadaTextScale);
-  ctx.translate(-cx2, -H * 0.5);
+  const s = portadaTextScale;
 
+  // ── Título — cada elemento tiene su PROPIO transform completo (no uno compartido) para
+  // que portadaElOffset.title lo mueva a él solo, en píxeles reales del canvas, sin heredar
+  // corrimientos de los demás. Esto es lo que hace posible arrastrarlo en la vista previa. ──
   ctx.save();
-  ctx.translate(portadaElOffset.title.x, portadaElOffset.title.y);
+  ctx.translate(portadaTextOffsetX + portadaElOffset.title.x, portadaTextOffsetY + portadaElOffset.title.y);
+  ctx.translate(cx2, H * 0.5); ctx.scale(s, s); ctx.translate(-cx2, -H * 0.5);
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = 'rgba(255,255,255,0.98)';
-  ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 26;
   const titleFont = `800 ${W * 0.072}px ${portadaFontFamily}`;
-  const titleLines = _wrapPortadaText(ctx, titleTxt, W * 0.86, titleFont).slice(0, 3);
   ctx.font = titleFont;
+  const titleLines = _wrapPortadaText(ctx, titleTxt, W * 0.86, titleFont).slice(0, 3);
+
+  // Pasada 1 — halo de color suave detrás del texto (más profundidad, look editorial)
+  ctx.fillStyle = 'rgba(255,255,255,0.98)';
+  ctx.shadowColor = _portadaHexToRgba(GOLD, 0.5); ctx.shadowBlur = 46; ctx.shadowOffsetY = 0;
+  let tyHalo = H * 0.155;
+  titleLines.forEach(line => { ctx.fillText(line, cx2, tyHalo); tyHalo += W * 0.082; });
+
+  // Pasada 2 — sombra oscura nítida encima, para contraste y legibilidad
+  ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 3;
   let ty = H * 0.155;
   titleLines.forEach(line => { ctx.fillText(line, cx2, ty); ty += W * 0.082; });
+  ctx.shadowOffsetY = 0;
+
+  const titleMaxW = Math.max(1, ...titleLines.map(l => ctx.measureText(l).width));
+  const titleTop = H * 0.155 - W * 0.072 * 0.85;
+  const titleHeight = (ty - W * 0.082) - (H * 0.155) + W * 0.072 * 1.15;
+  _portadaSetHit(ctx, 'title', cx2 - titleMaxW / 2, titleTop, titleMaxW, titleHeight);
   ctx.restore();
 
   if (subTxt) {
+    const subTxtU = subTxt.toUpperCase();
     ctx.save();
-    ctx.translate(portadaElOffset.sub.x, portadaElOffset.sub.y);
+    ctx.translate(portadaTextOffsetX + portadaElOffset.sub.x, portadaTextOffsetY + portadaElOffset.sub.y);
+    ctx.translate(cx2, H * 0.5); ctx.scale(s, s); ctx.translate(-cx2, -H * 0.5);
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     ctx.font = `600 ${W * 0.030}px ${portadaFontFamily}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    try { ctx.letterSpacing = (W * 0.0035) + 'px'; } catch (e) {}
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 16;
-    ctx.fillText(subTxt.toUpperCase(), cx2, ty + W * 0.02);
+    const subY = ty + W * 0.02;
+    ctx.fillText(subTxtU, cx2, subY);
+    const subW = ctx.measureText(subTxtU).width;
+    try { ctx.letterSpacing = '0px'; } catch (e) {}
+    _portadaSetHit(ctx, 'sub', cx2 - subW / 2 - W * 0.03, subY - W * 0.035, subW + W * 0.06, W * 0.06);
     ctx.restore();
     ty += W * 0.06;
+  } else {
+    _portadaHit.sub = null;
   }
 
+  // Línea decorativa — sigue ligada al ajuste general del bloque (no se arrastra sola)
+  ctx.save();
+  ctx.translate(portadaTextOffsetX, portadaTextOffsetY);
+  ctx.translate(cx2, H * 0.5); ctx.scale(s, s); ctx.translate(-cx2, -H * 0.5);
   ctx.fillStyle = GOLD;
   ctx.fillRect(cx2 - W * 0.09, ty, W * 0.18, 2);
+  ctx.restore();
 
   if (priceTxt) {
     ctx.save();
-    ctx.translate(portadaElOffset.price.x, portadaElOffset.price.y);
+    ctx.translate(portadaTextOffsetX + portadaElOffset.price.x, portadaTextOffsetY + portadaElOffset.price.y);
+    ctx.translate(cx2, H * 0.5); ctx.scale(s, s); ctx.translate(-cx2, -H * 0.5);
     ctx.font = `800 ${W * 0.040}px ${portadaFontFamily}`;
-    const padX = W * 0.045, padY = H * 0.016;
+    const padX = W * 0.048, padY = H * 0.018;
     const tw = ctx.measureText(priceTxt).width;
     const boxW = tw + padX * 2, boxH = W * 0.040 + padY * 2;
     const boxX = cx2 - boxW / 2, boxY = H * 0.865 - boxH / 2;
+
+    // Chip "flotante": sombra suave debajo + relleno en degradado + borde dorado + brillo interior
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 22; ctx.shadowOffsetY = 8;
+    const chipGrad = ctx.createLinearGradient(0, boxY, 0, boxY + boxH);
+    chipGrad.addColorStop(0, 'rgba(22,26,42,0.78)');
+    chipGrad.addColorStop(1, 'rgba(8,10,18,0.55)');
+    ctx.fillStyle = chipGrad;
+    _roundRectPortada(ctx, boxX, boxY, boxW, boxH, 12);
+    ctx.fill();
+    ctx.restore();
+
     ctx.strokeStyle = GOLD; ctx.lineWidth = 2.5;
-    ctx.fillStyle = 'rgba(8,10,18,0.35)';
-    _roundRectPortada(ctx, boxX, boxY, boxW, boxH, 10);
-    ctx.fill(); ctx.stroke();
+    _roundRectPortada(ctx, boxX, boxY, boxW, boxH, 12);
+    ctx.stroke();
+    ctx.strokeStyle = _portadaHexToRgba('#ffffff', 0.25); ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(boxX + 10, boxY + 2.5);
+    ctx.lineTo(boxX + boxW - 10, boxY + 2.5);
+    ctx.stroke();
+
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = GOLD;
+    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 0;
     ctx.fillText(priceTxt, cx2, boxY + boxH / 2 + W * 0.002);
-    ctx.restore();
-  }
 
-  ctx.restore(); // cierra el transform de tamaño/posición del texto
+    _portadaSetHit(ctx, 'price', boxX, boxY, boxW, boxH);
+    ctx.restore();
+  } else {
+    _portadaHit.price = null;
+  }
 
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
@@ -10475,52 +10597,76 @@ function _drawPortadaInferior(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt) 
   ctx.fillStyle = gradTop;
   ctx.fillRect(0, 0, W, H * 0.22);
 
-  // Permite agrandar/mover el bloque de texto (título+ubicación+precio) sin afectar
-  // el fondo ni la marca de agua "NIVA INMOBILIARIA".
-  ctx.save();
-  ctx.translate(portadaTextOffsetX, portadaTextOffsetY);
-  ctx.translate(cx2, H * 0.5);
-  ctx.scale(portadaTextScale, portadaTextScale);
-  ctx.translate(-cx2, -H * 0.5);
-
+  const s = portadaTextScale;
   const baseY = H * 0.72;
   const lineW = W * 0.26;
+
+  // Línea decorativa superior — ligada al ajuste general del bloque, no se arrastra sola
+  ctx.save();
+  ctx.translate(portadaTextOffsetX, portadaTextOffsetY);
+  ctx.translate(cx2, H * 0.5); ctx.scale(s, s); ctx.translate(-cx2, -H * 0.5);
   ctx.fillStyle = GOLD;
   ctx.fillRect(cx2 - lineW / 2, baseY - 72, lineW, 2);
+  ctx.restore();
 
+  // Título (kicker) — transform propio, así se puede arrastrar solo
   ctx.save();
-  ctx.translate(portadaElOffset.title.x, portadaElOffset.title.y);
+  ctx.translate(portadaTextOffsetX + portadaElOffset.title.x, portadaTextOffsetY + portadaElOffset.title.y);
+  ctx.translate(cx2, H * 0.5); ctx.scale(s, s); ctx.translate(-cx2, -H * 0.5);
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.font = `700 ${W * 0.030}px ${portadaFontFamily}`;
+  try { ctx.letterSpacing = (W * 0.003) + 'px'; } catch (e) {}
   ctx.fillStyle = 'rgba(255,255,255,0.65)';
   ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 20;
   ctx.fillText(titleTxt, cx2, baseY - 24);
+  const titleW = ctx.measureText(titleTxt).width;
+  try { ctx.letterSpacing = '0px'; } catch (e) {}
+  _portadaSetHit(ctx, 'title', cx2 - titleW / 2 - W * 0.03, baseY - 24 - W * 0.04, titleW + W * 0.06, W * 0.06);
   ctx.restore();
 
+  // Ubicación — transform propio
   ctx.save();
-  ctx.translate(portadaElOffset.sub.x, portadaElOffset.sub.y);
+  ctx.translate(portadaTextOffsetX + portadaElOffset.sub.x, portadaTextOffsetY + portadaElOffset.sub.y);
+  ctx.translate(cx2, H * 0.5); ctx.scale(s, s); ctx.translate(-cx2, -H * 0.5);
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.font = `600 ${W * 0.042}px ${portadaFontFamily}`;
+  const subTxt2 = subTxt || 'Monterrey';
   ctx.fillStyle = 'rgba(255,255,255,0.97)';
-  ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 24;
-  ctx.fillText(subTxt || 'Monterrey', cx2, baseY + 36);
+  ctx.shadowColor = _portadaHexToRgba(GOLD, 0.45); ctx.shadowBlur = 32; ctx.shadowOffsetY = 0;
+  ctx.fillText(subTxt2, cx2, baseY + 36);
+  ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 18; ctx.shadowOffsetY = 2;
+  ctx.fillText(subTxt2, cx2, baseY + 36);
+  const subW2 = ctx.measureText(subTxt2).width;
+  ctx.shadowOffsetY = 0;
+  _portadaSetHit(ctx, 'sub', cx2 - subW2 / 2 - W * 0.03, baseY + 36 - W * 0.055, subW2 + W * 0.06, W * 0.08);
   ctx.restore();
 
   if (priceTxt) {
     ctx.save();
-    ctx.translate(portadaElOffset.price.x, portadaElOffset.price.y);
+    ctx.translate(portadaTextOffsetX + portadaElOffset.price.x, portadaTextOffsetY + portadaElOffset.price.y);
+    ctx.translate(cx2, H * 0.5); ctx.scale(s, s); ctx.translate(-cx2, -H * 0.5);
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     ctx.font = `900 ${W * 0.058}px ${portadaFontFamily}`;
     ctx.fillStyle = GOLD;
-    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 28;
+    ctx.shadowColor = _portadaHexToRgba(GOLD, 0.55); ctx.shadowBlur = 36; ctx.shadowOffsetY = 0;
     ctx.fillText(priceTxt, cx2, baseY + 110);
+    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 3;
+    ctx.fillText(priceTxt, cx2, baseY + 110);
+    const priceW = ctx.measureText(priceTxt).width;
+    ctx.shadowOffsetY = 0;
+    _portadaSetHit(ctx, 'price', cx2 - priceW / 2 - W * 0.03, baseY + 110 - W * 0.065, priceW + W * 0.06, W * 0.095);
     ctx.restore();
+  } else {
+    _portadaHit.price = null;
   }
 
+  // Línea decorativa inferior
+  ctx.save();
+  ctx.translate(portadaTextOffsetX, portadaTextOffsetY);
+  ctx.translate(cx2, H * 0.5); ctx.scale(s, s); ctx.translate(-cx2, -H * 0.5);
   ctx.fillStyle = GOLD;
   ctx.fillRect(cx2 - lineW / 2, baseY + (priceTxt ? 138 : 64), lineW, 2);
-
-  ctx.restore(); // cierra el transform de tamaño/posición del texto
+  ctx.restore();
 
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
@@ -10578,12 +10724,27 @@ function _bestHeroIdx() {
 function generatePortada() {
   const cv = document.getElementById('cvPortada');
   if (!cv) return;
+  _portadaInitCanvasDrag();
   const ctx = cv.getContext('2d');
   const W = 1080, H = 1920;
   // El inicio del video SIEMPRE usa la primera foto del orden manual (misma que la escena 1
   // del video) — así la vista previa de aquí coincide exactamente con lo que arranca el video.
   const photoIdx = 0;
-  const img = vidImages[photoIdx];
+  let img = vidImages[photoIdx];
+  if (!img && photos && photos[0]) {
+    // Antes de generar el video (vidImages sigue vacío) usamos la foto ya subida/ordenada
+    // para que la portada NUNCA se vea en negro — a petición de Ricardo, ya que el panel
+    // ahora está siempre visible en vez de escondido tras un acordeón.
+    if (!_portadaFallbackImg || _portadaFallbackImg._nivaSrc !== photos[0]) {
+      _portadaFallbackImg = new Image();
+      _portadaFallbackImg._nivaSrc = photos[0];
+      _portadaFallbackImg.onload = () => { if (!vidImages[0]) generatePortada(); };
+      _portadaFallbackImg.src = photos[0];
+    }
+    if (_portadaFallbackImg.complete && _portadaFallbackImg.naturalWidth > 0) {
+      img = _portadaFallbackImg;
+    }
+  }
   if (!img) {
     document.getElementById('portada-status').textContent = '⚠️ No hay fotos cargadas.';
     return;
