@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.8';
+const NIVA_BUILD_VERSION = '2026-08-29.9';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -4729,6 +4729,7 @@ function preScaleImage(img, renderW, renderH, maxKBScale) {
 }
 let mediaRecorder = null, recordedChunks = [];
 let _recordedMimeType = 'video/webm'; // MIME real del último recording
+let _nivaLastVideoAudioCtx = null;
 
 // ── EXPORTACIÓN MP4 (P11) ──
 // WebM sigue siendo el formato INTERNO de grabación (MediaRecorder nunca intenta video/mp4).
@@ -7799,19 +7800,40 @@ async function playVideoEL() {
     try {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      // Safari crea el AudioContext "suspendido" — sin resume() el track de audio no
-      // produce muestras y el MediaRecorder MP4 de Safari se queda esperando (0 chunks).
-      // En Chrome es un no-op inofensivo si ya está "running".
-      try {
-        await Promise.race([
-          audioCtx.resume(),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('audioCtx.resume() no respondió en 4s')), 4000))
-        ]);
-        console.log('[NIVA][AUDIO] audioCtx.resume() OK - state:', audioCtx.state);
-      } catch(e) {
-        console.warn('[NIVA][AUDIO] resume() falló o no respondió a tiempo:', (e && e.message), '| state:', audioCtx.state, '- continuando de todos modos.');
+      if (_nivaLastVideoAudioCtx && _nivaLastVideoAudioCtx.state !== 'closed') {
+        try { await _nivaLastVideoAudioCtx.close(); } catch(e) {}
       }
+      let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      _nivaLastVideoAudioCtx = audioCtx;
+      async function _nivaTryResume(ctx) {
+        try {
+          await Promise.race([
+            ctx.resume(),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('resume() no respondió en 4s')), 4000))
+          ]);
+        } catch(e) {
+          console.warn('[NIVA][AUDIO] resume() falló o no respondió a tiempo:', (e && e.message), '| state:', ctx.state);
+        }
+        return ctx.state === 'running';
+      }
+      let _audioResumed = await _nivaTryResume(audioCtx);
+      if (!_audioResumed) {
+        console.warn('[NIVA][AUDIO] Reintentando con un AudioContext nuevo…');
+        try { await audioCtx.close(); } catch(e) {}
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        _nivaLastVideoAudioCtx = audioCtx;
+        _audioResumed = await _nivaTryResume(audioCtx);
+      }
+      if (!_audioResumed) {
+        clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe);
+        console.error('[NIVA][AUDIO] AudioContext sigue "suspended" tras 2 intentos — abortando.');
+        vidStatus('❌ Safari bloqueó el audio para grabar (probablemente por varios intentos seguidos). Cierra Safari POR COMPLETO (no solo esta pestaña) y vuelve a intentar — o usa Google Chrome mientras tanto.', 'err');
+        updateDiagStep('render', 'err');
+        updateDiagStep('done', 'err');
+        try { _showPlayBtn(); } catch(e) {}
+        return;
+      }
+      console.log('[NIVA][AUDIO] audioCtx.resume() OK - state:', audioCtx.state);
       const dest = audioCtx.createMediaStreamDestination();
       const masterGain = audioCtx.createGain();
       masterGain.connect(dest);
