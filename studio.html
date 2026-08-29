@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.19';
+const NIVA_BUILD_VERSION = '2026-08-29.20';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -8131,17 +8131,53 @@ async function playVideoEL() {
         musicEl.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
         musicEl.setAttribute('playsinline', '');
         document.body.appendChild(musicEl);
-        // createMediaElementSource funciona con file:// — no usa fetch
-        const mediaSrc   = audioCtx.createMediaElementSource(musicEl);
         musicGain = audioCtx.createGain();
         musicGain.gain.value = baseVol;
-        mediaSrc.connect(musicGain);
         musicGain.connect(masterGain);
+        // iOS/WebKit: igual que con la voz, MediaElementSourceNode puede alimentar el
+        // grafo en silencio. Para iOS decodificamos el track de música (data URI) a un
+        // AudioBuffer y lo reproducimos en loop con un AudioBufferSourceNode.
+        let _nivaMusicBuffer = null;
+        if (_nivaIsIOS()) {
+          try {
+            const _musicResp = await fetch(musicHandle.track.file);
+            const _musicArrBuf = await _musicResp.arrayBuffer();
+            try {
+              _nivaMusicBuffer = await audioCtx.decodeAudioData(_musicArrBuf);
+            } catch (eMDecP) {
+              const _musicResp2 = await fetch(musicHandle.track.file);
+              const _musicArrBuf2 = await _musicResp2.arrayBuffer();
+              _nivaMusicBuffer = await new Promise((resolve, reject) => {
+                audioCtx.decodeAudioData(_musicArrBuf2, resolve, reject);
+              });
+            }
+          } catch (eMDec) {
+            console.warn('[NIVA][AUDIO] No se pudo decodificar la música como AudioBuffer (se usará <audio> element, puede quedar silenciosa en iOS):', eMDec && eMDec.message);
+            _nivaMusicBuffer = null;
+          }
+        }
+        let musicBufferSource = null;
+        if (_nivaMusicBuffer) {
+          musicBufferSource = audioCtx.createBufferSource();
+          musicBufferSource.buffer = _nivaMusicBuffer;
+          musicBufferSource.loop = true;
+          musicBufferSource.connect(musicGain);
+        } else {
+          // createMediaElementSource funciona con file:// — no usa fetch
+          const mediaSrc = audioCtx.createMediaElementSource(musicEl);
+          mediaSrc.connect(musicGain);
+        }
         // Wrapper compatible con el código de stop/start existente
         musicSource = {
           _mediaEl: musicEl,
-          start(t) { musicEl.play().catch(()=>{}); },
-          stop()   { try { musicEl.pause(); musicEl.currentTime = 0; } catch(e){} }
+          start(t) {
+            if (musicBufferSource) { try { musicBufferSource.start(0); } catch(e) {} }
+            else { musicEl.play().catch(()=>{}); }
+          },
+          stop() {
+            if (musicBufferSource) { try { musicBufferSource.stop(); } catch(e) {} }
+            else { try { musicEl.pause(); musicEl.currentTime = 0; } catch(e){} }
+          }
         };
 
         // ── DUCKING: baja la música cuando habla la voz ──
