@@ -1198,7 +1198,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.37';
+const NIVA_BUILD_VERSION = '2026-08-29.38';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -8959,8 +8959,13 @@ function startVideoAnimation(photoList, totalMs) {
     // el arranque del video se vea igual a la portada (mismo template/color/texto) ──
     let portadaIntroActive = false;
     if (vidPortadaIntro && sceneNum === 0 && !(isLast && NIVA_FLAGS.newOutro)) {
-      const TITLE_MS      = 2000;
-      const TITLE_FADE_MS = 350;
+      // A petición de Ricardo: la portada YA NO se queda varios segundos "reproduciéndose"
+      // como si fuera una escena más — ahora dura prácticamente 1 solo cuadro (con una
+      // salida rápida de 80ms para que no sea un corte seco). Así funciona de verdad como
+      // "poster frame": es lo único que se ve antes de darle play, y al picarle el video
+      // arranca de una vez con el contenido real (foto + captions), sin esperar 2s.
+      const TITLE_MS      = 1;
+      const TITLE_FADE_MS = 80;
       if (elapsed <= TITLE_MS + TITLE_FADE_MS) {
         portadaIntroActive = true;
         // NOTA: a propósito NO se multiplica por el fundido de entrada de la escena
