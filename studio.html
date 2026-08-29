@@ -1030,9 +1030,11 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
       <div id="niva-safari-warning" style="display:none;background:#3a2a0a;border:1.5px solid #C9A84C;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:#f5d78a;line-height:1.5">
         📱 <strong>Generando video en iPhone/iPad:</strong> el navegador (sea Safari o Chrome — en iPhone ambos usan el mismo motor) puede tardar un poco más porque el audio y el video se graban por separado y luego se unen automáticamente. No cierres esta ventana mientras dice "Uniendo video y audio". En computadora (Mac o Windows) esto no aplica.
       </div>
-      <div class="video-canvas-box"><canvas id="cv-video" width="1080" height="1920"></canvas></div>
+      <div class="video-canvas-box" id="niva-canvas-box"><canvas id="cv-video" width="1080" height="1920"></canvas></div>
       <!-- Reproductor del video ya generado: aparece cuando el MP4 final está listo, con -->
       <!-- controles nativos (▶/⏸ y barra para adelantar/atrasar) para revisarlo sin descargarlo. -->
+      <!-- Sustituye al canvas de grabación (que se queda congelado en el último cuadro) para -->
+      <!-- que no parezca que se generaron dos videos, uno arriba y otro abajo. -->
       <div class="video-canvas-box" id="niva-video-preview-box" style="display:none;margin-top:10px">
         <video id="niva-video-preview" controls playsinline></video>
       </div>
@@ -1194,7 +1196,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.34';
+const NIVA_BUILD_VERSION = '2026-08-29.35';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -4890,6 +4892,7 @@ let _nivaMp4Converting = false;
 // descargarlo primero. No reemplaza el canvas de grabación — se muestra debajo de él.
 function _nivaMostrarPreviewVideo(blob) {
   try {
+    const canvasBox = document.getElementById('niva-canvas-box');
     const box = document.getElementById('niva-video-preview-box');
     const vidEl = document.getElementById('niva-video-preview');
     if (!box || !vidEl || !blob) return;
@@ -4897,10 +4900,14 @@ function _nivaMostrarPreviewVideo(blob) {
     const url = URL.createObjectURL(blob);
     vidEl.dataset.blobUrl = url;
     vidEl.src = url;
+    // Se oculta el canvas de grabación (queda congelado en el último cuadro) para que solo
+    // se vea UN video en pantalla — el reproductor final — y no parezca que se duplicó.
+    if (canvasBox) canvasBox.style.display = 'none';
     box.style.display = 'block';
   } catch(e) { console.error('[NIVA] error mostrando preview de video', e); }
 }
 function _nivaOcultarPreviewVideo() {
+  const canvasBox = document.getElementById('niva-canvas-box');
   const box = document.getElementById('niva-video-preview-box');
   const vidEl = document.getElementById('niva-video-preview');
   if (vidEl) {
@@ -4910,6 +4917,8 @@ function _nivaOcultarPreviewVideo() {
     vidEl.dataset.blobUrl = '';
   }
   if (box) box.style.display = 'none';
+  // Al empezar una nueva grabación se vuelve a mostrar el canvas.
+  if (canvasBox) canvasBox.style.display = '';
 }
 let activeMusicSource = null;
 
