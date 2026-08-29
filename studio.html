@@ -486,7 +486,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
   <div class="dz-txt">Haz clic para subir fotos · Puedes seleccionar varias<br><span style="font-size:10px;color:#94a3b8">JPG · PNG · WEBP</span></div>
 </div>
 <div class="ph-grid" id="phGrid"></div>
-<div class="ph-drag-hint" id="phDragHint">↔ Arrastra las fotos para cambiar el orden · La primera es la principal</div>
+<div class="ph-drag-hint" id="phDragHint">↔ Arrastra las fotos para cambiar el orden del video · ⭐ Marca tu Foto Principal</div>
 <button class="btn-more-photos" id="btnMorePhotos" style="display:none" onclick="document.getElementById('fotoInput').click()">➕ Agregar más fotos</button>
 
 
@@ -1132,7 +1132,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.25';
+const NIVA_BUILD_VERSION = '2026-08-29.26';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -2687,8 +2687,7 @@ function renderPhotoGrid() {
     const div = document.createElement('div');
     div.className = 'ph-thumb';
     div.draggable = true;
-    const flyerTag = i === 0 ? 'Flyer: Ppal' : i <= 4 ? 'Flyer ' + i : 'Extra';
-    const badgeTxt = '#' + (i + 1) + ' · ' + flyerTag;
+    const badgeTxt = '#' + (i + 1);
     const isMain = (u === mainPhotoUrl);
     div.innerHTML = `<img src="${u}"><span class="ph-badge">${badgeTxt}</span><button class="ph-rm" style="top:2px;left:2px;right:auto;background:${isMain ? '#C9A84C' : 'rgba(0,0,0,.55)'};color:${isMain ? '#0b1220' : '#fff'}" onclick="toggleMainPhoto(${i})" title="Marcar como Foto Principal">${isMain ? '⭐' : '☆'}</button><button class="ph-rm" onclick="removePhoto(${i})">×</button><button class="ph-rm" style="top:auto;bottom:2px;right:26px;width:20px;height:20px" onclick="movePhoto(${i},-1)">◀</button><button class="ph-rm" style="top:auto;bottom:2px;right:2px;width:20px;height:20px" onclick="movePhoto(${i},1)">▶</button>`;
 
