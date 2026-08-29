@@ -1199,7 +1199,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.32';
+const NIVA_BUILD_VERSION = '2026-08-29.33';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -7129,9 +7129,14 @@ function remapEscenasAOrdenManual(escenas) {
   // no necesariamente en el orden manual que el asesor definió en la galería. Aquí se fuerza a que
   // cada escena use la foto que le corresponde según el ORDEN MANUAL (photos[]), sin tocar ninguna
   // otra propiedad de la escena (duración, cámara, transición, texto, narración, etc.).
+  // FIX: la IA suele generar entre 8 y 12 escenas sin importar cuántas fotos hay disponibles. Con
+  // "min(i, n-1)" las escenas sobrantes se quedaban TODAS pegadas a la última foto, repitiéndola
+  // varias veces seguidas al final del video (bug reportado: "se me generó otra imagen de video").
+  // Con el módulo, las escenas dan la vuelta y vuelven a recorrer las fotos en el mismo orden
+  // manual, sin repetir la misma foto de forma consecutiva.
   if (!Array.isArray(escenas) || !escenas.length) return escenas;
   const n = Math.max(photos.length, 1);
-  escenas.forEach((s, i) => { s.foto_idx = Math.min(i, n - 1); });
+  escenas.forEach((s, i) => { s.foto_idx = i % n; });
   return escenas;
 }
 
