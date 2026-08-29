@@ -1251,7 +1251,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.45';
+const NIVA_BUILD_VERSION = '2026-08-29.46';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -9336,25 +9336,23 @@ function _nivaAlignmentDurations(scenes, ttsScript) {
   const starts = al.character_start_times_seconds;
   const ends = al.character_end_times_seconds;
   if (!chars.length || chars.length !== starts.length || chars.length !== ends.length) return null;
-  // El alignment debe corresponder EXACTAMENTE al texto que se mandó a hablar — comparar
-  // solo el LARGO no basta: un alignment viejo (de un guion anterior de largo parecido,
-  // p.ej. tras reordenar escenas o editar el guion sin regenerar la voz) puede tener el
-  // mismo número de caracteres pero corresponder a otro contenido, produciendo tiempos por
-  // escena completamente incorrectos — este fue el bug real reportado: el video final salía
-  // mucho más corto de lo esperado (fotos cambiando muy rápido, guion desincronizado del
-  // audio). Por eso comparamos el CONTENIDO real (con una normalización mínima de espacios)
-  // y no solo el conteo de caracteres — si no coincide exactamente, se usa el reparto
-  // proporcional de respaldo (comportamiento seguro, idéntico al de antes de este cambio).
+
+  // CLAVE: buscar cada fragmento DENTRO DEL TEXTO PROPIO DE ELEVENLABS (chars.join(''), lo
+  // que realmente alineó), NO dentro de fullText (nuestro guion, con "\n\n" entre escenas).
+  // Antes buscábamos en fullText pero usábamos el índice encontrado para indexar los arrays
+  // starts/ends de ElevenLabs — si ElevenLabs no devuelve como caracteres alineados los
+  // saltos de línea u otros separadores estructurales (algo común en APIs de voz), un solo
+  // carácter de diferencia ANTES de un fragmento desfasaba el índice para siempre → tiempos
+  // por escena incorrectos → fotos cambiando muy rápido, guion desincronizado del audio EN
+  // TODO EL VIDEO. Buscando en alignedText, el índice encontrado SIEMPRE corresponde
+  // exactamente a esos arrays, sin importar cómo ElevenLabs haya normalizado el texto.
   const alignedText = chars.join('');
-  const normAligned = alignedText.replace(/\s+/g, ' ').trim();
-  const normFull = fullText.replace(/\s+/g, ' ').trim();
-  if (normAligned !== normFull) return null;
 
   let searchFrom = 0;
   const ranges = scenes.map(s => {
     const frag = (s.narracion_frag || '').trim();
     if (!frag) return null;
-    const idx = fullText.indexOf(frag, searchFrom);
+    const idx = alignedText.indexOf(frag, searchFrom);
     if (idx === -1) return null;
     searchFrom = idx + frag.length;
     return { start: idx, end: idx + frag.length - 1 };
