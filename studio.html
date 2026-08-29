@@ -1130,7 +1130,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.5';
+const NIVA_BUILD_VERSION = '2026-08-29.6';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -7903,17 +7903,36 @@ async function playVideoEL() {
       // se fuerza el stop y se muestra un error claro.
       const NIVA_HARD_FAILSAFE_MS = 90000;
       let _nivaHardFailsafeTimer = setTimeout(() => {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          console.error('[NIVA][RENDER] VIGILANTE ABSOLUTO: la grabación superó ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's sin detenerse — forzando stop.');
+        // Antes solo revisaba mediaRecorder.state === 'recording'; si por
+        // alguna razón el estado no era exactamente ese string (p.ej. quedó en
+        // un estado raro en algún WebKit) el vigilante nunca disparaba. Ahora
+        // se basa en __nivaOnstopRan: si onstop nunca corrió, es un cuelgue,
+        // sin importar qué diga mediaRecorder.state.
+        if (!window.__nivaOnstopRan) {
+          console.error('[NIVA][RENDER] VIGILANTE ABSOLUTO: pasaron ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's y onstop nunca corrió — forzando stop. mediaRecorder.state=' + (mediaRecorder && mediaRecorder.state));
           vidStatus('❌ La generación tardó demasiado (más de ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's) y fue detenida automáticamente. Intenta de nuevo; si persiste, prueba desde Chrome en computadora.', 'err');
           updateDiagStep('render', 'err');
           updateDiagStep('done', 'err');
+          try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch(e) {}
           stopVideo();
         }
       }, NIVA_HARD_FAILSAFE_MS);
+      // ── CRONÓMETRO VISIBLE ── (diagnóstico) — si esto se congela en pantalla,
+      // significa que iOS suspendió los timers de JS (pantalla bloqueada / Safari
+      // en segundo plano) y NINGÚN watchdog basado en setTimeout puede dispararse
+      // hasta que el usuario vuelva a la pestaña. Si sigue avanzando pero nada más
+      // pasa, el problema está en otro lado y esto lo aísla.
+      let _nivaElapsedSec = 0;
+      const _nivaTicker = setInterval(() => {
+        _nivaElapsedSec++;
+        const st = (mediaRecorder && mediaRecorder.state) || '?';
+        const vis = document.visibilityState;
+        vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + ']… ' + _nivaElapsedSec + 's · rec:' + st + ' · pantalla:' + vis + ' · no cierres esta ventana', 'loading');
+      }, 1000);
       mediaRecorder.onstop = async () => {
         window.__nivaOnstopRan = true;
         clearTimeout(_nivaHardFailsafeTimer);
+        clearInterval(_nivaTicker);
         console.log('[NIVA][RECORDER] onstop | chunks:', chunkCount, '| bytes:', totalChunkBytes, '| mime:', _recordedMimeType);
         // Limpiar recursos DESPUÉS de construir el blob — no antes
         const finalMime = mediaRecorder.mimeType || _recordedMimeType;
