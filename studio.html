@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.16';
+const NIVA_BUILD_VERSION = '2026-08-29.17';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -5271,20 +5271,38 @@ async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
   if (!videoCodec) throw new Error('Ningún perfil H.264 soportado por este navegador');
 
   // Decodificar el audio grabado por separado (blob independiente del video).
+  // WebKit tiene un historial de bugs donde decodeAudioData() en su forma de Promise
+  // rechaza silenciosamente (o nunca resuelve) para archivos válidos, mientras que la
+  // forma antigua con callbacks sí funciona — probamos ambas antes de rendirnos.
   let audioBuffer = null;
-  let audioDecodeError = null;
+  let audioDecodeErrorPromise = null;
+  let audioDecodeErrorCallback = null;
+  const tmpCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
   try {
-    const buf = await audioBlob.arrayBuffer();
-    const tmpCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
-    audioBuffer = await tmpCtx.decodeAudioData(buf);
-    try { tmpCtx.close(); } catch(e) {}
+    const buf1 = await audioBlob.arrayBuffer();
+    audioBuffer = await tmpCtx.decodeAudioData(buf1);
   } catch (e) {
-    audioDecodeError = e;
+    audioDecodeErrorPromise = e;
     audioBuffer = null;
   }
+  if (!audioBuffer) {
+    try {
+      const buf2 = await audioBlob.arrayBuffer();
+      audioBuffer = await new Promise((resolve, reject) => {
+        tmpCtx.decodeAudioData(buf2, resolve, reject);
+      });
+    } catch (e) {
+      audioDecodeErrorCallback = e;
+      audioBuffer = null;
+    }
+  }
+  try { tmpCtx.close(); } catch(e) {}
   const hasAudio = !!(audioBuffer && audioBuffer.length > 0);
+  let audioDecodeErrorMsg = '';
   if (!hasAudio) {
-    console.error('[NIVA][IOS-MUX] Audio grabado (' + (audioBlob ? audioBlob.size : 0) + ' bytes) pero no se pudo decodificar — el video final saldrá SIN audio. Error:', audioDecodeError && audioDecodeError.message);
+    audioDecodeErrorMsg = 'promise:' + (audioDecodeErrorPromise && (audioDecodeErrorPromise.name + '/' + audioDecodeErrorPromise.message) || '?') +
+      ' | callback:' + (audioDecodeErrorCallback && (audioDecodeErrorCallback.name + '/' + audioDecodeErrorCallback.message) || '?');
+    console.error('[NIVA][IOS-MUX] Audio grabado (' + (audioBlob ? audioBlob.size : 0) + ' bytes, mime=' + (audioBlob ? audioBlob.type : '?') + ') pero no se pudo decodificar (ni con Promise ni con callback) — el video final saldrá SIN audio. Errores:', audioDecodeErrorMsg);
   }
 
   const muxerConfig = {
@@ -5369,7 +5387,7 @@ async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
   muxer.finalize();
   const { buffer: outBuffer } = muxer.target;
   audioBuffer = null;
-  return { blob: new Blob([outBuffer], { type: 'video/mp4' }), hasAudio };
+  return { blob: new Blob([outBuffer], { type: 'video/mp4' }), hasAudio, audioDecodeErrorMsg };
 }
 
 // Orquesta la conversión completa: WebM validado → MP4 → validar MP4 → mostrar descarga.
@@ -8194,9 +8212,9 @@ async function playVideoEL() {
             try {
               const videoBlob = new Blob(recordedChunks, { type: _recordedMimeType });
               const audioBlob = new Blob(recordedAudioChunks, { type: _recordedAudioMimeType });
-              const { blob: mergedBlob, hasAudio } = await combineIOSVideoAudio(videoBlob, audioBlob, videoDurationSeconds);
+              const { blob: mergedBlob, hasAudio, audioDecodeErrorMsg } = await combineIOSVideoAudio(videoBlob, audioBlob, videoDurationSeconds);
               if (!hasAudio) {
-                vidStatus('⚠️ El video se generó, pero el audio grabado (' + (aBytes/1024).toFixed(0) + ' KB) no se pudo decodificar al unirlo — el video queda sin voz.', 'err');
+                vidStatus('⚠️ El video se generó, pero el audio grabado (' + (aBytes/1024).toFixed(0) + ' KB, mime=' + _recordedAudioMimeType + ') no se pudo decodificar al unirlo — el video queda sin voz. [' + (audioDecodeErrorMsg || '?') + ']', 'err');
               }
               ok = await finalizeRecording('video/mp4', mergedBlob);
             } catch (eMux) {
