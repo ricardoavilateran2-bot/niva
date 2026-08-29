@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.17';
+const NIVA_BUILD_VERSION = '2026-08-29.18';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -5357,8 +5357,35 @@ async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
   if (frameCount === 0) throw new Error('No se extrajo ningún frame del video grabado');
 
   if (hasAudio) {
+    // Bug conocido de WebKit/Safari: el AudioEncoder de WebCodecs no siempre entrega
+    // meta.decoderConfig.description (los bytes AudioSpecificConfig de AAC) en el callback
+    // de salida. Sin esos bytes, mp4-muxer escribe un esds vacío/ceros y el MP4 resultante
+    // queda con un track de audio inválido (se ve como "object type 0, 0 channels" en ffprobe,
+    // aunque el video sí se reproduce bien). Construimos manualmente el AudioSpecificConfig
+    // estándar (AAC-LC) y lo inyectamos si el navegador no lo proveyó.
+    const _aacSampleRates = [96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];
+    function _buildAacAudioSpecificConfig(sampleRate, numChannels) {
+      let freqIdx = _aacSampleRates.indexOf(sampleRate);
+      if (freqIdx === -1) freqIdx = 3; // fallback 48000
+      const objectType = 2; // AAC LC
+      const chanCfg = (numChannels === 1) ? 1 : 2;
+      const b0 = (objectType << 3) | (freqIdx >> 1);
+      const b1 = ((freqIdx & 1) << 7) | (chanCfg << 3);
+      return new Uint8Array([b0, b1]);
+    }
+    let _aacDescLogged = false;
     const audioEncoder = new AudioEncoder({
-      output: (chunk, meta) => { try { muxer.addAudioChunk(chunk, meta); } catch(e) { encodeErr = encodeErr || e; } },
+      output: (chunk, meta) => {
+        try {
+          const hasDesc = !!(meta && meta.decoderConfig && meta.decoderConfig.description && meta.decoderConfig.description.byteLength > 0);
+          if (!hasDesc) {
+            if (!_aacDescLogged) { _aacDescLogged = true; console.warn('[NIVA][IOS-MUX] El navegador no entregó AudioSpecificConfig (decoderConfig.description) para AAC — inyectando uno construido manualmente (AAC-LC, 48000Hz, 2ch).'); }
+            const desc = _buildAacAudioSpecificConfig(48000, 2);
+            meta = Object.assign({}, meta, { decoderConfig: Object.assign({}, meta && meta.decoderConfig, { description: desc }) });
+          }
+          muxer.addAudioChunk(chunk, meta);
+        } catch(e) { encodeErr = encodeErr || e; }
+      },
       error: (e) => { encodeErr = e; }
     });
     audioEncoder.configure({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 224_000 });
