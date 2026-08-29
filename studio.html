@@ -1044,10 +1044,14 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         <button class="btn-dl" id="btn-dl-webm-fallback" onclick="downloadWebmFallback()" style="display:none;background:#374151;font-size:11px">⬇️ Descargar WebM (fallback técnico)</button>
       </div>
       <div id="vid-status-msg" class="vid-status info" style="display:none"></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;justify-content:center">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;justify-content:center;flex-wrap:wrap">
         <label style="font-size:10px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#64748b">
           <input type="checkbox" id="subtitles-toggle" onchange="toggleSubtitles(this.checked)" style="accent-color:#C9A84C">
           💬 Subtítulos de voz
+        </label>
+        <label style="font-size:10px;cursor:pointer;display:flex;align-items:center;gap:5px;color:#64748b">
+          <input type="checkbox" id="portada-intro-toggle" checked onchange="vidPortadaIntro = this.checked" style="accent-color:#C9A84C">
+          🖼️ Portada como primera escena
         </label>
       </div>
       <p class="vid-tip-sm">🎙️ ElevenLabs · 📁 Audio propio<br>Descarga en MP4 HD · Subtítulos opcionales</p>
@@ -1086,6 +1090,25 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
           <input type="text" id="portada-title-input" placeholder="Título (ej. RESIDENCIA EN VENTA)" oninput="_portadaFieldEdited('title');generatePortada()" style="font-size:11px;padding:7px 9px;border-radius:7px;border:1.5px solid #e2e8f0;font-family:inherit;width:100%;box-sizing:border-box">
           <input type="text" id="portada-sub-input" placeholder="Ubicación / subtítulo" oninput="_portadaFieldEdited('sub');generatePortada()" style="font-size:11px;padding:7px 9px;border-radius:7px;border:1.5px solid #e2e8f0;font-family:inherit;width:100%;box-sizing:border-box">
           <input type="text" id="portada-price-input" placeholder="Precio (ej. $43.5 MDP)" oninput="_portadaFieldEdited('price');generatePortada()" style="font-size:11px;padding:7px 9px;border-radius:7px;border:1.5px solid #e2e8f0;font-family:inherit;width:100%;box-sizing:border-box">
+        </div>
+
+        <!-- Tamaño y posición del texto -->
+        <div style="background:#f8fafc;border-radius:8px;padding:8px 10px;margin-bottom:8px">
+          <label style="font-size:10.5px;font-weight:700;color:#1B2A4A;display:flex;justify-content:space-between;margin-bottom:3px">
+            <span>🔠 Tamaño del texto</span><span id="portadaScaleVal">100%</span>
+          </label>
+          <input type="range" id="portadaScaleSlider" min="70" max="160" step="5" value="100" oninput="setPortadaScale(this.value)" style="width:100%;accent-color:#C9A84C;margin-bottom:8px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label style="font-size:10.5px;font-weight:700;color:#1B2A4A">↔️ Posición horizontal</label>
+              <input type="range" id="portadaOffsetXSlider" min="-150" max="150" step="5" value="0" oninput="setPortadaOffset('x',this.value)" style="width:100%;accent-color:#C9A84C">
+            </div>
+            <div>
+              <label style="font-size:10.5px;font-weight:700;color:#1B2A4A">↕️ Posición vertical</label>
+              <input type="range" id="portadaOffsetYSlider" min="-300" max="300" step="5" value="0" oninput="setPortadaOffset('y',this.value)" style="width:100%;accent-color:#C9A84C">
+            </div>
+          </div>
+          <button type="button" onclick="resetPortadaPosicion()" style="margin-top:8px;width:100%;padding:6px;background:white;border:1.5px solid #e2e8f0;border-radius:7px;font-size:10.5px;color:#64748b;cursor:pointer;font-family:inherit;font-weight:600">↺ Restablecer tamaño/posición</button>
         </div>
 
         <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:#64748b;justify-content:center;margin-bottom:8px;cursor:pointer">
@@ -1170,7 +1193,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.30';
+const NIVA_BUILD_VERSION = '2026-08-29.31';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -5729,6 +5752,7 @@ let vidVideoObjective = 'IMPACTO'; // objetivo del video seleccionado por usuari
 let vidPhotoData = [];             // [{type,hero_score,wow_score,visual_score,narrative_score,recommended_function}]
 let vidSubtitleSegments = [];      // [{text, startFrac, endFrac}] — captions sincronizadas con voz
 let vidSubtitlesEnabled = true;    // captions siempre activos cuando hay voz
+let vidPortadaIntro = true;        // muestra el diseño de la Portada del Reel como primera escena del video
 let _voiceAudioDuration = 0;      // duración del audio de voz para sincronizar subtítulos
 let _lastElevenLabsAlignment = null; // alignment real de ElevenLabs with-timestamps
 
@@ -8872,9 +8896,27 @@ function startVideoAnimation(photoList, totalMs) {
 
     const _funC = (scene.funcion || '').toLowerCase();
 
+    // ── Intro con el diseño de la Portada del Reel — solo en la primera escena, para que
+    // el arranque del video se vea igual a la portada (mismo template/color/texto) ──
+    let portadaIntroActive = false;
+    if (vidPortadaIntro && sceneNum === 0 && !(isLast && NIVA_FLAGS.newOutro)) {
+      const TITLE_MS      = 2000;
+      const TITLE_FADE_MS = 350;
+      if (elapsed <= TITLE_MS + TITLE_FADE_MS) {
+        portadaIntroActive = true;
+        let titleAlpha = elapsed < TITLE_MS ? 1
+          : 1 - (elapsed - TITLE_MS) / TITLE_FADE_MS;
+        titleAlpha = Math.max(0, Math.min(1, titleAlpha)) * Math.min(fadeIn, fadeOut);
+        if (titleAlpha > 0) drawPortadaIntroOverlay(ctx, titleAlpha, W, H);
+      }
+    }
+
     if (isLast && NIVA_FLAGS.newOutro) {
       // ── Escena de cierre NIVA ──
       drawOutroScene(ctx, v, sceneT, W, H, scene);
+
+    } else if (portadaIntroActive) {
+      // ── Ya se dibujó arriba (drawPortadaIntroOverlay) — no superponer otro texto ──
 
     } else if (vidSubtitlesEnabled && _funC === 'hook') {
       // ── Título inicial de la propiedad — limpio, premium, 1.8s ──
@@ -8991,6 +9033,31 @@ function buildSubtitleSegments(script, scenes, totalDurMs) {
     startFrac: Math.max(0, s.startMs / totalDurMs),
     endFrac:   Math.min(1, s.endMs   / totalDurMs),
   }));
+}
+
+// ── INTRO CON EL DISEÑO DE LA PORTADA DEL REEL — primera escena del video ──
+// Reutiliza EXACTAMENTE las mismas funciones de dibujo que la Portada (mismo template,
+// color de acento y texto editado por el asesor) para que la primera escena del video
+// se vea igual a la portada que se descarga por separado, según pidió el usuario.
+function drawPortadaIntroOverlay(ctx, alpha, W, H) {
+  if (alpha <= 0) return;
+  try {
+    _portadaSyncInputs();
+    const auto = _portadaAutoText();
+    const titleTxt = (document.getElementById('portada-title-input')?.value || '').trim() || auto.tipo || 'PROPIEDAD';
+    const subTxt   = (document.getElementById('portada-sub-input')?.value || '').trim() || auto.ubic || '';
+    const priceTxt = (document.getElementById('portada-price-input')?.value || '').trim() || auto.precioStr || '';
+    const GOLD_P = portadaAccentColor;
+    const cxP = W / 2;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    if (portadaTemplate === 1) {
+      _drawPortadaInferior(ctx, W, H, GOLD_P, cxP, titleTxt, subTxt, priceTxt);
+    } else {
+      _drawPortadaEditorial(ctx, W, H, GOLD_P, cxP, titleTxt, subTxt, priceTxt);
+    }
+    ctx.restore();
+  } catch(e) { console.error('[NIVA] error dibujando intro de portada en video', e); }
 }
 
 // ── TÍTULO INICIAL DE PROPIEDAD — limpio, premium, sin caja pesada ──
@@ -9926,6 +9993,9 @@ let portadaTemplate = 0; // 0 = Editorial (título arriba), 1 = Inferior (clási
 let portadaAccentColor = '#C9A84C';
 let _portadaEdited = { title: false, sub: false, price: false };
 let _portadaSafeZone = false;
+let portadaTextScale = 1;     // 1 = tamaño normal del bloque de texto (título+ubicación+precio)
+let portadaTextOffsetX = 0;   // desplazamiento horizontal del bloque de texto, en px del canvas 1080×1920
+let portadaTextOffsetY = 0;   // desplazamiento vertical del bloque de texto, en px del canvas 1080×1920
 
 function togglePortadaSection() {
   const body = document.getElementById('portada-body');
@@ -9955,6 +10025,31 @@ function setPortadaColor(c) {
   document.querySelectorAll('.portada-color-sw').forEach(b => {
     b.style.borderColor = (b.dataset.c === c) ? '#1B2A4A' : (b.dataset.c === '#ffffff' ? '#cbd5e1' : 'transparent');
   });
+  generatePortada();
+}
+
+// ── Tamaño y posición del bloque de texto (título+ubicación+precio) de la Portada ──
+function setPortadaScale(v) {
+  portadaTextScale = Number(v) / 100;
+  const lbl = document.getElementById('portadaScaleVal');
+  if (lbl) lbl.textContent = v + '%';
+  generatePortada();
+}
+function setPortadaOffset(axis, v) {
+  if (axis === 'x') portadaTextOffsetX = Number(v);
+  else portadaTextOffsetY = Number(v);
+  generatePortada();
+}
+function resetPortadaPosicion() {
+  portadaTextScale = 1; portadaTextOffsetX = 0; portadaTextOffsetY = 0;
+  const sc = document.getElementById('portadaScaleSlider');
+  const sv = document.getElementById('portadaScaleVal');
+  const ox = document.getElementById('portadaOffsetXSlider');
+  const oy = document.getElementById('portadaOffsetYSlider');
+  if (sc) sc.value = 100;
+  if (sv) sv.textContent = '100%';
+  if (ox) ox.value = 0;
+  if (oy) oy.value = 0;
   generatePortada();
 }
 
@@ -10041,6 +10136,14 @@ function _drawPortadaEditorial(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt)
   ctx.fillStyle = gradBot;
   ctx.fillRect(0, H * 0.78, W, H * 0.22);
 
+  // Permite agrandar/mover el bloque de texto (título+ubicación+precio) sin afectar
+  // el fondo ni la marca de agua "NIVA INMOBILIARIA".
+  ctx.save();
+  ctx.translate(portadaTextOffsetX, portadaTextOffsetY);
+  ctx.translate(cx2, H * 0.5);
+  ctx.scale(portadaTextScale, portadaTextScale);
+  ctx.translate(-cx2, -H * 0.5);
+
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = 'rgba(255,255,255,0.98)';
@@ -10083,6 +10186,8 @@ function _drawPortadaEditorial(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt)
     ctx.restore();
   }
 
+  ctx.restore(); // cierra el transform de tamaño/posición del texto
+
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.font = `700 ${W * 0.020}px Inter, Arial, sans-serif`;
@@ -10107,6 +10212,14 @@ function _drawPortadaInferior(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt) 
   gradTop.addColorStop(1.0, 'rgba(10,12,20,0.00)');
   ctx.fillStyle = gradTop;
   ctx.fillRect(0, 0, W, H * 0.22);
+
+  // Permite agrandar/mover el bloque de texto (título+ubicación+precio) sin afectar
+  // el fondo ni la marca de agua "NIVA INMOBILIARIA".
+  ctx.save();
+  ctx.translate(portadaTextOffsetX, portadaTextOffsetY);
+  ctx.translate(cx2, H * 0.5);
+  ctx.scale(portadaTextScale, portadaTextScale);
+  ctx.translate(-cx2, -H * 0.5);
 
   const baseY = H * 0.72;
   const lineW = W * 0.26;
@@ -10141,6 +10254,8 @@ function _drawPortadaInferior(ctx, W, H, GOLD, cx2, titleTxt, subTxt, priceTxt) 
 
   ctx.fillStyle = GOLD;
   ctx.fillRect(cx2 - lineW / 2, baseY + (priceTxt ? 138 : 64), lineW, 2);
+
+  ctx.restore(); // cierra el transform de tamaño/posición del texto
 
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
