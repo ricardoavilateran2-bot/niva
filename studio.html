@@ -7922,57 +7922,74 @@ async function playVideoEL() {
         if (_renderBegun) return;
         _renderBegun = true;
         console.log('[NIVA][RENDER] arranque vía:', via);
-        // Calcular duración final: usa el selector o la IA
-        const ta = document.getElementById('vid-script-ta');
-        const scriptLen = (ta && ta.value) ? ta.value.length : 0;
-        const finalDuration = resolveVideoDuration(photoList.length, scriptLen);
-        videoDurationSeconds = finalDuration;
-        const finalDurMs = finalDuration * 1000;
+        // TODO EL CUERPO envuelto en try/catch: beginRenderOnce se invoca desde
+        // callbacks async (onloadedmetadata/oncanplay/watchdog-3s) que YA NO están
+        // dentro del try/catch exterior de AudioSetup — cualquier excepción síncrona
+        // aquí (p.ej. musicSource.start() reusado de un intento anterior, canvas
+        // no encontrado, etc.) quedaba sin capturar: la grabación ya había arrancado
+        // (mediaRecorder.start()) pero nunca se programaba el setTimeout que la
+        // detiene → "se queda pensando" para siempre, sin ningún error visible.
+        try {
+          // Calcular duración final: usa el selector o la IA
+          const ta = document.getElementById('vid-script-ta');
+          const scriptLen = (ta && ta.value) ? ta.value.length : 0;
+          const finalDuration = resolveVideoDuration(photoList.length, scriptLen);
+          videoDurationSeconds = finalDuration;
+          const finalDurMs = finalDuration * 1000;
 
-        // Capturar duración real del audio de voz para sincronizar captions
-        if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
-          _voiceAudioDuration = audio.duration;
-          console.log('[CAPTIONS] duración real del audio de voz:', _voiceAudioDuration.toFixed(2) + 's');
-          // Reconstruir captions con duración real — sincronización precisa
-          if (vidSubtitlesEnabled) _rebuildSubtitleSegments();
-        }
-
-        // Debug info
-        console.log('[VIDEO_DURATION] finalDuration=' + finalDuration + 's | audioDuration=' + (audio.duration||0).toFixed(1) + 's | audioMode=' + audioMode + ' | photos=' + photoList.length + ' | scriptLen=' + scriptLen);
-
-        startVideoAnimation(photoList, finalDurMs);
-        if (musicSource) {
-          activeMusicSource = musicSource;
-          musicSource.start(0);
-          // Loop música y fade out al final
-          const musicEl = musicSource._mediaEl;
-          if (musicEl) musicEl.loop = true;
-          const fadeStart = finalDuration - 1.5;
-          if (fadeStart > 0) {
-            setTimeout(() => {
-              if (musicGain) {
-                const t0 = audioCtx.currentTime;
-                musicGain.gain.setValueAtTime(musicGain.gain.value, t0);
-                musicGain.gain.linearRampToValueAtTime(0, t0 + 1.5);
-              }
-            }, fadeStart * 1000);
+          // Capturar duración real del audio de voz para sincronizar captions
+          if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+            _voiceAudioDuration = audio.duration;
+            console.log('[CAPTIONS] duración real del audio de voz:', _voiceAudioDuration.toFixed(2) + 's');
+            // Reconstruir captions con duración real — sincronización precisa
+            if (vidSubtitlesEnabled) _rebuildSubtitleSegments();
           }
-        }
-        // En modo "Solo música", el audio de voz no debe controlar duración
-        if (audioMode !== 'music') {
-          audio.play().catch(err => { vidStatus('❌ Error: '+err.message, 'err'); stopVideo(); });
-        }
-        // El video SIEMPRE dura exactamente finalDuration segundos
-        setTimeout(() => {
-          if (activeMusicSource) { try { activeMusicSource.stop(); activeMusicSource = null; } catch(e){} }
-          setTimeout(() => stopVideo(), 500);
-          setTimeout(() => {
-            if (!window.__nivaOnstopRan) {
-              vidStatus('❌ La grabación no entregó datos en este navegador [' + String(_recordedMimeType || '') + ']. Recarga la página e intenta de nuevo; si persiste, genera el video desde Chrome en computadora.', 'err');
-              updateDiagStep('done', 'err');
+
+          // Debug info
+          console.log('[VIDEO_DURATION] finalDuration=' + finalDuration + 's | audioDuration=' + (audio.duration||0).toFixed(1) + 's | audioMode=' + audioMode + ' | photos=' + photoList.length + ' | scriptLen=' + scriptLen);
+
+          startVideoAnimation(photoList, finalDurMs);
+          if (musicSource) {
+            activeMusicSource = musicSource;
+            try { musicSource.start(0); } catch(eStart) { console.warn('[NIVA][RENDER] musicSource.start() falló (probablemente reutilizado de un intento previo) — se continúa sin música:', eStart); activeMusicSource = null; }
+            // Loop música y fade out al final
+            const musicEl = musicSource._mediaEl;
+            if (musicEl) musicEl.loop = true;
+            const fadeStart = finalDuration - 1.5;
+            if (fadeStart > 0) {
+              setTimeout(() => {
+                if (musicGain) {
+                  try {
+                    const t0 = audioCtx.currentTime;
+                    musicGain.gain.setValueAtTime(musicGain.gain.value, t0);
+                    musicGain.gain.linearRampToValueAtTime(0, t0 + 1.5);
+                  } catch(eFade) { console.warn('[NIVA][RENDER] fade-out falló:', eFade); }
+                }
+              }, fadeStart * 1000);
             }
-          }, 15000);
-        }, finalDurMs);
+          }
+          // En modo "Solo música", el audio de voz no debe controlar duración
+          if (audioMode !== 'music') {
+            audio.play().catch(err => { vidStatus('❌ Error: '+err.message, 'err'); stopVideo(); });
+          }
+          // El video SIEMPRE dura exactamente finalDuration segundos
+          setTimeout(() => {
+            if (activeMusicSource) { try { activeMusicSource.stop(); activeMusicSource = null; } catch(e){} }
+            setTimeout(() => stopVideo(), 500);
+            setTimeout(() => {
+              if (!window.__nivaOnstopRan) {
+                vidStatus('❌ La grabación no entregó datos en este navegador [' + String(_recordedMimeType || '') + ']. Recarga la página e intenta de nuevo; si persiste, genera el video desde Chrome en computadora.', 'err');
+                updateDiagStep('done', 'err');
+              }
+            }, 15000);
+          }, finalDurMs);
+        } catch (errBR) {
+          console.error('[NIVA][RENDER][beginRenderOnce]', errBR);
+          vidStatus('❌ Error preparando la grabación: ' + (errBR && errBR.message || errBR) + '. Intenta de nuevo — si persiste, recarga la página.', 'err');
+          updateDiagStep('render', 'err');
+          updateDiagStep('done', 'err');
+          stopVideo();
+        }
       };
       audio.onloadedmetadata = () => beginRenderOnce('loadedmetadata');
       audio.oncanplay = () => beginRenderOnce('canplay');
