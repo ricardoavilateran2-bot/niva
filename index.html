@@ -465,11 +465,24 @@ const $=s=>document.querySelector(s);
 const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
 const sb = createClient(cfg.url, cfg.anon);
 
+// Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
+async function resolveAdvisorDisplayName(uname){
+  try{
+    const {data}=await sb.from('advisors').select('first_name,last_name');
+    const rows=data||[];
+    const norm=s=>(s||'').trim().toLowerCase();
+    let match=rows.find(r=>norm(r.first_name)===uname);
+    if(!match){ const tok=uname.split(/[._]/)[0]; match=rows.find(r=>norm(r.first_name)===tok); }
+    if(match) return ((match.first_name||'')+' '+(match.last_name||'')).trim();
+  }catch(e){}
+  return uname.split(/[._]/).filter(Boolean).map(s=>s[0].toUpperCase()+s.slice(1)).join(' ');
+}
 function showPortal(email){
   $('#login').classList.add('hidden');
   $('#portal').classList.remove('hidden');
-  $('#hname').textContent = email || '';
   const uname=(email||'').split('@')[0];
+  $('#hname').textContent = uname; // placeholder inmediato mientras resuelve el nombre
+  resolveAdvisorDisplayName(uname).then(n=>{ $('#hname').textContent=n; });
   const cardAdmin=$('#card-admin');
   if(cardAdmin) cardAdmin.classList.toggle('hidden', uname!=='admin');
 }
