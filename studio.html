@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.20';
+const NIVA_BUILD_VERSION = '2026-08-29.21';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -6629,6 +6629,26 @@ narrative_score: qué tan bien cuenta la historia de la propiedad (10=muy descri
   }
 }
 
+// Recorta la narración para que quepa hablada en la duración objetivo del video
+// (a ritmo natural de voz en español, ~140 palabras/min — ver calculateVoiceSpeed()).
+// Corta en el último cierre de oración dentro del presupuesto para no partir a media frase.
+// Es una red de seguridad: el prompt de la IA ya pide un límite de palabras, pero esto
+// garantiza el límite incluso si la IA lo ignora o si se usa el guión de plantilla.
+function fitNarracionADuracion(text, durTargetSec) {
+  if (!text) return text;
+  const WPM_NATURAL = 140;
+  const wordBudget = Math.max(8, Math.round((durTargetSec || 30) * (WPM_NATURAL / 60)));
+  const words = text.trim().split(/\s+/);
+  if (words.length <= wordBudget) return text;
+  console.warn('[NIVA][GUION] Narración de ' + words.length + ' palabras excede el presupuesto de ' + wordBudget + ' palabras para ' + durTargetSec + 's — recortando.');
+  const truncated = words.slice(0, wordBudget).join(' ');
+  const lastBreak = Math.max(truncated.lastIndexOf('.'), truncated.lastIndexOf('…'), truncated.lastIndexOf('?'), truncated.lastIndexOf('!'));
+  if (lastBreak > truncated.length * 0.5) {
+    return truncated.substring(0, lastBreak + 1);
+  }
+  return truncated + '…';
+}
+
 // ── GENERAR GUIÓN CON HOOK SELECCIONADO ──
 async function generarGuionConHook(hookIdx) {
   if (!vidV) return;
@@ -6650,7 +6670,7 @@ async function generarGuionConHook(hookIdx) {
   const durTarget = meta.duracion > 0 ? meta.duracion : 30;
 
   if (!oaKey || oaKey.length < 10) {
-    const s = buildScriptPlantilla(v, hook, meta);
+    const s = fitNarracionADuracion(buildScriptPlantilla(v, hook, meta), durTarget);
     document.getElementById('vid-script-ta').value = s;
     vidCountChars();
     vidScenes = NIVA_FLAGS.beatSystem
@@ -6709,6 +6729,7 @@ ${photoClassInfo}
 
 HOOK ELEGIDO: "${hook.texto}"
 DURACIÓN OBJETIVO: ${durTarget} segundos
+LÍMITE DE PALABRAS de narracion_completa: MÁXIMO ${Math.max(8, Math.round(durTarget * (140/60)))} palabras en total (ritmo de voz natural en español, ~140 palabras/min). Esto es una regla dura — cuenta las palabras antes de responder. Si no alcanzas a contar todo el recorrido, prioriza HOOK + WOW + PRECIO + CTA y recorta o elimina detalles secundarios en vez de exceder el límite.
 FOTOS DISPONIBLES: ${photos.length} (foto_idx: 0 a ${Math.max(photos.length-1,0)})
 
 INSTRUCCIONES DE NARRATIVA:
@@ -6870,7 +6891,7 @@ Responde en JSON:
     const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
 
     const ta = document.getElementById('vid-script-ta');
-    ta.value = parsed.narracion_completa || '';
+    ta.value = fitNarracionADuracion(parsed.narracion_completa || '', durTarget);
     vidCountChars();
 
     vidScenes = parsed.escenas || [];
@@ -6895,7 +6916,7 @@ Responde en JSON:
   } catch(e) {
     console.warn('[NIVA][GUION] IA falló, usando plantilla:', e);
     vidStatus('⚠️ IA de guión falló (' + (e.message||e) + '). Usando guión de plantilla.', 'err');
-    const s = buildScriptPlantilla(v, hook, meta);
+    const s = fitNarracionADuracion(buildScriptPlantilla(v, hook, meta), durTarget);
     document.getElementById('vid-script-ta').value = s;
     vidCountChars();
     vidScenes = NIVA_FLAGS.beatSystem
