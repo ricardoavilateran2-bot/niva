@@ -1198,7 +1198,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.36';
+const NIVA_BUILD_VERSION = '2026-08-29.37';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -8963,9 +8963,14 @@ function startVideoAnimation(photoList, totalMs) {
       const TITLE_FADE_MS = 350;
       if (elapsed <= TITLE_MS + TITLE_FADE_MS) {
         portadaIntroActive = true;
+        // NOTA: a propósito NO se multiplica por el fundido de entrada de la escena
+        // (fadeIn/fadeOut) — ese fundido es lento (depende de la duración de la escena)
+        // y dejaba el cuadro 0 del video casi invisible/translúcido, que es justo el
+        // cuadro que se usa como "miniatura" al pausar el video en cualquier reproductor.
+        // Por eso la portada aparece a opacidad completa desde el primer cuadro.
         let titleAlpha = elapsed < TITLE_MS ? 1
           : 1 - (elapsed - TITLE_MS) / TITLE_FADE_MS;
-        titleAlpha = Math.max(0, Math.min(1, titleAlpha)) * Math.min(fadeIn, fadeOut);
+        titleAlpha = Math.max(0, Math.min(1, titleAlpha));
         if (titleAlpha > 0) drawPortadaIntroOverlay(ctx, titleAlpha, W, H);
         // ── Captura la miniatura/poster del reproductor UNA sola vez, apenas el cuadro ──
         // está totalmente visible (sin el fundido de entrada) — así el reproductor muestra
@@ -9032,8 +9037,10 @@ function startVideoAnimation(photoList, totalMs) {
       }
     }
 
-    // ── Captions de voz — siempre activos cuando hay segmentos (segunda capa, encima de todo) ──
-    if (vidSubtitleSegments.length > 0) {
+    // ── Captions de voz — segunda capa, encima de todo, EXCEPTO durante la intro de la ──
+    // portada: antes se dibujaban aunque portadaIntroActive fuera true y el resultado era
+    // un texto fantasma encimado sobre el título/precio de la portada (ilegible, "feo").
+    if (!portadaIntroActive && vidSubtitleSegments.length > 0) {
       ctx.globalAlpha = 1;
       const globalFrac = Math.min(elapsed / TOTAL, 1);
       drawSubtitleText(ctx, globalFrac, W, H);
