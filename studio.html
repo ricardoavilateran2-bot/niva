@@ -1020,7 +1020,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
       <div class="video-canvas-box"><canvas id="cv-video" width="1080" height="1920"></canvas></div>
       <!-- DIAGNÓSTICO PRE-RENDER (P10) -->
       <div id="vid-diagnostics" style="display:none;background:#0f172a;border:1.5px solid #1e3a5f;border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:11px;color:#94a3b8;font-family:monospace">
-        <div style="color:#C9A84C;font-weight:800;font-size:12px;margin-bottom:10px;letter-spacing:1px">📊 DIAGNÓSTICO PRE-RENDER</div>
+        <div style="color:#C9A84C;font-weight:800;font-size:12px;margin-bottom:10px;letter-spacing:1px">📊 DIAGNÓSTICO PRE-RENDER <span style="float:right;color:#475569;font-weight:400;font-size:9px;letter-spacing:0" id="niva-build-tag"></span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px" id="vid-diag-grid"></div>
         <div id="vid-diag-checks" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
       </div>
@@ -1125,6 +1125,16 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 // ══════════════════════════════════════════════
 //  PANEL DE FORMULARIO — cajón deslizable en celular
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+//  VERSIÓN DE BUILD — para verificar en capturas de pantalla si el
+//  navegador del usuario está corriendo el código más reciente o una
+//  copia en caché. Se sube manualmente en cada despliegue.
+// ══════════════════════════════════════════════
+const NIVA_BUILD_VERSION = '2026-08-29.5';
+document.addEventListener('DOMContentLoaded', () => {
+  const tag = document.getElementById('niva-build-tag');
+  if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
+});
 function toggleFormPanel(open) {
   const panel = document.getElementById('niva-panel-form');
   const tab = document.getElementById('niva-form-tab');
@@ -7885,8 +7895,25 @@ async function playVideoEL() {
           totalChunkBytes += e.data.size;
         }
       };
+      // ── VIGILANTE ABSOLUTO ──
+      // Pase lo que pase en el resto del pipeline (un throw no capturado en algún
+      // punto nuevo, un evento que nunca llega, el navegador que sea) esto
+      // GARANTIZA que la grabación nunca se quede "pensando" más de
+      // NIVA_HARD_FAILSAFE_MS: si sigue en estado "recording" pasado ese tiempo,
+      // se fuerza el stop y se muestra un error claro.
+      const NIVA_HARD_FAILSAFE_MS = 90000;
+      let _nivaHardFailsafeTimer = setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          console.error('[NIVA][RENDER] VIGILANTE ABSOLUTO: la grabación superó ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's sin detenerse — forzando stop.');
+          vidStatus('❌ La generación tardó demasiado (más de ' + (NIVA_HARD_FAILSAFE_MS/1000) + 's) y fue detenida automáticamente. Intenta de nuevo; si persiste, prueba desde Chrome en computadora.', 'err');
+          updateDiagStep('render', 'err');
+          updateDiagStep('done', 'err');
+          stopVideo();
+        }
+      }, NIVA_HARD_FAILSAFE_MS);
       mediaRecorder.onstop = async () => {
         window.__nivaOnstopRan = true;
+        clearTimeout(_nivaHardFailsafeTimer);
         console.log('[NIVA][RECORDER] onstop | chunks:', chunkCount, '| bytes:', totalChunkBytes, '| mime:', _recordedMimeType);
         // Limpiar recursos DESPUÉS de construir el blob — no antes
         const finalMime = mediaRecorder.mimeType || _recordedMimeType;
