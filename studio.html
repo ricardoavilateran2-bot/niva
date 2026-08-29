@@ -1133,7 +1133,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.18';
+const NIVA_BUILD_VERSION = '2026-08-29.19';
 document.addEventListener('DOMContentLoaded', () => {
   const tag = document.getElementById('niva-build-tag');
   if (tag) tag.textContent = 'v' + NIVA_BUILD_VERSION;
@@ -8087,9 +8087,38 @@ async function playVideoEL() {
       const masterGain = audioCtx.createGain();
       masterGain.connect(dest);
       masterGain.connect(audioCtx.destination);
+      // iOS/WebKit: MediaElementAudioSourceNode → MediaStreamDestination ha demostrado ser
+      // poco confiable (el audio queda grabado en absoluto silencio, -91dB, aunque el
+      // AudioContext esté "running" y el <audio> sí reproduzca localmente). Para iOS
+      // decodificamos la voz a un AudioBuffer y la reproducimos con un
+      // AudioBufferSourceNode, que sí alimenta el grafo de forma confiable.
+      let _nivaVoiceBuffer = null;
+      if (_nivaIsIOS()) {
+        try {
+          const _voiceArrBuf = await audioBlob.arrayBuffer();
+          try {
+            _nivaVoiceBuffer = await audioCtx.decodeAudioData(_voiceArrBuf);
+          } catch (eDecP) {
+            const _voiceArrBuf2 = await audioBlob.arrayBuffer();
+            _nivaVoiceBuffer = await new Promise((resolve, reject) => {
+              audioCtx.decodeAudioData(_voiceArrBuf2, resolve, reject);
+            });
+          }
+        } catch (eDec) {
+          console.warn('[NIVA][AUDIO] No se pudo decodificar la voz como AudioBuffer (se usará <audio> element, puede quedar silencioso en iOS):', eDec && eDec.message);
+          _nivaVoiceBuffer = null;
+        }
+      }
       const source = audioCtx.createMediaElementSource(audio);
+      let voiceBufferSource = null;
       if (audioMode !== 'music') {
-        source.connect(masterGain);
+        if (_nivaVoiceBuffer) {
+          voiceBufferSource = audioCtx.createBufferSource();
+          voiceBufferSource.buffer = _nivaVoiceBuffer;
+          voiceBufferSource.connect(masterGain);
+        } else {
+          source.connect(masterGain);
+        }
       }
       const musicHandle = getMusicHandle();
       let musicSource = null;
@@ -8120,7 +8149,7 @@ async function playVideoEL() {
           // Create voice analyzer to detect when voice is playing
           const voiceAnalyser = audioCtx.createAnalyser();
           voiceAnalyser.fftSize = 256;
-          source.connect(voiceAnalyser);
+          (voiceBufferSource || source).connect(voiceAnalyser);
 
           const duckDataArr = new Uint8Array(voiceAnalyser.frequencyBinCount);
           let duckActive = false;
@@ -8410,6 +8439,9 @@ async function playVideoEL() {
               console.error('[NIVA][RENDER] audio.play() rechazado:', err && err.message);
               window.__nivaRecDiag.playError = (err && err.name) + ':' + (err && err.message);
             });
+            if (voiceBufferSource) {
+              try { voiceBufferSource.start(0); } catch (eStartVB) { console.warn('[NIVA][AUDIO] voiceBufferSource.start() falló:', eStartVB && eStartVB.message); }
+            }
           }
           // El video SIEMPRE dura exactamente finalDuration segundos
           setTimeout(() => {
