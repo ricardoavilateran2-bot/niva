@@ -40,8 +40,20 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;color:#1e293b;height:100v
 
 /* ── LAYOUT ── */
 .body{display:flex;flex:1;min-height:0}
-.panel-form{width:380px;min-width:380px;background:white;overflow-y:auto;border-right:1px solid var(--border)}
+.panel-form{width:380px;min-width:380px;background:white;overflow-y:auto;border-right:1px solid var(--border);transition:transform .3s ease}
 .panel-out{flex:1;overflow-y:auto;padding:20px;background:#f0f4f8}
+
+/* ── PESTAÑA PARA ABRIR/CERRAR EL FORMULARIO (celular) ── */
+.niva-form-tab{display:none;position:fixed;left:0;top:70px;z-index:60;background:var(--navy);color:#fff;border:none;padding:12px 7px;border-radius:0 10px 10px 0;font-size:16px;cursor:pointer;box-shadow:2px 2px 12px rgba(0,0,0,.25);line-height:1;writing-mode:vertical-rl;letter-spacing:.03em;font-weight:700}
+
+/* ── CELULAR: el formulario se vuelve un cajón deslizable ── */
+@media (max-width:860px){
+  .body{position:relative;overflow:hidden}
+  .panel-form{position:absolute;inset:0;width:100%;max-width:100%;min-width:0;z-index:50;box-shadow:4px 0 24px rgba(0,0,0,.2)}
+  .panel-form.niva-collapsed{transform:translateX(-100%)}
+  .panel-out{width:100%}
+  .niva-form-tab{display:block}
+}
 
 /* ── FORM ── */
 .fi{padding:18px}
@@ -337,8 +349,10 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 
 <div class="body">
 
+<button id="niva-form-tab" class="niva-form-tab no-print" onclick="toggleFormPanel()">📋 Datos</button>
+
 <!-- ═══════════════ FORM PANEL ═══════════════ -->
-<div class="panel-form no-print">
+<div class="panel-form no-print" id="niva-panel-form">
 <div class="fi">
 
 <div class="sec">🏠 Datos de la Propiedad</div>
@@ -1107,6 +1121,20 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
   } finally {
     clearTimeout(timer);
   }
+}
+// ══════════════════════════════════════════════
+//  PANEL DE FORMULARIO — cajón deslizable en celular
+// ══════════════════════════════════════════════
+function toggleFormPanel(open) {
+  const panel = document.getElementById('niva-panel-form');
+  const tab = document.getElementById('niva-form-tab');
+  if (!panel) return;
+  const collapse = (typeof open === 'boolean') ? !open : !panel.classList.contains('niva-collapsed');
+  panel.classList.toggle('niva-collapsed', collapse);
+  if (tab) tab.textContent = collapse ? '📋 Datos' : '✕ Cerrar';
+}
+function _nivaIsMobileLayout() {
+  return window.matchMedia('(max-width:860px)').matches;
 }
 // ══════════════════════════════════════════════
 //  GLOBALS
@@ -2689,6 +2717,9 @@ function generateAll() {
   });
   genTextos(v);
   st('flyer', 0);
+  // En celular: cerrar el cajón del formulario para dejar ver todo el
+  // contenido generado (flyer, ficha, instagram, video, textos).
+  if (_nivaIsMobileLayout()) toggleFormPanel(false);
 }
 
 // ══════════════════════════════════════════════
