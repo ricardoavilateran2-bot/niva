@@ -1238,7 +1238,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.55';
+const NIVA_BUILD_VERSION = '2026-08-30.56';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -9468,7 +9468,7 @@ async function playVideoEL() {
           // Debug info
           console.log('[VIDEO_DURATION] finalDuration=' + finalDuration + 's | audioDuration=' + (audio.duration||0).toFixed(1) + 's | audioMode=' + audioMode + ' | photos=' + photoList.length + ' | scriptLen=' + scriptLen);
 
-          startVideoAnimation(photoList, finalDurMs, scriptTxt);
+          const _nivaRealTotalMs = startVideoAnimation(photoList, finalDurMs, scriptTxt);
           if (musicSource) {
             activeMusicSource = musicSource;
             try { musicSource.start(0); } catch(eStart) { console.warn('[NIVA][RENDER] musicSource.start() falló (probablemente reutilizado de un intento previo) — se continúa sin música:', eStart); activeMusicSource = null; }
@@ -9498,7 +9498,17 @@ async function playVideoEL() {
               try { voiceBufferSource.start(0); } catch (eStartVB) { console.warn('[NIVA][AUDIO] voiceBufferSource.start() falló:', eStartVB && eStartVB.message); }
             }
           }
-          // El video SIEMPRE dura exactamente finalDuration segundos
+          // El video SIEMPRE dura exactamente el tiempo REAL de la animación/voz.
+          // Este vigilante externo es solo una red de seguridad — NUNCA debe disparar
+          // stopVideo() antes de que termine la duración real calculada dentro de
+          // startVideoAnimation (alineación real de la voz con ElevenLabs). Antes se
+          // basaba solo en finalDurMs (una estimación heurística por foto+longitud de
+          // texto); si esa estimación se quedaba corta frente a la duración real de la
+          // narración (p.ej. tras aplicar cambios de la IA a la duración de una escena),
+          // este timer cortaba la grabación a la mitad de una frase — audio, subtítulos
+          // y escena quedaban "desfasados". Ahora se usa el máximo entre la estimación y
+          // la duración real + margen de seguridad, para que jamás corte antes de tiempo.
+          const _nivaSafeStopMs = Math.max(finalDurMs, (_nivaRealTotalMs || 0) + 900);
           setTimeout(() => {
             if (activeMusicSource) { try { activeMusicSource.stop(); activeMusicSource = null; } catch(e){} }
             setTimeout(() => stopVideo(), 500);
@@ -9508,7 +9518,7 @@ async function playVideoEL() {
                 updateDiagStep('done', 'err');
               }
             }, 15000);
-          }, finalDurMs);
+          }, _nivaSafeStopMs);
         } catch (errBR) {
           console.error('[NIVA][RENDER][beginRenderOnce]', errBR);
           window.__nivaRecDiag.beginRenderOnceError = (errBR && errBR.message) || String(errBR);
@@ -9935,6 +9945,7 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
     }
   }
   videoAnim = requestAnimationFrame(draw);
+  return TOTAL;
 }
 
 // ── SISTEMA DE SUBTÍTULOS — segunda capa de texto sincronizada con voz ──
