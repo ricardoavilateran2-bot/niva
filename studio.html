@@ -770,6 +770,23 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
   </div>
   <div id="r-video" style="display:none">
 
+    <!-- ══ WIZARD DE PASOS — organiza "antes de generar el video" para verlo -->
+    <!-- de 1 en 1 (Atrás/Siguiente) en vez de todo junto, a petición de Ricardo ══ -->
+    <div id="niva-vid-wizard-nav-top" style="background:linear-gradient(135deg,#1B2A4A,#233a63);border-radius:12px;padding:10px 14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.15)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div id="niva-vid-step-label" style="font-size:9.5px;color:#C9A84C;font-weight:800;letter-spacing:.08em;text-transform:uppercase">Paso 1 de 5</div>
+          <div id="niva-vid-step-name" style="font-size:13px;color:white;font-weight:800;margin-top:1px">🎙️ Voz y música</div>
+        </div>
+        <div id="niva-vid-step-dots" style="display:flex;gap:5px"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:9px">
+        <button type="button" id="niva-vid-btn-back" onclick="nivaVidWizardGo(-1)" style="flex:1;padding:8px;background:rgba(255,255,255,.12);color:white;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer">← Atrás</button>
+        <button type="button" id="niva-vid-btn-next" onclick="nivaVidWizardGo(1)" style="flex:1;padding:8px;background:linear-gradient(135deg,#C9A84C,#e8c96a);color:#1B2A4A;border:none;border-radius:8px;font-size:11.5px;font-weight:800;cursor:pointer">Siguiente →</button>
+      </div>
+    </div>
+
+    <div class="niva-vid-step" id="niva-vid-step-1">
     <!-- PASO 1: CONFIGURACIÓN (API + Voz + Música) -->
     <div class="vid-api-panel" id="vid-config-panel">
       <!-- Header colapsable -->
@@ -925,7 +942,9 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         </div>
       </div>
     </div>
+    </div><!-- /niva-vid-step-1 -->
 
+    <div class="niva-vid-step" id="niva-vid-step-2" style="display:none">
     <!-- ESTILO DEL VIDEO -->
     <div class="vid-api-panel" id="vid-objetivo-panel" style="display:none">
       <div style="margin-bottom:8px">
@@ -960,6 +979,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         <p id="vid-objetivo-desc" style="font-size:10px;color:#C9A84C;margin:8px 0 0;font-weight:600;min-height:14px"></p>
       </div>
     </div>
+    </div><!-- /niva-vid-step-2 -->
 
     <!-- PASO 1.5: CREATIVE DIRECTOR -->
     <div class="vid-api-panel" id="vid-concepts-panel" style="display:none!important;visibility:hidden;height:0;overflow:hidden;margin:0;padding:0">
@@ -977,6 +997,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
       </div>
     </div>
 
+    <div class="niva-vid-step" id="niva-vid-step-3" style="display:none">
     <!-- PASO 2: HOOKS IA -->
     <div class="vid-api-panel" id="vid-hooks-panel" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -992,7 +1013,9 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         <button id="btn-use-best-hook" onclick="usarMejorHook()" style="width:100%;padding:8px;background:linear-gradient(135deg,#C9A84C,#e8c96a);color:#1B2A4A;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer">🤖 ELEGIR EL MEJOR HOOK (IA)</button>
       </div>
     </div>
+    </div><!-- /niva-vid-step-3 -->
 
+    <div class="niva-vid-step" id="niva-vid-step-4" style="display:none">
     <!-- PASO 3: GUIÓN + ESCENAS -->
     <div class="vid-api-panel" id="vid-script-outer" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -1028,7 +1051,9 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         <div id="vid-scenes-list" style="display:flex;flex-direction:column;gap:5px"></div>
       </div>
     </div>
+    </div><!-- /niva-vid-step-4 -->
 
+    <div class="niva-vid-step" id="niva-vid-step-5" style="display:none">
     <!-- ── INICIO DEL VIDEO (antes "Portada del Reel") ── -->
     <!-- Se colocó ANTES del resultado final (canvas/generar) a propósito: primero se -->
     <!-- ajustan todas las configuraciones del video, y hasta el final se ve/genera el resultado. -->
@@ -1174,6 +1199,12 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         <div id="ia-apply-result" style="margin-top:10px"></div>
       </div>
     </div>
+    </div><!-- /niva-vid-step-5 -->
+
+    <div id="niva-vid-wizard-nav-bottom" style="display:flex;gap:8px;margin-top:16px">
+      <button type="button" onclick="nivaVidWizardGo(-1)" style="flex:1;padding:10px;background:#f1f5f9;color:#1B2A4A;border:1px solid #e2e8f0;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer">← Atrás</button>
+      <button type="button" onclick="nivaVidWizardGo(1)" style="flex:1;padding:10px;background:linear-gradient(135deg,#1B2A4A,#2d4170);color:white;border:none;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer">Siguiente →</button>
+    </div>
   </div>
 
 </div>
@@ -1238,7 +1269,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.60';
+const NIVA_BUILD_VERSION = '2026-08-30.61';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -6005,6 +6036,74 @@ const MOTION_BY_ROLE = {
   'default':     'dollyIn',
 };
 
+// ══════════════════════════════════════════════
+//  WIZARD DE PASOS DEL VIDEO — organiza "antes de generar el video" en 5
+//  pasos que se ven de uno en uno (Atrás/Siguiente), en vez de todo junto,
+//  a petición de Ricardo. Solo controla qué contenedor de paso está visible;
+//  no toca ninguna lógica de generación existente (voz, hooks, guion,
+//  escenas, etc.) — esos paneles se siguen mostrando/ocultando internamente
+//  igual que antes, el wizard nada más decide si esa sección entra en la
+//  pantalla o no.
+// ══════════════════════════════════════════════
+let nivaVidCurrentStep = 1;
+const NIVA_VID_STEPS = [
+  { id: 1, name: '🎙️ Voz y música' },
+  { id: 2, name: '🎬 Estilo del video' },
+  { id: 3, name: '🎣 Elige tu hook' },
+  { id: 4, name: '📝 Guion y escenas' },
+  { id: 5, name: '🎥 Generar video' },
+];
+
+function nivaVidWizardShow(step) {
+  step = Math.max(1, Math.min(5, step));
+  nivaVidCurrentStep = step;
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('niva-vid-step-' + i);
+    if (el) el.style.display = (i === step) ? 'block' : 'none';
+  }
+  // Al entrar al Paso 3 (Hook): la IA normalmente ya eligió y aplicó el mejor
+  // hook automáticamente (flujo simplificado) sin pintar la lista — aquí la
+  // pintamos para que el asesor vea cuál se usó y, si quiere, elija otro.
+  if (step === 3) {
+    const hooksPanel = document.getElementById('vid-hooks-panel');
+    if (hooksPanel) hooksPanel.style.display = 'block';
+    if (typeof vidHooks !== 'undefined' && vidHooks && vidHooks.length > 0) {
+      const listEl = document.getElementById('vid-hooks-list');
+      if (listEl && !listEl.children.length) renderHooks();
+      document.querySelectorAll('.vid-hook-item').forEach((el2, i2) => {
+        el2.classList.toggle('selected', i2 === selectedHookIdx);
+      });
+    }
+  }
+  const label = document.getElementById('niva-vid-step-label');
+  const name = document.getElementById('niva-vid-step-name');
+  const info = NIVA_VID_STEPS[step - 1];
+  if (label) label.textContent = 'Paso ' + step + ' de 5';
+  if (name) name.textContent = info.name;
+  const dots = document.getElementById('niva-vid-step-dots');
+  if (dots) {
+    dots.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const d = document.createElement('span');
+      d.title = NIVA_VID_STEPS[i - 1].name;
+      d.style.cssText = 'width:8px;height:8px;border-radius:50%;cursor:pointer;background:' +
+        (i === step ? '#C9A84C' : (i < step ? 'rgba(201,168,76,.5)' : 'rgba(255,255,255,.25)'));
+      d.onclick = (function(target) { return function() { nivaVidWizardShow(target); }; })(i);
+      dots.appendChild(d);
+    }
+  }
+  const backBtn = document.getElementById('niva-vid-btn-back');
+  const nextBtn = document.getElementById('niva-vid-btn-next');
+  if (backBtn) backBtn.style.visibility = (step === 1) ? 'hidden' : 'visible';
+  if (nextBtn) nextBtn.style.visibility = (step === 5) ? 'hidden' : 'visible';
+  const rVideo = document.getElementById('r-video');
+  if (rVideo) rVideo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function nivaVidWizardGo(delta) {
+  nivaVidWizardShow(nivaVidCurrentStep + delta);
+}
+
 // ── Configuración ──
 function toggleVidConfig() {
   const body = document.getElementById('vid-config-body');
@@ -6362,6 +6461,7 @@ function vidError(context, err, withRetry) {
 // ── GENERAR VIDEO (entry point desde generateAll) ──
 async function genVideo(v) {
   showResult('video');
+  nivaVidWizardShow(1);
   vidV = v;
   // Mostrar paneles
   document.getElementById('vid-hooks-panel').style.display = 'none';
