@@ -1238,7 +1238,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.57';
+const NIVA_BUILD_VERSION = '2026-08-30.58';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -1526,7 +1526,11 @@ const voiceCache = {}; // key: "provider:voiceId:hash:speed", value: { blob, aud
 const apiUsageStats = { openaiTTS: 0, elevenlabs: 0, cacheHits: 0, cacheMisses: 0 };
 
 function voiceCacheKey(provider, voiceId, text, speed) {
-  const textSig = (text || '').substring(0, 100).replace(/\s+/g, '').toLowerCase();
+  // IMPORTANTE: la firma debe cubrir el guion COMPLETO, no solo el inicio — antes se
+  // truncaba a los primeros 100 caracteres, así que dos guiones que empezaran igual
+  // (típico al agregar/reordenar escenas más adelante) compartían la misma llave de
+  // caché y reusaban audio/alignment VIEJOS que ya no correspondían al guion real.
+  const textSig = (text || '').replace(/\s+/g, '').toLowerCase();
   return `${provider}:${voiceId}:${textSig}:${speed}`;
 }
 
