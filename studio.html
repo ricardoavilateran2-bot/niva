@@ -1238,7 +1238,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.59';
+const NIVA_BUILD_VERSION = '2026-08-30.60';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -9881,7 +9881,12 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
     } else if (portadaIntroActive) {
       // ── Ya se dibujó arriba (drawPortadaIntroOverlay) — no superponer otro texto ──
 
-    } else if (vidSubtitlesEnabled && _funC === 'hook') {
+    } else if (false && vidSubtitlesEnabled && _funC === 'hook') {
+      // ── DESACTIVADO a petición de Ricardo (2026-08-30): el bloque de tipo/ubicación/
+      // precio que aparecía arriba al inicio de TODOS los videos se quita — la escena
+      // hook ahora solo muestra la foto + los subtítulos normales, igual que el resto.
+      // Se deja el bloque original bajo "false &&" (nunca se ejecuta) en vez de borrarlo,
+      // por si se quiere reactivar más adelante sin tener que reescribirlo.
       // ── Título inicial de la propiedad — limpio, premium, 1.8s ──
       // Sustituye al hook texto; desaparece antes de que empiecen los captions
       const TITLE_MS      = 1800;
