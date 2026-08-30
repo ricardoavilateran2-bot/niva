@@ -1009,44 +1009,6 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
     </div><!-- /niva-vid-step-3 -->
 
     <div class="niva-vid-step" id="niva-vid-step-4" style="display:none">
-    <!-- PASO 3: GUIÓN + ESCENAS -->
-    <div class="vid-api-panel" id="vid-script-outer" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <h4 style="margin:0">📝 Guión y Escenas</h4>
-        <div style="display:flex;gap:6px">
-          <button onclick="regenerarGuion()" style="font-size:10px;padding:5px 9px;background:#f1f5f9;color:#1B2A4A;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:700" title="Regenerar guión principal">↺ Guión</button>
-          <button onclick="generarVersionAlternativa()" style="font-size:10px;padding:5px 9px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:6px;cursor:pointer;font-weight:700" title="Generar versión alternativa del guión">🔀 Alternativa</button>
-          <button onclick="regenerarCTA()" style="font-size:10px;padding:5px 9px;background:#f1f5f9;color:#1B2A4A;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:700">↺ CTA</button>
-          <button onclick="regenerarVozSola()" style="font-size:10px;padding:5px 9px;background:linear-gradient(135deg,#1B2A4A,#2d4170);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700" title="Regenerar solo la voz sin cambiar el guión">🎙️ Voz</button>
-        </div>
-      </div>
-      <!-- Score -->
-      <div id="vid-score-box" style="display:none;background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:12px">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:8px">📊 Video Score</div>
-        <div id="vid-score-bars"></div>
-        <div id="vid-score-warnings" style="margin-top:8px"></div>
-        <button id="btn-score-fix" onclick="mejorarGuion()" style="display:none;margin-top:8px;width:100%;padding:7px;background:#1B2A4A;color:white;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">✨ MEJORAR AUTOMÁTICAMENTE</button>
-      </div>
-      <!-- Guión editable -->
-      <div class="vid-script-panel" style="margin-bottom:0">
-        <div class="vid-script-header">
-          <h4>✏️ Lo que dirá el video</h4>
-          <span id="vid-char-count">0 caracteres</span>
-        </div>
-        <textarea class="vid-script-ta" id="vid-script-ta" placeholder="El guión aparecerá aquí…" oninput="vidCountChars()"></textarea>
-        <p class="vid-script-hint">Puedes editar antes de generar · El proveedor de voz activo leerá exactamente esto</p>
-      </div>
-      <!-- Escenas -->
-      <div id="vid-scenes-box" style="margin-top:12px;display:none">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:2px">🎬 Estructura de escenas</div>
-        <p style="font-size:10px;color:#94a3b8;margin:0 0 4px">Edita cada escena: qué foto usa, cuánto dura, el texto en pantalla y lo que dice la voz. También puedes reordenarlas, quitarlas o agregar nuevas.</p>
-        <div id="vid-scenes-total" class="vid-scenes-total"></div>
-        <div id="vid-scenes-list" style="display:flex;flex-direction:column;gap:5px"></div>
-      </div>
-    </div>
-    </div><!-- /niva-vid-step-4 -->
-
-    <div class="niva-vid-step" id="niva-vid-step-5" style="display:none">
     <!-- ── INICIO DEL VIDEO (antes "Portada del Reel") ── -->
     <!-- Se colocó ANTES del resultado final (canvas/generar) a propósito: primero se -->
     <!-- ajustan todas las configuraciones del video, y hasta el final se ve/genera el resultado. -->
@@ -1130,6 +1092,44 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
       </div>
     </div>
 
+    </div><!-- /niva-vid-step-4 -->
+
+    <div class="niva-vid-step" id="niva-vid-step-5" style="display:none">
+    <!-- PASO 3: GUIÓN + ESCENAS -->
+    <div class="vid-api-panel" id="vid-script-outer" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <h4 style="margin:0">📝 Guión y Escenas</h4>
+        <div style="display:flex;gap:6px">
+          <button onclick="regenerarGuion()" style="font-size:10px;padding:5px 9px;background:#f1f5f9;color:#1B2A4A;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:700" title="Regenerar guión principal">↺ Guión</button>
+          <button onclick="generarVersionAlternativa()" style="font-size:10px;padding:5px 9px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:6px;cursor:pointer;font-weight:700" title="Generar versión alternativa del guión">🔀 Alternativa</button>
+          <button onclick="regenerarCTA()" style="font-size:10px;padding:5px 9px;background:#f1f5f9;color:#1B2A4A;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-weight:700">↺ CTA</button>
+          <button onclick="regenerarVozSola()" style="font-size:10px;padding:5px 9px;background:linear-gradient(135deg,#1B2A4A,#2d4170);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700" title="Regenerar solo la voz sin cambiar el guión">🎙️ Voz</button>
+        </div>
+      </div>
+      <!-- Score -->
+      <div id="vid-score-box" style="display:none;background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:8px">📊 Video Score</div>
+        <div id="vid-score-bars"></div>
+        <div id="vid-score-warnings" style="margin-top:8px"></div>
+        <button id="btn-score-fix" onclick="mejorarGuion()" style="display:none;margin-top:8px;width:100%;padding:7px;background:#1B2A4A;color:white;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">✨ MEJORAR AUTOMÁTICAMENTE</button>
+      </div>
+      <!-- Guión editable -->
+      <div class="vid-script-panel" style="margin-bottom:0">
+        <div class="vid-script-header">
+          <h4>✏️ Lo que dirá el video</h4>
+          <span id="vid-char-count">0 caracteres</span>
+        </div>
+        <textarea class="vid-script-ta" id="vid-script-ta" placeholder="El guión aparecerá aquí…" oninput="vidCountChars()"></textarea>
+        <p class="vid-script-hint">Puedes editar antes de generar · El proveedor de voz activo leerá exactamente esto</p>
+      </div>
+      <!-- Escenas -->
+      <div id="vid-scenes-box" style="margin-top:12px;display:none">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:2px">🎬 Estructura de escenas</div>
+        <p style="font-size:10px;color:#94a3b8;margin:0 0 4px">Edita cada escena: qué foto usa, cuánto dura, el texto en pantalla y lo que dice la voz. También puedes reordenarlas, quitarlas o agregar nuevas.</p>
+        <div id="vid-scenes-total" class="vid-scenes-total"></div>
+        <div id="vid-scenes-list" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
     <!-- PASO 4: CANVAS + CONTROLES — el RESULTADO FINAL, hasta abajo -->
     <div class="video-wrap">
       <div id="niva-safari-warning" style="display:none;background:#3a2a0a;border:1.5px solid #C9A84C;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:#f5d78a;line-height:1.5">
@@ -1271,7 +1271,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.63';
+const NIVA_BUILD_VERSION = '2026-08-30.64';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -6052,8 +6052,8 @@ const NIVA_VID_STEPS = [
   { id: 1, name: '🎙️ Voz y música' },
   { id: 2, name: '🎬 Estilo del video' },
   { id: 3, name: '🎣 Elige tu hook' },
-  { id: 4, name: '📝 Guion y escenas' },
-  { id: 5, name: '🎥 Generar video' },
+  { id: 4, name: '🖼️ Portada del video' },
+  { id: 5, name: '📝🎥 Guion y generar video' },
 ];
 
 function nivaVidWizardShow(step) {
