@@ -1088,7 +1088,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
           <button class="btn-play" style="font-size:11px;padding:6px 12px" onclick="generatePortada()">🔄 Actualizar vista previa</button>
         </div>
         <p style="font-size:9.5px;color:#94a3b8;text-align:center;margin:0 0 4px">Usa siempre tu primera foto (según el orden que definiste arriba) — la misma que abre el video.</p>
-        <p id="portada-status" style="font-size:10px;color:#64748b;text-align:center;margin:4px 0 0"></p>
+        <p id="portada-status" style="font-size:10px;color:#64748b;text-align:center;margin:4px 0 0;min-height:13px"></p>
       </div>
     </div>
 
@@ -1271,7 +1271,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.64';
+const NIVA_BUILD_VERSION = '2026-08-30.65';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
