@@ -1181,15 +1181,17 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
       <div id="ia-review-results" style="margin-top:10px"></div>
 
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid #e2e8f0">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:6px">💬 Pregúntale lo que quieras</div>
-        <textarea id="ia-review-question" placeholder="Ej. ¿El precio se ve claro? ¿Cómo mejoro el cierre del video? ¿Qué le falta comparado con lo que piden los clientes?" style="width:100%;min-height:60px;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
-        <button type="button" class="btn-dl" style="width:100%;justify-content:center;margin-top:8px" id="btn-ia-ask" onclick="nivaPreguntarIA()">🤔 Preguntar</button>
-        <div id="ia-ask-loading" style="display:none;text-align:center;padding:10px;font-size:12px;color:#64748b">🤖 Pensando…</div>
-        <div id="ia-ask-answer" style="margin-top:10px"></div>
-        <button type="button" class="btn-play" style="width:100%;justify-content:center;margin-top:10px;background:linear-gradient(135deg,#16a34a,#15803d)" id="btn-ia-apply" onclick="nivaAplicarCambiosIA()">🛠️ Revisar y corregir todo de una vez</button>
+        <button type="button" class="btn-play" style="width:100%;justify-content:center;background:linear-gradient(135deg,#16a34a,#15803d)" id="btn-ia-apply" onclick="nivaAplicarCambiosIA()">🛠️ Revisar y corregir todo de una vez</button>
         <p style="font-size:9.5px;color:#94a3b8;text-align:center;margin:4px 0 0">La IA revisa TODO el video de una sola vez (duración/temporización de cada escena y pequeñas correcciones de guion) y aplica todo junto — no hace falta "Analizar" primero. Nunca cambia fotos, ni precio, ubicación o portada, ni reestructura el video.</p>
         <div id="ia-apply-loading" style="display:none;text-align:center;padding:10px;font-size:12px;color:#64748b">🛠️ Aplicando cambios…</div>
         <div id="ia-apply-result" style="margin-top:10px"></div>
+        <div id="ia-ask-block" style="display:none">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:6px;margin-top:14px">💬 Pregúntale lo que quieras</div>
+          <textarea id="ia-review-question" placeholder="Ej. ¿El precio se ve claro? ¿Cómo mejoro el cierre del video? ¿Qué le falta comparado con lo que piden los clientes?" style="width:100%;min-height:60px;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+          <button type="button" class="btn-dl" style="width:100%;justify-content:center;margin-top:8px" id="btn-ia-ask" onclick="nivaPreguntarIA()">🤔 Preguntar</button>
+          <div id="ia-ask-loading" style="display:none;text-align:center;padding:10px;font-size:12px;color:#64748b">🤖 Pensando…</div>
+          <div id="ia-ask-answer" style="margin-top:10px"></div>
+        </div>
       </div>
     </div>
     </div><!-- /niva-vid-step-5 -->
@@ -1271,7 +1273,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.65';
+const NIVA_BUILD_VERSION = '2026-08-30.66';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -7775,7 +7777,8 @@ function renderScore(score) {
   const bars = document.getElementById('vid-score-bars');
   const warns = document.getElementById('vid-score-warnings');
   const fixBtn = document.getElementById('btn-score-fix');
-  box.style.display = 'block';
+  // Ricardo pidió quitar este panel ("Video Score") de la vista — se deja oculto.
+  box.style.display = 'none';
 
   const dims = [
     {k:'hook',               label:'Hook'},
