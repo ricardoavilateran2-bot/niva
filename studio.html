@@ -1238,7 +1238,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.53';
+const NIVA_BUILD_VERSION = '2026-08-30.54';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -7760,30 +7760,57 @@ ${scriptTxt}
 """
 
 ESCENAS (en orden, tal como quedaron configuradas):
-` + scenesForReview.map((s, i) => `${i + 1}. [${s.funcion || '—'}] Duración: ${(parseFloat(s.duracion_seg) || 0).toFixed(1)}s | Texto en pantalla: "${s.texto_pantalla || ''}" | Lo que dice la voz en esta escena: "${s.narracion_frag || ''}"`).join('\n');
+` + scenesForReview.map((s, i) => `${i + 1}. [${s.funcion || '—'}] Duración: ${(parseFloat(s.duracion_seg) || 0).toFixed(1)}s | Foto actual: índice ${s.foto_idx || 0} | Texto en pantalla: "${s.texto_pantalla || ''}" | Lo que dice la voz en esta escena: "${s.narracion_frag || ''}"`).join('\n');
 
-    const instructions = `Eres un editor experto de video inmobiliario para redes sociales (TikTok/Reels/Shorts) en México, revisando un video de NIVA Inmobiliaria ANTES de que el asesor lo descargue y publique.
+    const instructions = `Eres un editor experto de video inmobiliario para redes sociales (TikTok/Reels/Shorts) en México, revisando un video de NIVA Inmobiliaria ANTES de que el asesor lo descargue y publique. Actúas como un director de reels inmobiliarios con IA: tu trabajo es pensar qué se puede mejorar para que este reel venda mejor, sea más claro y tenga mejor ritmo — pero SIEMPRE usando solo datos reales de la propiedad, las fotos disponibles y el guion actual. Nunca inventes características de la propiedad ni afirmaciones que no puedas respaldar con lo que te doy (evita frases genéricas sin respaldo como "acabados premium", "cocina de lujo", "vistas espectaculares", "espacios extraordinariamente amplios" o "diseño arquitectónico único" salvo que de verdad se vean en la foto o vengan en los datos de la propiedad).
 
-Te doy el guion completo, la lista de escenas configuradas (con su duración y texto), y luego, para cada escena, la foto que el asesor le asignó (en el mismo orden).
+Te doy el guion completo, la lista de escenas configuradas (con su duración, texto y qué foto usa cada una, por índice), y TODAS las fotos disponibles del asesor, etiquetadas por índice (algunas ya en uso en alguna escena, otras no).
 
-Haz una revisión honesta y específica a ESTE video (nada genérico) cubriendo:
-1. CHECKLIST GENERAL: ¿el precio aparece claro y correcto en el guion?, ¿la ubicación es clara?, ¿hay faltas de ortografía o gramática?, ¿hay muletillas o frases repetidas/genéricas ("increíble", "imagina vivir aquí", etc.)?, ¿la duración total es razonable para redes (ni muy corta ni muy larga)?
+PARTE 1 — ANÁLISIS (igual que siempre, esto no cambia):
+1. CHECKLIST GENERAL: ¿el precio aparece claro y correcto en el guion?, ¿la ubicación es clara?, ¿hay faltas de ortografía o gramática?, ¿hay muletillas o frases repetidas/genéricas ("increíble", "imagina vivir aquí", "vida cómoda", "lo que mereces", "espacios diseñados para ti", "el hogar de tus sueños", etc.)?, ¿la duración total es razonable para redes (ni muy corta ni muy larga)?
 2. GUION: sugerencias concretas de redacción o tono, si aplica.
-3. RITMO: si alguna escena se ve muy corta o muy larga para lo que dice, o si el ritmo general se siente desbalanceado.
-4. FOTOS: para cada escena, compara la foto adjunta con lo que esa escena dice en pantalla/voz — avisa SOLO si hay un desajuste real (ej. foto de cocina en una escena de "área social" o "alberca"). Si combina bien, no hace falta comentar cada una — reporta solo problemas reales.
+3. RITMO: si alguna escena se ve muy corta o muy larga para lo que dice — considera cuánto texto trae, el tiempo de lectura y el ritmo general; NO uses una regla rígida de "todas deben durar X segundos", cada duración se juzga por su propio contenido.
+4. FOTOS: para cada escena, compara la foto asignada con lo que esa escena dice en pantalla/voz — avisa SOLO si hay un desajuste real (ej. foto de cocina en una escena que dice "cuatro baños"). Si combina bien, no hace falta comentar cada una — reporta solo problemas reales.
 
-Responde en JSON:
+Si una sección está bien, no inventes problemas — repórtala como correcta (checklist con "ok":true, o el array de notas vacío).
+
+PARTE 2 — CAMBIOS RECOMENDADOS (nuevo): convierte CADA problema real que detectaste arriba en una acción CONCRETA y aplicable. Solo propón un cambio cuando exista una mejora real, justificable y útil — si algo ya está bien, NO propongas cambiarlo solo por cambiarlo.
+
+Tipos de cambio permitidos (usa "tipo" exactamente así):
+- "texto": corregir texto_pantalla y/o narracion_frag de una escena (ortografía, frase genérica sin respaldo, o un desajuste foto-texto que se resuelve ajustando el texto). Si reemplazas una frase genérica, la alternativa debe basarse en algo real y visible en la foto de esa escena o en los datos de la propiedad — si no tienes con qué respaldarla, NO propongas un texto de reemplazo (deja el problema solo señalado en guion_notas, sin un cambio accionable).
+- "duracion": ajustar duracion_seg de una escena, siempre con una razón puntual (p.ej. muy poco tiempo para el texto que trae, o tiempo muerto de sobra).
+- "foto": SOLO cuando la foto asignada a una escena no corresponde con su texto Y existe, entre TODAS las fotos que te mostré por índice, otra foto YA SUBIDA por el asesor que sí corresponde mejor. Nunca inventes una foto que no esté en la lista que te di. Si no hay una foto disponible que combine mejor, no uses este tipo — usa "texto" para ajustar el texto a la foto actual.
+- "orden": SOLO si reordenar las escenas mejora claramente el video (p.ej. mostrar la fachada antes que los interiores) y puedes explicar la razón en una frase clara. Como máximo UNA recomendación de este tipo.
+
+Responde en JSON (agrega el campo nuevo "cambios_recomendados" SIN quitar ni renombrar los campos que ya existían):
 {
   "resumen": "1-2 frases con tu impresión general",
   "checklist": [{"ok": true, "item": "Precio claro y correcto"}, {"ok": false, "item": "..."}],
   "guion_notas": ["nota específica 1", "..."],
   "ritmo_notas": ["nota específica 1 (menciona el número de escena)", "..."],
-  "fotos_notas": ["nota específica 1 (menciona el número de escena) — solo problemas reales, deja el array vacío si todo combina bien"]
+  "fotos_notas": ["nota específica 1 (menciona el número de escena) — solo problemas reales, deja el array vacío si todo combina bien"],
+  "cambios_recomendados": [
+    {
+      "tipo": "texto|duracion|foto|orden",
+      "severidad": "alta|media",
+      "escena": 4,
+      "problema": "explicación breve y concreta de qué está mal en esta escena",
+      "recomendacion": "qué se recomienda hacer, en una sola frase",
+      "texto_pantalla_nuevo": "SOLO si tipo=texto y aplica",
+      "narracion_frag_nuevo": "SOLO si tipo=texto y aplica",
+      "duracion_seg_nueva": 2.2,
+      "foto_idx_nueva": 5,
+      "orden_nuevo": [3,1,2,4,5,6,7,8]
+    }
+  ]
 }
-Si algo no aplica o no hay nada que señalar en una sección, regresa un array vacío — no inventes problemas que no existen.`;
+Reglas del JSON:
+- "escena" es el número de escena tal como aparece en ESCENAS (empieza en 1). Para tipo="orden" puedes dejar "escena" en null (aplica a todo el video) y usar "orden_nuevo" con TODOS los números de escena, en el nuevo orden.
+- Incluye solo los campos relevantes al "tipo" de cada cambio — no incluyas campos vacíos o que no apliquen.
+- Si el video está bien en general, "cambios_recomendados" puede quedar vacío — no inventes problemas que no existen.`;
 
     const contentParts = [{ type: 'text', text: instructions + '\n\n' + contextTxt }]
-      .concat(_nivaScenePhotoParts(scenesForReview, true));
+      .concat(_nivaAllPhotoParts());
 
     const oaKey = getOaKey();
     const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
@@ -7815,6 +7842,7 @@ Si algo no aplica o no hay nada que señalar en una sección, regresa un array v
 }
 
 let _nivaReviewCheckItems = [];
+let _nivaLastCambiosRecomendados = [];
 
 function _nivaRenderReview(parsed) {
   const results = document.getElementById('ia-review-results');
@@ -7862,7 +7890,147 @@ function _nivaRenderReview(parsed) {
     <div id="ia-apply-selected-result" style="margin-top:10px"></div>`;
   }
 
+  // Sección nueva: cambios concretos y aplicables (ANALIZAR → PROPONER → SELECCIONAR →
+  // APLICAR). No reemplaza nada de arriba — se agrega al final del mismo análisis.
+  html += _nivaRenderCambiosRecomendados(parsed.cambios_recomendados);
+
   results.innerHTML = html;
+}
+
+function _nivaTipoLabel(tipo) {
+  return { texto: 'TEXTO', duracion: 'DURACIÓN', foto: 'FOTOGRAFÍA', orden: 'ORDEN DE ESCENAS' }[tipo] || String(tipo || '').toUpperCase();
+}
+
+// Pinta "✨ Cambios recomendados por IA": una tarjeta con checkbox por cada cambio
+// concreto que propuso el análisis. No aplica nada todavía — solo lo muestra.
+function _nivaRenderCambiosRecomendados(cambios) {
+  _nivaLastCambiosRecomendados = Array.isArray(cambios) ? cambios : [];
+  let html = `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin:14px 0 5px;padding-top:10px;border-top:1px solid #e2e8f0">✨ Cambios recomendados por IA</div>`;
+  if (!_nivaLastCambiosRecomendados.length) {
+    html += `<div style="font-size:11.5px;padding:8px 10px;border-radius:6px;background:#f0fdf4;color:#15803d">✅ Correcto — no encontré cambios adicionales que valga la pena aplicar.</div>`;
+    return html;
+  }
+  html += `<p style="font-size:10.5px;color:#64748b;margin:0 0 8px">Cada punto es una acción concreta que se puede aplicar directamente al video. Selecciona los que quieras aplicar.</p>`;
+  html += _nivaLastCambiosRecomendados.map((c, idx) => {
+    const sev = (c.severidad === 'alta') ? { emoji: '🔴', color: '#dc2626' } : { emoji: '🟡', color: '#b45309' };
+    const escenaLabel = (c.tipo === 'orden' || c.escena === null || c.escena === undefined) ? 'TODO EL VIDEO' : ('ESCENA ' + c.escena);
+    return `<label style="display:block;border:1px solid #e2e8f0;border-radius:8px;padding:9px 11px;margin-bottom:8px;cursor:pointer">
+      <div style="display:flex;gap:7px;align-items:flex-start">
+        <input type="checkbox" class="ia-reco-check" data-idx="${idx}" checked style="margin-top:3px;accent-color:#16a34a;flex-shrink:0">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:800;color:${sev.color}">${sev.emoji} ${_escVidHtml(escenaLabel)} — ${_escVidHtml(_nivaTipoLabel(c.tipo))}</div>
+          ${c.problema ? `<div style="font-size:11.5px;color:#334155;margin-top:3px">${_escVidHtml(c.problema)}</div>` : ''}
+          ${c.recomendacion ? `<div style="font-size:11.5px;color:#1B2A4A;margin-top:4px"><strong>Recomendación:</strong> ${_escVidHtml(c.recomendacion)}</div>` : ''}
+        </div>
+      </div>
+    </label>`;
+  }).join('');
+  html += `<div style="display:flex;gap:12px;margin:4px 0 2px;font-size:10.5px">
+    <a href="#" onclick="document.querySelectorAll('.ia-reco-check').forEach(c=>c.checked=true);return false;" style="color:#64748b">☑️ Marcar todos</a>
+    <a href="#" onclick="document.querySelectorAll('.ia-reco-check').forEach(c=>c.checked=false);return false;" style="color:#64748b">⬜ Desmarcar todos</a>
+  </div>
+  <button type="button" class="btn-play" style="width:100%;justify-content:center;margin-top:8px;background:linear-gradient(135deg,#16a34a,#15803d)" id="btn-ia-reco-apply" onclick="nivaMostrarConfirmacionCambios()">✨ Aplicar cambios seleccionados</button>
+  <div id="ia-reco-confirm" style="margin-top:10px"></div>
+  <div id="ia-reco-result" style="margin-top:10px"></div>`;
+  return html;
+}
+
+// Punto 12: antes de aplicar, muestra un resumen ("N cambios seleccionados" + la
+// lista) con [Aplicar cambios] / [Cancelar] — nada se toca todavía en este paso.
+function nivaMostrarConfirmacionCambios() {
+  const checks = Array.from(document.querySelectorAll('.ia-reco-check:checked'));
+  const box = document.getElementById('ia-reco-confirm');
+  if (!box) return;
+  if (!checks.length) {
+    box.innerHTML = `<div class="vid-warning">⚠️ No seleccionaste ningún cambio.</div>`;
+    return;
+  }
+  const items = checks.map(ch => _nivaLastCambiosRecomendados[parseInt(ch.dataset.idx, 10)]).filter(Boolean);
+  const lista = items.map(c => {
+    const escenaLabel = (c.tipo === 'orden' || c.escena === null || c.escena === undefined) ? 'Todo el video' : ('Escena ' + c.escena);
+    return `<div style="font-size:11.5px;padding:3px 0">✓ ${_escVidHtml(escenaLabel)} — ${_escVidHtml(_nivaTipoLabel(c.tipo))}</div>`;
+  }).join('');
+  box.innerHTML = `<div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0">
+    <div style="font-size:11px;font-weight:800;color:#1B2A4A;margin-bottom:4px">CAMBIOS SELECCIONADOS</div>
+    <div style="font-size:11.5px;color:#64748b;margin-bottom:6px">${items.length} cambio(s) seleccionado(s):</div>
+    ${lista}
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button type="button" class="btn-play" style="flex:1;justify-content:center;background:linear-gradient(135deg,#16a34a,#15803d)" onclick="nivaAplicarCambiosRecomendadosConfirmado()">✅ Aplicar cambios</button>
+      <button type="button" class="btn-dl" style="flex:1;justify-content:center" onclick="document.getElementById('ia-reco-confirm').innerHTML=''">Cancelar</button>
+    </div>
+  </div>`;
+}
+
+// Punto 4 y 11: solo aquí, tras confirmar, se tocan las escenas de verdad — y se
+// aplica DIRECTO (sin volver a llamar a la IA) el valor concreto que ya trae cada
+// cambio aprobado, con los mismos setters que usa el editor manual de escenas.
+function nivaAplicarCambiosRecomendadosConfirmado() {
+  const checks = Array.from(document.querySelectorAll('.ia-reco-check:checked'));
+  const resultBox = document.getElementById('ia-reco-result');
+  const confirmBox = document.getElementById('ia-reco-confirm');
+  const items = checks.map(ch => _nivaLastCambiosRecomendados[parseInt(ch.dataset.idx, 10)]).filter(Boolean);
+  if (!items.length) return;
+
+  let applied = 0;
+  let narracionChanged = false;
+  let ordenChanged = false;
+  const skipped = [];
+  const aplicados = [];
+
+  items.forEach(c => {
+    if (c.tipo === 'orden') {
+      const orden = Array.isArray(c.orden_nuevo) ? c.orden_nuevo.map(n => parseInt(n, 10)) : null;
+      const valido = orden && orden.length === vidScenes.length && orden.every(n => vidScenes[n - 1]);
+      if (!valido) { skipped.push('Orden de escenas: la propuesta no coincide con las escenas actuales, se omitió.'); return; }
+      const nuevo = orden.map(n => vidScenes[n - 1]);
+      vidScenes.length = 0;
+      nuevo.forEach(s => vidScenes.push(s));
+      _renumberScenes();
+      ordenChanged = true;
+      applied++;
+      aplicados.push('Orden de escenas actualizado.');
+      return;
+    }
+    const idx = (c.escena !== null && c.escena !== undefined) ? (parseInt(c.escena, 10) - 1) : NaN;
+    if (!vidScenes[idx]) { skipped.push('Escena ' + c.escena + ' no existe, se omitió.'); return; }
+    if (c.tipo === 'texto') {
+      let touched = false;
+      if (c.texto_pantalla_nuevo) { _updateSceneCaption(idx, String(c.texto_pantalla_nuevo)); touched = true; }
+      if (c.narracion_frag_nuevo) { _updateSceneNarracion(idx, String(c.narracion_frag_nuevo)); narracionChanged = true; touched = true; }
+      if (touched) { applied++; aplicados.push('Escena ' + c.escena + ' — texto actualizado.'); }
+    } else if (c.tipo === 'duracion') {
+      if (c.duracion_seg_nueva !== undefined && c.duracion_seg_nueva !== null) {
+        _updateSceneDuration(idx, c.duracion_seg_nueva);
+        applied++;
+        aplicados.push('Escena ' + c.escena + ' — duración ajustada a ' + parseFloat(c.duracion_seg_nueva).toFixed(1) + 's.');
+      }
+    } else if (c.tipo === 'foto') {
+      const fIdx = parseInt(c.foto_idx_nueva, 10);
+      if (isFinite(fIdx) && photos[fIdx]) {
+        _updateScenePhoto(idx, fIdx);
+        applied++;
+        aplicados.push('Escena ' + c.escena + ' — foto reasignada.');
+      } else {
+        skipped.push('Escena ' + c.escena + ': la foto propuesta no existe entre las fotos subidas, se omitió.');
+      }
+    }
+  });
+
+  if (ordenChanged) _nivaMarkVoiceStale();
+  renderScenes();
+
+  let html = '';
+  if (applied > 0) {
+    html += `<div style="font-size:12.5px;color:#15803d;font-weight:600;background:#f0fdf4;border-radius:8px;padding:9px 11px;margin-bottom:6px">✅ Cambios aplicados</div>`;
+    html += aplicados.map(a => `<div style="font-size:11.5px;color:#334155;padding:2px 0">✓ ${_escVidHtml(a)}</div>`).join('');
+    html += `<div style="font-size:11px;color:#64748b;margin-top:6px">🎬 Vuelve a darle a "Generar Video" arriba para ver el resultado${(narracionChanged || ordenChanged) ? ' — la voz se regenera automáticamente porque el guion cambió' : ''}.</div>`;
+  } else {
+    html += `<div style="font-size:12px;color:#64748b;background:#f8fafc;border-radius:8px;padding:9px 11px">ℹ️ No se aplicó ningún cambio.</div>`;
+  }
+  if (skipped.length) html += `<div class="vid-warning" style="margin-top:6px">⚠️ ${_escVidHtml(skipped.join(' · '))}</div>`;
+
+  if (resultBox) resultBox.innerHTML = html;
+  if (confirmBox) confirmBox.innerHTML = '';
 }
 
 // Toma SOLO los puntos que el asesor marcó con checkbox en el análisis (guion,
