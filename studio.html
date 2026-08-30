@@ -1251,7 +1251,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-29.46';
+const NIVA_BUILD_VERSION = '2026-08-30.47';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -8152,9 +8152,20 @@ function _rebuildSubtitleSegments() {
       _lastElevenLabsAlignment.characters &&
       _lastElevenLabsAlignment.character_start_times_seconds &&
       _lastElevenLabsAlignment.character_end_times_seconds) {
-    const totalDurSec = (_voiceAudioDuration && _voiceAudioDuration > 0)
-      ? _voiceAudioDuration
-      : (_lastElevenLabsAlignment.character_end_times_seconds[_lastElevenLabsAlignment.character_end_times_seconds.length - 1] + 0.5);
+    // v.47: usar la MISMA duración total real que usará el motor de animación
+    // (startVideoAnimation → _nivaAlignmentDurations), NO una estimación previa
+    // (videoDurationSeconds), para que el guion en pantalla avance exactamente al
+    // mismo ritmo que las escenas y no termine de mostrarse antes de tiempo.
+    let totalDurSec = null;
+    if (typeof vidScenes !== 'undefined' && vidScenes.length > 0) {
+      const alignedDurMsPreview = _nivaAlignmentDurations(vidScenes, script);
+      if (alignedDurMsPreview) totalDurSec = alignedDurMsPreview.reduce((a, b) => a + b, 0) / 1000;
+    }
+    if (!totalDurSec) {
+      totalDurSec = (_voiceAudioDuration && _voiceAudioDuration > 0)
+        ? _voiceAudioDuration
+        : (_lastElevenLabsAlignment.character_end_times_seconds[_lastElevenLabsAlignment.character_end_times_seconds.length - 1] + 0.5);
+    }
     vidSubtitleSegments = buildCaptionsFromAlignment(_lastElevenLabsAlignment, totalDurSec);
     return;
   }
@@ -8254,18 +8265,20 @@ function buildCaptionsFromAlignment(alignment, totalDurSec) {
   // ── Paso 3: convertir tiempos de audio (segundos) a fracciones del video total ──
   // El audio y el video arrancan simultáneamente en t=0 — no hay offset de hook.
   // Los timestamps de ElevenLabs son directamente el tiempo en el video.
-  // Normalizamos contra la duración real del video (videoDurationSeconds), que es
-  // exactamente el mismo TOTAL que usa el render loop (time-based, no frame-based).
+  // Normalizamos contra totalDurSec (parámetro de esta función) — YA es la duración
+  // total real calculada en _rebuildSubtitleSegments() con la misma fuente de verdad
+  // (_nivaAlignmentDurations) que usará el render loop. NO usar videoDurationSeconds:
+  // es solo una estimación previa (duración fija elegida o calculada por umbrales
+  // gruesos en resolveVideoDuration) que casi nunca coincide con la duración real de
+  // la voz, y comprimía/estiraba los captions haciendo que el guion en pantalla
+  // avanzara mucho más rápido que las escenas.
   const CAPTION_GAP_SEC = 0.04; // 40ms de gap entre captions para evitar ghost text
 
-  // videoDurationSeconds = finalDuration, seteado antes de _rebuildSubtitleSegments().
-  // Es la fuente de verdad del render loop. Fallback: suma de escenas o totalDurSec + margen.
-  let totalVideoSec = 30; // fallback
-  if (typeof videoDurationSeconds === 'number' && videoDurationSeconds > 0) {
+  let totalVideoSec = (totalDurSec && totalDurSec > 0) ? totalDurSec : 30; // fallback
+  if (!(totalDurSec > 0) && typeof videoDurationSeconds === 'number' && videoDurationSeconds > 0) {
     totalVideoSec = videoDurationSeconds;
-  } else if (typeof vidScenes !== 'undefined' && vidScenes.length > 0) {
+  } else if (!(totalDurSec > 0) && typeof vidScenes !== 'undefined' && vidScenes.length > 0) {
     totalVideoSec = vidScenes.reduce((s, sc) => s + (sc.duracion || sc.duracion_seg || 2), 0);
-    if (totalVideoSec < totalDurSec + 1) totalVideoSec = totalDurSec + 1;
   }
 
   const result = [];
