@@ -560,13 +560,11 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
   <div class="fg">
     <label class="fl">⏱ Duración objetivo</label>
     <select class="fc" id="vid-duracion">
-      <option value="0">🤖 IA recomienda</option>
-      <option value="15">15 segundos</option>
       <option value="20">20 segundos</option>
-      <option value="30">30 segundos</option>
-      <option value="45">45 segundos</option>
-      <option value="60">60 segundos</option>
+      <option value="30" selected>30 segundos</option>
+      <option value="40">40 segundos</option>
     </select>
+    <p style="font-size:10px;color:#64748b;margin:3px 0 0;">Entre más segundos elijas, más escenas y más guion genera la IA. El video final siempre queda sincronizado con la duración real de la voz.</p>
   </div>
 </div>
 
@@ -916,17 +914,12 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
               </label>
             </div>
           </div>
-          <!-- Duración del Video -->
+          <!-- Duración del Video: se elige arriba en "Duración objetivo" al generar el guion —
+               ya no hay un segundo selector aquí, para evitar confusión (elegir aquí no hacía
+               nada real: el video siempre dura lo que tarda la voz en decir el guion). -->
           <div id="video-duration-selector" style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:10px;">
             <span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em">⏱️ Duración del Video</span>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
-              <label style="font-size:11px;cursor:pointer;"><input type="radio" name="videoDuration" value="auto" checked onchange="setVideoDuration(this.value)"> 🤖 IA recomienda</label>
-              <label style="font-size:11px;cursor:pointer;"><input type="radio" name="videoDuration" value="15" onchange="setVideoDuration(this.value)"> 15s</label>
-              <label style="font-size:11px;cursor:pointer;"><input type="radio" name="videoDuration" value="30" onchange="setVideoDuration(this.value)"> 30s</label>
-              <label style="font-size:11px;cursor:pointer;"><input type="radio" name="videoDuration" value="45" onchange="setVideoDuration(this.value)"> 45s</label>
-              <label style="font-size:11px;cursor:pointer;"><input type="radio" name="videoDuration" value="60" onchange="setVideoDuration(this.value)"> 60s</label>
-            </div>
-            <p id="duration-status" style="font-size:10px;color:#64748b;margin:3px 0 0;"></p>
+            <p id="duration-status" style="font-size:10px;color:#64748b;margin:5px 0 0;">Se elige arriba, en "Duración objetivo", al generar el guion (20s / 30s / 40s). El video final siempre queda sincronizado con la duración real de tu narración de voz.</p>
           </div>
           <!-- Volumen contextual -->
           <div id="audioVolPanel" style="margin-top:8px;">
@@ -1251,7 +1244,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.49';
+const NIVA_BUILD_VERSION = '2026-08-30.50';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -1423,11 +1416,17 @@ function setVideoDuration(val) {
 }
 
 function resolveVideoDuration(photoCount, scriptLength) {
-  if (videoDurationMode !== 'auto') return parseInt(videoDurationMode);
-  // IA recomienda: basado en fotos e info
-  if (scriptLength > 600 || photoCount > 8) return 45;
+  // Única fuente de verdad: el selector "Duración objetivo" del formulario inicial —
+  // el mismo que ya usa generarGuionConHook() para decidir cuántas palabras/escenas
+  // generar. Antes esta función leía un selector distinto (los radios "Duración del
+  // Video" del panel de generación) que nunca reflejaba lo elegido aquí — por eso
+  // elegir "30s" no cambiaba nada: el guion ya se había generado para otra duración.
+  const sel = parseInt(document.getElementById('vid-duracion')?.value || '0', 10);
+  if (sel > 0) return sel;
+  // Respaldo si el selector no está disponible por algún motivo
+  if (scriptLength > 600 || photoCount > 8) return 40;
   if (scriptLength > 300 || photoCount > 5) return 30;
-  return 30; // default inmobiliario
+  return 30;
 }
 
 function buildSlideTimeline(scenes, totalDuration) {
@@ -6984,7 +6983,7 @@ FOTOS DISPONIBLES: ${photos.length} (foto_idx: 0 a ${Math.max(photos.length-1,0)
 
 INSTRUCCIONES DE NARRATIVA:
 - Estructura: HOOK → CONTEXTO → RECORRIDO → WOW → PRECIO → CTA
-- Genera entre 8 y 12 visual beats (escenas) según duración objetivo
+- Genera aproximadamente ${durTarget <= 22 ? '6 a 8' : durTarget <= 33 ? '9 a 11' : '11 a 14'} visual beats (escenas) — MÁS escenas para videos más largos, MENOS para más cortos; esto es proporcional a la DURACIÓN OBJETIVO de arriba, no un número fijo
 - RITMO VARIABLE (el CD decide): hook 0.8-1.5s | detalle 0.7-1.2s | foto normal 1.0-1.8s | importante 1.5-2.2s | WOW 2.0-2.8s | hero hasta 3s | respiración 1.8-2.5s | precio 1.5-2.2s | CTA 3.5-4.5s
 - MÁXIMO 2 escenas de respiración (respiracion:true) por video
 - NO repetir misma foto dos veces seguidas si hay fotos disponibles
