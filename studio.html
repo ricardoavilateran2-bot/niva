@@ -1238,7 +1238,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.58';
+const NIVA_BUILD_VERSION = '2026-08-30.59';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -7505,13 +7505,25 @@ function _nivaClearVoiceStale() {
   if (hint) hint.style.display = 'none';
 }
 
+// Asegura puntuación final (. ! ? …) en el fragmento de voz de una escena ANTES de
+// unirlo con el de la siguiente — a petición de Ricardo, para que al armar el guion
+// completo las palabras de una escena nunca se peguen con las de la escena siguiente
+// (ej. "espacios amplios" + "cocina de chef" sin punto quedaría "espacios ampliosCocina
+// de chef"). No modifica el texto que el asesor ve/edita en la escena — solo la copia
+// que se usa para construir el guion completo que realmente lee ElevenLabs.
+function _nivaEnsureSentenceEnd(txt) {
+  const t = (txt || '').trim();
+  if (!t) return t;
+  return /[.!?…]$/.test(t) ? t : t + '.';
+}
+
 function _updateSceneNarracion(idx, val) {
   if (!vidScenes[idx]) return;
   vidScenes[idx].narracion_frag = val || '';
   // El guión completo (el que realmente lee la voz y sincroniza los subtítulos) se
   // reconstruye uniendo el fragmento de cada escena, en orden, para que quede sincronizado
   // con lo que el asesor acaba de editar en esta escena.
-  const full = vidScenes.map(s => (s.narracion_frag || '').trim()).filter(Boolean).join('\n\n');
+  const full = vidScenes.map(s => _nivaEnsureSentenceEnd(s.narracion_frag)).filter(Boolean).join('\n\n');
   const ta = document.getElementById('vid-script-ta');
   if (ta) {
     ta.value = full;
@@ -7525,7 +7537,7 @@ function _updateSceneNarracion(idx, val) {
 // narración de cada escena, en orden — se usa después de agregar/quitar/reordenar escenas,
 // donde el guión pudo cambiar de forma estructural (no solo texto de una escena).
 function _syncScriptFromScenes() {
-  const full = vidScenes.map(s => (s.narracion_frag || '').trim()).filter(Boolean).join('\n\n');
+  const full = vidScenes.map(s => _nivaEnsureSentenceEnd(s.narracion_frag)).filter(Boolean).join('\n\n');
   const ta = document.getElementById('vid-script-ta');
   if (ta) { ta.value = full; vidCountChars(); }
 }
