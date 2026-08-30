@@ -914,13 +914,6 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
               </label>
             </div>
           </div>
-          <!-- Duración del Video: se elige arriba en "Duración objetivo" al generar el guion —
-               ya no hay un segundo selector aquí, para evitar confusión (elegir aquí no hacía
-               nada real: el video siempre dura lo que tarda la voz en decir el guion). -->
-          <div id="video-duration-selector" style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:10px;">
-            <span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em">⏱️ Duración del Video</span>
-            <p id="duration-status" style="font-size:10px;color:#64748b;margin:5px 0 0;">Se elige arriba, en "Duración objetivo", al generar el guion (20s / 30s / 40s). El video final siempre queda sincronizado con la duración real de tu narración de voz.</p>
-          </div>
           <!-- Volumen contextual -->
           <div id="audioVolPanel" style="margin-top:8px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
@@ -1244,7 +1237,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.50';
+const NIVA_BUILD_VERSION = '2026-08-30.51';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
