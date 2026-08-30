@@ -797,10 +797,12 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
       <div id="vid-config-body">
         <!-- NARRACIÓN / AUDIO (2 opciones únicas) -->
         <div style="margin-bottom:14px;border-bottom:1px solid #e2e8f0;padding-bottom:14px">
-          <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">🎙️ Audio / Narración</div>
+          <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">🎙️ Voz (ElevenLabs)</div>
 
-          <!-- Opción 1: ElevenLabs -->
-          <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#1e293b;cursor:pointer;padding:10px 12px;border-radius:10px;border:2px solid #1B2A4A;background:#eef2ff;margin-bottom:6px">
+          <!-- Opción 1: ElevenLabs — único proveedor de voz; el radio se deja oculto -->
+          <!-- (marcado/checked) para no tocar la lógica de getActiveVoiceProvider() / -->
+          <!-- onVoiceProviderChange() que usan otras partes del código. -->
+          <label style="display:none;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#1e293b;cursor:pointer;padding:10px 12px;border-radius:10px;border:2px solid #1B2A4A;background:#eef2ff;margin-bottom:6px">
             <input type="radio" name="voiceProvider" value="elevenlabs" checked onchange="onVoiceProviderChange()" style="accent-color:#1B2A4A">
             🎙️ ElevenLabs
           </label>
@@ -844,8 +846,9 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
             </div>
           </div>
 
-          <!-- Opción 2: Audio propio -->
-          <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#1e293b;cursor:pointer;padding:10px 12px;border-radius:10px;border:2px solid #e2e8f0;background:#f8fafc;margin-bottom:6px" id="audioUploadLabel">
+          <!-- Opción 2: Audio propio — desactivada a petición de Ricardo (nunca la usa). -->
+          <!-- Se deja el radio/panel en el DOM (ocultos) por si se quiere reactivar. -->
+          <label style="display:none;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#1e293b;cursor:pointer;padding:10px 12px;border-radius:10px;border:2px solid #e2e8f0;background:#f8fafc;margin-bottom:6px" id="audioUploadLabel">
             <input type="radio" name="voiceProvider" value="upload" onchange="onVoiceProviderChange()" style="accent-color:#1B2A4A">
             📁 Subir mi propio audio
           </label>
@@ -919,8 +922,10 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
               🎙️🎵 Voz + música
             </label>
           </div>
-          <!-- Modo Cámara -->
-          <div style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:10px;">
+          <!-- Modo Cámara — oculto a petición de Ricardo: "las dos versiones son -->
+          <!-- iguales, mejor dame por default la normal". Se deja el bloque en el DOM -->
+          <!-- (display:none) con "normal" marcado, que ya es el valor por defecto. -->
+          <div style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:10px;display:none">
             <span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em">🎥 Movimiento de Cámara</span>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center;">
               <label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;">
@@ -1269,7 +1274,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.61';
+const NIVA_BUILD_VERSION = '2026-08-30.62';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -12511,8 +12516,6 @@ function renderNivaTrackList() {
     <div id="nivaCard_${t.id}" style="background:#f8fafc;border-radius:10px;padding:10px 12px;margin-bottom:7px;border:1.5px solid ${sel ? '#16a34a' : '#e2e8f0'};">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
         <span id="npName_${t.id}" style="font-weight:700;color:#1e293b;font-size:13px;flex:1;">${t.displayName}</span>
-        <button onclick="nivaEditName('${t.id}')" title="Editar nombre"
-          style="background:none;border:none;cursor:pointer;font-size:11px;color:#94a3b8;padding:0;">✏️</button>
       </div>
       <div style="margin-bottom:6px;">
         <div style="background:#e2e8f0;border-radius:3px;height:3px;overflow:hidden;margin-bottom:2px;">
