@@ -1238,7 +1238,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.56';
+const NIVA_BUILD_VERSION = '2026-08-30.57';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -8930,13 +8930,22 @@ async function playVideoEL() {
   if (vidSubtitlesEnabled && script) _rebuildSubtitleSegments();
   else if (!script) vidSubtitleSegments = [];
 
-  vidImages = []; vidScaledImages = [];
+  vidScaledImages = [];
   const photoList = photos.length > 0 ? photos.slice(0, 15) : [null]; // hasta 15 fotos
-  await Promise.all(photoList.map(u => new Promise(res => {
-    if (!u) { vidImages.push(null); res(); return; }
+  // IMPORTANTE: se preasigna el arreglo por índice (no por orden de llegada) para
+  // que vidImages[i] SIEMPRE corresponda a photos[i] / photoList[i], sin importar
+  // qué imagen termine de cargar primero. Antes se usaba vidImages.push(...) dentro
+  // de cada callback async — el orden de llegada de red/caché no está garantizado,
+  // así que las fotos podían quedar revueltas respecto al foto_idx que la IA y las
+  // escenas usan, causando que una escena mostrara una foto distinta a la que
+  // describe su texto/voz (el "desfase" reportado, que en realidad no era de audio
+  // sino de fotos mal indexadas).
+  vidImages = new Array(photoList.length).fill(null);
+  await Promise.all(photoList.map((u, _nivaImgI) => new Promise(res => {
+    if (!u) { res(); return; }
     const img = new Image();
-    img.onload = () => { vidImages.push(img); res(); };
-    img.onerror = () => { vidImages.push(null); res(); };
+    img.onload = () => { vidImages[_nivaImgI] = img; res(); };
+    img.onerror = () => { res(); };
     img.src = u;
   })));
   // Pre-escalar todas las imágenes UNA SOLA VEZ al tamaño de render
