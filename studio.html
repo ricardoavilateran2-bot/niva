@@ -1181,8 +1181,8 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         <button type="button" class="btn-dl" style="width:100%;justify-content:center;margin-top:8px" id="btn-ia-ask" onclick="nivaPreguntarIA()">🤔 Preguntar</button>
         <div id="ia-ask-loading" style="display:none;text-align:center;padding:10px;font-size:12px;color:#64748b">🤖 Pensando…</div>
         <div id="ia-ask-answer" style="margin-top:10px"></div>
-        <button type="button" class="btn-play" style="width:100%;justify-content:center;margin-top:10px;background:linear-gradient(135deg,#16a34a,#15803d)" id="btn-ia-apply" onclick="nivaAplicarCambiosIA()">🛠️ Aplicar estos cambios al video</button>
-        <p style="font-size:9.5px;color:#94a3b8;text-align:center;margin:4px 0 0">Usa lo último que te haya dicho "Analizar video completo" o tu pregunta — solo ajustes finos y puntuales: duración/temporización y pequeñas correcciones de guion. Nunca cambia fotos, ni precio, ubicación o portada, ni reestructura el video.</p>
+        <button type="button" class="btn-play" style="width:100%;justify-content:center;margin-top:10px;background:linear-gradient(135deg,#16a34a,#15803d)" id="btn-ia-apply" onclick="nivaAplicarCambiosIA()">🛠️ Revisar y corregir todo de una vez</button>
+        <p style="font-size:9.5px;color:#94a3b8;text-align:center;margin:4px 0 0">La IA revisa TODO el video de una sola vez (duración/temporización de cada escena y pequeñas correcciones de guion) y aplica todo junto — no hace falta "Analizar" primero. Nunca cambia fotos, ni precio, ubicación o portada, ni reestructura el video.</p>
         <div id="ia-apply-loading" style="display:none;text-align:center;padding:10px;font-size:12px;color:#64748b">🛠️ Aplicando cambios…</div>
         <div id="ia-apply-result" style="margin-top:10px"></div>
       </div>
@@ -1251,7 +1251,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.48';
+const NIVA_BUILD_VERSION = '2026-08-30.49';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -7911,10 +7911,6 @@ function _nivaAllPhotoParts() {
 
 async function nivaAplicarCambiosIA() {
   if (!vidV) { vidStatus('⚠️ Primero genera el guion del video.', 'err'); return; }
-  if (!_nivaLastReviewData && !_nivaLastAskQA) {
-    vidStatus('⚠️ Primero usa "Analizar video completo" o pregúntale algo a la IA — así sabe qué cambios aplicar.', 'err');
-    return;
-  }
 
   const btn = document.getElementById('btn-ia-apply');
   const loading = document.getElementById('ia-apply-loading');
@@ -7949,7 +7945,7 @@ ${scenesTxt}
 
 ${sugerenciasTxt}`;
 
-    const instructions = `Eres un editor de video inmobiliario para NIVA Inmobiliaria. El asesor te pidió aplicar los cambios sugeridos arriba, pero SOLO quiere ajustes FINOS y PUNTUALES — no una reescritura ni una reestructuración del video. El asesor ya construyó y organizó el video a propósito (incluyendo qué foto va en cada escena) — respeta esa estructura.
+    const instructions = `Eres un editor de video inmobiliario para NIVA Inmobiliaria. El asesor quiere que revises TODO el video de una sola vez y corrijas TODOS los detalles finos que encuentres en esta misma pasada — no quiere aplicar cambios varias veces y que le sigan saliendo cosas nuevas cada vez. Si hay un análisis previo o una pregunta del asesor más abajo, tómalos en cuenta, pero además de eso revisa TÚ MISMO cada escena, una por una, buscando: frases incompletas, muletillas, faltas de ortografía o gramática, texto en pantalla que no calza bien, y escenas donde la voz podría necesitar un poco más o menos tiempo para no cortarse o para no dejar tiempo muerto. Sé exhaustivo — esta es la única pasada. El asesor ya construyó y organizó el video a propósito (incluyendo qué foto va en cada escena) — respeta esa estructura: solo ajustas detalles finos y puntuales, NUNCA una reescritura ni una reestructuración del video.
 
 REGLAS ESTRICTAS (no negociables):
 - NUNCA cambies, agregues ni quites fotos de ninguna escena — no existe forma de tocar eso desde aquí, ni lo intentes.
@@ -7963,7 +7959,7 @@ Solo puedes ajustar, escena por escena, estos 3 campos: duración (duracion_seg)
 
 Responde en JSON con SOLO los cambios necesarios (si un campo de una escena no cambia, NO lo incluyas):
 {
-  "resumen_cambios": "1-2 frases explicando qué cambiaste y por qué",
+  "resumen_cambios": "1-2 frases explicando qué revisaste y qué corregiste",
   "escenas": [
     {"num": 3, "narracion_frag": "texto corregido, mismo contenido salvo el detalle puntual", "texto_pantalla": "TEXTO EN PANTALLA", "duracion_seg": 2.0}
   ]
@@ -7971,7 +7967,7 @@ Responde en JSON con SOLO los cambios necesarios (si un campo de una escena no c
 Reglas:
 - "num" es el número de escena tal como aparece en ESCENAS ACTUALES (empieza en 1).
 - Incluye solo los campos que realmente cambian para esa escena — si una escena no cambia, no la incluyas.
-- Si no encuentras cambios claros y puntuales que aplicar, regresa {"resumen_cambios":"No encontré cambios puntuales que aplicar.","escenas":[]}`;
+- Si después de revisar todo no encuentras cambios claros y puntuales que aplicar, regresa {"resumen_cambios":"Revisé todo el video y no encontré cambios puntuales que aplicar — está bien como está.","escenas":[]}`;
 
     const contentParts = [{ type: 'text', text: instructions + '\n\n' + contextTxt }];
 
@@ -9357,39 +9353,79 @@ function _nivaAlignmentDurations(scenes, ttsScript) {
   const ends = al.character_end_times_seconds;
   if (!chars.length || chars.length !== starts.length || chars.length !== ends.length) return null;
 
-  // CLAVE: buscar cada fragmento DENTRO DEL TEXTO PROPIO DE ELEVENLABS (chars.join(''), lo
-  // que realmente alineó), NO dentro de fullText (nuestro guion, con "\n\n" entre escenas).
-  // Antes buscábamos en fullText pero usábamos el índice encontrado para indexar los arrays
-  // starts/ends de ElevenLabs — si ElevenLabs no devuelve como caracteres alineados los
-  // saltos de línea u otros separadores estructurales (algo común en APIs de voz), un solo
-  // carácter de diferencia ANTES de un fragmento desfasaba el índice para siempre → tiempos
-  // por escena incorrectos → fotos cambiando muy rápido, guion desincronizado del audio EN
-  // TODO EL VIDEO. Buscando en alignedText, el índice encontrado SIEMPRE corresponde
-  // exactamente a esos arrays, sin importar cómo ElevenLabs haya normalizado el texto.
+  // Buscar cada fragmento DENTRO DEL TEXTO PROPIO DE ELEVENLABS (chars.join(''), lo que
+  // realmente alineó), NO dentro de fullText (nuestro guion) — así el índice encontrado
+  // siempre corresponde exactamente a los arrays starts/ends, sin importar cómo ElevenLabs
+  // haya normalizado el texto (ver v.46).
   const alignedText = chars.join('');
 
+  // v.49 — FIX REAL: escenas SIN narración (silenciosas — portada visual, WOW sin voz,
+  // CTA mudo, etc.) no aparecen en el texto que le mandamos a ElevenLabs, así que no
+  // tienen timestamp propio. Antes, CUALQUIER escena silenciosa hacía abortar TODO este
+  // sistema (return null), devolviendo el video ENTERO al reparto proporcional de
+  // siempre — la causa real de que el guion y las fotos se sintieran desincronizados de
+  // principio a fin en cualquier video con alguna escena muda. Ahora: las escenas CON
+  // narración se ubican con su timestamp real; las escenas SIN narración se insertan
+  // dentro del hueco de tiempo real entre la escena narrada anterior y la siguiente (o
+  // al inicio/final si no hay escena narrada de ese lado), repartidas según su propio
+  // peso de duracion_seg.
   let searchFrom = 0;
-  const ranges = scenes.map(s => {
-    const frag = (s.narracion_frag || '').trim();
-    if (!frag) return null;
+  const n = scenes.length;
+  const hasNarr = new Array(n).fill(false);
+  const startSec = new Array(n).fill(null);
+  const endSec = new Array(n).fill(null);
+  for (let i = 0; i < n; i++) {
+    const frag = (scenes[i].narracion_frag || '').trim();
+    if (!frag) continue; // escena silenciosa — se resuelve más abajo
     const idx = alignedText.indexOf(frag, searchFrom);
-    if (idx === -1) return null;
+    if (idx === -1) return null; // escena CON texto que no se pudo ubicar — no arriesgar
     searchFrom = idx + frag.length;
-    return { start: idx, end: idx + frag.length - 1 };
-  });
-  if (ranges.some(r => r === null)) return null; // algún fragmento no se ubicó — no arriesgar
+    hasNarr[i] = true;
+    startSec[i] = starts[Math.min(idx, chars.length - 1)];
+    endSec[i] = ends[Math.min(idx + frag.length - 1, chars.length - 1)];
+  }
+  if (!hasNarr.some(Boolean)) return null; // ninguna escena tiene narración — no hay ancla real
 
-  const startSec = ranges.map(r => starts[Math.min(r.start, chars.length - 1)]);
-  const endSec = ranges.map(r => ends[Math.min(r.end, chars.length - 1)]);
+  const durSec = new Array(n).fill(0);
+  const W = i => Math.max(0.3, scenes[i].duracion_seg || 2);
 
-  return scenes.map((s, i) => {
-    const realStart = startSec[i];
-    // Cada escena dura hasta que empieza a hablar la siguiente (incluye la pausa entre
-    // frases), así la foto se queda en pantalla mientras el narrador respira en vez de
-    // cambiar antes de tiempo. La última escena usa su propio cierre hablado + un remate.
-    const realEndBoundary = (i < scenes.length - 1) ? startSec[i + 1] : Math.max(endSec[i], realStart) + 1.2;
-    return Math.max(300, (realEndBoundary - realStart) * 1000);
-  });
+  let i = 0;
+  // Escenas silenciosas AL INICIO (antes de la primera narrada): sin ancla real de
+  // arranque — usan su propia duracion_seg tal cual.
+  while (i < n && !hasNarr[i]) { durSec[i] = W(i); i++; }
+
+  while (i < n) {
+    // scenes[i] es narrada. Buscar la próxima escena narrada.
+    let j = i + 1;
+    while (j < n && !hasNarr[j]) j++;
+    const silentBlock = [];
+    for (let k = i + 1; k < j; k++) silentBlock.push(k);
+
+    if (j < n) {
+      const gap = Math.max(0.3, startSec[j] - startSec[i]);
+      if (!silentBlock.length) {
+        // Sin escenas mudas entre ellas: la escena dura hasta que empieza a hablar la
+        // siguiente (incluye la pausa entre frases) — comportamiento de siempre.
+        durSec[i] = gap;
+      } else {
+        // Repartir el hueco real entre la escena narrada (su duración natural de habla)
+        // y las escenas mudas que le siguen (según su propio peso de duracion_seg).
+        const naturalSpeak = Math.max(0.3, endSec[i] - startSec[i]);
+        const totalSilentW = silentBlock.reduce((a, k) => a + W(k), 0) || 1;
+        const remaining = Math.max(0.3 * silentBlock.length, gap - naturalSpeak);
+        durSec[i] = Math.max(0.3, gap - remaining);
+        silentBlock.forEach(k => { durSec[k] = remaining * (W(k) / totalSilentW); });
+      }
+    } else {
+      // Última escena narrada: su cierre hablado + un remate. Las escenas mudas
+      // finales (sin ancla real de cierre) usan su propia duracion_seg tal cual.
+      durSec[i] = Math.max(0.3, endSec[i] - startSec[i]) + 1.2;
+      silentBlock.forEach(k => { durSec[k] = W(k); });
+    }
+    i = j;
+  }
+
+  return durSec.map(s => Math.max(300, s * 1000));
 }
 
 // ── ANIMACIÓN ── (motor cinematográfico — time-based, no frame-based)
