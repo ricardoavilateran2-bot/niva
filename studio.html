@@ -1238,7 +1238,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.54';
+const NIVA_BUILD_VERSION = '2026-08-30.55';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -7867,31 +7867,28 @@ function _nivaRenderReview(parsed) {
     html += `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:5px">✅ Checklist</div>`;
     html += checklist.map(c => `<div style="font-size:11.5px;padding:5px 9px;margin-bottom:4px;border-radius:6px;background:${c.ok ? '#f0fdf4' : '#fef3c7'};color:${c.ok ? '#15803d' : '#b45309'}">${c.ok ? '✅' : '⚠️'} ${_escVidHtml(c.item || '')}</div>`).join('');
   }
-  const notaBlockChecked = (title, catName) => {
-    const items = _nivaReviewCheckItems.map((it, idx) => ({ cat: it.cat, text: it.text, idx })).filter(it => it.cat === catName);
+  // Estas notas (checklist pendiente / guion / ritmo / fotos vs. escenas) son solo
+  // informativas — ya no llevan checkbox propio ni botón propio. La única acción que
+  // aplica cambios reales en todo el análisis es "✨ Cambios recomendados por IA" más
+  // abajo, con su único conjunto de checkboxes y su único botón.
+  const notaBlock = (title, catName) => {
+    const items = _nivaReviewCheckItems.filter(it => it.cat === catName);
     if (!items.length) return '';
     return `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin:10px 0 5px">${title}</div>` +
-      items.map(it => `<label style="display:flex;gap:7px;align-items:flex-start;font-size:11.5px;padding:6px 9px;margin-bottom:4px;border-radius:6px;background:#fef3c7;color:#b45309;cursor:pointer"><input type="checkbox" class="ia-note-check" data-idx="${it.idx}" checked style="margin-top:2px;accent-color:#16a34a;flex-shrink:0"><span>${_escVidHtml(it.text)}</span></label>`).join('');
+      items.map(it => `<div style="font-size:11.5px;padding:6px 9px;margin-bottom:4px;border-radius:6px;background:#fef3c7;color:#b45309">🟡 ${_escVidHtml(it.text)}</div>`).join('');
   };
-  html += notaBlockChecked('✅ Checklist pendiente', 'Checklist');
-  html += notaBlockChecked('✏️ Guion', 'Guion');
-  html += notaBlockChecked('⏱️ Ritmo', 'Ritmo');
-  html += notaBlockChecked('🖼️ Fotos vs. escenas', 'Fotos vs. escenas');
+  html += notaBlock('✅ Checklist pendiente', 'Checklist');
+  html += notaBlock('✏️ Guion', 'Guion');
+  html += notaBlock('⏱️ Ritmo', 'Ritmo');
+  html += notaBlock('🖼️ Fotos vs. escenas', 'Fotos vs. escenas');
 
   if (!_nivaReviewCheckItems.length) {
     html += `<div style="font-size:11.5px;padding:8px 10px;border-radius:6px;background:#f0fdf4;color:#15803d">✅ Todo se ve bien — sin observaciones que corregir.</div>`;
-  } else {
-    html += `<div style="display:flex;gap:12px;margin:8px 0 2px;font-size:10.5px">
-      <a href="#" onclick="document.querySelectorAll('.ia-note-check').forEach(c=>c.checked=true);return false;" style="color:#64748b">☑️ Marcar todos</a>
-      <a href="#" onclick="document.querySelectorAll('.ia-note-check').forEach(c=>c.checked=false);return false;" style="color:#64748b">⬜ Desmarcar todos</a>
-    </div>
-    <button type="button" class="btn-play" style="width:100%;justify-content:center;margin-top:8px;background:linear-gradient(135deg,#16a34a,#15803d)" id="btn-ia-apply-selected" onclick="nivaAplicarCambiosSeleccionados()">✅ Corregir los puntos marcados</button>
-    <div id="ia-apply-selected-loading" style="display:none;text-align:center;padding:10px;font-size:12px;color:#64748b">🛠️ Aplicando los puntos marcados…</div>
-    <div id="ia-apply-selected-result" style="margin-top:10px"></div>`;
   }
 
-  // Sección nueva: cambios concretos y aplicables (ANALIZAR → PROPONER → SELECCIONAR →
-  // APLICAR). No reemplaza nada de arriba — se agrega al final del mismo análisis.
+  // Cambios concretos y aplicables (ANALIZAR → PROPONER → SELECCIONAR → APLICAR).
+  // Es la ÚNICA sección con checkboxes y con un botón que aplica cambios de verdad —
+  // no existe otro botón equivalente en ninguna otra parte de la pantalla.
   html += _nivaRenderCambiosRecomendados(parsed.cambios_recomendados);
 
   results.innerHTML = html;
@@ -8031,103 +8028,6 @@ function nivaAplicarCambiosRecomendadosConfirmado() {
 
   if (resultBox) resultBox.innerHTML = html;
   if (confirmBox) confirmBox.innerHTML = '';
-}
-
-// Toma SOLO los puntos que el asesor marcó con checkbox en el análisis (guion,
-// ritmo, fotos vs. escenas, checklist pendiente) y le pide a la IA que corrija
-// específicamente esos — a diferencia del barrido general, aquí no se le pide
-// que revise todo el video por su cuenta, solo que resuelva lo marcado.
-async function nivaAplicarCambiosSeleccionados() {
-  if (!vidV) { vidStatus('⚠️ Primero genera el guion del video.', 'err'); return; }
-  const checks = Array.from(document.querySelectorAll('.ia-note-check:checked'));
-  const resultBox = document.getElementById('ia-apply-selected-result');
-  if (!checks.length) {
-    if (resultBox) resultBox.innerHTML = `<div class="vid-warning">⚠️ No marcaste ningún punto para corregir.</div>`;
-    return;
-  }
-  const puntos = checks.map(ch => {
-    const idx = parseInt(ch.dataset.idx, 10);
-    const item = _nivaReviewCheckItems[idx];
-    return item ? `- [${item.cat}] ${item.text}` : null;
-  }).filter(Boolean);
-
-  const btn = document.getElementById('btn-ia-apply-selected');
-  const loading = document.getElementById('ia-apply-selected-loading');
-  if (btn) btn.disabled = true;
-  if (loading) loading.style.display = 'block';
-  if (resultBox) resultBox.innerHTML = '';
-
-  try {
-    const v = vidV;
-    const ta = document.getElementById('vid-script-ta');
-    const scriptTxt = (ta && ta.value) ? ta.value.trim() : '';
-    const scenesTxt = (vidScenes || []).map((s, i) => `${i + 1}. [${s.funcion || '—'}] Duración: ${(parseFloat(s.duracion_seg) || 0).toFixed(1)}s | Pantalla: "${s.texto_pantalla || ''}" | Voz: "${s.narracion_frag || ''}"`).join('\n');
-
-    const contextTxt = `PROPIEDAD: ${v.tipo || 'N/D'} en ${v.op || 'N/D'}, ${v.col || 'N/D'}, ${(v.city || 'Monterrey').split(',')[0]}. Precio: ${fmtP(v.price)}${v.esMes ? ' al mes' : ''}.
-
-GUION ACTUAL:
-"""
-${scriptTxt}
-"""
-
-ESCENAS ACTUALES (número. función | duración | texto en pantalla | voz | foto actual):
-${scenesTxt}
-
-PUNTOS QUE EL ASESOR MARCÓ PARA CORREGIR (corrígelos TODOS si es técnicamente posible con los campos permitidos — no digas "ya está bien" salvo que de verdad no se pueda aplicar):
-${puntos.join('\n')}`;
-
-    const instructions = `Eres un editor de video inmobiliario para NIVA Inmobiliaria. El asesor revisó el análisis de la IA y marcó, con checkboxes, EXACTAMENTE los puntos que quiere corregidos (abajo, en "PUNTOS QUE EL ASESOR MARCÓ"). Corrige cada uno de ellos.
-
-REGLAS ESTRICTAS (no negociables):
-- NUNCA cambies, agregues ni quites fotos de ninguna escena.
-- NUNCA inventes escenas nuevas, elimines escenas, ni cambies el orden de las escenas.
-- NUNCA cambies precio, ubicación ni portada.
-- Si un punto marcado es sobre que el TEXTO no combina con la foto de esa escena, la corrección correcta es AJUSTAR EL TEXTO (texto_pantalla y/o narracion_frag) para que sí describa lo que se ve en esa foto — esto SÍ debes hacerlo, es tu forma principal de resolver un desajuste foto-texto.
-- No reescribas guiones completos — corrige solo lo puntual que resuelve cada punto marcado.
-- Los ajustes de duración deben ser pequeños y con un propósito claro (p.ej. dar medio segundo más para que la voz no se corte).
-
-Solo puedes ajustar, escena por escena, estos 3 campos: duración (duracion_seg), texto en pantalla (texto_pantalla) y pequeñas correcciones al texto de la voz (narracion_frag).
-
-Responde en JSON con SOLO los cambios necesarios (si un campo de una escena no cambia, NO lo incluyas):
-{
-  "resumen_cambios": "1-2 frases explicando qué corregiste de los puntos marcados",
-  "escenas": [
-    {"num": 3, "narracion_frag": "texto corregido", "texto_pantalla": "TEXTO EN PANTALLA", "duracion_seg": 2.0}
-  ]
-}
-Reglas:
-- "num" es el número de escena tal como aparece en ESCENAS ACTUALES (empieza en 1).
-- Incluye solo los campos que realmente cambian para esa escena.
-- Intenta resolver CADA punto marcado — solo deja algo sin resolver si de verdad no se puede con los campos permitidos, y explícalo en resumen_cambios.`;
-
-    const contentParts = [{ type: 'text', text: instructions + '\n\n' + contextTxt }];
-
-    const oaKey = getOaKey();
-    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + oaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: contentParts }]
-      })
-    }, 90000);
-
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error((e && e.error && e.error.message) || ('Error IA ' + res.status));
-    }
-    const data = await res.json();
-    const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-    _nivaApplySceneEdits(parsed, 'ia-apply-selected-result');
-  } catch (e) {
-    console.error('[NIVA][IA_APPLY_SEL]', e);
-    if (resultBox) resultBox.innerHTML = `<div class="vid-warning">❌ No se pudieron aplicar los cambios: ${_escVidHtml(e.message || String(e))}</div>`;
-  } finally {
-    if (btn) btn.disabled = false;
-    if (loading) loading.style.display = 'none';
-  }
 }
 
 // Pregunta libre — "cualquier cosa", incluso fuera de lo que hoy se puede editar en la
