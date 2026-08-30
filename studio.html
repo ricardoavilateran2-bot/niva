@@ -1131,6 +1131,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px" id="vid-diag-grid"></div>
         <div id="vid-diag-checks" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
       </div>
+      <div id="vid-voice-stale-hint" style="display:none;font-size:11px;color:#b45309;background:#fef3c7;border-radius:8px;padding:8px 11px;margin-bottom:8px;text-align:center">🔄 Editaste el guion — dale a "Generar Video" para sincronizar los subtítulos con precisión (los que ves ahora son un estimado).</div>
       <div class="video-controls">
         <button class="btn-play" id="btn-play-video" onclick="playVideoEL()">🎬 Generar Video</button>
         <button class="btn-stop" id="btn-stop-video" onclick="stopVideo()" style="display:none">⏹ Detener</button>
@@ -1237,7 +1238,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.52';
+const NIVA_BUILD_VERSION = '2026-08-30.53';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -7481,6 +7482,25 @@ function _updateSceneCaption(idx, val) {
   // Texto en pantalla: igual que el resto del guión, en mayúsculas y corto (máx. 40 caracteres).
   vidScenes[idx].texto_pantalla = (val || '').toUpperCase().slice(0, 40);
 }
+// El guion completo cambió "de verdad" (texto de una escena, orden de escenas, o una
+// escena eliminada) — el alignment real de ElevenLabs que teníamos guardado ya no
+// corresponde a lo que dice el guion ahora (es de un audio viejo, con otro texto).
+// Se limpia para que los subtítulos usen el cálculo estimado hasta que se vuelva a
+// generar la voz — evita mostrar tiempos reales de un audio que ya no coincide.
+let _nivaVoiceStale = false;
+function _nivaMarkVoiceStale() {
+  _nivaVoiceStale = true;
+  _lastElevenLabsAlignment = null;
+  _voiceAudioDuration = 0;
+  const hint = document.getElementById('vid-voice-stale-hint');
+  if (hint) hint.style.display = 'block';
+}
+function _nivaClearVoiceStale() {
+  _nivaVoiceStale = false;
+  const hint = document.getElementById('vid-voice-stale-hint');
+  if (hint) hint.style.display = 'none';
+}
+
 function _updateSceneNarracion(idx, val) {
   if (!vidScenes[idx]) return;
   vidScenes[idx].narracion_frag = val || '';
@@ -7492,6 +7512,7 @@ function _updateSceneNarracion(idx, val) {
   if (ta) {
     ta.value = full;
     vidCountChars();
+    _nivaMarkVoiceStale();
     _rebuildSubtitleSegments();
   }
 }
@@ -7543,6 +7564,7 @@ function _moveScene(idx, dir) {
   vidScenes[idx] = vidScenes[j];
   vidScenes[j] = tmp;
   _renumberScenes();
+  _nivaMarkVoiceStale(); // reordenar cambia el orden del guion completo que lee la voz
   renderScenes();
 }
 
@@ -7551,6 +7573,7 @@ function _deleteScene(idx) {
   if (vidScenes.length <= 1) { alert('Debe quedar al menos una escena en el video.'); return; }
   vidScenes.splice(idx, 1);
   _renumberScenes();
+  _nivaMarkVoiceStale(); // eliminar una escena puede quitar texto que ya estaba en el audio
   renderScenes();
 }
 
@@ -8732,6 +8755,7 @@ async function getElevenLabsAudio(script, apiKey, voiceId) {
     // Restaurar alignment del cache si existe
     if (voiceCache[cKey].alignment) {
       _lastElevenLabsAlignment = voiceCache[cKey].alignment;
+      _nivaClearVoiceStale(); // este alignment sí corresponde exactamente al guion actual
     }
     return voiceCache[cKey].blob;
   }
@@ -8774,6 +8798,7 @@ async function getElevenLabsAudio(script, apiKey, voiceId) {
 
   // Guardar alignment globalmente para buildCaptionsFromAlignment
   _lastElevenLabsAlignment = alignment;
+  _nivaClearVoiceStale(); // audio y alignment nuevos — ya corresponden al guion actual
 
   voiceCache[cKey] = { blob, audioUrl: URL.createObjectURL(blob), alignment };
   _lastVoiceGen = { text: script, provider: 'elevenlabs', voice: voiceId, speed: '1.0' };
