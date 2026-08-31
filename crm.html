@@ -197,6 +197,14 @@ body[data-vista="tablero"] #buscar{max-width:640px}
 .card.esarchivada{opacity:.82}
 .estado{padding:0 14px 12px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut)}
 .estado select{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff}
+.notas{padding:12px 14px 14px;border-top:1px solid var(--border);margin-top:2px}
+.notas .nlabel{font-size:11px;font-weight:800;color:var(--mut);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
+.notas .ncampo{margin-bottom:8px}
+.notas .ncampo label{display:block;font-size:12px;color:var(--mut);margin-bottom:4px}
+.notas .ncampo input,.notas .ncampo textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;font-family:inherit;box-sizing:border-box}
+.notas .ncampo textarea{min-height:60px;resize:vertical}
+.notas .nguardarbtn{width:100%;padding:9px;background:var(--navy);color:#fff;border:0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-top:2px}
+.notas .nguardarbtn:disabled{opacity:.6}
 .editnombre{background:none;border:none;cursor:pointer;font-size:13px;padding:0 2px;vertical-align:middle;opacity:.6}
 .editnombre:hover{opacity:1}
 .nombrebox{padding:0 14px 12px;display:flex;gap:6px;flex-wrap:wrap}
@@ -857,7 +865,14 @@ function cardLead(l){
     +(ESADMIN?'<div class="tipofix"><span>Asesor:</span><select class="asel">'
       +'<option value="">— Sin asignar —</option>'
       +ASESORES.map(a=>'<option value="'+esc(a.id)+'"'+(a.id===l.advisor_id?' selected':'')+'>'+esc(a.n)+'</option>').join('')
-      +'</select></div>':'');
+      +'</select></div>':'')
+    +'<div class="notas">'
+    +'<div class="nlabel">📝 Notas del asesor</div>'
+    +'<div class="ncampo"><label>Zona que busca</label><input type="text" class="nzona" placeholder="Ej. San Pedro, Cumbres..." value="'+esc(l.zone_text||'')+'"></div>'
+    +'<div class="ncampo"><label>Presupuesto</label><input type="text" class="npresupuesto" placeholder="Ej. $2,500,000 - $3,000,000" value="'+esc(l.budget_text||'')+'"></div>'
+    +'<div class="ncampo"><label>Comentarios</label><textarea class="ncomentarios" placeholder="Notas sobre lo que busca el cliente...">'+esc(l.notes||'')+'</textarea></div>'
+    +'<button type="button" class="nguardarbtn">Guardar notas</button>'
+    +'</div>';
   const cajaMsg=d.querySelector('.msgreal');
   if(cajaMsg)cajaMsg.textContent=textoCliente(l);
   const nbox=d.querySelector('.nombrebox');
@@ -980,6 +995,19 @@ function cardLead(l){
     toast(nv?('Asignado a '+nom+' ✅'):'Lead sin asignar');
     // el servidor tambien asigna los demas leads huerfanos de esa propiedad
     await cargar();
+  };
+  const btnNotas=d.querySelector('.nguardarbtn');
+  if(btnNotas)btnNotas.onclick=async()=>{
+    const zone_text=d.querySelector('.nzona').value.trim()||null;
+    const budget_text=d.querySelector('.npresupuesto').value.trim()||null;
+    const notes=d.querySelector('.ncomentarios').value.trim()||null;
+    btnNotas.disabled=true;btnNotas.textContent='Guardando...';
+    const {error}=await sb.from('leads').update({zone_text,budget_text,notes}).eq('id',l.id);
+    btnNotas.disabled=false;btnNotas.textContent='Guardar notas';
+    if(error){toast('Error: no se pudo guardar');return}
+    l.zone_text=zone_text;l.budget_text=budget_text;l.notes=notes;
+    guardarCache();
+    toast('Notas guardadas ✅');
   };
   return d;
 }
