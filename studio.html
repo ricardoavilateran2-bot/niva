@@ -1273,7 +1273,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.66';
+const NIVA_BUILD_VERSION = '2026-08-30.67';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -6374,7 +6374,8 @@ function showDiagnostics(photoList, script, audioMode) {
     ).join('');
   }
 
-  panel.style.display = 'block';
+  // Ricardo pidió quitar este panel de la vista — se deja oculto.
+  panel.style.display = 'none';
   // NO auto-ocultar — permanece hasta que el video está listo o se detiene
 }
 
