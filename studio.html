@@ -4,8 +4,26 @@
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 (async()=>{
+  // Ricardo pidió que la app funcione bien en todos los dispositivos — en celular con
+  // señal débil, una falla de RED al pedir la configuración se estaba tratando igual
+  // que "no hay sesión" y mandaba al usuario de vuelta al login sin explicación. Ahora
+  // se distingue: sin conexión → pantalla de reintentar; sin sesión real → login (igual
+  // que antes).
+  const _nivaShowConnRetry = () => {
+    document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;font-family:Inter,Arial,sans-serif;background:#0b1220;color:#fff;padding:20px;text-align:center">'
+      + '<div style="font-size:15px;max-width:340px">⚠️ No se pudo conectar. Revisa tu conexión a internet e intenta de nuevo.</div>'
+      + '<button onclick="location.reload()" style="padding:10px 22px;border-radius:8px;border:none;background:#C9A84C;color:#0b1220;font-weight:700;cursor:pointer;font-size:14px">Reintentar</button>'
+      + '</div>';
+  };
+  let cfg;
   try{
-    const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+    cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+  }catch(eCfg){
+    console.error('niva-auth-guard: fallo al obtener configuración (posible sin conexión)', eCfg);
+    _nivaShowConnRetry();
+    return;
+  }
+  try{
     const sb = createClient(cfg.url, cfg.anon);
     const { data:{ session } } = await sb.auth.getSession();
     if(!session){ window.location.replace('./index.html'); return; }
@@ -512,7 +530,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
   <div class="dz-txt">Haz clic para subir fotos · Puedes seleccionar varias<br><span style="font-size:10px;color:#94a3b8">JPG · PNG · WEBP</span></div>
 </div>
 <div class="ph-grid" id="phGrid"></div>
-<div class="ph-drag-hint" id="phDragHint">↔ Arrastra las fotos para cambiar el orden del video · ⭐ Marca tu Foto Principal</div>
+<div class="ph-drag-hint" id="phDragHint">↔ Arrastra las fotos (o usa ◀ ▶ en celular) para cambiar el orden del video · ⭐ Marca tu Foto Principal</div>
 <div class="ph-usage-hint" id="phUsageHint" style="display:none"></div>
 <button class="btn-more-photos" id="btnMorePhotos" style="display:none" onclick="document.getElementById('fotoInput').click()">➕ Agregar más fotos</button>
 
@@ -744,7 +762,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         <div class="ig-hash-box" id="ig-hash-short"></div>
         <div class="ig-copy-row">
           <button class="btn-copy" onclick="cp('ig-hash-short',this)" style="background:#3b5bdb;color:white">📋 Copiar hashtags</button>
-          <button class="btn-copy" onclick="cpBoth()" style="background:var(--navy);color:white">📋 Copiar todo junto</button>
+          <button class="btn-copy" onclick="cpBoth(this)" style="background:var(--navy);color:white">📋 Copiar todo junto</button>
         </div>
       </div>
       <div class="tip-box" style="margin-top:14px">
@@ -1273,7 +1291,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.72';
+const NIVA_BUILD_VERSION = '2026-08-30.73';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -2778,9 +2796,35 @@ document.getElementById('tipo').addEventListener('change', function() {
   if (secLabel) secLabel.textContent = '✨ ' + amLabel(this.value);
 });
 
+// Copia texto al portapapeles con respaldo cuando navigator.clipboard no está
+// disponible o falla (navegadores internos de Instagram/TikTok/Facebook en Android,
+// contextos no seguros, permisos bloqueados). Devuelve true/false — nunca lanza.
+async function _nivaCopyText(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e2) {
+    return false;
+  }
+}
+
 function cp(id, btn) {
-  navigator.clipboard.writeText(document.getElementById(id).textContent).then(() => {
-    const o = btn.innerHTML; btn.innerHTML = '✅ ¡Copiado!'; btn.classList.add('ok');
+  _nivaCopyText(document.getElementById(id).textContent).then((ok) => {
+    const o = btn.innerHTML;
+    btn.innerHTML = ok ? '✅ ¡Copiado!' : '❌ No se pudo copiar — selecciona el texto manualmente';
+    if (ok) btn.classList.add('ok');
     setTimeout(() => { btn.innerHTML = o; btn.classList.remove('ok'); }, 2200);
   });
 }
@@ -2941,10 +2985,15 @@ function showResult(name) {
   if (rEl) rEl.style.display = 'block';
 }
 
-function cpBoth() {
+function cpBoth(btn) {
   const cap = document.getElementById('ig-caption-short').textContent;
   const hash = document.getElementById('ig-hash-short').textContent;
-  navigator.clipboard.writeText(cap + '\n\n' + hash).then(() => {});
+  _nivaCopyText(cap + '\n\n' + hash).then((ok) => {
+    if (!btn) return;
+    const o = btn.innerHTML;
+    btn.innerHTML = ok ? '✅ ¡Copiado!' : '❌ No se pudo copiar';
+    setTimeout(() => { btn.innerHTML = o; }, 2200);
+  });
 }
 
 // ══════════════════════════════════════════════
@@ -2998,6 +3047,11 @@ function selStyle(el) { /* legado — no usar */ }
 async function genFlyer(v) {
   NIVA_FLYER_lastV = v;
   showResult('flyer');
+  // Esperar a que la fuente de marca (Inter) termine de cargar antes de dibujar en
+  // el canvas — si no, en conexiones lentas el texto se dibuja con la fuente de
+  // respaldo (Arial) y, al ser un canvas rasterizado, ya no se corrige sola aunque
+  // la fuente llegue después (a diferencia de los demás generadores, que sí esperan).
+  try { await document.fonts.ready; } catch (e) {}
   const cv = document.getElementById('cv-flyer');
   const ctx = cv.getContext('2d');
   const W = 1080, H = 1350;
@@ -5726,7 +5780,19 @@ async function runMp4ConversionPipeline(durationSeconds) {
   document.getElementById('btn-dl-webm-fallback').style.display = 'none';
 
   try {
-    const mp4 = await convertWebmToMp4(_nivaWebmBlob, durationSeconds);
+    // Ricardo pidió revisar toda la app para multiplataforma — se detectó aquí que
+    // convertWebmToMp4() devuelve { blob, hasAudio, audioDecodeErrorMsg } (no un Blob
+    // directo), pero antes se pasaba ese objeto completo donde se esperaba un Blob
+    // (validateMp4Blob, _nivaMostrarPreviewVideo, mp4.size) — esto rompía la conversión
+    // a MP4 en CUALQUIER navegador que no graba MP4 nativo (todo Windows/Mac/Android
+    // Chrome), cayendo siempre al WebM de repuesto. Ahora se extrae el Blob real y,
+    // además, si el audio no logró decodificarse (video mudo), se trata como fallo en
+    // vez de entregar un MP4 silencioso marcado como "listo".
+    const mp4Result = await convertWebmToMp4(_nivaWebmBlob, durationSeconds);
+    const mp4 = mp4Result.blob;
+    if (!mp4Result.hasAudio) {
+      throw new Error('El video se generó sin audio — probablemente falló la grabación de voz. Genera el video de nuevo.');
+    }
     const result = await validateMp4Blob(mp4);
     if (!result.ok) throw new Error(result.reason || 'Validación de MP4 falló');
 
@@ -9222,7 +9288,7 @@ async function playVideoEL() {
     const _nivaSetupFailsafe = setTimeout(() => {
       console.error('[NIVA][SETUP] VIGILANTE DE ARRANQUE: pasaron 20s y el setup de grabación nunca terminó.');
       clearInterval(_nivaSetupTicker);
-      vidStatus('❌ El navegador se quedó atorado preparando la grabación (audio/canvas) y no respondió en 20s. Esto es un problema conocido de Safari — intenta de nuevo desde Google Chrome.', 'err');
+      vidStatus('❌ El navegador se quedó atorado preparando la grabación (audio/canvas) y no respondió en 20s. Cierra otras pestañas o apps para liberar memoria y vuelve a intentar — si sigue fallando, prueba con Google Chrome actualizado.', 'err');
       updateDiagStep('render', 'err');
       updateDiagStep('done', 'err');
       try { _showPlayBtn(); } catch(e) {}
@@ -9249,7 +9315,7 @@ async function playVideoEL() {
       if (!_audioResumed) {
         clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe);
         console.error('[NIVA][AUDIO] AudioContext sigue "suspended" — abortando (habría grabado 0 chunks).');
-        vidStatus('❌ Safari bloqueó el audio para grabar. Cierra Safari POR COMPLETO (no solo esta pestaña) y vuelve a intentar — o usa Google Chrome mientras tanto.', 'err');
+        vidStatus('❌ El navegador bloqueó el audio para grabar. Ciérralo POR COMPLETO (no solo esta pestaña) y vuelve a intentar — si sigue fallando, prueba con Google Chrome actualizado.', 'err');
         updateDiagStep('render', 'err');
         updateDiagStep('done', 'err');
         try { _showPlayBtn(); } catch(e) {}
@@ -12084,8 +12150,8 @@ function buildScript(v) {
 function cpTA(id, btn) {
   const ta = document.getElementById(id);
   if (!ta) return;
-  navigator.clipboard.writeText(ta.value).then(() => {
-    btn.textContent = '✅ Copiado';
+  _nivaCopyText(ta.value).then((ok) => {
+    btn.textContent = ok ? '✅ Copiado' : '❌ No se pudo copiar';
     setTimeout(() => btn.innerHTML = '📋 Copiar', 2000);
   });
 }
@@ -12218,6 +12284,11 @@ function genTextos(v) {
 //  DESCARGAR FICHA COMO PDF
 // ══════════════════════════════════════════════
 async function downloadFichaAsPDF(btn) {
+  // Esperar a que las fuentes de marca (Playfair Display / Inter) terminen de cargar
+  // antes de capturar con html2canvas — si no, en conexiones lentas o con un clic
+  // rápido justo después de generar, la captura puede salir con la fuente de
+  // respaldo (Arial/Georgia) en vez de la tipografía de marca.
+  try { await document.fonts.ready; } catch (e) {}
   const inclAsesor = document.getElementById('fichaAsesorCheck').checked;
   const inclLogo   = document.getElementById('fichaLogoCheck').checked;
   const footer       = document.getElementById('fic-footer');         // ambos
@@ -12388,7 +12459,9 @@ async function downloadFichaAsPDF(btn) {
     restore();
     const pdfFilename = 'ficha-tecnica-niva.pdf';
     const pdfBlob = pdf.output('blob');
-    await _nivaShareOrDownload(new File([pdfBlob], pdfFilename, { type: 'application/pdf' }), URL.createObjectURL(pdfBlob), pdfFilename);
+    const pdfObjUrl = URL.createObjectURL(pdfBlob);
+    await _nivaShareOrDownload(new File([pdfBlob], pdfFilename, { type: 'application/pdf' }), pdfObjUrl, pdfFilename);
+    setTimeout(() => { try { URL.revokeObjectURL(pdfObjUrl); } catch(e) {} }, 8000);
     btn.innerHTML = '✅ ¡PDF listo!';
     setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-dl-loading'); }, 2500);
   } catch(e) {
