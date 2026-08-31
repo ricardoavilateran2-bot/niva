@@ -1269,7 +1269,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.74';
+const NIVA_BUILD_VERSION = '2026-08-30.75';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -3303,26 +3303,25 @@ async function flyerA(v, ctx, W, H) {
   gGal.addColorStop(1, 'rgba(4,8,18,0.26)');
   ctx.fillStyle = gGal; ctx.fillRect(0, GAL_Y, W, GAL_H);
 
-  // ── FOOTER ──
+  // ── FOOTER ── (a petición de Ricardo: nombre del asesor + teléfono juntos de un lado,
+  // NIVA INMOBILIARIA del otro, sin mostrar la ubicación/dirección de la propiedad)
   var BAR_Y = GAL_Y + GAL_H;
   ctx.fillStyle = DK; ctx.fillRect(0, BAR_Y, W, BAR_H);
   ctx.fillStyle = FG; ctx.fillRect(0, BAR_Y, W, 2);
 
+  // Izquierda: nombre del asesor + teléfono
   ctx.font = '800 20px Inter, Arial'; ctx.fillStyle = FG; ctx.textAlign = 'left';
-  ctx.fillText('NIVA INMOBILIARIA', 48, BAR_Y + 34);
+  ctx.fillText(v.asesor || 'Asesor NIVA', 48, BAR_Y + 34);
   ctx.font = '400 15px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.52)';
-  ctx.fillText(v.asesor || 'Asesor NIVA', 48, BAR_Y + 56);
+  ctx.fillText(v.tel, 48, BAR_Y + 56);
 
   var SEP_X = Math.round(W * 0.62);
   ctx.strokeStyle = 'rgba(201,168,76,0.28)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(SEP_X, BAR_Y + 14); ctx.lineTo(SEP_X, BAR_Y + BAR_H - 14); ctx.stroke();
 
+  // Derecha: NIVA INMOBILIARIA (sin ubicación de la propiedad)
   ctx.font = '700 22px Inter, Arial'; ctx.fillStyle = WH; ctx.textAlign = 'right';
-  ctx.fillText(v.tel, W - 48, BAR_Y + 38);
-  ctx.font = '400 14px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.38)';
-  var barTxt = v.col + ' - ' + v.city.split(',')[0];
-  while (ctx.measureText(barTxt).width > W - SEP_X - 56 && barTxt.length > 4) barTxt = barTxt.slice(0,-1);
-  ctx.fillText(barTxt, W - 48, BAR_Y + 60);
+  ctx.fillText('NIVA INMOBILIARIA', W - 48, BAR_Y + 51);
 }
 
 // ══════════════════════════════════════════════
