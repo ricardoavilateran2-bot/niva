@@ -1273,7 +1273,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.68';
+const NIVA_BUILD_VERSION = '2026-08-30.69';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -12272,6 +12272,20 @@ async function downloadFichaAsPDF(btn) {
     descSec.style.display = 'none';
     galSec.style.display  = 'none';
 
+    // Recorta de antemano la foto de portada a las dimensiones exactas del recuadro —
+    // html2canvas no soporta bien "background-size:cover" (problema conocido de esa
+    // librería) y a veces la estira en vez de recortarla, sobre todo al descargar desde
+    // el celular (lo que reportó Ricardo). Al recortarla aquí y usarla ya recortada,
+    // html2canvas solo la estira exacto al 100%×100% — sin margen para deformarse.
+    const coverEl = document.getElementById('fic-cover');
+    if (photos.length > 0 && coverEl) {
+      const cw = Math.max(1, Math.round((coverEl.clientWidth || 720) * 2));
+      const ch = Math.max(1, Math.round((coverEl.clientHeight || 420) * 2));
+      const croppedCover = await _photoToJpeg(photos[0], cw, ch);
+      coverEl.style.backgroundImage = `url(${croppedCover})`;
+      coverEl.style.backgroundSize = '100% 100%';
+    }
+
     const fichaEl = document.getElementById('ficha');
     const cv1 = await html2canvas(fichaEl, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
 
@@ -12323,9 +12337,17 @@ async function downloadFichaAsPDF(btn) {
         pdf.line(14, curY + 2.5, PW - 14, curY + 2.5);
         curY += 10;
 
-        const COLS = 3, GAP = 4, MX = 14;
-        const cW = (PW - MX * 2 - GAP * (COLS - 1)) / COLS; // ~56 mm
-        const cH = cW * 0.72; // ~40 mm
+        // Fotos 30% más grandes (a petición de Ricardo) — se recalculan cuántas caben
+        // por fila con el nuevo tamaño (antes 3, ahora normalmente 2) y se centran.
+        const GAP = 4, MX = 14;
+        const COLS_ORIG = 3;
+        const cW_orig = (PW - MX * 2 - GAP * (COLS_ORIG - 1)) / COLS_ORIG; // ~56 mm (tamaño anterior)
+        const cW = cW_orig * 1.3; // 30% más grande
+        const cH = cW * 0.72;
+        const availW = PW - MX * 2;
+        const COLS = Math.max(1, Math.floor((availW + GAP) / (cW + GAP)));
+        const rowW = COLS * cW + (COLS - 1) * GAP;
+        const startX = MX + (availW - rowW) / 2; // centrado horizontal
 
         let rowStart = curY;
         for (let i = 0; i < photos.length; i++) {
@@ -12344,7 +12366,7 @@ async function downloadFichaAsPDF(btn) {
               pdf.line(14, 14.5, PW - 14, 14.5);
             }
           }
-          const x = MX + col * (cW + GAP);
+          const x = startX + col * (cW + GAP);
           // Convertir foto a JPEG a alta resolución (800px ancho → buena calidad en PDF)
           const pxW = 800, pxH = Math.round(800 * cH / cW);
           const imgData = await _photoToJpeg(photos[i], pxW, pxH);
