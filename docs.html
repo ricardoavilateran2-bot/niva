@@ -2746,15 +2746,31 @@ async function extractINE(input, party) {
   poner('⏳ Preparando imagen…');
 
   try {
-    var img = await nivaPrepararImagen(file);
-    poner('⏳ Leyendo credencial… 0%');
-    var texto = await nivaOCR(img, function(m){
-      if (m && m.status === 'recognizing text' && typeof m.progress === 'number'){
-        poner('⏳ Leyendo credencial… ' + Math.round(m.progress * 100) + '%');
-      }
-    });
+    // La foto puede llegar de lado o al revés (muy común al subirla desde el
+    // celular), así que se prueban las 4 orientaciones y se usa la primera
+    // que logre reconocer nombre, domicilio o número de credencial.
+    var angulos = [0, 270, 90, 180];
+    var mejorDatos = null, mejorTexto = '';
 
-    var d = nivaLeerDatosINE(texto || '');
+    for (var i = 0; i < angulos.length; i++){
+      var etiqueta = '⏳ Leyendo credencial (' + (i+1) + '/' + angulos.length + ')… ';
+      poner(etiqueta + '0%');
+      var girada = angulos[i] === 0 ? file : await nivaRotarImagen(file, angulos[i]);
+      var img = await nivaPrepararImagen(girada);
+      var texto = await nivaOCR(img, (function(etq){
+        return function(m){
+          if (m && m.status === 'recognizing text' && typeof m.progress === 'number'){
+            poner(etq + Math.round(m.progress * 100) + '%');
+          }
+        };
+      })(etiqueta));
+
+      var d = nivaLeerDatosINE(texto || '');
+      if (!mejorTexto && texto) mejorTexto = texto;
+      if (d.nombre || d.domicilio || d.idNum){ mejorDatos = d; break; }
+    }
+
+    var d = mejorDatos || nivaLeerDatosINE(mejorTexto);
 
     if (d.nombre)    document.getElementById('p'+party+'-nombre').value = d.nombre;
     if (d.nombre)    document.getElementById('p'+party+'-id-tipo').value = 'INE';
@@ -2768,7 +2784,7 @@ async function extractINE(input, party) {
 
     if (puestos.length){
       poner('✅ Se llenó: ' + puestos.join(', ') + ' — revisa que esté correcto');
-    } else if ((texto||'').trim().length > 20){
+    } else if (mejorTexto.trim().length > 20){
       poner('⚠️ Se leyó la imagen pero no se reconocieron los campos. Captura a mano.');
     } else {
       poner('⚠️ No se pudo leer la credencial. Prueba con una foto más nítida, de frente y con buena luz.');
