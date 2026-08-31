@@ -144,6 +144,16 @@ textarea { resize: vertical; min-height: 90px; }
 @media(max-width:560px){.scroll-hint{display:block;font-size:11.5px;color:rgba(255,255,255,.45);text-align:center;margin:-2px 0 10px}}
 .pr-edit{border:0;background:transparent;color:var(--gold2);border-radius:6px;padding:0;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;width:24px;height:24px;flex-shrink:0;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1}
 .pr-edit:hover{background:rgba(201,168,76,.15)}
+.pedit-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.pedit-overlay.hidden{display:none}
+.pedit-box{background:var(--navy2);border:1px solid rgba(201,168,76,.3);border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto}
+.pedit-h{font-size:16px;font-weight:800;color:var(--gold);margin-bottom:4px}
+.pedit-sub{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:18px}
+.pedit-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.pedit-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
+.pedit-actions button{padding:11px 20px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;border:0}
+.pedit-cancel{background:rgba(255,255,255,.07);color:#fff}
+.pedit-cancel:hover{background:rgba(255,255,255,.12)}
 .pr-cancel{border:0;background:transparent;color:#f87171;border-radius:6px;padding:0;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap;width:24px;height:24px;flex-shrink:0;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1}
 .pr-cancel:hover{background:rgba(248,113,113,.15)}
 .pr-cancel.rea{color:#4ade80}
@@ -287,6 +297,29 @@ textarea { resize: vertical; min-height: 90px; }
 
 <div class="toast" id="toast"></div>
 
+<div class="pedit-overlay hidden" id="pedit-overlay">
+  <div class="pedit-box">
+    <div class="pedit-h">Editar propiedad</div>
+    <div class="pedit-sub" id="pe-sub"></div>
+    <div class="form-group full"><label>Título</label><input id="pe-titulo"></div>
+    <div class="form-group full"><label>Descripción</label><textarea id="pe-desc" rows="4"></textarea></div>
+    <div class="form-group full"><label>Precio</label><input id="pe-precio" inputmode="numeric"></div>
+    <div class="pedit-grid">
+      <div class="form-group"><label>Recámaras</label><input id="pe-rec" inputmode="numeric"></div>
+      <div class="form-group"><label>Baños</label><input id="pe-bano" inputmode="numeric"></div>
+      <div class="form-group"><label>Medios baños</label><input id="pe-mbano" inputmode="numeric"></div>
+      <div class="form-group"><label>Estacionamientos</label><input id="pe-est" inputmode="numeric"></div>
+      <div class="form-group"><label>M² construcción</label><input id="pe-m2c" inputmode="numeric"></div>
+      <div class="form-group"><label>M² terreno</label><input id="pe-m2t" inputmode="numeric"></div>
+    </div>
+    <div class="merr" id="pe-err"></div>
+    <div class="pedit-actions">
+      <button type="button" class="pedit-cancel" id="pe-cancel">Cancelar</button>
+      <button type="button" class="msave" id="pe-save">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const $=s=>document.querySelector(s);
@@ -309,16 +342,64 @@ async function ebToggle(propertyId, action, motivo){
   if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
   return { data: j };
 }
-async function ebUpdatePrecio(propertyId, priceAmount){
+async function ebUpdateProperty(propertyId, fields){
   const { data:{ session } } = await sb.auth.getSession();
   const r = await fetch(cfg.url+'/functions/v1/eb-update-property', {
     method:'POST',
     headers:{ 'Authorization':'Bearer '+(session?.access_token||''), 'Content-Type':'application/json' },
-    body: JSON.stringify({ property_id: propertyId, price_amount: priceAmount })
+    body: JSON.stringify({ property_id: propertyId, ...fields })
   });
   let j={}; try{ j=await r.json(); }catch(_e){}
   if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
   return { data: j };
+}
+let PEDIT_ACTUAL=null;
+function abrirEdicion(p){
+  PEDIT_ACTUAL=p;
+  $('#pe-sub').textContent=(p.eb_public_id||'')+' · '+(p.title||'');
+  $('#pe-titulo').value=p.title||'';
+  $('#pe-desc').value=p.description||'';
+  $('#pe-precio').value=p.price_amount!=null?p.price_amount:'';
+  $('#pe-rec').value=p.bedrooms!=null?p.bedrooms:'';
+  $('#pe-bano').value=p.bathrooms!=null?p.bathrooms:'';
+  $('#pe-mbano').value=p.half_bathrooms!=null?p.half_bathrooms:'';
+  $('#pe-est').value=p.parking_spaces!=null?p.parking_spaces:'';
+  $('#pe-m2c').value=p.construction_size!=null?p.construction_size:'';
+  $('#pe-m2t').value=p.lot_size!=null?p.lot_size:'';
+  $('#pe-err').textContent='';
+  $('#pedit-overlay').classList.remove('hidden');
+}
+function cerrarEdicion(){
+  $('#pedit-overlay').classList.add('hidden');
+  PEDIT_ACTUAL=null;
+}
+async function guardarEdicion(){
+  if(!PEDIT_ACTUAL)return;
+  const err=$('#pe-err'), btn=$('#pe-save');
+  const num=(v)=>{v=String(v||'').trim();return v===''?null:Number(v.replace(/[^0-9.]/g,''))};
+  const precio=num($('#pe-precio').value);
+  if(precio!=null && (!precio||precio<=0)){err.textContent='El precio no es válido.';return}
+  const desc=$('#pe-desc').value.trim();
+  if(desc && desc.length<10){err.textContent='La descripción debe tener al menos 10 caracteres (o déjala vacía para no cambiarla).';return}
+  const fields={};
+  const titulo=$('#pe-titulo').value.trim();
+  if(titulo && titulo!==(PEDIT_ACTUAL.title||''))fields.title=titulo;
+  if(desc && desc!==(PEDIT_ACTUAL.description||''))fields.description=desc;
+  if(precio!=null && precio!==PEDIT_ACTUAL.price_amount)fields.price_amount=precio;
+  const rec=num($('#pe-rec').value); if(rec!=null)fields.bedrooms=rec;
+  const bano=num($('#pe-bano').value); if(bano!=null)fields.bathrooms=bano;
+  const mbano=num($('#pe-mbano').value); if(mbano!=null)fields.half_bathrooms=mbano;
+  const est=num($('#pe-est').value); if(est!=null)fields.parking_spaces=est;
+  const m2c=num($('#pe-m2c').value); if(m2c!=null)fields.construction_size=m2c;
+  const m2t=num($('#pe-m2t').value); if(m2t!=null)fields.lot_size=m2t;
+  if(!Object.keys(fields).length){err.textContent='No cambiaste nada.';return}
+  err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
+  const r=await ebUpdateProperty(PEDIT_ACTUAL.id,fields);
+  btn.disabled=false;btn.textContent='Guardar cambios';
+  if(r.error){err.textContent=r.error;return}
+  toast('Propiedad actualizada en NIVA OS y EasyBroker');
+  cerrarEdicion();
+  await cargar();
 }
 
 let PROPS=[], PROPSC=[], ESADMIN=false, CAP_FOTOS=[];
@@ -339,6 +420,10 @@ function pintarColonias(){
   const dl=$('#cap-colonias-dl');
   dl.innerHTML=(EB_COLONIAS[m]||[]).map(c=>'<option value="'+esc(c)+'">').join('');
 }
+
+$('#pe-cancel').onclick=cerrarEdicion;
+$('#pe-save').onclick=guardarEdicion;
+$('#pedit-overlay').onclick=(e)=>{ if(e.target.id==='pedit-overlay')cerrarEdicion(); };
 
 async function cargar(){
   const uname=(session.user?.email||'').split('@')[0];
@@ -388,25 +473,11 @@ function renderProps(){
         +'<div class="pr-tipo">'+esc(p.property_type||'')+'</div>'
         +'<div class="pr-specs">'+specs+'</div>'
         +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>'
-        +(canc?'':'<button class="pr-edit" title="Editar precio">✏️</button>')
+        +'<button class="pr-edit" title="Editar propiedad">✏️</button>'
         +'<button class="pr-cancel'+(canc?' rea':'')+'" title="'+(canc?'Reactivar':'Archivar')+'">'+(canc?'↩️':'🗑️')+'</button>';
       if(canc)fila.classList.add('cancelada');
       const be=fila.querySelector('.pr-edit');
-      if(be)be.onclick=async(e)=>{
-        e.preventDefault();e.stopPropagation();
-        const actual=p.price_amount!=null?String(p.price_amount):'';
-        const nuevo=prompt('Nuevo precio para "'+(p.title||p.eb_public_id)+'" (solo número, sin comas ni signo $):',actual);
-        if(nuevo===null)return;
-        const n=Number(String(nuevo).replace(/[^0-9.]/g,''));
-        if(!n||n<=0){toast('Precio no válido');return}
-        if(!confirm('¿Actualizar el precio a '+fmt(n)+'? Se va a actualizar también en EasyBroker.'))return;
-        be.disabled=true;be.textContent='...';
-        const r=await ebUpdatePrecio(p.id,n);
-        be.disabled=false;be.textContent='✏️';
-        if(r.error){toast(r.error||'No se pudo actualizar');return}
-        toast('Precio actualizado en NIVA OS y EasyBroker');
-        await cargar();
-      };
+      be.onclick=(e)=>{ e.preventDefault();e.stopPropagation(); abrirEdicion(p); };
       const bc=fila.querySelector('.pr-cancel');
       bc.onclick=async(e)=>{
         e.preventDefault();e.stopPropagation();
