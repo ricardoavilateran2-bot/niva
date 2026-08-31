@@ -335,10 +335,10 @@ textarea { resize: vertical; min-height: 90px; }
 </div>
 
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const $=s=>document.querySelector(s);
-const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
-const sb = createClient(cfg.url, cfg.anon);
+while(!window.__nivaSb){ await new Promise(r=>setTimeout(r,20)); }
+const sb = window.__nivaSb;
+const cfg = window.__nivaCfg;
 const {data:{session}} = await sb.auth.getSession();
 if(!session){ window.location.replace('./index.html'); }
 const esc=(v)=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -619,6 +619,31 @@ $('#cap-borrar-todas').onclick=()=>{
   pintarFotosCap();
 };
 
+// Redimensiona a máx. maxDim px de lado mayor y recomprime a JPEG --
+// mismo tamaño en el que se ve la foto en cualquier pantalla, pero con
+// mucho menos peso que el original de la cámara (que en celulares
+// modernos puede pesar 8-12MB). Si algo falla (ej. formato no soportado
+// por el navegador), sube la foto original sin tocar.
+function comprimirFoto(file, maxDim, calidad){
+  return new Promise((resolve)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      const escala=Math.min(1, maxDim/Math.max(img.width,img.height));
+      const w=Math.max(1,Math.round(img.width*escala)), h=Math.max(1,Math.round(img.height*escala));
+      const cv=document.createElement('canvas');
+      cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      cv.toBlob((blob)=>{
+        URL.revokeObjectURL(url);
+        resolve(blob||file);
+      },'image/jpeg',calidad);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); resolve(file); };
+    img.src=url;
+  });
+}
+
 async function guardarCaptacion(){
   const err=$('#cap-err'), btn=$('#cap-save');
   const tipo=$('#cap-tipo').value, op=$('#cap-op').value;
@@ -638,21 +663,32 @@ async function guardarCaptacion(){
   if(desc.length<10){err.textContent='Escribe una descripción (mínimo 10 caracteres).';return}
   err.textContent='';btn.disabled=true;btn.textContent='Subiendo fotos...';
   try{
-    const photoUrls=[];
-    for(let i=0;i<CAP_FOTOS.length;i++){
+    const photoUrls=new Array(CAP_FOTOS.length);
+    let subidas=0;
+    async function subirFoto(i){
       const f=CAP_FOTOS[i];
-      btn.textContent='Subiendo foto '+(i+1)+' de '+CAP_FOTOS.length+'...';
+      const comprimida=await comprimirFoto(f.file,1920,0.9);
       const path=Date.now()+'_'+Math.random().toString(36).slice(2)+'_'+f.file.name.replace(/[^a-zA-Z0-9.]/g,'_');
-      let up=await sb.storage.from('captaciones').upload(path,f.file);
+      let up=await sb.storage.from('captaciones').upload(path,comprimida,{contentType:'image/jpeg'});
       if(up.error){
         // reintento una vez: fallas de red intermitentes ("Load failed") son comunes con muchas fotos seguidas
         await new Promise(r=>setTimeout(r,900));
-        up=await sb.storage.from('captaciones').upload(path,f.file);
+        up=await sb.storage.from('captaciones').upload(path,comprimida,{contentType:'image/jpeg'});
       }
       if(up.error)throw new Error('No se pudo subir la foto '+(i+1)+' de '+CAP_FOTOS.length+' ('+f.file.name+'): '+up.error.message);
       const pu=sb.storage.from('captaciones').getPublicUrl(path);
-      photoUrls.push(pu.data.publicUrl);
+      photoUrls[i]=pu.data.publicUrl;
+      subidas++;
+      btn.textContent='Subiendo fotos... ('+subidas+' de '+CAP_FOTOS.length+')';
     }
+    const cola=CAP_FOTOS.map((_,i)=>i);
+    async function trabajadorFotos(){
+      while(cola.length){
+        const i=cola.shift();
+        await subirFoto(i);
+      }
+    }
+    await Promise.all(Array.from({length:Math.min(3,CAP_FOTOS.length)},trabajadorFotos));
     btn.textContent='Publicando en EasyBroker...';
     const body={
       property_type:tipo,operation_type:op,price_amount:precio,description:desc,location_name:zona,
