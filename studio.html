@@ -1269,7 +1269,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.75';
+const NIVA_BUILD_VERSION = '2026-08-30.76';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -4648,9 +4648,16 @@ function drawBg(ctx, w, h, imgUrl) {
 // "Compartir" con "Guardar imagen"/"Guardar video" (manda el archivo directo
 // a Fotos). Si no la soporta (computadora, navegador viejo) o el usuario
 // cancela el share, cae de regreso a la descarga normal de siempre.
+// Detecta iPhone/iPad/Android (táctil) — en estos SÍ tiene sentido el share sheet, porque
+// no hay una carpeta de Descargas a la vista tan fácil como en escritorio. En Mac/Windows
+// se prefiere siempre la descarga directa (comportamiento de toda la vida).
+function _nivaIsMobileOrTablet() {
+  return _nivaIsIOS() || /Android/i.test(navigator.userAgent);
+}
+
 async function _nivaShareOrDownload(file, fallbackHref, filename) {
   try {
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (_nivaIsMobileOrTablet() && navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file] });
       return;
     }
