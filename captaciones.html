@@ -142,6 +142,8 @@ textarea { resize: vertical; min-height: 90px; }
 }
 .scroll-hint{display:none}
 @media(max-width:560px){.scroll-hint{display:block;font-size:11.5px;color:rgba(255,255,255,.45);text-align:center;margin:-2px 0 10px}}
+.pr-edit{border:0;background:transparent;color:var(--gold2);border-radius:6px;padding:0;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;width:24px;height:24px;flex-shrink:0;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1}
+.pr-edit:hover{background:rgba(201,168,76,.15)}
 .pr-cancel{border:0;background:transparent;color:#f87171;border-radius:6px;padding:0;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap;width:24px;height:24px;flex-shrink:0;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1}
 .pr-cancel:hover{background:rgba(248,113,113,.15)}
 .pr-cancel.rea{color:#4ade80}
@@ -307,6 +309,17 @@ async function ebToggle(propertyId, action, motivo){
   if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
   return { data: j };
 }
+async function ebUpdatePrecio(propertyId, priceAmount){
+  const { data:{ session } } = await sb.auth.getSession();
+  const r = await fetch(cfg.url+'/functions/v1/eb-update-property', {
+    method:'POST',
+    headers:{ 'Authorization':'Bearer '+(session?.access_token||''), 'Content-Type':'application/json' },
+    body: JSON.stringify({ property_id: propertyId, price_amount: priceAmount })
+  });
+  let j={}; try{ j=await r.json(); }catch(_e){}
+  if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
+  return { data: j };
+}
 
 let PROPS=[], PROPSC=[], ESADMIN=false, CAP_FOTOS=[];
 let PT='todas', PO='todo', PS='pmin', PQ='', PE='activas';
@@ -375,8 +388,25 @@ function renderProps(){
         +'<div class="pr-tipo">'+esc(p.property_type||'')+'</div>'
         +'<div class="pr-specs">'+specs+'</div>'
         +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>'
+        +(canc?'':'<button class="pr-edit" title="Editar precio">✏️</button>')
         +'<button class="pr-cancel'+(canc?' rea':'')+'" title="'+(canc?'Reactivar':'Archivar')+'">'+(canc?'↩️':'🗑️')+'</button>';
       if(canc)fila.classList.add('cancelada');
+      const be=fila.querySelector('.pr-edit');
+      if(be)be.onclick=async(e)=>{
+        e.preventDefault();e.stopPropagation();
+        const actual=p.price_amount!=null?String(p.price_amount):'';
+        const nuevo=prompt('Nuevo precio para "'+(p.title||p.eb_public_id)+'" (solo número, sin comas ni signo $):',actual);
+        if(nuevo===null)return;
+        const n=Number(String(nuevo).replace(/[^0-9.]/g,''));
+        if(!n||n<=0){toast('Precio no válido');return}
+        if(!confirm('¿Actualizar el precio a '+fmt(n)+'? Se va a actualizar también en EasyBroker.'))return;
+        be.disabled=true;be.textContent='...';
+        const r=await ebUpdatePrecio(p.id,n);
+        be.disabled=false;be.textContent='✏️';
+        if(r.error){toast(r.error||'No se pudo actualizar');return}
+        toast('Precio actualizado en NIVA OS y EasyBroker');
+        await cargar();
+      };
       const bc=fila.querySelector('.pr-cancel');
       bc.onclick=async(e)=>{
         e.preventDefault();e.stopPropagation();
