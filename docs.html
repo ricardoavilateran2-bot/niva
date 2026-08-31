@@ -2673,6 +2673,16 @@ function nivaPrepararImagen(file){
   });
 }
 
+// Puntúa qué tan "leíble" salió el OCR de una credencial: cuenta cuántas de
+// las etiquetas fijas de la INE aparecen en el texto. Sirve para decidir cuál
+// de las 4 orientaciones probadas es la correcta — la orientación equivocada
+// también puede producir texto con apariencia de nombre (falso positivo), pero
+// casi nunca reconoce varias etiquetas reales de la credencial a la vez.
+function nivaPuntajeINE(texto){
+  var etiquetas = (texto || '').toUpperCase().match(/NOMBRE|DOMICILIO|CLAVE DE ELECTOR|CURP|FECHA DE NACIMIENTO|SECCI[OÓ]N|VIGENCIA|SEXO|A[NÑ]O DE REGISTRO|INSTITUTO NACIONAL ELECTORAL|CREDENCIAL PARA VOTAR/g);
+  return etiquetas ? etiquetas.length : 0;
+}
+
 // Interpreta el texto crudo del OCR con la estructura real de una credencial INE.
 function nivaLeerDatosINE(texto){
   var RUIDO = /INSTITUTO|NACIONAL|ELECTORAL|CREDENCIAL|PARA VOTAR|ESTADOS UNIDOS|MEXICANOS|M[EÉ]XICO|REGISTRO|FEDERAL|ELECTORES/i;
@@ -2747,10 +2757,14 @@ async function extractINE(input, party) {
 
   try {
     // La foto puede llegar de lado o al revés (muy común al subirla desde el
-    // celular), así que se prueban las 4 orientaciones y se usa la primera
-    // que logre reconocer nombre, domicilio o número de credencial.
+    // celular). Probar una orientación equivocada a veces igual "encuentra" un
+    // nombre falso (texto revuelto que por casualidad parece un renglón de
+    // nombre), así que en vez de quedarnos con el primer intento que reconozca
+    // algo, se prueban las 4 orientaciones y se usa la que tenga más etiquetas
+    // reales de la credencial (NOMBRE, DOMICILIO, CURP, etc.) — esa es la señal
+    // confiable de que el texto se leyó del lado correcto.
     var angulos = [0, 270, 90, 180];
-    var mejorDatos = null, mejorTexto = '';
+    var mejorTexto = '', mejorPuntaje = -1;
 
     for (var i = 0; i < angulos.length; i++){
       var etiqueta = '⏳ Leyendo credencial (' + (i+1) + '/' + angulos.length + ')… ';
@@ -2765,12 +2779,14 @@ async function extractINE(input, party) {
         };
       })(etiqueta));
 
-      var d = nivaLeerDatosINE(texto || '');
-      if (!mejorTexto && texto) mejorTexto = texto;
-      if (d.nombre || d.domicilio || d.idNum){ mejorDatos = d; break; }
+      var puntaje = nivaPuntajeINE(texto);
+      if (puntaje > mejorPuntaje){ mejorPuntaje = puntaje; mejorTexto = texto || ''; }
+      // Con 3 o más etiquetas reconocidas la orientación ya es prácticamente
+      // segura: no vale la pena seguir probando y hacer esperar de más.
+      if (puntaje >= 3) break;
     }
 
-    var d = mejorDatos || nivaLeerDatosINE(mejorTexto);
+    var d = nivaLeerDatosINE(mejorTexto);
 
     if (d.nombre)    document.getElementById('p'+party+'-nombre').value = d.nombre;
     if (d.nombre)    document.getElementById('p'+party+'-id-tipo').value = 'INE';
