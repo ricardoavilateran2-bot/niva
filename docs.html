@@ -2650,7 +2650,15 @@ function nivaPrepararImagen(file){
   return new Promise(function(resolve){
     var img = new Image();
     img.onload = function(){
-      var escala = Math.min(3, Math.max(1, 1600 / Math.max(img.width, img.height)));
+      // La foto de una credencial suele venir ya en HD (1000-2000px), pero eso
+      // no es suficiente resolución para que el OCR distinga bien letras
+      // pequeñas (domicilio, nombre). Se fuerza SIEMPRE un mínimo de 2x de
+      // escalado (hasta 3x en fotos chicas), con un tope para no generar
+      // canvases gigantes en fotos ya muy grandes.
+      var maxDim = Math.max(img.width, img.height);
+      var escala = Math.max(2, Math.min(3, 2200 / maxDim));
+      if (maxDim * escala > 3600) escala = 3600 / maxDim;
+      if (escala < 1) escala = 1;
       var cv = document.createElement('canvas');
       cv.width = Math.round(img.width * escala);
       cv.height = Math.round(img.height * escala);
@@ -2684,50 +2692,74 @@ function nivaPuntajeINE(texto){
 }
 
 // Interpreta el texto crudo del OCR con la estructura real de una credencial INE.
+// A diferencia de la versión anterior, no exige que la etiqueta ("NOMBRE",
+// "DOMICILIO") esté sola al inicio del renglón (el OCR real casi siempre le
+// pega basura antes o después, ej. ", NOMBRE SEXO H i"), y arma el resultado
+// palabra por palabra en vez de exigir que el renglón completo sea "limpio"
+// (con OCR ruidoso, un solo carácter fuera de lugar tira el renglón entero).
 function nivaLeerDatosINE(texto){
-  var RUIDO = /INSTITUTO|NACIONAL|ELECTORAL|CREDENCIAL|PARA VOTAR|ESTADOS UNIDOS|MEXICANOS|M[EÉ]XICO|REGISTRO|FEDERAL|ELECTORES/i;
+  var RUIDO = /^(INSTITUTO|NACIONAL|ELECTORAL|CREDENCIAL|VOTAR|ESTADOS|UNIDOS|MEXICANOS|MEXICO|MÉXICO|REGISTRO|FEDERAL|ELECTORES|PARA|SEXO|VIGENCIA|SECCION|SECCIÓN|CURP|CLAVE|DOMICILIO|NOMBRE|ANO|AÑO|FECHA|NACIMIENTO|EMISION|EMISIÓN|ESTADO|MUNICIPIO|LOCALIDAD)$/i;
+  var ROMPE = /\b(DOMICILIO|CLAVE|CURP|FECHA|A[NÑ]O\s+DE\s+REGISTRO|SECCI[OÓ]N|VIGENCIA)\b/i;
+  var ROMPE_PALABRA = /^(DOMICI\w*|SEXO\w*|SX\w*OH\w*|CURP\w*|CLAVE\w*|FECHA\w*|SECCI\w*|VIGEN\w*|A[NÑ]ODE\w*)/i;
   var lineas = texto.split('\n').map(function(l){ return l.replace(/\s+/g,' ').trim(); }).filter(Boolean);
 
-  function esMayus(l){
-    return /^[A-ZÁÉÍÓÚÑÜ0-9''´.,#\-\/ ]+$/.test(l) && /[A-ZÁÉÍÓÚÑ]/.test(l);
+  function palabras(l){
+    return (l.match(/[A-ZÁÉÍÓÚÑÜ]{2,}/g) || []).filter(function(w){ return w.length>=3 && !RUIDO.test(w); });
   }
 
-  // ── NOMBRE ── en la INE viene tras la etiqueta "NOMBRE", en 1 a 3 renglones
-  // (apellido paterno, apellido materno, nombre de pila).
+  // ── NOMBRE ── se arma palabra por palabra desde el renglón de "NOMBRE"
+  // hasta toparse con la siguiente etiqueta o con un renglón con numeración
+  // (casi siempre eso ya es domicilio, no nombre).
   var nombre = '';
   var iNom = -1;
   for (var i = 0; i < lineas.length; i++){
-    if (/^NOMBRE\b/i.test(lineas[i]) && lineas[i].length < 20){ iNom = i; break; }
+    if (/\bNOMBRE\b/i.test(lineas[i])){ iNom = i; break; }
   }
   if (iNom >= 0){
     var partes = [];
-    for (var j = iNom + 1; j < lineas.length && partes.length < 3; j++){
+    outer:
+    for (var j = iNom; j < lineas.length && j < iNom + 6; j++){
       var L = lineas[j];
-      if (/^(DOMICILIO|CLAVE|CURP|FECHA|SEXO|A[NÑ]O|SECCI[OÓ]N|VIGENCIA)\b/i.test(L)) break;
-      if (RUIDO.test(L) || !esMayus(L) || L.length < 3) continue;
-      partes.push(L);
+      if (j > iNom && ROMPE.test(L)) break;
+      if (j > iNom && /\d{2,}/.test(L)) break;
+      var ws = palabras(L);
+      for (var w = 0; w < ws.length; w++){
+        if (ROMPE_PALABRA.test(ws[w])){
+          if (j > iNom) break outer; else continue;
+        }
+        partes.push(ws[w]);
+        if (partes.length >= 5) break outer;
+      }
     }
     nombre = partes.join(' ').trim();
   }
   if (!nombre){   // sin etiqueta: el renglón más largo en mayúsculas que no sea ruido
+    function esMayus(l){ return /^[A-ZÁÉÍÓÚÑÜ0-9''´.,#\-\/ ]+$/.test(l) && /[A-ZÁÉÍÓÚÑ]/.test(l); }
+    var RUIDOL = /INSTITUTO|NACIONAL|ELECTORAL|CREDENCIAL|PARA VOTAR|ESTADOS UNIDOS|MEXICANOS|M[EÉ]XICO|REGISTRO|FEDERAL|ELECTORES/i;
     var cand = lineas.filter(function(l){
-      return l.length > 7 && l.length < 60 && esMayus(l) && !RUIDO.test(l) &&
+      return l.length > 7 && l.length < 60 && esMayus(l) && !RUIDOL.test(l) &&
              !/\d{4}/.test(l) && l.split(' ').length >= 2 && l.split(' ').length <= 6;
     });
     nombre = cand.length ? cand[0] : '';
   }
 
-  // ── DOMICILIO ── renglones entre "DOMICILIO" y la siguiente etiqueta
+  // ── DOMICILIO ── se arma igual, tomando trozos de texto útil de cada
+  // renglón entre "DOMICILIO" y la siguiente etiqueta.
   var domicilio = '';
-  var iDom = lineas.findIndex(function(l){ return /^DOMICILIO\b/i.test(l); });
+  var iDom = lineas.findIndex(function(l){ return /\bDOMICILIO\b/i.test(l); });
   if (iDom >= 0){
     var dl = [];
-    for (var k = iDom + 1; k < lineas.length; k++){
+    for (var k = iDom; k < lineas.length && k < iDom + 5 && dl.length < 4; k++){
       var D = lineas[k];
-      if (/^(CLAVE|CURP|FECHA|SEXO|A[NÑ]O|SECCI[OÓ]N|VIGENCIA|EMISI[OÓ]N|ESTADO|MUNICIPIO|LOCALIDAD)\b/i.test(D)) break;
-      if (RUIDO.test(D)) continue;
-      dl.push(D);
-      if (dl.length >= 4) break;
+      if (k > iDom && ROMPE.test(D)) break;
+      var sinEtiqueta = D.replace(/\bDOMICILIO\b/i, '').trim();
+      var trozos = sinEtiqueta.match(/[A-ZÁÉÍÓÚÑÜ0-9º°#.,\-\/]{2,}(?:\s[A-ZÁÉÍÓÚÑÜ0-9º°#.,\-\/]{1,})*/g);
+      if (trozos){
+        trozos.forEach(function(t){
+          var tt = t.trim();
+          if (tt.length >= 2 && !RUIDO.test(tt)) dl.push(tt);
+        });
+      }
     }
     domicilio = dl.join(', ');
   }
