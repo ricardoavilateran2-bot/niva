@@ -494,32 +494,10 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 <div class="sec">📝 Descripción</div>
 <div class="fg"><textarea class="fc" id="desc" placeholder="Describe los puntos más atractivos: ubicación, vistas, terminados, vecindario..."></textarea></div>
 
-<div class="sec">👤 Asesor</div>
-<div class="fg">
-  <label class="fl">Selecciona tu nombre</label>
-  <select class="fc" id="asesor-sel" onchange="selAsesor(this.value)">
-    <option value="">— Selecciona tu nombre —</option>
-    <option value="Daniella Sandoval|4611125597">Daniella Sandoval</option>
-    <option value="Dulce Díaz|8110064750">Dulce Díaz</option>
-    <option value="Eduardo García|8140050600">Eduardo García</option>
-    <option value="Gabriela Lucio|8117497886">Gabriela Lucio</option>
-    <option value="Jessica Villanueva|8116605492">Jessica Villanueva</option>
-    <option value="Leonardo Estrada|8180113794">Leonardo Estrada</option>
-    <option value="Mafer Tamez|8180832685">Mafer Tamez</option>
-    <option value="Marcela Woolrich|8120290485">Marcela Woolrich</option>
-    <option value="Raymundo Juárez|8114135996">Raymundo Juárez</option>
-    <option value="Ricardo Avila|8342671362">Ricardo Avila</option>
-    <option value="Russel Medina|8136179808">Russel Medina</option>
-    <option value="Xochitl Carreón|8111069325">Xochitl Carreón</option>
-    <option value="__otro__">✏️  Otro asesor (ingresar manual)</option>
-  </select>
-</div>
-<div id="asesor-custom" style="display:none;margin-top:8px">
-  <div class="row2">
-    <div class="fg"><label class="fl">Nombre</label><input class="fc" type="text" id="asesor-custom-name" placeholder="Nombre completo" oninput="syncAsesor()"></div>
-    <div class="fg"><label class="fl">Teléfono</label><input class="fc" type="text" id="asesor-custom-tel" placeholder="81 XXXX XXXX" oninput="syncAsesor()"></div>
-  </div>
-</div>
+<!-- Ricardo pidió quitar la selección manual de asesor: el nombre y teléfono se asignan
+     SIEMPRE automáticamente según la cuenta con la que se inició sesión (ver
+     resolveAdvisorDisplayName en DOMContentLoaded más abajo) — no se puede elegir, dejar
+     vacío, ni poner el de otro asesor. -->
 <input type="hidden" id="asesor" value="">
 <input type="hidden" id="tel" value="">
 
@@ -1291,20 +1269,27 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.73';
+const NIVA_BUILD_VERSION = '2026-08-30.74';
 
-// Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
+// Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
+// hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
+// asesor de TODO el contenido generado sea siempre y automáticamente el de la cuenta con la
+// que se inició sesión, nunca una elección manual.
 async function resolveAdvisorDisplayName(uname){
   try{
     const sbClient = window.__nivaSb;
     if (!sbClient) throw new Error('sin cliente supabase');
-    const {data}=await sbClient.from('advisors').select('first_name,last_name');
+    const {data}=await sbClient.from('advisors').select('first_name,last_name,phone');
     const rows=data||[];
     const norm=s=>(s||'').trim().toLowerCase();
     let match=rows.find(r=>norm(r.first_name)===uname);
     if(!match){ const tok=uname.split(/[._]/)[0]; match=rows.find(r=>norm(r.first_name)===tok); }
-    if(match) return ((match.first_name||'')+' '+(match.last_name||'')).trim();
+    if(match){
+      window.__nivaAdvisorPhone = match.phone || '';
+      return ((match.first_name||'')+' '+(match.last_name||'')).trim();
+    }
   }catch(e){}
+  window.__nivaAdvisorPhone = '';
   return uname.split(/[._]/).filter(Boolean).map(s=>s[0].toUpperCase()+s.slice(1)).join(' ');
 }
 
@@ -1323,7 +1308,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const email = (window.__nivaSession && window.__nivaSession.user && window.__nivaSession.user.email) || '';
       const uname = email.split('@')[0];
       if (uname) {
-        resolveAdvisorDisplayName(uname).then(n => { advisorEl.textContent = n; });
+        resolveAdvisorDisplayName(uname).then(n => {
+          advisorEl.textContent = n;
+          // Autocompletar (obligatorio, no editable) el asesor de todo el contenido generado
+          // con el de la cuenta que inició sesión — sin selector manual.
+          const hidNombre = document.getElementById('asesor');
+          const hidTel    = document.getElementById('tel');
+          if (hidNombre) hidNombre.value = n;
+          if (hidTel)    hidTel.value    = window.__nivaAdvisorPhone || '';
+        });
         return;
       }
       _advIntentos++;
