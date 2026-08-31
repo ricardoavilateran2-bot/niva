@@ -125,13 +125,15 @@ textarea { resize: vertical; min-height: 90px; }
 .prow img{width:44px;height:44px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,.08);flex-shrink:0}
 .prow.cancelada{opacity:.6}
 .pr-main{flex:1;min-width:0}
-.pr-t{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--white)}
-.pr-m{font-size:11.5px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-t{font-size:13.5px;font-weight:700;white-space:nowrap;overflow-x:auto;color:var(--white);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.pr-t::-webkit-scrollbar{display:none}
+.pr-m{font-size:11.5px;color:rgba(255,255,255,.5);white-space:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.pr-m::-webkit-scrollbar{display:none}
 .pr-tipo{font-size:10px;color:rgba(255,255,255,.45);width:54px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pr-specs{font-size:10px;color:rgba(255,255,255,.45);width:74px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pr-precio{font-size:13.5px;font-weight:800;color:var(--gold2);width:92px;flex-shrink:0;text-align:right}
 .pr-precio small{font-weight:600;color:rgba(255,255,255,.45);font-size:10.5px}
-@media(max-width:560px){.pr-tipo,.pr-specs{display:none}.pr-precio{width:auto}}
+@media(max-width:560px){.pr-tipo,.pr-specs{display:none}.pr-precio{width:auto}.pr-main{position:relative}.pr-main::after{content:'';position:absolute;top:0;right:0;bottom:0;width:14px;background:linear-gradient(90deg,transparent,rgba(10,14,26,.55));pointer-events:none}}
 .pr-cancel{border:0;background:transparent;color:#f87171;border-radius:6px;padding:0;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap;width:24px;height:24px;flex-shrink:0;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1}
 .pr-cancel:hover{background:rgba(248,113,113,.15)}
 .pr-cancel.rea{color:#4ade80}
