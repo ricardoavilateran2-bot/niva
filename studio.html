@@ -5977,6 +5977,7 @@ const NIVA_FLAGS = {
   videoObjective:           true,  // selector de objetivo de video (VIRAL/PREMIUM/PRECIO/UBICACIÓN/FAMILIA/INVERSIÓN)
   subtitleSystem:           true,  // sistema de subtítulos sincronizados con voz — SIEMPRE ACTIVO
   photoMotionByType:        true,  // movimiento de cámara inteligente según tipo de foto clasificada
+  photoEnhance:             true,  // realce sutil de luz/color/contraste en el video (contrast+saturate+brightness)
 };
 
 // ── Easing functions ──
@@ -9164,9 +9165,30 @@ async function playVideoEL() {
     img.onerror = () => { res(); };
     img.src = u;
   })));
-  // Pre-escalar todas las imágenes UNA SOLA VEZ al tamaño de render
+  // Pre-escalar SOLO las fotos que el guion realmente va a usar — antes se
+  // preescalaban TODAS las fotos que el usuario subió (puede ser 20-25+), aunque
+  // el video final solo use 6-10, y ese preescalado (dibujar+redimensionar en
+  // canvas) es trabajo síncrono en el hilo principal: con muchas fotos de cámara
+  // (alta resolución) esto bloqueaba la pantalla varios segundos justo al darle
+  // Play — el "lag" reportado, más notorio en iPad. Si vidScenes ya trae
+  // foto_idx explícitos (lo normal, generado por la IA), solo se preescalan esos
+  // índices + el primero y el último (fallback de seguridad del loop de dibujo,
+  // ver photoIdx/prevIdx más abajo — nunca se lee un índice fuera de este conjunto).
+  // Si aún no hay escenas (caso raro: se usaría buildDefaultScenes, que reparte
+  // TODAS las fotos round-robin), se preescala todo como antes — sin riesgo.
   const KB_MAX = 1.50;
-  vidScaledImages = vidImages.map(img => preScaleImage(img, 1080, 1920, KB_MAX));
+  let _nivaNeededIdx = null;
+  if (vidScenes && vidScenes.length > 0) {
+    _nivaNeededIdx = new Set();
+    vidScenes.forEach(s => {
+      if (s) _nivaNeededIdx.add(Math.min(Math.max(s.foto_idx||0, 0), vidImages.length-1));
+    });
+    _nivaNeededIdx.add(0);
+    _nivaNeededIdx.add(vidImages.length - 1);
+  }
+  vidScaledImages = vidImages.map((img, _nivaSi) =>
+    (_nivaNeededIdx && !_nivaNeededIdx.has(_nivaSi)) ? null : preScaleImage(img, 1080, 1920, KB_MAX)
+  );
   _warmVelocityLUTs();
 
   // Clasificar fotos con GPT-4o Vision (Fase 3) — solo si hay fotos reales
@@ -10514,7 +10536,12 @@ function drawPhotoWithKenBurns(ctx, img, progress, variant, W, H) {
   const drawH = baseH * scale;
   const drawX = anchorX * W - anchorX * drawW;
   const drawY = anchorY * H - anchorY * drawH;
+  ctx.save();
+  if (NIVA_FLAGS.photoEnhance) {
+    ctx.filter = 'contrast(1.10) saturate(1.15) brightness(1.02)';
+  }
   ctx.drawImage(img, drawX, drawY, drawW, drawH);
+  ctx.restore();
 }
 
 // ── Velocity curve LUT cache — construido UNA VEZ por preset, consultado O(1) por frame ──
@@ -10645,6 +10672,15 @@ function drawCameraMotion(ctx, img, rawProgress, presetNameOrObj, W, H, shake) {
   }
 
   ctx.save();
+  // ── Realce sutil de luz/color ──
+  // Muchas fotos de celular salen algo planas/apagadas (poca luz del cuarto, cámara
+  // automática). Este ajuste (contraste+saturación+brillo, ya probado en la portada
+  // vía drawImg/enhance) les da un poco más de vida sin verse artificial. Se aplica
+  // directo sobre ctx.filter antes de dibujar — NO crea un canvas temporal por cuadro
+  // (eso sí sería costoso a 30-60fps) — así que el costo extra es mínimo.
+  if (NIVA_FLAGS.photoEnhance) {
+    ctx.filter = 'contrast(1.10) saturate(1.15) brightness(1.02)';
+  }
   ctx.drawImage(img, drawX, drawY, drawW, drawH);
   // NOTA: El parallax de "imagen duplicada" fue eliminado porque causaba ghosting/blur.
   // El efecto de profundidad ahora viene únicamente del movimiento de escala y anchor (bezier).
