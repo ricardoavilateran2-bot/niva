@@ -258,7 +258,7 @@ body[data-vista="tablero"] #buscar{max-width:640px}
     <button class="f" data-f="new">Nuevos</button>
     <button class="f" data-f="contacted">Activos</button>
     <button class="f" data-f="attended">Tibios</button>
-    <button class="f" data-f="cancelled">Cancelados</button>
+    <button class="f" data-f="cancelled">Cerrado</button>
     <span class="fsep"></span>
     <button class="f v on" data-v="tablero">▦ Tablero</button>
     <button class="f v" data-v="lista">☰ Lista</button>
@@ -323,7 +323,7 @@ let SHOWN=60; // paginación incremental
 const tipoLead=(l)=>l.contact_type||'unidentified';
 const esArchivado=(l)=>!!l.archived_at;
 let VISTA='tablero'; // tablero | lista
-const EST={new:'NUEVO',contacted:'ACTIVO',attended:'TIBIO',cancelled:'CANCELADO'};
+const EST={new:'NUEVO',contacted:'ACTIVO',attended:'TIBIO',cancelled:'CERRADO'};
 const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa'};
 const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
 const ftel=(t)=>t?t.replace('+52',''):'';
@@ -706,7 +706,7 @@ function renderSinAsignar(host){
 }
 
 // ── Tablero por etapas (estilo pipeline) ─────────────────────────────
-const COLS=[['new','🔵 Nuevos'],['contacted','🟢 Activos'],['attended','🟡 Tibios'],['cancelled','🔴 Cancelados']];
+const COLS=[['new','🔵 Nuevos'],['contacted','🟢 Activos'],['attended','🟡 Tibios'],['cancelled','💰 Cerrado']];
 const fechaLead=(l)=>new Date(l.happened_at||l.created_at||0).getTime();
 function abrirFicha(l){
   const m=document.createElement('div');m.id='modalFicha';
@@ -1096,7 +1096,7 @@ function repResumen(){
     fila('· Nuevos sin atender',st('new')+' ('+pct(st('new'),act.length)+')'),
     fila('· Activos',st('contacted')+' ('+pct(st('contacted'),act.length)+')'),
     fila('· Tibios',st('attended')+' ('+pct(st('attended'),act.length)+')'),
-    fila('· Cancelados',st('cancelled')+' ('+pct(st('cancelled'),act.length)+')'),
+    fila('· Cerrados',st('cancelled')+' ('+pct(st('cancelled'),act.length)+')'),
     fila('Clientes',tipo('client')),
     fila('Asesores externos (colegas)',tipo('agent')),
     fila('Sin identificar',tipo('unidentified')),
