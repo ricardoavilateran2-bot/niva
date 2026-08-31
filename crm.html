@@ -985,9 +985,10 @@ function cargarContadores(){
   const cli=activos.filter(l=>tipoLead(l)==='client');
   const cliNew=cli.filter(l=>l.status==='new').length;
   const nc=$('#n-clientes');
-  nc.textContent=cliNew>0?cliNew:cli.length;
+  nc.textContent=cliNew>0?cliNew:'';
+  nc.style.display=cliNew>0?'':'none';
   nc.classList.toggle('hot',cliNew>0);
-  nc.title=cliNew>0?(cliNew+' clientes nuevos'):(cli.length+' clientes');
+  nc.title=cliNew>0?(cliNew+' clientes nuevos'):'';
   $('#n-asesores').textContent=activos.filter(l=>tipoLead(l)==='agent').length;
   $('#n-sinid').textContent=activos.filter(l=>tipoLead(l)==='unidentified').length;
   $('#n-todos').textContent=activos.length;
