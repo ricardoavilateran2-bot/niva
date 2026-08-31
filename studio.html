@@ -1354,6 +1354,11 @@ let photos = [];         // Array of data URLs (el orden = orden manual del vide
 let mainPhotoUrl = null; // Foto Principal (Cambio 3): marcador independiente del orden/posición en el video
 const showAsesor = true; // Asesor siempre visible en todo el contenido
 let videoAnim = null;    // RAF handle
+// ── Captura manual del canvas para grabación (ver playVideoEL / startVideoAnimation) ──
+// _nivaCaptureTrack: el video track de captureStream(), usado por draw() para pedir
+// un frame nuevo justo cuando termina de pintar cada cuadro (evita frames "partidos"
+// causados por el muestreo automático a reloj fijo, desincronizado del loop de dibujo).
+let _nivaCaptureTrack = null, _nivaManualCapture = false;
 // videoSynth (browser TTS) eliminado — solo ElevenLabs y audio propio
 
 // ── Asesores NIVA ──
@@ -9455,10 +9460,30 @@ async function playVideoEL() {
         }
       }
       const cv = document.getElementById('cv-video');
-      const canvasStream = cv.captureStream(30);
+      // ── Captura manual del canvas (si el navegador la soporta) ──
+      // Antes: cv.captureStream(30) en modo automático — el navegador toma una "foto"
+      // del canvas cada ~33ms con SU PROPIO reloj interno, totalmente desincronizado
+      // del loop de dibujo (requestAnimationFrame). Si ese muestreo automático caía
+      // justo a la mitad de una transición rápida (crossfade de 140-480ms, con zoom
+      // de cámara incluido), podía capturar el canvas en un instante intermedio raro,
+      // produciendo el cuadro "partido" / con otra foto por una fracción de segundo
+      // que se veía en los cambios de escena.
+      // Ahora: si el navegador soporta track.requestFrame(), usamos modo manual
+      // (captureStream(0)) y pedimos nosotros mismos un frame nuevo justo cuando
+      // draw() terminó de pintar ese cuadro completo (ver el final de draw() más abajo)
+      // — así cada frame grabado es exactamente lo que se pintó, nunca un estado a medias.
+      let canvasStream = cv.captureStream(0);
+      _nivaManualCapture = !!(canvasStream.getVideoTracks()[0] && typeof canvasStream.getVideoTracks()[0].requestFrame === 'function');
+      if (!_nivaManualCapture) {
+        // Sin soporte de captura manual (ej. algunos Safari) — modo automático de siempre.
+        canvasStream = cv.captureStream(30);
+      }
 
       // ── Diagnóstico de tracks ──
       const vTracks = canvasStream.getVideoTracks();
+      // Referencia global para que draw() (en startVideoAnimation) pueda pedir el
+      // frame — draw() vive en otra función, no comparte closure con playVideoEL.
+      _nivaCaptureTrack = _nivaManualCapture ? vTracks[0] : null;
       const aTracks = dest.stream.getAudioTracks();
       console.log('[NIVA][TRACKS] video tracks:', vTracks.length, '| audio tracks:', aTracks.length);
       if (!vTracks.length) { clearInterval(_nivaSetupTicker); clearTimeout(_nivaSetupFailsafe); vidStatus('❌ Canvas no produce video tracks — captureStream falló', 'err'); return; }
@@ -10160,6 +10185,14 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
       ctx.fillText(`MAX FRAME: ${_perf.ftMax.toFixed(1)}ms`, 36, 106);
       ctx.fillText(`DROPPED: ${_perf.dropped}`, 36, 134);
       ctx.restore();
+    }
+
+    // ── Entregar este cuadro ya completo al grabador (si estamos en modo manual) ──
+    // Debe ir DESPUÉS de todo el dibujo de arriba (foto+transición+texto+barra) y
+    // ANTES de decidir si seguimos o paramos, para que se capture cada cuadro pintado,
+    // incluyendo el último.
+    if (_nivaManualCapture && _nivaCaptureTrack) {
+      try { _nivaCaptureTrack.requestFrame(); } catch(e) {}
     }
 
     if (elapsed < TOTAL) {
@@ -12070,6 +12103,7 @@ function buildDefaultScenes(v, nPhotos) {
 
 function stopVideo() {
   if (videoAnim) { cancelAnimationFrame(videoAnim); videoAnim = null; vidStartT = null; }
+  _nivaCaptureTrack = null; _nivaManualCapture = false;
   if (activeMusicSource) { try { activeMusicSource.stop(); activeMusicSource = null; } catch(e){} }
   // videoSynth removido — browser TTS eliminado
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
