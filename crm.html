@@ -763,7 +763,8 @@ async function moverEtapa(id,nuevo){
 function renderTablero(host,arr){
   const kb=document.createElement('div');kb.className='kb';
   // Los asesores externos solo pasan por Nuevos y Activos (no aplica Tibios ni Cerrado)
-  const cols=TAB==='asesores'?COLS.filter(c=>c[0]==='new'||c[0]==='contacted'):COLS;
+  const cols=(TAB==='asesores'?COLS.filter(c=>c[0]==='new'||c[0]==='contacted'):COLS)
+    .map(c=>(TAB==='asesores'&&c[0]==='contacted')?['contacted','🟢 Contactados']:c);
   for(const [st,titulo] of cols){
     const items=arr.filter(l=>l.status===st).sort((a,b)=>fechaLead(b)-fechaLead(a));
     if(st==='new'&&!items.length)continue; // sin nuevos: no mostrar esa columna, que Activos quede primero
