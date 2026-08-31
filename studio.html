@@ -9142,7 +9142,7 @@ async function playVideoEL() {
   else if (!script) vidSubtitleSegments = [];
 
   vidScaledImages = [];
-  const photoList = photos.length > 0 ? photos.slice(0, 15) : [null]; // hasta 15 fotos
+  const photoList = photos.length > 0 ? photos : [null]; // TODAS las fotos subidas (antes se recortaba a 15, lo que causaba que una escena asignada a una foto #16+ se renderizara con otra foto por el clamp de índice más abajo)
   // IMPORTANTE: se preasigna el arreglo por índice (no por orden de llegada) para
   // que vidImages[i] SIEMPRE corresponda a photos[i] / photoList[i], sin importar
   // qué imagen termine de cargar primero. Antes se usaba vidImages.push(...) dentro
