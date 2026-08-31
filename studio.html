@@ -517,7 +517,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 <button class="btn-more-photos" id="btnMorePhotos" style="display:none" onclick="document.getElementById('fotoInput').click()">➕ Agregar más fotos</button>
 
 
-<div class="sec" style="cursor:pointer" onclick="toggleVidFields()">🎬 VIDEO — Campos adicionales <span id="vid-fields-arrow">▼</span></div>
+<div class="sec" style="cursor:pointer;display:none" onclick="toggleVidFields()">🎬 VIDEO — Campos adicionales <span id="vid-fields-arrow">▼</span></div>
 <div id="vid-fields" style="display:none">
   <div class="fg">
     <label class="fl">🎯 Objetivo del video</label>
@@ -1273,7 +1273,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.71';
+const NIVA_BUILD_VERSION = '2026-08-30.72';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
