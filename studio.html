@@ -1273,7 +1273,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-08-30.67';
+const NIVA_BUILD_VERSION = '2026-08-30.68';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
@@ -4599,9 +4599,35 @@ function drawBg(ctx, w, h, imgUrl) {
   });
 }
 
+// ── Compartir/Guardar en el celular (iPhone y Android) — Web Share API con
+// archivo adjunto. Si el navegador la soporta, abre la hoja nativa de
+// "Compartir" con "Guardar imagen"/"Guardar video" (manda el archivo directo
+// a Fotos). Si no la soporta (computadora, navegador viejo) o el usuario
+// cancela el share, cae de regreso a la descarga normal de siempre.
+async function _nivaShareOrDownload(file, fallbackHref, filename) {
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file] });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return; // usuario canceló el share sheet — no es error
+  }
+  const a = document.createElement('a');
+  a.href = fallbackHref; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
 function dlCanvas(id, filename) {
   const c = document.getElementById(id);
-  const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = filename; a.click();
+  const dataUrl = c.toDataURL('image/png');
+  c.toBlob((blob) => {
+    if (blob) {
+      _nivaShareOrDownload(new File([blob], filename, { type: 'image/png' }), dataUrl, filename);
+    } else {
+      const a = document.createElement('a'); a.href = dataUrl; a.download = filename; a.click();
+    }
+  }, 'image/png');
 }
 
 // Dibuja imagen en una región del canvas.
@@ -11637,10 +11663,16 @@ function generatePortada() {
 function downloadPortada() {
   const cv = document.getElementById('cvPortada');
   if (!cv) return;
-  const link = document.createElement('a');
-  link.download = 'portada-niva-reel.png';
-  link.href = cv.toDataURL('image/png');
-  link.click();
+  const filename = 'portada-niva-reel.png';
+  const dataUrl = cv.toDataURL('image/png');
+  cv.toBlob((blob) => {
+    if (blob) {
+      _nivaShareOrDownload(new File([blob], filename, { type: 'image/png' }), dataUrl, filename);
+    } else {
+      const link = document.createElement('a');
+      link.download = filename; link.href = dataUrl; link.click();
+    }
+  }, 'image/png');
 }
 
 /* ── SFX Synthesis via Web Audio API ── */
@@ -12034,16 +12066,14 @@ async function downloadVideo() {
   }
 
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
   const v = vidV;
   const tipo = _nivaSanitizeFilename(v?.tipo || 'propiedad');
   const col  = _nivaSanitizeFilename(v?.col || 'Monterrey');
   const durSec = result.duration > 0 ? result.duration.toFixed(0) : (videoDurationSeconds || 0).toFixed(0);
-  a.href = url;
-  a.download = `NIVA_${tipo}_${col}_${durSec}s.mp4`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  const filename = `NIVA_${tipo}_${col}_${durSec}s.mp4`;
+  await _nivaShareOrDownload(new File([blob], filename, { type: blob.type || 'video/mp4' }), url, filename);
   setTimeout(() => URL.revokeObjectURL(url), 8000);
-  vidStatus('⬇️ Descargando MP4 · ' + result.duration.toFixed(1) + 's · ' + result.width + '×' + result.height + ' · ' + sizeMB + ' MB · Listo para TikTok', 'ok');
+  vidStatus('⬇️ Video listo · ' + result.duration.toFixed(1) + 's · ' + result.width + '×' + result.height + ' · ' + sizeMB + ' MB · Listo para TikTok', 'ok');
 }
 
 function buildScript(v) {
@@ -12330,8 +12360,10 @@ async function downloadFichaAsPDF(btn) {
     }
 
     restore();
-    pdf.save('ficha-tecnica-niva.pdf');
-    btn.innerHTML = '✅ ¡PDF descargado!';
+    const pdfFilename = 'ficha-tecnica-niva.pdf';
+    const pdfBlob = pdf.output('blob');
+    await _nivaShareOrDownload(new File([pdfBlob], pdfFilename, { type: 'application/pdf' }), URL.createObjectURL(pdfBlob), pdfFilename);
+    btn.innerHTML = '✅ ¡PDF listo!';
     setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-dl-loading'); }, 2500);
   } catch(e) {
     restore();
