@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+(async()=>{
+  try{
+    const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+    const sb = createClient(cfg.url, cfg.anon);
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ window.location.replace('./index.html'); return; }
+    window.__nivaSession = session;
+    window.__nivaSb = sb;
+    window.__nivaCfg = cfg;
+    window.__nivaUser = (session.user?.email||'').split('@')[0];
+    sb.auth.onAuthStateChange((_e, s)=>{ if(!s) window.location.replace('./index.html'); });
+  }catch(e){ console.error('niva-auth-guard', e); window.location.replace('./index.html'); }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Scouting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1B2A4A; --navy2: #0f1e36; --gold: #C9A84C; --gold2: #e8c96a;
+  --white: #fff; --radius: 16px;
+}
+html, body { min-height: 100vh; font-family: 'Inter', sans-serif; background: var(--navy2); color: var(--white); overflow-x: hidden; }
+.hidden{display:none !important}
+.bg-pattern {
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(201,168,76,.10) 0%, transparent 60%),
+              linear-gradient(160deg, #0d1828 0%, #1B2A4A 50%, #0d1828 100%);
+}
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; opacity: .04;
+  background-image: linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.page { position: relative; z-index: 1; min-height: 100vh; max-width: 1040px; margin: 0 auto; padding: 0 20px 80px; }
+header { display: flex; align-items: center; justify-content: space-between; padding: 32px 0 0; gap: 12px; }
+.logo-block { display: flex; align-items: flex-end; gap: 4px; }
+.logo-niva { font-size: 38px; font-weight: 900; letter-spacing: -.02em; color: var(--white); line-height: 1; }
+.logo-dot { width: 9px; height: 9px; background: var(--gold); border-radius: 50%; margin-bottom: 5px; }
+.logo-sub { font-size: 11px; font-weight: 600; letter-spacing: .18em; color: rgba(201,168,76,.7); text-transform: uppercase; margin-left: 2px; padding-bottom: 2px; }
+.back-btn { font-size: .75rem; color: var(--gold); padding: 6px 14px; border: 1px solid rgba(201,168,76,.4); border-radius: 8px; text-decoration: none; white-space: nowrap; transition: all .2s; }
+.back-btn:hover { background: var(--gold); color: var(--navy2); }
+.page-hero { padding: 40px 0 26px; }
+.badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(201,168,76,.12); border: 1px solid rgba(201,168,76,.25); border-radius: 40px; padding: 6px 18px; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--gold); text-transform: uppercase; margin-bottom: 18px; }
+.page-hero h1 { font-size: clamp(28px,5vw,42px); font-weight: 900; line-height: 1.1; letter-spacing: -.02em; margin-bottom: 12px; }
+.page-hero h1 span { color: var(--gold); }
+.page-hero p { font-size: 14.5px; color: rgba(255,255,255,.5); max-width: 660px; line-height: 1.65; }
+
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+@media (max-width:820px){.dash-grid{grid-template-columns:1fr 1fr}}
+.dkpi{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden}
+.dkpi::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold)}
+.dkpi .dl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:8px}
+.dkpi .dv{font-size:30px;font-weight:900;color:var(--white);line-height:1;font-variant-numeric:tabular-nums}
+
+.filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filtros input[type=search]{flex:1;min-width:180px;padding:10px 14px;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:rgba(255,255,255,.05);color:var(--white);font:inherit;font-size:13.5px}
+.filtros input[type=search]::placeholder{color:rgba(255,255,255,.35)}
+.filtros input[type=search]:focus{outline:2px solid var(--gold);border-color:transparent}
+.filtros select{padding:9px 12px;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:var(--navy);color:var(--white);font:inherit;font-size:13px}
+.btn-gold{padding:10px 16px;border:0;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy2);font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.btn-gold:hover{opacity:.9}
+
+.lead{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-left:3px solid var(--gold);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+.lead.descartado{opacity:.45;border-left-color:rgba(255,255,255,.2)}
+.lead-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.lead-tit{font-size:15px;font-weight:700;line-height:1.35;max-width:640px}
+.lead-precio{font-size:17px;font-weight:900;color:var(--gold2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.lead-precio small{display:block;font-size:10px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;text-align:right}
+.lead-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:9px;font-size:12px;color:rgba(255,255,255,.55)}
+.chip{background:rgba(255,255,255,.08);border-radius:20px;padding:3px 11px;font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.chip.owner{background:rgba(74,222,128,.15);color:#4ade80}
+.chip.owner-hi{background:rgba(74,222,128,.25);color:#6ee7a0}
+.chip.est-nuevo{background:rgba(201,168,76,.18);color:var(--gold2)}
+.chip.est-contactado{background:rgba(96,165,250,.18);color:#93c5fd}
+.chip.est-asignado{background:rgba(74,222,128,.15);color:#4ade80}
+.chip.est-descartado{background:rgba(255,255,255,.08);color:rgba(255,255,255,.45)}
+.lead-desc{font-size:12.5px;color:rgba(255,255,255,.5);line-height:1.6;margin-top:8px;max-width:760px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lead-acc{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px dashed rgba(255,255,255,.1);font-size:12.5px}
+.lead-acc a{color:var(--gold);font-weight:700;text-decoration:none}
+.lead-acc a:hover{text-decoration:underline}
+.lead-acc select, .lead-acc input[type=text]{padding:6px 9px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:var(--navy);color:var(--white);font:inherit;font-size:12px}
+.lead-acc .who{margin-left:auto;color:rgba(255,255,255,.4);font-size:11.5px}
+.vacio { text-align: center; padding: 40px 20px; color: rgba(255,255,255,.4); font-size: 14px; }
+.vacio .vi { display: block; font-size: 34px; margin-bottom: 10px; }
+.skel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:16px;margin-bottom:10px}
+.skel .l{height:12px;border-radius:6px;background:rgba(255,255,255,.08);margin-bottom:8px;animation:pulse 1.3s infinite ease-in-out}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+.nota-pie{font-size:12px;color:rgba(255,255,255,.4);line-height:1.7;margin-top:28px;border-top:1px solid rgba(255,255,255,.09);padding-top:14px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--navy2);font-weight:800;font-size:13px;padding:10px 22px;border-radius:10px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+</style>
+</head>
+<body>
+<div class="bg-pattern"></div>
+<div class="bg-grid"></div>
+
+<div class="page">
+  <header>
+    <div class="logo-block">
+      <span class="logo-niva">NIVA</span>
+      <span class="logo-dot"></span>
+      <span class="logo-sub">Scouting</span>
+    </div>
+    <a href="./index.html" class="back-btn">&larr; Volver al portal</a>
+  </header>
+
+  <div class="page-hero">
+    <div class="badge">
+      <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
+      Escaneo diario &middot; Inmuebles24 &middot; Monterrey
+    </div>
+    <h1>Dueños directos, <span>detectados solos.</span></h1>
+    <p>Cada mañana el sistema escanea Inmuebles24 y separa los anuncios que parecen publicados por el dueño (no por otra inmobiliaria). Abre el anuncio para ver el teléfono y contacta antes que nadie.</p>
+  </div>
+
+  <div class="dash-grid">
+    <div class="dkpi"><div class="dl">Posibles dueños</div><div class="dv" id="k-total">–</div></div>
+    <div class="dkpi"><div class="dl">Sin contactar</div><div class="dv" id="k-nuevos">–</div></div>
+    <div class="dkpi"><div class="dl">En venta</div><div class="dv" id="k-venta">–</div></div>
+    <div class="dkpi"><div class="dl">En renta</div><div class="dv" id="k-renta">–</div></div>
+  </div>
+
+  <div class="filtros">
+    <input type="search" id="f-q" placeholder="Buscar colonia, torre, contacto&hellip;" aria-label="Buscar">
+    <select id="f-op" aria-label="Operación">
+      <option value="">Venta y renta</option>
+      <option value="venta">Solo venta</option>
+      <option value="renta">Solo renta</option>
+    </select>
+    <select id="f-tipo" aria-label="Tipo">
+      <option value="">Todos los tipos</option>
+      <option value="casa">Casas</option>
+      <option value="departamento">Departamentos</option>
+      <option value="terreno">Terrenos</option>
+      <option value="local_comercial">Locales</option>
+    </select>
+    <select id="f-est" aria-label="Estatus">
+      <option value="">Todos los estatus</option>
+      <option value="nuevo">Nuevos</option>
+      <option value="contactado">Contactados</option>
+      <option value="asignado">Asignados</option>
+      <option value="descartado">Descartados</option>
+    </select>
+    <button class="btn-gold hidden" id="btn-csv">Exportar CSV</button>
+  </div>
+
+  <div id="lista">
+    <div class="skel"><div class="l" style="width:60%"></div><div class="l" style="width:40%"></div></div>
+    <div class="skel"><div class="l" style="width:55%"></div><div class="l" style="width:35%"></div></div>
+    <div class="skel"><div class="l" style="width:65%"></div><div class="l" style="width:30%"></div></div>
+  </div>
+  <div class="vacio hidden" id="vacio"><span class="vi">&#128269;</span>Ning&uacute;n lead coincide con estos filtros.</div>
+
+  <div class="nota-pie">
+    El tel&eacute;fono del anunciante se ve dentro del anuncio original (bot&oacute;n &ldquo;Ver anuncio&rdquo;).
+    El sistema marca como &ldquo;posible due&ntilde;o&rdquo; los anuncios donde el contacto parece persona (no negocio),
+    sin frases de agencia ni folios tipo EB-XXXX. Los cambios de estatus y asignaci&oacute;n los hace el administrador.
+  </div>
+</div>
+
+<script>
+(function(){
+  const ESTATUS = ["nuevo","contactado","asignado","descartado"];
+  const TIPO = {casa:"Casa", departamento:"Depto", terreno:"Terreno", local_comercial:"Local"};
+  const fmt = new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0});
+  let LEADS = [], isAdmin = false;
+  const $ = id => document.getElementById(id);
+
+  function toast(msg){
+    const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
+    document.body.appendChild(t); setTimeout(()=>t.remove(), 2200);
+  }
+
+  function esc(s){ const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+
+  function ownerChip(s){
+    if (s >= 6) return '<span class="chip owner-hi">Muy probable due&ntilde;o</span>';
+    return '<span class="chip owner">Posible due&ntilde;o</span>';
+  }
+
+  function estChip(e){
+    const v = e || "nuevo";
+    const lbl = {nuevo:"Nuevo", contactado:"Contactado", asignado:"Asignado", descartado:"Descartado"}[v] || v;
+    return '<span class="chip est-' + v + '">' + lbl + '</span>';
+  }
+
+  function filtered(){
+    const q = $("f-q").value.trim().toLowerCase();
+    const op = $("f-op").value, tp = $("f-tipo").value, st = $("f-est").value;
+    return LEADS.filter(l =>
+      (!op || l.operacion === op) &&
+      (!tp || l.tipo_propiedad === tp) &&
+      (!st || (l.estatus || "nuevo") === st) &&
+      (!q || ((l.titulo||"") + " " + (l.nombre_contacto||"") + " " + (l.descripcion||"")).toLowerCase().includes(q))
+    );
+  }
+
+  function render(){
+    const rows = filtered();
+    const lista = $("lista");
+    lista.innerHTML = "";
+    for (const l of rows){
+      const el = document.createElement("article");
+      el.className = "lead" + ((l.estatus === "descartado") ? " descartado" : "");
+      el.innerHTML =
+        '<div class="lead-top">' +
+          '<div class="lead-tit">' + esc(l.titulo || "(sin título)") + '</div>' +
+          '<div class="lead-precio">' + (l.precio ? fmt.format(l.precio) : "—") +
+            '<small>' + (l.operacion === "renta" ? "mensuales" : "venta") + '</small></div>' +
+        '</div>' +
+        '<div class="lead-meta">' + ownerChip(l.score) + estChip(l.estatus) +
+          '<span class="chip">' + esc(l.operacion) + '</span>' +
+          '<span class="chip">' + esc(TIPO[l.tipo_propiedad] || l.tipo_propiedad) + '</span>' +
+          '<span>Contacto: <b style="color:rgba(255,255,255,.8)">' + esc(l.nombre_contacto || "—") + '</b></span>' +
+          (l.asesor_asignado ? '<span>&rarr; Asesor: <b style="color:#4ade80">' + esc(l.asesor_asignado) + '</b></span>' : '') +
+        '</div>' +
+        (l.descripcion ? '<div class="lead-desc">' + esc(l.descripcion) + '</div>' : '') +
+        '<div class="lead-acc"></div>';
+      const acc = el.querySelector(".lead-acc");
+      const a = document.createElement("a");
+      a.href = l.url; a.target = "_blank"; a.rel = "noopener";
+      a.innerHTML = "Ver anuncio en Inmuebles24 &rarr;";
+      acc.appendChild(a);
+      if (isAdmin){
+        const sel = document.createElement("select");
+        sel.innerHTML = ESTATUS.map(e => '<option value="'+e+'"'+(((l.estatus||"nuevo")===e)?" selected":"")+'>'+e.charAt(0).toUpperCase()+e.slice(1)+'</option>').join("");
+        sel.addEventListener("change", () => saveLead(l, { estatus: sel.value }, el));
+        const inp = document.createElement("input");
+        inp.type = "text"; inp.placeholder = "Asignar a asesor…"; inp.value = l.asesor_asignado || "";
+        inp.addEventListener("change", () => saveLead(l, { asesor_asignado: inp.value.trim() || null, estatus: inp.value.trim() ? "asignado" : (l.estatus||"nuevo") }, el));
+        acc.appendChild(sel); acc.appendChild(inp);
+      }
+      const who = document.createElement("span");
+      who.className = "who";
+      who.textContent = "Detectado: " + (l.detectado_at ? new Date(l.detectado_at).toLocaleDateString("es-MX", {day:"numeric", month:"short"}) : "—");
+      acc.appendChild(who);
+      lista.appendChild(el);
+    }
+    $("vacio").classList.toggle("hidden", rows.length > 0);
+    $("k-total").textContent = LEADS.length;
+    $("k-nuevos").textContent = LEADS.filter(l => !l.estatus || l.estatus === "nuevo").length;
+    $("k-venta").textContent = LEADS.filter(l => l.operacion === "venta").length;
+    $("k-renta").textContent = LEADS.filter(l => l.operacion === "renta").length;
+  }
+
+  async function saveLead(l, patch, el){
+    const sb = window.__nivaSb;
+    const { error } = await sb.from("scouting_leads").update(patch).eq("id", l.id);
+    if (error){ toast("No se pudo guardar: " + error.message); return; }
+    Object.assign(l, patch);
+    toast("Guardado");
+    render();
+  }
+
+  function exportCsv(){
+    const rows = filtered();
+    const q = v => '"' + String(v == null ? "" : v).replace(/"/g,'""') + '"';
+    const lines = ["titulo,operacion,tipo,precio,contacto,estatus,asesor_asignado,senal,url"];
+    for (const l of rows) lines.push([l.titulo, l.operacion, TIPO[l.tipo_propiedad]||l.tipo_propiedad, l.precio||"", l.nombre_contacto||"", l.estatus||"nuevo", l.asesor_asignado||"", (l.score>=6?"muy probable dueno":"posible dueno"), l.url].map(q).join(","));
+    const blob = new Blob(["﻿" + lines.join("\n")], {type:"text/csv;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "scouting-niva.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function cargar(){
+    const sb = window.__nivaSb;
+    const { data, error } = await sb
+      .from("scouting_leads")
+      .select("id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at")
+      .gte("score", 3)
+      .order("score", { ascending: false })
+      .order("detectado_at", { ascending: false })
+      .limit(500);
+    if (error){
+      $("lista").innerHTML = '<div class="vacio"><span class="vi">&#9888;&#65039;</span>No se pudieron cargar los leads: ' + esc(error.message) + '</div>';
+      return;
+    }
+    LEADS = data || [];
+    render();
+  }
+
+  function arrancar(){
+    if (!window.__nivaSb){ setTimeout(arrancar, 120); return; }
+    isAdmin = window.__nivaUser === "admin";
+    if (isAdmin) $("btn-csv").classList.remove("hidden");
+    $("btn-csv").addEventListener("click", exportCsv);
+    ["f-q","f-op","f-tipo","f-est"].forEach(id => {
+      $(id).addEventListener(id === "f-q" ? "input" : "change", render);
+    });
+    cargar();
+  }
+  arrancar();
+})();
+</script>
+</body>
+</html>
