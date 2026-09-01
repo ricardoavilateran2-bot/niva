@@ -690,12 +690,17 @@ async function guardarCaptacion(){
     }
     await Promise.all(Array.from({length:Math.min(3,CAP_FOTOS.length)},trabajadorFotos));
     btn.textContent='Publicando en EasyBroker...';
+    // Estos campos van como NÚMERO, igual que en la edición (num()) — antes se mandaban
+    // como texto crudo del input, lo que puede hacer que el backend/EasyBroker los
+    // rechace o los guarde como texto, rompiendo el orden numérico y los filtros que
+    // asumen bedrooms/bathrooms/m2 como números (p.ej. el ordenado por precio/specs).
+    const numCap=(v)=>{v=String(v||'').trim();return v===''?undefined:Number(v.replace(/[^0-9.]/g,''))};
     const body={
       property_type:tipo,operation_type:op,price_amount:precio,description:desc,location_name:zona,
       title:$('#cap-titulo').value.trim()||undefined,
-      bedrooms:$('#cap-rec').value||undefined,bathrooms:$('#cap-bano').value||undefined,
-      half_bathrooms:$('#cap-mbano').value||undefined,parking_spaces:$('#cap-est').value||undefined,
-      construction_size:$('#cap-m2c').value||undefined,lot_size:$('#cap-m2t').value||undefined,
+      bedrooms:numCap($('#cap-rec').value),bathrooms:numCap($('#cap-bano').value),
+      half_bathrooms:numCap($('#cap-mbano').value),parking_spaces:numCap($('#cap-est').value),
+      construction_size:numCap($('#cap-m2c').value),lot_size:numCap($('#cap-m2t').value),
       photos:photoUrls
     };
     const {data:{session}}=await sb.auth.getSession();

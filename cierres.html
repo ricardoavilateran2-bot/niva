@@ -299,7 +299,7 @@ const fFecha=(d)=>d?new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
 function vacioHTML(txt,icon){return '<div class="vacio"><span class="vi">'+(icon||'📭')+'</span>'+txt+'</div>'}
 
-let PROPS=[], CONTACTS=[], ASESORES=[], CIERRES=[], ESADMIN=false, USUARIO='';
+let PROPS=[], CONTACTS=[], ASESORES=[], ASESORES_TODOS=[], CIERRES=[], ESADMIN=false, USUARIO='';
 let COMPARTIDA=false, TRAIGO='propiedad', TIPO='confirmado';
 let MI_ASESOR=null;
 
@@ -309,17 +309,27 @@ async function cargar(){
   const [p,c,a,ci] = await Promise.all([
     sb.from('my_properties').select('*'),
     sb.from('contacts').select('id,full_name,phone_normalized').order('full_name'),
-    sb.from('advisors').select('id,first_name,last_name,niva_code,status,porcentaje_niva'),
+    sb.from('advisors').select('id,user_id,first_name,last_name,niva_code,status,porcentaje_niva'),
     sb.from('cierres').select('*').order('created_at',{ascending:false})
   ]);
   PROPS = p.error?[]:(p.data||[]);
   CONTACTS = c.error?[]:(c.data||[]);
   if(p.error) toast('No se pudieron cargar las propiedades: '+(p.error.message||''));
   if(c.error) toast('No se pudieron cargar los clientes: '+(c.error.message||''));
-  ASESORES = (a.data||[]).filter(x=>x.status!=='inactive')
-    .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor',pn:Number(x.porcentaje_niva??20),fn:(x.first_name||'').trim().toLowerCase()}))
-    .sort((x,y)=>x.n.localeCompare(y.n));
-  MI_ASESOR = ASESORES.find(a=>a.fn===uname.toLowerCase())||null;
+  const TODOS_ASESORES_RAW = a.data||[];
+  const mapAsesor=x=>({id:x.id,uid:x.user_id||null,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor',pn:Number(x.porcentaje_niva??20),fn:(x.first_name||'').trim().toLowerCase(),inactivo:x.status==='inactive'});
+  // ASESORES_TODOS incluye also a los dados de baja: sus cierres ya APROBADOS no deben
+  // desaparecer del reporte de pagos solo porque el asesor ya no está activo — de otro
+  // modo el admin puede olvidar que todavía le debe (o ya le pagó de más) esa comisión.
+  ASESORES_TODOS = TODOS_ASESORES_RAW.map(mapAsesor).sort((x,y)=>x.n.localeCompare(y.n));
+  ASESORES = ASESORES_TODOS.filter(x=>!x.inactivo);
+  // Identidad del asesor en sesión: se resuelve por user_id (estable, único) contra
+  // auth.uid(), NUNCA solo por el primer nombre — con 12 asesores es fácil que dos
+  // compartan nombre de pila y antes eso mezclaba sus comisiones.
+  const miUid = session.user?.id || null;
+  MI_ASESOR = (miUid ? ASESORES.find(a=>a.uid===miUid) : null)
+    || ASESORES.find(a=>a.fn===uname.toLowerCase()) // respaldo solo si el asesor aún no tiene user_id vinculado
+    || null;
   CIERRES = ci.error?[]:(ci.data||[]);
   CIERRES.sort((a,b)=>new Date(a.fecha_cierre||a.created_at)-new Date(b.fecha_cierre||b.created_at));
   poblarSelects();
@@ -356,12 +366,20 @@ $('#ci-traigo-tog').addEventListener('click',e=>{
 
 async function guardarCierre(){
   const propEl=$('#ci-prop'), cliEl=$('#ci-cliente');
+  const err=$('#ci-err'), btn=$('#ci-save');
+  // Si no eres admin y tu cuenta no quedó vinculada a un registro de asesor (user_id sin
+  // asignar, o nombre que no coincide con ningún asesor activo), NO guardamos el cierre
+  // como "huérfano" (advisor_id null): antes eso se guardaba silenciosamente y ese cierre
+  // ya no se le podía volver a mostrar/editar/eliminar al asesor por las reglas de acceso.
+  if(!ESADMIN && !MI_ASESOR){
+    err.textContent='Tu cuenta no está vinculada a ningún asesor activo — no se puede registrar el cierre. Pide al administrador que revise tu perfil de asesor.';
+    return;
+  }
   const advisorId=MI_ASESOR ? MI_ASESOR.id : null;
   const advisorNombre=MI_ASESOR ? null : (USUARIO.charAt(0).toUpperCase()+USUARIO.slice(1));
   const op=$('#ci-op').value;
   const monto=Number($('#ci-monto').value);
   const notas=$('#ci-notas').value.trim();
-  const err=$('#ci-err'), btn=$('#ci-save');
 
   const propExterna=propEl.value.trim();
   if(propExterna.length<3){err.textContent='Escribe la propiedad que se cerró.';return}
@@ -448,6 +466,13 @@ function abrirEdicion(cid){
   const c=CIERRES.find(x=>x.id===cid);
   if(!c)return;
   if(!ESADMIN && !esMiCierre(c)){toast('Solo puedes editar tus propios cierres.');return}
+  // Un cierre ya aprobado/rechazado ya no es editable/eliminable por un asesor (regla de
+  // seguridad de la base de datos) — lo avisamos ANTES de abrir el modal, para no dejar
+  // que el asesor edite algo que luego "se guarda" sin guardar nada en realidad.
+  if(!ESADMIN && c.estatus!=='pendiente' && c.estatus!=='apartado'){
+    toast('Este cierre ya fue '+(c.estatus==='aprobado'?'aprobado':'procesado')+' — ya no se puede editar ni eliminar. Contacta al administrador.');
+    return;
+  }
   EDIT_ID=cid;
   $('#ed-prop').value=c.property_externa||'';
   $('#ed-cliente').value=c.cliente_nombre||'';
@@ -483,8 +508,15 @@ $('#ed-save').onclick=async()=>{
       property_externa:propExterna, cliente_nombre:clienteNombre,
       operation_type:$('#ed-op').value, monto_comision:monto,
       fecha_cierre:fecha, valor_propiedad:valorProp, ubicacion:ubicacion, notas:notas
-    }).eq('id',EDIT_ID);
+    }).eq('id',EDIT_ID).select('id');
     error=r.error;
+    // Con las reglas de acceso, un update que no aplica (p.ej. el cierre ya fue
+    // aprobado/rechazado mientras tenías el modal abierto) no lanza error — solo
+    // afecta 0 filas. Sin este chequeo, el asesor ve "Cierre actualizado ✅" aunque
+    // en la base de datos no haya cambiado NADA.
+    if(!error && (!r.data || r.data.length===0)){
+      error={message:'No se guardó ningún cambio: este cierre ya no se puede editar (probablemente ya fue aprobado/rechazado por el administrador).'};
+    }
   }catch(ex){ error=ex; }
   btn.disabled=false;btn.textContent='Guardar cambios';
   if(error){err.textContent=error.message||'No se pudo guardar el cambio.';return}
@@ -497,8 +529,11 @@ $('#ed-del').onclick=async()=>{
   if(!confirm('¿Seguro que quieres eliminar este cierre? Esta acción no se puede deshacer.'))return;
   const btn=$('#ed-del'); btn.disabled=true;btn.textContent='Eliminando...';
   try{
-    const {error}=await sb.from('cierres').delete().eq('id',EDIT_ID);
+    const {error,data}=await sb.from('cierres').delete().eq('id',EDIT_ID).select('id');
     if(error)throw error;
+    if(!data || data.length===0){
+      throw {message:'No se eliminó nada: este cierre ya no se puede borrar (probablemente ya fue aprobado/rechazado por el administrador).'};
+    }
     toast('Cierre eliminado');
     cerrarEdicion();
     await cargar();
@@ -679,11 +714,11 @@ function esDeAsesor(c,a){ return c.advisor_id===a.id || (!c.advisor_id && (c.adv
 function renderHojaPorAsesor(aprobados){
   let out='<div class="section-title"><span>📋 Hoja por asesor (pagado vs. en verde)</span></div>';
   const nombresVistos=new Set();
-  const grupos=ASESORES.map(a=>({key:a.id,n:a.n,esMio:c=>esDeAsesor(c,a)}));
+  const grupos=ASESORES_TODOS.map(a=>({key:a.id,n:a.n+(a.inactivo?' (inactivo)':''),esMio:c=>esDeAsesor(c,a)}));
   CIERRES.forEach(c=>{
     if(c.advisor_id || !c.advisor_nombre) return;
     const k=c.advisor_nombre.trim().toLowerCase();
-    if(ASESORES.some(a=>a.n.trim().toLowerCase()===k)) return;
+    if(ASESORES_TODOS.some(a=>a.n.trim().toLowerCase()===k)) return;
     if(nombresVistos.has(k)) return;
     nombresVistos.add(k);
     grupos.push({key:'nombre:'+k, n:c.advisor_nombre, esMio:cc=>!cc.advisor_id && (cc.advisor_nombre||'').trim().toLowerCase()===k});

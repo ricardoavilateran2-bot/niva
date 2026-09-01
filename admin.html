@@ -266,7 +266,14 @@ const $ = (s)=>document.querySelector(s);
 const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
 const sb = createClient(cfg.url, cfg.anon);
 const { data:{ session } } = await sb.auth.getSession();
-if(!session){ window.location.replace('./index.html'); }
+if(!session){ window.location.replace('./index.html'); throw new Error('sin sesión'); }
+// El guard del <head> ya redirige si no eres admin, pero esa redirección es asíncrona
+// y este script (con las consultas reales a leads/contactos/costos de portal) corría en
+// paralelo sin esperarla ni volver a checar el rol — por lo que llegaba a pedir datos
+// sensibles aunque el usuario no fuera admin. Se checa aquí también, y se corta la
+// ejecución del módulo (throw) para que ninguna consulta de abajo llegue a lanzarse.
+const __uname=(session.user?.email||'').split('@')[0];
+if(__uname!=='admin'){ window.location.replace('./index.html'); throw new Error('acceso restringido a administrador'); }
 
 const esc=(v)=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
@@ -638,19 +645,33 @@ function tablaHTML(titulo,heads,filas,nota){
 }
 function fFecha(d){return d?new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'}):''}
 function descargarTablaActual(nombre){
+  // OJO: un reporte puede tener varias tablas con distinto número de columnas (p.ej.
+  // "Costo por lead" trae una tabla principal de 7 columnas y otra "mes a mes" de 3).
+  // Antes se exportaban todas bajo UN solo encabezado (el más largo), lo que recorría
+  // las columnas de la tabla más chica y las dejaba bajo la etiqueta equivocada en Excel.
+  // Ahora cada tabla se exporta con SU PROPIO encabezado, precedida de su título.
   const tablas=document.querySelectorAll('#repout table.reptable');
   if(!tablas.length){toast('No hay datos para descargar');return;}
-  let heads=null, filas=[];
+  const escv=(v)=>{v=(v==null)?'':String(v).replace(/\r?\n/g,' ');return /[",]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const lineas=[];
   tablas.forEach((t,ti)=>{
     const h=[...t.querySelectorAll('thead th')].map(th=>th.textContent.trim());
-    if(ti>0) filas.push(h.map(()=>''));
-    if(!heads) heads=h; else if(h.length>heads.length) heads=h;
+    const tituloEl=t.closest('.repsec')?.querySelector('.reph');
+    const titulo=tituloEl?tituloEl.textContent.trim():('Tabla '+(ti+1));
+    if(ti>0) lineas.push('');
+    lineas.push(escv(titulo));
+    lineas.push(h.map(escv).join(','));
     t.querySelectorAll('tbody tr').forEach(tr=>{
       const celdas=[...tr.querySelectorAll('td')].map(td=>td.textContent.trim());
-      filas.push(celdas);
+      lineas.push(celdas.map(escv).join(','));
     });
   });
-  descargarCSV(nombre,heads,filas);
+  const txt='﻿'+lineas.join('\n');
+  const b=new Blob([txt],{type:'text/csv;charset=utf-8'});
+  const el=document.createElement('a');el.href=URL.createObjectURL(b);
+  el.download='NIVA_'+nombre+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(el);el.click();el.remove();
+  toast('Descargado: '+el.download);
 }
 
 function expLeads(){

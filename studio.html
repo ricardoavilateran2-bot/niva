@@ -2388,6 +2388,7 @@ Devuelve JSON: {"tracks":["id1","id2","id3"],"mood":"descripción del mood elegi
         messages: [{role:'user', content: prompt}]
       })
     });
+    if (!res.ok) throw new Error('HTTP '+res.status+' al analizar música');
     const data = await res.json();
     musicAnalysis = JSON.parse(data.choices?.[0]?.message?.content || '{}');
   } catch(e) {
@@ -6692,11 +6693,18 @@ Responde en JSON:
         messages: [{role:'user', content: prompt}]
       })
     });
+    if (!res.ok) throw new Error('HTTP '+res.status+' al generar hooks');
     const data = await res.json();
     const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
     vidHooks = parsed.hooks || [];
     if (parsed.mejor_hook_idx !== undefined) {
       document.getElementById('btn-use-best-hook').dataset.best = parsed.mejor_hook_idx;
+    }
+    // Si la API respondió 200 pero sin hooks utilizables, es el mismo caso que un error:
+    // sin este respaldo se quedaba con un panel de hooks vacío y sin aviso.
+    if (!vidHooks.length) {
+      vidStatus('⚠️ La IA no devolvió hooks utilizables. Usando hooks estándar.', 'err');
+      vidHooks = generarHooksPlantilla(v, meta);
     }
   } catch(e) {
     console.warn('[NIVA][HOOKS]', e);
@@ -6808,6 +6816,7 @@ Responde en JSON:
         messages: [{ role: 'user', content: prompt }]
       })
     });
+    if (!res.ok) throw new Error('HTTP '+res.status+' al generar conceptos');
     const data = await res.json();
     const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
     vidConcepts = parsed.conceptos || [];
@@ -7334,6 +7343,7 @@ Responde en JSON:
         messages: [{role:'user', content: prompt}]
       })
     });
+    if (!res.ok) throw new Error('HTTP '+res.status+' al generar el guión');
     const data = await res.json();
     const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
 
@@ -8902,6 +8912,7 @@ PROPIEDAD: ${v.tipo} en ${v.op}, ${v.col}, ${ (v.city||'Monterrey').split(',')[0
 HOOK ALTERNATIVO SUGERIDO: "${altHook.texto}"` }]
       })
     });
+    if (!res.ok) throw new Error('HTTP '+res.status+' al generar versión alternativa');
     const data = await res.json();
     altTa.value = data.choices?.[0]?.message?.content?.trim() || buildScriptPlantilla(v, altHook, meta);
   } catch(e) {
@@ -8934,6 +8945,7 @@ async function regenerarCTA() {
         messages:[{role:'user',content:`Genera un CTA diferente para este guión inmobiliario. Debe ser conversacional y natural (ej: "¿La quieres ver? Mándame mensaje"). Solo el CTA, nada más.\n\nGuión: ${currentScript.slice(-200)}`}]
       })
     });
+    if (!res.ok) throw new Error('HTTP '+res.status+' al regenerar el CTA');
     const data = await res.json();
     const newCta = data.choices?.[0]?.message?.content?.trim() || '';
     if (newCta) {

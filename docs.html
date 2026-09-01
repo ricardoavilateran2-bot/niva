@@ -2840,17 +2840,32 @@ async function extractINE(input, party) {
 
     var d = nivaLeerDatosINE(mejorTexto);
 
-    if (d.nombre)    document.getElementById('p'+party+'-nombre').value = d.nombre;
-    if (d.nombre)    document.getElementById('p'+party+'-id-tipo').value = 'INE';
-    if (d.domicilio) document.getElementById('p'+party+'-domicilio').value = d.domicilio;
-    if (d.idNum)     document.getElementById('p'+party+'-id-num').value = d.idNum;
+    // El OCR es heurístico (puede confundir letras con números, tomar el renglón
+    // equivocado como "nombre", etc.) — antes SIEMPRE sobreescribía lo que el asesor
+    // ya había escrito a mano, incluso si venía de un dato correcto tomado de la
+    // escritura/otro documento. Ahora solo llena campos VACÍOS; si el campo ya tiene
+    // algo distinto a lo leído, no se toca y se avisa para que el asesor decida.
+    var llenarSiVacio = function(id, valor){
+      var el = document.getElementById(id);
+      if (!el || !valor) return null;
+      var actual = (el.value||'').trim();
+      if (!actual){ el.value = valor; return 'llenado'; }
+      if (actual === String(valor).trim()) return null;
+      return 'conflicto';
+    };
+    var rNombre = llenarSiVacio('p'+party+'-nombre', d.nombre);
+    if (rNombre === 'llenado') document.getElementById('p'+party+'-id-tipo').value = 'INE';
+    var rDom = llenarSiVacio('p'+party+'-domicilio', d.domicilio);
+    var rId  = llenarSiVacio('p'+party+'-id-num', d.idNum);
 
-    var puestos = [];
-    if (d.nombre) puestos.push('nombre');
-    if (d.domicilio) puestos.push('domicilio');
-    if (d.idNum) puestos.push('clave');
+    var puestos = [], conflictos = [];
+    if (rNombre==='llenado') puestos.push('nombre'); else if (rNombre==='conflicto') conflictos.push('nombre');
+    if (rDom==='llenado') puestos.push('domicilio'); else if (rDom==='conflicto') conflictos.push('domicilio');
+    if (rId==='llenado') puestos.push('clave'); else if (rId==='conflicto') conflictos.push('número de identificación');
 
-    if (puestos.length){
+    if (conflictos.length){
+      poner('⚠️ Ya tenías escrito ' + conflictos.join(', ') + ' con un valor distinto al leído en la credencial — no se sobreescribió, revísalo tú mismo.' + (puestos.length?(' (sí se llenó: '+puestos.join(', ')+')'):''));
+    } else if (puestos.length){
       poner('✅ Se llenó: ' + puestos.join(', ') + ' — revisa que esté correcto');
     } else if (mejorTexto.trim().length > 20){
       poner('⚠️ Se leyó la imagen pero no se reconocieron los campos. Captura a mano.');
@@ -2917,17 +2932,49 @@ async function extractINE(input, party) {
       else el.value = snap[id];
     });
   }
-  function generarFolio(tipo){
+  // El folio se reserva en el SERVIDOR (tabla doc_folios, folio con llave única) para
+  // que dos asesores en dos computadoras distintas nunca puedan generar el mismo folio
+  // el mismo día. Antes esto solo se checaba en localStorage (por navegador), lo cual
+  // no evitaba duplicados entre asesores. Si no hay conexión/servidor disponible, se usa
+  // un folio local marcado "-LOCAL" como respaldo (se ve en el badge, no en el documento).
+  function esperarSb(timeoutMs){
+    return new Promise(function(resolve){
+      var t0 = Date.now();
+      (function poll(){
+        if (window.__nivaSb) return resolve(window.__nivaSb);
+        if (Date.now() - t0 > timeoutMs) return resolve(null);
+        setTimeout(poll, 150);
+      })();
+    });
+  }
+  async function generarFolio(tipo){
     var pref = TIPO_PREF[tipo] || 'DOC';
     var fecha = hoyStr();
-    var reg = leerRegistro();
-    var n = reg.filter(function(r){ return r.tipo === tipo && r.folio.indexOf(fecha) >= 0; }).length + 1;
-    var folio;
-    do {
-      folio = 'NIVA-' + pref + '-' + fecha + '-' + String(n).padStart(3,'0');
-      n++;
-    } while (reg.some(function(r){ return r.folio === folio; })); // nunca duplicar
-    return folio;
+    var prefijo = 'NIVA-' + pref + '-' + fecha + '-';
+    var sb = window.__nivaSb || await esperarSb(4000);
+    if (!sb){
+      // Sin servidor disponible: respaldo local (mejor que bloquear al asesor).
+      var reg = leerRegistro();
+      var n0 = reg.filter(function(r){ return r.tipo === tipo && r.folio.indexOf(fecha) >= 0; }).length + 1;
+      return prefijo + String(n0).padStart(3,'0') + '-LOCAL';
+    }
+    var n = 1;
+    try{
+      var cnt = await sb.from('doc_folios').select('folio', { count:'exact', head:true })
+        .eq('tipo', tipo).ilike('folio', prefijo + '%');
+      if (cnt && typeof cnt.count === 'number') n = cnt.count + 1;
+    }catch(e){ console.error('doc_folios count', e); }
+    var email = (window.__nivaSession && window.__nivaSession.user && window.__nivaSession.user.email) || '';
+    for (var intentos=0; intentos<60; intentos++){
+      var folio = prefijo + String(n).padStart(3,'0');
+      try{
+        var r = await sb.from('doc_folios').insert({ folio: folio, tipo: tipo, advisor_email: email });
+        if (!r.error) return folio;
+        if (r.error.code !== '23505'){ console.error('doc_folios insert', r.error); break; } // no es choque de llave duplicada: no seguir insistiendo
+      }catch(e){ console.error('doc_folios insert exception', e); break; }
+      n++; // folio ya tomado por otro asesor justo ahora: probar el siguiente
+    }
+    return prefijo + String(n).padStart(3,'0') + '-LOCAL';
   }
   function resumenPartes(){
     var a = (document.getElementById('p1-nombre')||{}).value || '';
@@ -2935,10 +2982,10 @@ async function extractINE(input, party) {
     var d = (document.getElementById('prop-dir')||{}).value || '';
     return [a,b,d].filter(Boolean).join(' · ').slice(0,90);
   }
-  window.nivaAsignarFolio = function(){
+  window.nivaAsignarFolio = async function(){
     if (window.nivaFolioActual) return window.nivaFolioActual;
     var tipo = (typeof currentDoc !== 'undefined') ? currentDoc : 'doc';
-    var folio = generarFolio(tipo);
+    var folio = await generarFolio(tipo);
     window.nivaFolioActual = folio;
     var reg = leerRegistro();
     reg.unshift({ folio: folio, tipo: tipo, tipoNombre: TIPO_NOMBRE[tipo]||tipo, fecha: new Date().toISOString(), resumen: resumenPartes(), form: snapshotForm() });
@@ -2980,8 +3027,8 @@ async function extractINE(input, party) {
   }
   var _downloadPDF = window.downloadPDF;
   if (typeof _downloadPDF === 'function') {
-    window.downloadPDF = function(){
-      window.nivaAsignarFolio(); // asegura folio antes de capturar el PDF
+    window.downloadPDF = async function(){
+      await window.nivaAsignarFolio(); // asegura folio (reservado en servidor) antes de capturar el PDF
       return _downloadPDF.apply(this, arguments);
     };
   }

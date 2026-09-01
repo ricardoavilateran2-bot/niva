@@ -396,25 +396,41 @@ function actualizarBadgeSync(){
     b.classList.add('hidden');
   }
 }
+let SINCRONIZANDO=false;
 async function sincronizar(){
   if(!navigator.onLine)return;
-  let q=leerCola();
-  if(!q.length)return;
-  const restantes=[];
-  for(const op of q){
-    try{
-      if(op.tipo==='status_change'){
-        const {error}=await sb.from('leads').update({status:op.nuevo}).eq('id',op.leadId);
-        if(error)throw error;
-        sb.from('lead_interactions').insert({lead_id:op.leadId,type:'status_change',actor:'advisor',payload:{de:op.prev,a:op.nuevo}});
+  // Sin este candado, el listener 'online' y el setInterval de 30s podían disparar dos
+  // sincronizar() encimadas; al terminar, la más lenta sobreescribía localStorage con
+  // una foto vieja de la cola y borraba en silencio cambios que el asesor había hecho
+  // (y encolado) mientras la primera sincronización seguía en curso.
+  if(SINCRONIZANDO)return;
+  SINCRONIZANDO=true;
+  try{
+    let q=leerCola();
+    if(!q.length)return;
+    const exitosos=new Set();
+    for(const op of q){
+      try{
+        if(op.tipo==='status_change'){
+          const {error}=await sb.from('leads').update({status:op.nuevo}).eq('id',op.leadId);
+          if(error)throw error;
+          sb.from('lead_interactions').insert({lead_id:op.leadId,type:'status_change',actor:'advisor',payload:{de:op.prev,a:op.nuevo}});
+        }
+        exitosos.add(op.id);
+      }catch(e){
+        // se reintenta después
       }
-    }catch(e){
-      restantes.push(op); // se reintenta después
     }
+    // Se vuelve a leer la cola actual (no la foto de arriba) para no perder operaciones
+    // nuevas que se hayan encolado mientras esto corría.
+    const qActual=leerCola();
+    const restantes=qActual.filter(op=>!exitosos.has(op.id));
+    guardarCola(restantes);
+    if(exitosos.size>0)toast('Cambios sincronizados ✓');
+    actualizarBadgeSync();
+  } finally {
+    SINCRONIZANDO=false;
   }
-  guardarCola(restantes);
-  if(restantes.length<q.length)toast('Cambios sincronizados ✓');
-  actualizarBadgeSync();
 }
 window.addEventListener('online',()=>{actualizarBadgeSync();sincronizar();});
 window.addEventListener('offline',actualizarBadgeSync);
@@ -512,7 +528,20 @@ async function cargar(){
       sb.from('my_leads').select('*').order('happened_at',{ascending:false}),
       sb.from('my_properties').select('*')
     ]);
-    // P0: detectar errores de Supabase en vez de pintar éxito vacío
+    // P0: detectar errores de Supabase en vez de pintar éxito vacío.
+    // Antes cualquier error (red, sesión vencida, RLS) se trataba igual y terminaba
+    // mostrando "Sin conexión — mostrando datos guardados" aunque hubiera wifi perfecto,
+    // dejando al asesor trabajando horas con datos viejos creyendo que era un problema
+    // de señal. Si la sesión realmente expiró, lo decimos y mandamos a iniciar sesión.
+    const esErrorDeSesion=(r)=> r?.error && (r.error.status===401 || r.error.code==='PGRST301' || /jwt|token/i.test(r.error.message||''));
+    if(esErrorDeSesion(l) || esErrorDeSesion(p)){
+      const {data:{session:s2}}=await sb.auth.getSession();
+      if(!s2){
+        toast('Tu sesión expiró — vuelve a iniciar sesión.');
+        setTimeout(()=>window.location.replace('./index.html'),1600);
+        return;
+      }
+    }
     if(l.error) throw new Error(l.error.message||'leads');
     if(p.error) throw new Error(p.error.message||'propiedades');
     LEADS=l.data??[];PROPS=p.data??[];
@@ -540,7 +569,12 @@ async function cargar(){
     if(c){
       LEADS=c.LEADS||[];PROPS=c.PROPS||[];
       cargarContadores();pintar();actualizarBadgeSync();
-      toast('Sin conexión — mostrando datos guardados');
+      // Si de verdad no hay red, el aviso de "sin conexión" es correcto y tranquiliza.
+      // Si SÍ hay red y aun así falló, decirle "sin conexión" es engañoso — mostramos
+      // el error real para que el asesor sepa que algo distinto pasó (y pueda avisar).
+      toast(navigator.onLine
+        ? 'No se pudo actualizar (mostrando datos guardados): '+(e.message||'error desconocido')
+        : 'Sin conexión — mostrando datos guardados');
       return;
     }
     errorCarga(e.message);
