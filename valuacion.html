@@ -276,6 +276,21 @@ textarea { resize: vertical; min-height: 80px; }
 </style>
 </head>
 <body>
+<!-- ===== MÓDULO DESHABILITADO TEMPORALMENTE (falla en celular / datos incompletos) =====
+     Se deja todo el código original intacto abajo, solo se bloquea el acceso visual
+     y funcional con esta pantalla. Para reactivar, quitar este bloque completo. -->
+<div id="niva-maint-overlay" style="position:fixed;inset:0;z-index:999999;background:#0e1830;color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;text-align:center">
+  <div style="max-width:440px">
+    <div style="font-size:44px;margin-bottom:14px">🛠️</div>
+    <h1 style="font-size:22px;margin:0 0 10px;color:#fff;font-weight:800">Valuación no disponible</h1>
+    <p style="font-size:15px;line-height:1.5;color:#c7cede;margin:0 0 24px">
+      Este módulo está temporalmente deshabilitado mientras se corrige. Vuelve pronto.
+    </p>
+    <a href="./index.html" style="display:inline-block;background:#C9A84C;color:#0e1830;font-weight:700;padding:12px 22px;border-radius:8px;text-decoration:none;font-size:15px">&larr; Volver a NIVA OS</a>
+  </div>
+</div>
+<script>document.documentElement.style.overflow='hidden';document.addEventListener('DOMContentLoaded',function(){document.body.style.overflow='hidden';});</script>
+<!-- ===== FIN BLOQUEO — contenido original del módulo abajo (inactivo para el usuario) ===== -->
 <a href="./index.html" id="niva-backfab" class="niva-backfab">&larr; NIVA OS</a>
 
 <div class="bg-pattern"></div>
