@@ -1411,7 +1411,7 @@ function ph(val, label, bold) {
 function fmoney(val, labelEmpty) {
   if (!val) return '<span class="ph">[$'+labelEmpty+']</span>';
   var fmt = '$' + parseFloat(val).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
-  return fmt + ' (' + toLetras(val) + ' pesos 00/100 M.N.)';
+    return fmt + ' (' + toLetras(val) + ')';
 }
 // Fecha larga: "17 de agosto de 2026"
 function fdate(d) {
@@ -1458,7 +1458,8 @@ function toLetras(num) {
   num = parseFloat(num);
   var entero = Math.floor(num);
   var cents = Math.round((num-entero)*100);
-  return enteroALetras(entero) + ' ' + String(cents).padStart(2,'0') + '/100 M.N.';
+    if (cents === 100) { entero++; cents = 0; }
+    return enteroALetras(entero) + ' pesos ' + String(cents).padStart(2,'0') + '/100 M.N.';
 }
 function updateLetras(inputId, outId) {
   var val = document.getElementById(inputId) ? document.getElementById(inputId).value : '';
