@@ -295,7 +295,8 @@ const session = window.__nivaSession;
 const $=s=>document.querySelector(s);
 const esc=(v)=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
-const fFecha=(d)=>d?new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'}):'';
+const fFecha=(d)=>{if(!d)return '';const p=String(d).slice(0,10).split('-');return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'})};
+  const hoyLocal=()=>{const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
 function vacioHTML(txt,icon){return '<div class="vacio"><span class="vi">'+(icon||'📭')+'</span>'+txt+'</div>'}
 
@@ -341,7 +342,7 @@ function poblarSelects(){
   const nombre = MI_ASESOR ? MI_ASESOR.n : (USUARIO.charAt(0).toUpperCase()+USUARIO.slice(1));
   $('#ci-quien').innerHTML='👤 Registrando como <strong>'+esc(nombre)+'</strong>';
   const fEl=$('#ci-fecha');
-  if(fEl && !fEl.value) fEl.value=new Date().toISOString().slice(0,10);
+    if(fEl && !fEl.value) fEl.value=hoyLocal();
 }
 $('#ci-tipo-tog').addEventListener('click',e=>{
   const b=e.target.closest('button[data-v]');
@@ -392,7 +393,7 @@ async function guardarCierre(){
   if(!monto||monto<=0){err.textContent='Escribe la comisión total recibida.';return}
   const valorProp=Number($('#ci-valor').value)||null;
   const ubicacion=$('#ci-ubicacion').value.trim()||null;
-  const fecha=$('#ci-fecha').value || new Date().toISOString().slice(0,10);
+    const fecha=$('#ci-fecha').value || hoyLocal();
   const estatusInicial = TIPO==='apartado' ? 'apartado' : 'pendiente';
   err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
   let error=null;
@@ -416,12 +417,12 @@ async function guardarCierre(){
   toast(TIPO==='apartado' ? 'Apartado registrado 🟢' : 'Cierre registrado — pendiente de aprobación ✅');
   $('#ci-monto').value='';$('#ci-notas').value='';$('#ci-valor').value='';$('#ci-ubicacion').value='';
   $('#ci-prop').value='';$('#ci-cliente').value='';
-  $('#ci-fecha').value=new Date().toISOString().slice(0,10);
+    $('#ci-fecha').value=hoyLocal();
   await cargar();
 }
 $('#ci-save').onclick=guardarCierre;
 
-function nomAsesor(id){const a=ASESORES.find(x=>x.id===id);return a?a.n:'Asesor'}
+function nomAsesor(id){const a=ASESORES_TODOS.find(x=>x.id===id);return a?a.n+(a.inactivo?' (inactivo)':''):'Asesor'}
 function nomAsesorCierre(c){ if(c.advisor_id) return nomAsesor(c.advisor_id); return c.advisor_nombre||'Asesor' }
 function nomProp(c){ if(c.property_externa) return c.property_externa; const p=PROPS.find(x=>x.id===c.property_id); return p?(p.title||p.eb_public_id||'Propiedad'):'Propiedad' }
 function filaCierreHTML(c){
@@ -497,7 +498,7 @@ $('#ed-save').onclick=async()=>{
   if(propExterna.length<3){err.textContent='Escribe la propiedad.';return}
   if(clienteNombre.length<3){err.textContent='Escribe el cliente.';return}
   if(!monto||monto<=0){err.textContent='Escribe la comisión total recibida.';return}
-  const fecha=$('#ed-fecha').value || new Date().toISOString().slice(0,10);
+    const fecha=$('#ed-fecha').value || hoyLocal();
   const valorProp=Number($('#ed-valor').value)||null;
   const ubicacion=$('#ed-ubicacion').value.trim()||null;
   const notas=$('#ed-notas').value.trim()||null;
@@ -560,7 +561,7 @@ function descargarCSV(nombre,cols,filas){
   document.body.appendChild(el);el.click();el.remove();
   toast('Descargado: '+el.download);
 }
-function mesDe(d){const t=new Date(d);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')}
+function mesDe(d){return String(d).slice(0,7)}
 
 function renderAdminZona(){
   const host=$('#admin-zona');
@@ -709,7 +710,7 @@ function renderRep(){
   const porMes=tablaHTML('📅 Por mes',['Mes','#Cierres','#Comisión total','#Te corresponde'],filasM,null);
   host.innerHTML=resumen+porAsesor+porCliente+porMes+renderHojaPorAsesor(aprobados);
 }
-function mesEtiqueta(d){return d?new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}):''}
+function mesEtiqueta(d){if(!d)return '';const p=String(d).slice(0,10).split('-');return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'})}
 function esDeAsesor(c,a){ return c.advisor_id===a.id || (!c.advisor_id && (c.advisor_nombre||'').trim().toLowerCase()===a.n.trim().toLowerCase()); }
 function renderHojaPorAsesor(aprobados){
   let out='<div class="section-title"><span>📋 Hoja por asesor (pagado vs. en verde)</span></div>';
