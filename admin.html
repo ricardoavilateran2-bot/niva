@@ -323,10 +323,10 @@ function renderDashboard(){
   };
 
   host.innerHTML =
-    '<div class="dkpi"><div class="dl">Leads hoy</div><div class="dv">'+leadsHoy+'</div></div>'
-   +'<div class="dkpi"><div class="dl">Leads esta semana</div><div class="dv">'+semAct+'</div>'+deltaHTML(deltaSem)+'</div>'
+    '<div class="dkpi clickable" id="kpi-leadshoy"><div class="dl">Leads hoy</div><div class="dv">'+leadsHoy+'</div>'+(leadsHoy?'<div class="dhint">Ver leads →</div>':'')+'</div>'
+   +'<div class="dkpi clickable" id="kpi-leadssemana"><div class="dl">Leads esta semana</div><div class="dv">'+semAct+'</div>'+deltaHTML(deltaSem)+(semAct?'<div class="dhint">Ver leads →</div>':'')+'</div>'
    +'<div class="dkpi clickable" id="kpi-capsemana"><div class="dl">Captaciones nuevas (semana)</div><div class="dv">'+capSemana+'</div>'+(capSemana?'<div class="dhint">Ver cuáles →</div>':'')+'</div>'
-   +'<div class="dkpi"><div class="dl">Nuevos sin atender</div><div class="dv">'+nuevosSinAtender+'</div></div>';
+   +'<div class="dkpi clickable" id="kpi-sinatender"><div class="dl">Nuevos sin atender</div><div class="dv">'+nuevosSinAtender+'</div>'+(nuevosSinAtender?'<div class="dhint">Ver leads →</div>':'')+'</div>';
 
   const dias14=[];
   for(let i=13;i>=0;i--) dias14.push(diasAtras(i));
@@ -584,11 +584,13 @@ $('#anav').addEventListener('click',e=>{
   if(!b)return;
   irASeccion(b.dataset.sec);
 });
-// La tarjeta "Captaciones nuevas (semana)" del panel de inicio se re-dibuja cada
-// vez que carga el dashboard, así que el click se escucha en el contenedor fijo
-// (delegación) en vez de en la tarjeta misma.
+// Las tarjetas del panel de inicio se re-dibujan cada vez que carga el dashboard,
+// así que el click se escucha en el contenedor fijo (delegación) en vez de en cada tarjeta.
 $('#dash-kpis').addEventListener('click',e=>{
   if(e.target.closest('#kpi-capsemana')) irASeccion('propnuevas');
+  if(e.target.closest('#kpi-leadshoy')) window.location.href='./crm.html?tab=todos&rango=hoy';
+  if(e.target.closest('#kpi-leadssemana')) window.location.href='./crm.html?tab=todos&rango=semana';
+  if(e.target.closest('#kpi-sinatender')) window.location.href='./crm.html?tab=todos&fil=new';
 });
 
 // ===== Reportes del CRM (misma lógica que en el CRM, sección Reportes) =====

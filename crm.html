@@ -229,6 +229,8 @@ body[data-vista="tablero"] #buscar{max-width:640px}
 #newBanner{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-60px);z-index:65;background:var(--navy);color:#fff;font-size:13.5px;font-weight:700;padding:10px 18px;border-radius:999px;box-shadow:0 8px 30px rgba(0,0,0,.28);cursor:pointer;display:flex;align-items:center;gap:8px;transition:transform .25s ease;border:1px solid rgba(201,168,76,.5)}
 #newBanner.show{transform:translateX(-50%) translateY(0)}
 #newBanner .nb-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;animation:nbpulse 1.4s infinite}
+#rangoBanner{margin:0 0 12px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.4);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;font-weight:700;color:var(--navy)}
+#rangoBanner button{background:var(--navy);color:#fff;border:0;border-radius:7px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
 @keyframes nbpulse{0%,100%{opacity:1}50%{opacity:.35}}
 </style></head><body>
 <a href="./index.html" id="niva-backfab" class="niva-backfab">&larr; NIVA OS</a>
@@ -277,6 +279,7 @@ body[data-vista="tablero"] #buscar{max-width:640px}
   </div>
   <input id="buscar" placeholder="Buscar: nombre, teléfono, propiedad, folio, portal...">
 </div>
+<div id="rangoBanner" class="hidden"></div>
 <div id="lista"></div>
 </main>
 </div>
@@ -318,6 +321,17 @@ async function ebToggle(propertyId, action, motivo){
   return { data: j };
 }
 let LEADS=[], PROPS=[], ASESORES=[], DUENOS={}, TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='';
+let RANGO=null; // null | 'hoy' | 'semana' — filtro de fecha activado por deep-link desde admin.html
+// Deep-link desde el panel de administrador: crm.html?tab=todos&fil=new  ó  ?tab=todos&rango=hoy|semana
+(function aplicarFiltrosDeURL(){
+  try{
+    const qs=new URLSearchParams(window.location.search);
+    const t=qs.get('tab'), f=qs.get('fil'), r=qs.get('rango');
+    if(t)TAB=t;
+    if(f)FIL=f;
+    if(r==='hoy'||r==='semana')RANGO=r;
+  }catch(e){}
+})();
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
   try{
@@ -461,6 +475,10 @@ async function iniciar(){
     TAB='clientes';
     document.querySelectorAll('.snav .tab').forEach(b=>b.classList.toggle('on', b.dataset.t==='clientes'));
   }
+  // Sincroniza los botones visuales de pestaña/filtro con TAB/FIL, por si llegaron
+  // vía deep-link desde admin.html (?tab=...&fil=...&rango=...) en vez de un clic.
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.t===TAB));
+  document.querySelectorAll('#filtros .f:not(.v)').forEach(b=>b.classList.toggle('on', b.dataset.f===FIL));
   actualizarBadgeSync();
   sincronizar();
   await cargar();
@@ -535,6 +553,14 @@ function tipoDe(p){
   return 'otro';
 }
 function vacioHTML(txt,icon){return '<div class="vacio"><span class="vi">'+(icon||'📭')+'</span>'+txt+'</div>'}
+function pintarBannerRango(){
+  const host=$('#rangoBanner');
+  if(!RANGO){host.classList.add('hidden');host.innerHTML='';return;}
+  const txt=RANGO==='hoy'?'Mostrando: leads de hoy':'Mostrando: leads de esta semana';
+  host.classList.remove('hidden');
+  host.innerHTML='<span>🔎 '+txt+'</span><button id="rangoQuitar">Quitar filtro ✕</button>';
+  $('#rangoQuitar').onclick=()=>{RANGO=null;pintar()};
+}
 function pintar(){
   document.body.dataset.tab=TAB;
   const enTablero=(VISTA==='tablero'&&FIL==='todos'&&['clientes','asesores','sinid','todos','archivados'].indexOf(TAB)>=0);
@@ -551,6 +577,12 @@ function pintar(){
   else if(TAB==='sinid')arr=arr.filter(l=>tipoLead(l)==='unidentified');
   if(FIL!=='todos')arr=arr.filter(x=>x.status===FIL);
   if(Q){const q=Q.toLowerCase();arr=arr.filter(x=>[x.full_name,x.phone_normalized,x.property_title,x.eb_public_id,ESRC[x.source]].join(' ').toLowerCase().includes(q))}
+  if(RANGO){
+    const ahora=new Date(), hoy0=new Date(ahora);hoy0.setHours(0,0,0,0);
+    const desde=(RANGO==='hoy')?hoy0:(()=>{const d=new Date(hoy0);d.setDate(d.getDate()-6);return d})();
+    arr=arr.filter(x=>{const f=fechaLead(x);return f && f>=desde.getTime()});
+  }
+  pintarBannerRango();
   const vacios={clientes:'Sin clientes por ahora.',asesores:'Sin leads de asesores.',sinid:'Nada pendiente de identificar. ✅',todos:'Sin resultados.',archivados:'No has archivado ningún lead todavía.'};
   arr.sort((a,b)=>fechaLead(b)-fechaLead(a)); // más reciente arriba, siempre
   if(!arr.length){host.innerHTML=vacioHTML(vacios[TAB]||'Sin resultados.',TAB==='sinid'?'✅':TAB==='archivados'?'🗄️':'📭');return}
