@@ -4845,7 +4845,7 @@ function genIgCaption(v) {
   const city = v.city.split(',')[0];
   let lines = [];
   lines.push(`✨ ${v.tipo} ${op} en ${col}, ${city}`);
-  lines.push(`💰 $${precio} MXN${v.esMes ? '/mes' : ''}`);
+    lines.push(`💰 ${precio} MXN${v.esMes ? '/mes' : ''}`);
   const stats = [];
   if (v.rec !== '0') stats.push(`🛏 ${v.rec} rec.`);
   stats.push(`🚿 ${v.ban} baños`);
@@ -5597,7 +5597,7 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
   muxer.finalize();
   const { buffer } = muxer.target;
   audioBuffer = null; // liberar PCM decodificado — ya no se necesita
-  return new Blob([buffer], { type: 'video/mp4' });
+    return { blob: new Blob([buffer], { type: 'video/mp4' }), hasAudio };
 }
 
 // ── iOS: unir grabación de VIDEO (sin audio) + grabación de AUDIO (separada) en un MP4 ──
@@ -7447,8 +7447,7 @@ function buildScenesPlantilla(v, hook, script) {
 function buildScenesPlantillaV2(v, hook, concept, meta) {
   // FIX: los hooks de plantilla son objetos {categoria,emoji,texto}; normalizar a string
   if (hook && typeof hook !== 'string') hook = hook.texto || hook.hook_maestro || '';
-  const photos = (v.photos_urls || []);
-  const precio = fmtP(v.price);
+    const precio = fmtP(v.price);
   const rec = v.rec && v.rec !== '0' ? v.rec+' rec' : '';
   const m2 = v.m2 ? v.m2+'m²' : '';
   const feats = [rec, m2].filter(Boolean).join(' · ');
@@ -8862,7 +8861,7 @@ function segmentScriptIntoCaption(script, totalMs) {
 async function regenerarVozSola() {
   // Regenerar = simplemente volver a generar el video completo con el guión actual
   // El guión editado en el textarea se usa como fuente única → nueva voz → nuevos captions
-  voiceCache = {};
+    for (const k in voiceCache) delete voiceCache[k];
   _lastVoiceGen = null;
   _lastElevenLabsAlignment = null; // limpiar alignment anterior
   vidSubtitleSegments = []; // limpiar captions anteriores — se rebuildan desde el nuevo audio
