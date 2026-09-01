@@ -4620,11 +4620,19 @@ const AM_ICON_MAP = {
 };
 
 function cFill(ctx, color) { ctx.fillStyle = color; }
-function cText(ctx, text, x, y, size, weight, color, align='left') {
-  ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`;
-  ctx.fillStyle = color; ctx.textAlign = align;
-  ctx.fillText(text, x, y);
-}
+function cText(ctx, text, x, y, size, weight, color, align='left', stroke=null, strokeW=0) {
+    ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`;
+    ctx.textAlign = align;
+    if (stroke) {
+      ctx.lineJoin = 'round';
+      ctx.miterLimit = 2;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = strokeW;
+      ctx.strokeText(text, x, y);
+  }
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+  }
 function cRoundRect(ctx, x, y, w, h, r, fill) {
   ctx.beginPath(); ctx.roundRect(x,y,w,h,r); ctx.fillStyle = fill; ctx.fill();
 }
@@ -4779,7 +4787,7 @@ async function genHistoria(v) {
   cRoundRect(ctx, W-60-240, 60, 240, 70, 35, GOLD);
   cText(ctx, v.op.toUpperCase(), W-60-120, 107, 30, '800', NAVY, 'center');
   // Price - big center
-  cText(ctx, fmtP(v.price), W/2, H*0.47, 88, '900', GOLD, 'center');
+  cText(ctx, fmtP(v.price), W/2, H*0.47, 88, '900', GOLD, 'center', 'rgba(0,0,0,0.55)', 10);
   cText(ctx, v.esMes ? 'por mes' : 'precio de venta', W/2, H*0.47+70, 34, '600', 'rgba(255,255,255,0.7)', 'center');
   // Type + colonia
   cText(ctx, v.tipo.toUpperCase() + ' EN ' + v.op.toUpperCase(), W/2, H*0.55, 36, '700', WHITE, 'center');
@@ -4899,7 +4907,7 @@ async function genSlide1(v) {
   cText(ctx, v.tipo.toUpperCase(), 50, S-230, 26, '700', 'rgba(255,255,255,0.65)');
   cText(ctx, v.col, 50, S-170, 46, '800', WHITE);
   cText(ctx, v.city, 50, S-115, 28, '500', 'rgba(255,255,255,0.7)');
-  cText(ctx, fmtP(v.price), 50, S-50, 52, '900', GOLD);
+  cText(ctx, fmtP(v.price), 50, S-50, 52, '900', GOLD, 'left', 'rgba(0,0,0,0.55)', 6);
 }
 
 function genSlide2(v) {
@@ -6589,7 +6597,7 @@ async function genVideo(v) {
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
   cText(ctx, v.tipo.toUpperCase(), W/2, H*0.38, 72, '900', WHITE, 'center');
   cText(ctx, v.col + ' · ' + (v.city||'').split(',')[0], W/2, H*0.38+96, 30, '400', GOLD, 'center');
-  cText(ctx, fmtP(v.price) + (v.esMes?' /mes':''), W/2, H*0.50, 64, '900', GOLD, 'center');
+  cText(ctx, fmtP(v.price) + (v.esMes?' /mes':''), W/2, H*0.50, 64, '900', GOLD, 'center', 'rgba(0,0,0,0.55)', 7);
   cText(ctx, '🤖 Presiona "Generar Hooks" para comenzar', W/2, H*0.72, 22, '500', 'rgba(255,255,255,.4)', 'center');
   // Análisis musical automático — SOLO si aún no hay música seleccionada
   // musicState.selectedTrackId persiste entre regeneraciones de guion/voz/escenas
