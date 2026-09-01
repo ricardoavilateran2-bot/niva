@@ -597,12 +597,13 @@ function pintarBannerRango(){
 }
 function pintar(){
   document.body.dataset.tab=TAB;
-  const enTablero=(VISTA==='tablero'&&FIL==='todos'&&['clientes','asesores','sinid','todos','archivados'].indexOf(TAB)>=0);
+    const enTablero=(VISTA==='tablero'&&FIL==='todos'&&['clientes','asesores','sinid','todos'].indexOf(TAB)>=0);
   document.body.dataset.vista=enTablero?'tablero':'lista';
-  $('#barra').style.display=(TAB==='reportes'||TAB==='sinasignar')?'none':'';
+    $('#barra').style.display=(TAB==='reportes'||TAB==='sinasignar'||TAB==='archivados')?'none':'';
   const host=$('#lista');host.innerHTML='';
   if(TAB==='reportes'){renderReportes(host);return;}
   if(TAB==='sinasignar'){renderSinAsignar(host);return;}
+  if(TAB==='archivados'){renderArchivados(host);return;}
   let arr=LEADS.slice();
   if(TAB==='archivados')arr=arr.filter(esArchivado);
   else arr=arr.filter(l=>!esArchivado(l));
@@ -783,7 +784,32 @@ function renderSinAsignar(host){
   }
 }
 
-// ── Tablero por etapas (estilo pipeline) ─────────────────────────────
+// ── Archivados: vista simplificada de 2 líneas (asesores / clientes) ──
+  let SUBARCH=null; // null | 'asesores' | 'clientes'
+  function renderArchivados(host){
+    const arch=LEADS.filter(esArchivado);
+    const asesores=arch.filter(l=>tipoLead(l)==='agent');
+    const clientes=arch.filter(l=>tipoLead(l)!=='agent');
+    if(!SUBARCH){
+      if(!arch.length){host.insertAdjacentHTML('beforeend',vacioHTML('No has archivado ningún lead todavía.','🗄️'));return}
+      const fila=(clave,titulo,icon,n)=>{
+        const d=document.createElement('div');d.className='sagrupo';d.style.cursor='pointer';
+        d.innerHTML='<div class="sat">'+icon+' '+titulo+'<span class="sacount">'+n+(n===1?' lead':' leads')+'</span></div>';
+        d.onclick=()=>{SUBARCH=clave;pintar()};
+        return d;
+      };
+      host.appendChild(fila('asesores','Archivados asesores','👔',asesores.length));
+      host.appendChild(fila('clientes','Archivados clientes','👤',clientes.length));
+      return;
+    }
+    const back=document.createElement('button');back.className='vermas';back.textContent='← Volver';
+    back.onclick=()=>{SUBARCH=null;pintar()};
+    host.appendChild(back);
+    const lista=(SUBARCH==='asesores'?asesores:clientes).sort((a,b)=>fechaLead(b)-fechaLead(a));
+    if(!lista.length){host.insertAdjacentHTML('beforeend',vacioHTML('Sin leads archivados en este grupo.','🗄️'));return}
+    lista.forEach(l=>host.appendChild(cardLead(l)));
+  }
+  // ── Tablero por etapas (estilo pipeline) ─────────────────────────────
 const COLS=[['new','🔵 Nuevos'],['contacted','🟢 Activos'],['attended','🟡 Tibios'],['cancelled','💰 Cerrado']];
 const fechaLead=(l)=>new Date(l.happened_at||l.created_at||0).getTime();
 function abrirFicha(l){
@@ -811,7 +837,7 @@ function kbCard(l,colsVisibles){
   const moverOpts='<option value="">Mover a…</option>'+cols.filter(c=>c[0]!==l.status)
     .map(c=>'<option value="'+esc(c[0])+'">'+esc(c[1])+'</option>').join('');
   d.innerHTML='<div class="kbt">'+esc(nombre)+'</div>'
-    +'<div class="kbp">'+(l.property_title?esc(l.property_title):'<i style="color:#8a94a6">Sin propiedad</i>')+'</div>'
+        +'<div class="kbp">'+(l.property_title?esc(l.property_title):((l.zone_text||l.budget_text)?'<i style="color:#8a94a6">🔎 '+esc([l.zone_text,l.budget_text].filter(Boolean).join(' · '))+'</i>':'<i style="color:#8a94a6">Sin propiedad</i>'))+'</div>'
     +'<div class="kbm"><b>'+(l.price_amount?fmt(l.price_amount)+(l.operation_type==='rental'?'/mes':''):'')+'</b><span>'+fecha+'</span></div>'
     +(ESADMIN?'<div class="kbm"><span>'+(l.advisor_name?'👔 '+esc(l.advisor_name):'⚠️ Sin asesor')+'</span></div>':'')
     +'<div class="kbacc">'
@@ -919,7 +945,7 @@ function cardLead(l){
     +'<div class="cname"><span class="cnametxt">'+esc(nombre)+'</span> <button type="button" class="editnombre" title="Editar nombre">✏️</button> <span class="badge b-'+esc(l.status)+'">'+(EST[l.status]||esc(l.status))+'</span>'
     +(tipoLead(l)==='agent'?' <span class="badge b-agent">👔 ASESOR</span>':tipoLead(l)==='client'?' <span class="badge b-client">👤 CLIENTE</span>':' <span class="badge b-unid">❓ SIN IDENTIFICAR</span>')+'</div>'
     +'<div class="nombrebox hidden"><input type="text" class="ninput" placeholder="Nombre completo" value="'+esc((l.full_name||'').trim())+'"><button type="button" class="nguardar">Guardar</button><button type="button" class="ncancelar">Cancelar</button></div>'
-    +'<div class="cprop">'+(l.property_title?esc(l.property_title):(l.source==='manual_asesor'||l.source==='manual_admin'?'🔎 Sin propiedad asignada':'⚠️ Propiedad no identificada'))+'</div>'
+        +'<div class="cprop">'+(l.property_title?esc(l.property_title):((l.zone_text||l.budget_text)?'🔎 '+esc([l.zone_text,l.budget_text].filter(Boolean).join(' · ')):(l.source==='manual_asesor'||l.source==='manual_admin'?'🔎 Sin propiedad asignada':'⚠️ Propiedad no identificada')))+'</div>'
     +'<div class="cmeta"><span class="cprice">'+fmt(l.price_amount)+(l.operation_type==='rental'?' /mes':'')+'</span>'+(l.location_name?' · '+esc(l.location_name):'')+'</div>'
     +(metaSpecs?'<div class="cmeta">'+metaSpecs+'</div>':'')
     +telVisible
@@ -947,13 +973,15 @@ function cardLead(l){
       +'<option value="">— Sin asignar —</option>'
       +ASESORES.map(a=>'<option value="'+esc(a.id)+'"'+(a.id===l.advisor_id?' selected':'')+'>'+esc(a.n)+'</option>').join('')
       +'</select></div>':'')
-    +'<div class="notas">'
-    +'<div class="nlabel">📝 Notas del asesor</div>'
-    +'<div class="ncampo"><label>Zona que busca</label><input type="text" class="nzona" placeholder="Ej. San Pedro, Cumbres..." value="'+esc(l.zone_text||'')+'"></div>'
-    +'<div class="ncampo"><label>Presupuesto</label><input type="text" class="npresupuesto" placeholder="Ej. $2,500,000 - $3,000,000" value="'+esc(l.budget_text||'')+'"></div>'
-    +'<div class="ncampo"><label>Comentarios</label><textarea class="ncomentarios" placeholder="Notas sobre lo que busca el cliente...">'+esc(l.notes||'')+'</textarea></div>'
-    +'<button type="button" class="nguardarbtn">Guardar notas</button>'
-    +'</div>';
+        +(tipoLead(l)!=='agent'?(
+                '<div class="notas">'
+                +'<div class="nlabel">📝 Notas del asesor</div>'
+                +'<div class="ncampo"><label>Zona que busca</label><input type="text" class="nzona" placeholder="Ej. San Pedro, Cumbres..." value="'+esc(l.zone_text||'')+'"></div>'
+                +'<div class="ncampo"><label>Presupuesto</label><input type="text" class="npresupuesto" placeholder="Ej. $2,500,000 - $3,000,000" value="'+esc(l.budget_text||'')+'"></div>'
+                +'<div class="ncampo"><label>Comentarios</label><textarea class="ncomentarios" placeholder="Notas sobre lo que busca el cliente...">'+esc(l.notes||'')+'</textarea></div>'
+                +'<button type="button" class="nguardarbtn">Guardar notas</button>'
+                +'</div>'
+              ):'');
   const cajaMsg=d.querySelector('.msgreal');
   if(cajaMsg)cajaMsg.textContent=textoCliente(l);
   const nbox=d.querySelector('.nombrebox');
@@ -1444,7 +1472,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modalNuevo').c
 
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  TAB=b.dataset.t;SHOWN=60;pintar();
+      TAB=b.dataset.t;SHOWN=60;SUBARCH=null;pintar();
 });
 document.querySelectorAll('#filtros .f:not(.v)').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#filtros .f:not(.v)').forEach(x=>x.classList.remove('on'));b.classList.add('on');
