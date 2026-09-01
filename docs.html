@@ -76,6 +76,26 @@ a{color:#c9a84c;text-decoration:none}
 /* fullscreen mode */
 .preview-col.full{background:#888}
 
+/* ---- RESPONSIVE (celular / tablet en vertical) ----
+   El documento en sí (#docPreview, .niva-print-page) se queda a su tamaño físico
+   real — son hoja Carta a escala 1:1 a propósito, para que la vista previa sea
+   pixel-exacta con lo que sale en PDF/impresión (ver comentario de .niva-print-page
+   más abajo). Por eso NO se encoge esa parte con transform/scale — en vez de eso,
+   .preview-col se vuelve su propio contenedor con scroll horizontal, así el resto
+   de la pantalla (botones, formulario) sí se acomoda al ancho real del dispositivo. */
+@media (max-width:900px){
+  .split{flex-direction:column;min-height:0}
+  .preview-col{min-height:0;width:100%;padding:16px 10px;overflow-x:auto;align-items:flex-start}
+  .preview-col .preview-actions{flex-wrap:wrap;max-width:100%;position:static}
+  .preview-col .preview-actions button{flex:1 1 100px;font-size:.8rem;padding:10px 6px}
+  #docPreview{margin:0 auto}
+  .form-col{width:100%;min-width:0;position:static;height:auto;max-height:none;overflow-y:visible;border-left:none;border-top:2px solid #c9a84c}
+}
+@media (max-width:480px){
+  .top-bar h1{display:none} /* en pantallas muy angostas, deja lugar al logo/back */
+  .doc-tab{padding:8px 13px;font-size:.8rem}
+}
+
 /* ---- DOCUMENT PREVIEW ---- */
 #docPreview{background:#fff;width:760px;color:#000;font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.65;padding:0;box-shadow:0 6px 32px rgba(0,0,0,.5);position:relative}
 .lh-header img{width:100%;display:block}
