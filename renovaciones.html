@@ -191,12 +191,12 @@ function haceCuanto(iso){
 function statusPill(status){
   const map={success:['ok','✅ Éxito'],partial:['warn','⚠️ Parcial'],error:['bad','❌ Error']};
   const [cls,lbl]=map[status]||['idle',status||'–'];
-  return `<span class="badgest pill ${cls}">${lbl}</span>`;
+    return `<span class="badgest pill ${cls}">${esc(lbl)}</span>`;
 }
 
 async function cargar(){
   const sb=window.__nivaSb;
-  const { data, error } = await sb.from('renewal_log').select('*').order('ran_at',{ascending:false}).limit(300);
+    const { data, error } = await sb.from('renewal_log').select('*').gte('ran_at',new Date(Date.now()-60*86400000).toISOString()).order('ran_at',{ascending:false}).limit(5000);
   $('#loading').classList.add('hidden');
   $('#contenido').classList.remove('hidden');
   const rows = (error || !data) ? [] : data;
