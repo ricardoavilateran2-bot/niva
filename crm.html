@@ -784,30 +784,52 @@ function renderSinAsignar(host){
   }
 }
 
-// ── Archivados: vista simplificada de 2 líneas (asesores / clientes) ──
-  let SUBARCH=null; // null | 'asesores' | 'clientes'
+// ── Archivados: 2 columnas lado a lado (asesores / clientes), estilo tablero ──
   function renderArchivados(host){
     const arch=LEADS.filter(esArchivado);
-    const asesores=arch.filter(l=>tipoLead(l)==='agent');
-    const clientes=arch.filter(l=>tipoLead(l)!=='agent');
-    if(!SUBARCH){
-      if(!arch.length){host.insertAdjacentHTML('beforeend',vacioHTML('No has archivado ningún lead todavía.','🗄️'));return}
-      const fila=(clave,titulo,icon,n)=>{
-        const d=document.createElement('div');d.className='sagrupo';d.style.cursor='pointer';
-        d.innerHTML='<div class="sat">'+icon+' '+titulo+'<span class="sacount">'+n+(n===1?' lead':' leads')+'</span></div>';
-        d.onclick=()=>{SUBARCH=clave;pintar()};
-        return d;
-      };
-      host.appendChild(fila('asesores','Archivados asesores','👔',asesores.length));
-      host.appendChild(fila('clientes','Archivados clientes','👤',clientes.length));
-      return;
+    const asesores=arch.filter(l=>tipoLead(l)==='agent').sort((a,b)=>fechaLead(b)-fechaLead(a));
+    const clientes=arch.filter(l=>tipoLead(l)!=='agent').sort((a,b)=>fechaLead(b)-fechaLead(a));
+    const kb=document.createElement('div');kb.className='kb';
+    const cols=[['asesores','👔 Archivados asesores',asesores],['clientes','👤 Archivados clientes',clientes]];
+    for(const [key,titulo,items] of cols){
+      const col=document.createElement('div');col.className='kbcol';
+      col.innerHTML='<div class="kbh"><span>'+titulo+'</span><span class="kbn">'+items.length+'</span></div>';
+      if(!items.length)col.insertAdjacentHTML('beforeend','<div class="kbvacia">Vacío</div>');
+      items.forEach(l=>col.appendChild(archCard(l)));
+      kb.appendChild(col);
     }
-    const back=document.createElement('button');back.className='vermas';back.textContent='← Volver';
-    back.onclick=()=>{SUBARCH=null;pintar()};
-    host.appendChild(back);
-    const lista=(SUBARCH==='asesores'?asesores:clientes).sort((a,b)=>fechaLead(b)-fechaLead(a));
-    if(!lista.length){host.insertAdjacentHTML('beforeend',vacioHTML('Sin leads archivados en este grupo.','🗄️'));return}
-    lista.forEach(l=>host.appendChild(cardLead(l)));
+    host.appendChild(kb);
+  }
+  function archCard(l){
+    const d=document.createElement('div');d.className='kbcard';
+    const nombre=(l.full_name&&l.full_name.trim().length>2)?l.full_name:'Sin nombre';
+    const f=l.happened_at||l.created_at;
+    const fecha=f?new Date(f).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}):'';
+    const propTxt=l.property_title?esc(l.property_title):((l.zone_text||l.budget_text)?'<i style="color:#8a94a6">🔎 '+esc([l.zone_text,l.budget_text].filter(Boolean).join(' · '))+'</i>':'<i style="color:#8a94a6">Sin propiedad</i>');
+    d.innerHTML='<div class="kbt">'+esc(nombre)+'</div>'
+    +'<div class="kbp">'+propTxt+'</div>'
+    +'<div class="kbm"><b>'+(l.price_amount?fmt(l.price_amount)+(l.operation_type==='rental'?'/mes':''):'')+'</b><span>'+fecha+'</span></div>'
+    +(ESADMIN?'<div class="kbm"><span>'+(l.advisor_name?'👔 '+esc(l.advisor_name):'⚠️ Sin asesor')+'</span></div>':'')
+    +'<div class="kbacc">'
+    +(l.phone_normalized?'<a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+esc(String(l.phone_normalized).replace('+',''))+'">WhatsApp</a>':'')
+    +'<button class="ver" style="background:#64748b">Ficha</button>'
+    +'<button class="restaurar" style="background:#2563eb">↩️ Restaurar</button>'
+    +'</div>';
+    d.querySelector('.ver').onclick=(e)=>{e.stopPropagation();abrirFicha(l)};
+    d.querySelectorAll('.kbacc a').forEach(a=>a.addEventListener('click',e=>e.stopPropagation()));
+    const btnR=d.querySelector('.restaurar');
+    btnR.onclick=async(e)=>{
+      e.stopPropagation();
+      btnR.disabled=true;btnR.textContent='Restaurando...';
+      const {error}=await sb.from('leads').update({archived_at:null,archived_by:null}).eq('id',l.id);
+      if(error){btnR.disabled=false;btnR.textContent='↩️ Restaurar';toast('No se pudo restaurar');return}
+      l.archived_at=null;l.archived_by=null;
+      sb.from('lead_interactions').insert({lead_id:l.id,type:'unarchived',actor:'advisor',payload:{}});
+      toast('Lead restaurado');
+      pintar();cargarContadores();
+    };
+    d.addEventListener('click',()=>abrirFicha(l));
+    return d;
   }
   // ── Tablero por etapas (estilo pipeline) ─────────────────────────────
 const COLS=[['new','🔵 Nuevos'],['contacted','🟢 Activos'],['attended','🟡 Tibios'],['cancelled','💰 Cerrado']];
@@ -1472,7 +1494,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modalNuevo').c
 
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-      TAB=b.dataset.t;SHOWN=60;SUBARCH=null;pintar();
+          TAB=b.dataset.t;SHOWN=60;pintar();
 });
 document.querySelectorAll('#filtros .f:not(.v)').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#filtros .f:not(.v)').forEach(x=>x.classList.remove('on'));b.classList.add('on');
