@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+(async()=>{
+  try{
+    const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+    const sb = createClient(cfg.url, cfg.anon);
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ window.location.replace('./index.html'); return; }
+    const uname=(session.user?.email||'').split('@')[0];
+    if(uname!=='admin'){ window.location.replace('./index.html'); return; }
+    window.__nivaSession = session;
+    window.__nivaSb = sb;
+    window.__nivaCfg = cfg;
+    sb.auth.onAuthStateChange((_e, s)=>{ if(!s) window.location.replace('./index.html'); });
+  }catch(e){ console.error('niva-auth-guard', e); window.location.replace('./index.html'); }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Renovaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1B2A4A; --navy2: #0f1e36; --gold: #C9A84C; --gold2: #e8c96a;
+  --white: #fff; --radius: 16px;
+}
+html, body { min-height: 100vh; font-family: 'Inter', sans-serif; background: var(--navy2); color: var(--white); overflow-x: hidden; }
+.hidden{display:none !important}
+.bg-pattern {
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(201,168,76,.10) 0%, transparent 60%),
+              linear-gradient(160deg, #0d1828 0%, #1B2A4A 50%, #0d1828 100%);
+}
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; opacity: .04;
+  background-image: linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.page { position: relative; z-index: 1; min-height: 100vh; max-width: 1040px; margin: 0 auto; padding: 0 20px 80px; }
+header { display: flex; align-items: center; justify-content: space-between; padding: 32px 0 0; gap: 12px; }
+.logo-block { display: flex; align-items: flex-end; gap: 4px; }
+.logo-niva { font-size: 38px; font-weight: 900; letter-spacing: -.02em; color: var(--white); line-height: 1; }
+.logo-dot { width: 9px; height: 9px; background: var(--gold); border-radius: 50%; margin-bottom: 5px; }
+.logo-sub { font-size: 11px; font-weight: 600; letter-spacing: .18em; color: rgba(201,168,76,.7); text-transform: uppercase; margin-left: 2px; padding-bottom: 2px; }
+.back-btn { font-size: .75rem; color: var(--gold); padding: 6px 14px; border: 1px solid rgba(201,168,76,.4); border-radius: 8px; text-decoration: none; white-space: nowrap; transition: all .2s; }
+.back-btn:hover { background: var(--gold); color: var(--navy2); }
+.page-hero { padding: 40px 0 32px; }
+.badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(201,168,76,.12); border: 1px solid rgba(201,168,76,.25); border-radius: 40px; padding: 6px 18px; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--gold); text-transform: uppercase; margin-bottom: 18px; }
+.page-hero h1 { font-size: clamp(28px,5vw,42px); font-weight: 900; line-height: 1.1; letter-spacing: -.02em; margin-bottom: 12px; }
+.page-hero h1 span { color: var(--gold); }
+.page-hero p { font-size: 14.5px; color: rgba(255,255,255,.5); max-width: 620px; line-height: 1.65; }
+.section-title { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin: 36px 0 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(201,168,76,.2); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+@media (max-width:820px){.dash-grid{grid-template-columns:1fr 1fr}}
+.dkpi{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+.dkpi::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold)}
+.dkpi .dl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:8px}
+.dkpi .dv{font-size:32px;font-weight:900;color:var(--white);line-height:1}
+.dkpi .dd{font-size:12px;font-weight:700;margin-top:8px;display:flex;align-items:center;gap:6px}
+.dkpi .dd .pill{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px}
+.pill.ok{background:rgba(74,222,128,.15);color:#4ade80}
+.pill.warn{background:rgba(250,204,21,.15);color:#facc15}
+.pill.bad{background:rgba(248,113,113,.15);color:#f87171}
+.pill.idle{background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+
+.chart-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:8px}
+@media (max-width:820px){.chart-grid{grid-template-columns:1fr}}
+.chart-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:var(--radius);padding:20px}
+.chart-card .ch-t{font-size:11.5px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:.07em;text-transform:uppercase;margin-bottom:16px}
+.barchart{display:flex;align-items:flex-end;gap:6px;height:130px}
+.barchart .bc-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px}
+.barchart .bc-bar{width:100%;max-width:22px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--gold2),var(--gold));min-height:2px;transition:opacity .15s}
+.barchart .bc-bar:hover{opacity:.75}
+.barchart .bc-lbl{font-size:10px;color:rgba(255,255,255,.4);white-space:nowrap}
+.donutlegend{display:flex;flex-direction:column;gap:9px}
+.donutlegend .dli{display:flex;align-items:center;gap:8px;font-size:12.5px;color:rgba(255,255,255,.75)}
+.donutlegend .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.donutlegend .dli b{color:var(--white);margin-left:auto}
+.hbars{display:flex;flex-direction:column;gap:12px}
+.hbars .hb-row{display:flex;flex-direction:column;gap:4px}
+.hbars .hb-top{display:flex;justify-content:space-between;font-size:12.5px;color:rgba(255,255,255,.7)}
+.hbars .hb-top b{color:var(--white)}
+.hbars .hb-track{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.hbars .hb-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+
+.reptable{width:100%;border-collapse:collapse;font-size:13.5px;min-width:520px}
+.reptable th{text-align:left;padding:8px 10px;border-bottom:2px solid rgba(255,255,255,.12);font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.reptable td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top;color:rgba(255,255,255,.85)}
+.reptable tr:last-child td{border-bottom:0}
+.reptable td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.reptable th.num{text-align:right}
+.repsec{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:var(--radius);padding:16px;overflow-x:auto}
+.badgest{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+
+.vacio { text-align: center; padding: 40px 20px; color: rgba(255,255,255,.4); font-size: 14px; }
+.vacio .vi { display: block; font-size: 34px; margin-bottom: 10px; }
+.skel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:16px;margin-bottom:10px}
+.skel .l{height:12px;border-radius:6px;background:rgba(255,255,255,.08);margin-bottom:8px;animation:pulse 1.3s infinite ease-in-out}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+.repnote{font-size:12.5px;color:rgba(255,255,255,.45);line-height:1.6;margin:-6px 0 14px}
+
+.niva-backfab{position:fixed;top:14px;left:14px;z-index:99999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:8px 14px;border-radius:9px;text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);display:inline-flex;align-items:center;gap:6px}
+.niva-backfab:hover{background:#22345c}
+</style>
+</head>
+<body>
+<a href="./admin.html" class="niva-backfab">&larr; Administrador</a>
+
+<div class="bg-pattern"></div>
+<div class="bg-grid"></div>
+
+<div class="page">
+  <header>
+    <div>
+      <div class="logo-block">
+        <span class="logo-niva">NIVA</span>
+        <div class="logo-dot"></div>
+      </div>
+      <div class="logo-sub">Inmobiliaria · Monterrey</div>
+    </div>
+    <a href="./admin.html" class="back-btn">&larr; Administrador</a>
+  </header>
+
+  <div class="page-hero">
+    <div class="badge">🔁 Módulo de Renovaciones</div>
+    <h1>Cómo va la <span>renovación</span> de anuncios</h1>
+    <p>El sistema renueva solo, cada 3 días, tus anuncios en EasyBroker e Inmuebles24 (y esto refresca Facebook automáticamente en máximo 30 min). Aquí ves cómo va cada portal, sin tener que preguntar.</p>
+  </div>
+
+  <div id="loading" class="skel"><div class="l" style="width:40%"></div><div class="l" style="width:70%"></div><div class="l" style="width:55%"></div></div>
+
+  <div id="contenido" class="hidden">
+
+    <div class="dash-grid" id="dash-kpis"></div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="ch-t">Propiedades renovadas por día (últimos 14 días)</div>
+        <div class="barchart" id="chart-dias"></div>
+      </div>
+      <div class="chart-card">
+        <div class="ch-t">Reparto por portal (últimos 30 días)</div>
+        <div class="donutlegend" id="chart-portal"></div>
+      </div>
+    </div>
+
+    <div class="section-title"><span>Último resultado por portal</span></div>
+    <div class="chart-card">
+      <div class="hbars" id="ultimos-portal"></div>
+    </div>
+
+    <div class="section-title"><span>Historial de corridas</span></div>
+    <div class="repsec">
+      <table class="reptable">
+        <thead><tr><th>Fecha</th><th>Portal</th><th class="num">Renovadas</th><th class="num">Omitidas</th><th>Estatus</th><th>Detalle</th></tr></thead>
+        <tbody id="tabla-historial"></tbody>
+      </table>
+      <div id="historial-vacio" class="vacio hidden"><span class="vi">🕓</span>Todavía no hay corridas registradas. En cuanto corra la tarea programada (cada 3 días) o el sync de Facebook (cada 30 min), va a aparecer aquí.</div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+const $=s=>document.querySelector(s);
+const PORTAL_LABEL={easybroker:'EasyBroker',inmuebles24:'Inmuebles24',facebook:'Facebook / Meta'};
+const PORTAL_COLOR={easybroker:'#C9A84C',inmuebles24:'#4ade80',facebook:'#60a5fa'};
+const PORTALES=['easybroker','inmuebles24','facebook'];
+
+function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fchCorta(iso){
+  if(!iso) return '–';
+  const d=new Date(iso);
+  return d.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+}
+function haceCuanto(iso){
+  if(!iso) return 'sin corridas todavía';
+  const ms=Date.now()-new Date(iso).getTime();
+  const h=ms/3600000;
+  if(h<1) return 'hace '+Math.max(1,Math.round(ms/60000))+' min';
+  if(h<48) return 'hace '+Math.round(h)+' h';
+  return 'hace '+Math.round(h/24)+' días';
+}
+function statusPill(status){
+  const map={success:['ok','✅ Éxito'],partial:['warn','⚠️ Parcial'],error:['bad','❌ Error']};
+  const [cls,lbl]=map[status]||['idle',status||'–'];
+  return `<span class="badgest pill ${cls}">${lbl}</span>`;
+}
+
+async function cargar(){
+  const sb=window.__nivaSb;
+  const { data, error } = await sb.from('renewal_log').select('*').order('ran_at',{ascending:false}).limit(300);
+  $('#loading').classList.add('hidden');
+  $('#contenido').classList.remove('hidden');
+  const rows = (error || !data) ? [] : data;
+
+  // --- último registro por portal ---
+  const ultimo = {};
+  for(const r of rows){ if(!ultimo[r.portal]) ultimo[r.portal]=r; }
+
+  // --- totales últimos 30 días por portal ---
+  const desde30 = Date.now() - 30*86400000;
+  const desdePrev30 = Date.now() - 60*86400000;
+  const totales30 = {}; const totalesPrev30 = {};
+  PORTALES.forEach(p=>{ totales30[p]=0; totalesPrev30[p]=0; });
+  for(const r of rows){
+    const t = new Date(r.ran_at).getTime();
+    if(t>=desde30) totales30[r.portal] = (totales30[r.portal]||0) + (r.renewed_count||0);
+    else if(t>=desdePrev30) totalesPrev30[r.portal] = (totalesPrev30[r.portal]||0) + (r.renewed_count||0);
+  }
+  const granTotal30 = PORTALES.reduce((a,p)=>a+totales30[p],0);
+  const granTotalPrev30 = PORTALES.reduce((a,p)=>a+totalesPrev30[p],0);
+
+  // --- KPIs ---
+  function deltaTxt(actual, prev){
+    if(!prev && !actual) return '<span class="pill idle">sin datos aún</span>';
+    if(!prev) return '<span class="pill ok">nuevo</span>';
+    const pct = Math.round(((actual-prev)/prev)*100);
+    if(pct>0) return `<span class="pill ok">▲ ${pct}% vs periodo anterior</span>`;
+    if(pct<0) return `<span class="pill bad">▼ ${Math.abs(pct)}% vs periodo anterior</span>`;
+    return `<span class="pill idle">= sin cambio</span>`;
+  }
+  const kpis = [
+    {l:'Total renovadas (30 días)', v:granTotal30, d:deltaTxt(granTotal30, granTotalPrev30)},
+    {l:'EasyBroker (30 días)', v:totales30.easybroker, d:deltaTxt(totales30.easybroker, totalesPrev30.easybroker)},
+    {l:'Inmuebles24 (30 días)', v:totales30.inmuebles24, d:deltaTxt(totales30.inmuebles24, totalesPrev30.inmuebles24)},
+    {l:'Facebook / Meta (30 días)', v:totales30.facebook, d:deltaTxt(totales30.facebook, totalesPrev30.facebook)},
+  ];
+  $('#dash-kpis').innerHTML = kpis.map(k=>`<div class="dkpi"><div class="dl">${k.l}</div><div class="dv">${k.v}</div><div class="dd">${k.d}</div></div>`).join('');
+
+  // --- barra por día (14 días), suma de los 3 portales ---
+  const dias=[];
+  for(let i=13;i>=0;i--){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-i); dias.push(d); }
+  const porDia = dias.map(d=>{
+    const ini=d.getTime(), fin=ini+86400000;
+    let tot=0;
+    for(const r of rows){ const t=new Date(r.ran_at).getTime(); if(t>=ini && t<fin) tot += (r.renewed_count||0); }
+    return {d, tot};
+  });
+  const maxDia = Math.max(1, ...porDia.map(x=>x.tot));
+  $('#chart-dias').innerHTML = porDia.map(x=>
+    `<div class="bc-col"><div class="bc-bar" style="height:${Math.max(3,Math.round(x.tot*100/maxDia))}%" title="${x.tot} renovadas"></div><div class="bc-lbl">${x.d.toLocaleDateString('es-MX',{day:'numeric'})}</div></div>`
+  ).join('');
+
+  // --- reparto por portal (donut simplificado a leyenda con barra) ---
+  $('#chart-portal').innerHTML = PORTALES.map(p=>{
+    const v = totales30[p]||0;
+    const pct = granTotal30 ? Math.round(v*100/granTotal30) : 0;
+    return `<div class="dli"><span class="dot" style="background:${PORTAL_COLOR[p]}"></span>${PORTAL_LABEL[p]} <b>${v} (${pct}%)</b></div>`;
+  }).join('') || '<div class="repnote">Sin datos todavía.</div>';
+
+  // --- último resultado por portal (hbars) ---
+  $('#ultimos-portal').innerHTML = PORTALES.map(p=>{
+    const r = ultimo[p];
+    const label = r ? `${r.renewed_count} renovadas${r.skipped_count?', '+r.skipped_count+' omitidas':''} · ${haceCuanto(r.ran_at)}` : 'sin corridas todavía';
+    const pct = r ? Math.min(100, Math.max(4, (r.renewed_count||0))) : 0;
+    return `<div class="hb-row">
+      <div class="hb-top"><b>${PORTAL_LABEL[p]}</b><span>${r?statusPill(r.status):'<span class="badgest pill idle">– sin datos</span>'}</span></div>
+      <div class="hb-track"><div class="hb-fill" style="width:${r?100:0}%;background:${PORTAL_COLOR[p]}"></div></div>
+      <div class="repnote" style="margin:0">${label}</div>
+    </div>`;
+  }).join('');
+
+  // --- tabla historial (últimas 30 filas) ---
+  const historial = rows.slice(0,30);
+  if(!historial.length){
+    $('#historial-vacio').classList.remove('hidden');
+  } else {
+    $('#tabla-historial').innerHTML = historial.map(r=>`<tr>
+      <td>${fchCorta(r.ran_at)}</td>
+      <td>${PORTAL_LABEL[r.portal]||esc(r.portal)}</td>
+      <td class="num">${r.renewed_count??0}</td>
+      <td class="num">${r.skipped_count??0}</td>
+      <td>${statusPill(r.status)}</td>
+      <td>${esc(r.detail||'')}</td>
+    </tr>`).join('');
+  }
+}
+
+function esperarSesion(){
+  if(window.__nivaSb){ cargar(); }
+  else setTimeout(esperarSesion, 80);
+}
+esperarSesion();
+</script>
+</body>
+</html>
