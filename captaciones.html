@@ -356,6 +356,19 @@ async function ebToggle(propertyId, action, motivo){
   if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
   return { data: j };
 }
+function errMsg(e){
+  if(e==null) return 'Error desconocido';
+  if(typeof e==='string') return e;
+  if(typeof e==='object'){
+    if(e.message) return String(e.message);
+    if(e.error && typeof e.error==='string') return e.error;
+    if(e.errors){
+      try{ return Object.entries(e.errors).map(([k,v])=>k+': '+(Array.isArray(v)?v.join(', '):v)).join(' | '); }catch(_e){}
+    }
+    try{ return JSON.stringify(e); }catch(_e){ return String(e); }
+  }
+  return String(e);
+}
 async function ebUpdateProperty(propertyId, fields){
   const { data:{ session } } = await sb.auth.getSession();
   const r = await fetch(cfg.url+'/functions/v1/eb-update-property', {
@@ -410,7 +423,7 @@ async function guardarEdicion(){
   err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
   const r=await ebUpdateProperty(PEDIT_ACTUAL.id,fields);
   btn.disabled=false;btn.textContent='Guardar cambios';
-  if(r.error){err.textContent=r.error;return}
+  if(r.error){err.textContent=errMsg(r.error);return}
   toast('Propiedad actualizada en NIVA OS y EasyBroker');
   cerrarEdicion();
   await cargar();
@@ -499,7 +512,7 @@ function renderProps(){
           if(!confirm('¿Reactivar "'+(p.title||p.eb_public_id)+'"?\n\nVuelve a la lista de propiedades activas y se vuelve a publicar en EasyBroker.'))return;
           bc.disabled=true;bc.textContent='...';
           const r=await ebToggle(p.id,'publish');
-          if(r.error){bc.disabled=false;bc.textContent='↩️';toast(r.error||'No se pudo');return}
+          if(r.error){bc.disabled=false;bc.textContent='↩️';toast(errMsg(r.error)||'No se pudo');return}
           toast('Propiedad reactivada y publicada en EasyBroker');
         } else {
           if(!confirm('¿Archivar "'+(p.title||p.eb_public_id)+'"?\n\nSale de la lista de propiedades activas y de los reportes, y se despublica automáticamente en EasyBroker.\nSus leads se conservan. Puedes reactivarla cuando quieras.'))return;
@@ -507,7 +520,7 @@ function renderProps(){
           if(mot===null)return;
           bc.disabled=true;bc.textContent='...';
           const r=await ebToggle(p.id,'archive',mot);
-          if(r.error){bc.disabled=false;bc.textContent='🗑️';toast(r.error||'No se pudo');return}
+          if(r.error){bc.disabled=false;bc.textContent='🗑️';toast(errMsg(r.error)||'No se pudo');return}
           toast('Propiedad archivada y despublicada en EasyBroker');
         }
         await cargar();
@@ -690,17 +703,12 @@ async function guardarCaptacion(){
     }
     await Promise.all(Array.from({length:Math.min(3,CAP_FOTOS.length)},trabajadorFotos));
     btn.textContent='Publicando en EasyBroker...';
-    // Estos campos van como NÚMERO, igual que en la edición (num()) — antes se mandaban
-    // como texto crudo del input, lo que puede hacer que el backend/EasyBroker los
-    // rechace o los guarde como texto, rompiendo el orden numérico y los filtros que
-    // asumen bedrooms/bathrooms/m2 como números (p.ej. el ordenado por precio/specs).
-    const numCap=(v)=>{v=String(v||'').trim();return v===''?undefined:Number(v.replace(/[^0-9.]/g,''))};
     const body={
       property_type:tipo,operation_type:op,price_amount:precio,description:desc,location_name:zona,
       title:$('#cap-titulo').value.trim()||undefined,
-      bedrooms:numCap($('#cap-rec').value),bathrooms:numCap($('#cap-bano').value),
-      half_bathrooms:numCap($('#cap-mbano').value),parking_spaces:numCap($('#cap-est').value),
-      construction_size:numCap($('#cap-m2c').value),lot_size:numCap($('#cap-m2t').value),
+      bedrooms:$('#cap-rec').value||undefined,bathrooms:$('#cap-bano').value||undefined,
+      half_bathrooms:$('#cap-mbano').value||undefined,parking_spaces:$('#cap-est').value||undefined,
+      construction_size:$('#cap-m2c').value||undefined,lot_size:$('#cap-m2t').value||undefined,
       photos:photoUrls
     };
     const {data:{session}}=await sb.auth.getSession();
