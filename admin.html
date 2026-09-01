@@ -347,7 +347,7 @@ function renderDashboard(){
   const donutHTML = donutSVG(porEstado.map(x=>({v:x.n,c:EST_COLORS[x.st]})));
   const legend = porEstado.map(x=>'<div class="dli"><span class="dot" style="background:'+EST_COLORS[x.st]+'"></span>'+EST_NAMES[x.st]+'<b>'+x.n+' ('+pct2(x.n,totalAct)+')</b></div>').join('');
 
-  const FTE2={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Directo',manual_asesor:'Directo'};
+  const FTE2={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Directo',manual_asesor:'Directo',facebook_messenger:'Messenger'};
   const porFuente={};
   activos.forEach(l=>{const f=FTE2[l.source]||l.source||'Otro'; porFuente[f]=(porFuente[f]||0)+1});
   const maxFte=Math.max(1,...Object.values(porFuente));
@@ -620,7 +620,7 @@ const repNomAsesor=(id)=>{const a=id?REP.aMap[id]:null;if(!a)return 'Sin asignar
 const fchLead=(l)=>l.happened_at||l.created_at;
 const mesDe=(d)=>{const t=new Date(d);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')};
 const pct=(n,d)=>d?Math.round(n*100/d)+'%':'—';
-const FTE={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Directo',manual_asesor:'Directo'};
+const FTE={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Directo',manual_asesor:'Directo',facebook_messenger:'Messenger'};
 function descargarCSV(nombre,cols,filas){
   const escv=(v)=>{v=(v==null)?'':String(v).replace(/\r?\n/g,' ');return /[",]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
   const txt='﻿'+cols.join(',')+'\n'+filas.map(f=>f.map(escv).join(',')).join('\n');
