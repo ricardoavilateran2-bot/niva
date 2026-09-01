@@ -367,7 +367,7 @@ async function cargar(){
   skeleton($('#propnuevas'));
   $('#dash-kpis').innerHTML='<div class="skel"><div class="l" style="width:60%"></div><div class="l" style="width:40%;margin-bottom:0"></div></div>';
   try{
-    const [p,l,a,d,ci] = await Promise.all([
+        const [p,l,a,d] = await Promise.all([
       sb.from('my_properties').select('*'),
       sb.from('my_leads').select('*'),
       sb.from('advisors').select('id,first_name,last_name,niva_code,status'),
