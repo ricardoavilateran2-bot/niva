@@ -128,6 +128,9 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 @media (max-width:820px){.dash-grid{grid-template-columns:1fr 1fr}}
 .dkpi{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
 .dkpi::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold)}
+.dkpi.clickable{cursor:pointer;transition:background .15s,border-color .15s}
+.dkpi.clickable:hover{background:rgba(255,255,255,.08);border-color:rgba(201,168,76,.4)}
+.dkpi .dhint{font-size:11px;font-weight:700;margin-top:8px;color:var(--gold);opacity:.85}
 .dkpi .dl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:8px}
 .dkpi .dv{font-size:32px;font-weight:900;color:var(--white);line-height:1}
 .dkpi .dd{font-size:12px;font-weight:700;margin-top:8px;display:inline-flex;align-items:center;gap:4px}
@@ -202,6 +205,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <button class="anav-item on" data-sec="inicio">🏁 Panel de inicio</button>
       <button class="anav-item" data-sec="sindueno">⚠️ Sin dueño</button>
       <button class="anav-item" data-sec="propasesor">🏠 Propiedades y asesores</button>
+      <button class="anav-item" data-sec="propnuevas">🆕 Propiedades nuevas</button>
       <a class="anav-item" href="cierres.html" style="text-decoration:none;display:flex">🤝 Cierres</a>
       <button class="anav-item" data-sec="reportes">📊 Reportes</button>
     </nav>
@@ -238,6 +242,12 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       </div>
       <input type="text" class="searchbox" id="prop-buscar" placeholder="Buscar por propiedad, folio o asesor...">
       <div id="propasesor"></div>
+    </section>
+
+    <section class="asec" id="sec-propnuevas">
+      <div class="sec-head"><h2>🆕 Propiedades nuevas (últimos 7 días)</h2></div>
+      <div class="repnote" style="margin-top:-8px">Propiedades captadas desde el módulo de Captaciones esta semana, con el asesor que las subió.</div>
+      <div id="propnuevas"></div>
     </section>
 
     <section class="asec" id="sec-reportes">
@@ -315,7 +325,7 @@ function renderDashboard(){
   host.innerHTML =
     '<div class="dkpi"><div class="dl">Leads hoy</div><div class="dv">'+leadsHoy+'</div></div>'
    +'<div class="dkpi"><div class="dl">Leads esta semana</div><div class="dv">'+semAct+'</div>'+deltaHTML(deltaSem)+'</div>'
-   +'<div class="dkpi"><div class="dl">Captaciones nuevas (semana)</div><div class="dv">'+capSemana+'</div></div>'
+   +'<div class="dkpi clickable" id="kpi-capsemana"><div class="dl">Captaciones nuevas (semana)</div><div class="dv">'+capSemana+'</div>'+(capSemana?'<div class="dhint">Ver cuáles →</div>':'')+'</div>'
    +'<div class="dkpi"><div class="dl">Nuevos sin atender</div><div class="dv">'+nuevosSinAtender+'</div></div>';
 
   const dias14=[];
@@ -353,6 +363,7 @@ function renderDashboard(){
 async function cargar(){
   skeleton($('#sindueno'));
   skeleton($('#propasesor'));
+  skeleton($('#propnuevas'));
   $('#dash-kpis').innerHTML='<div class="skel"><div class="l" style="width:60%"></div><div class="l" style="width:40%;margin-bottom:0"></div></div>';
   try{
     const [p,l,a,d,ci] = await Promise.all([
@@ -377,11 +388,13 @@ async function cargar(){
 
     renderSinDueno();
     renderPropAsesor();
+    renderPropNuevas();
     renderDashboard();
   }catch(e){
     console.error('[admin] error de carga:', e);
     $('#sindueno').innerHTML='<div class="vacio">⚠️ No se pudieron cargar los datos'+(e.message?': '+esc(e.message):'')+'.</div>';
     $('#propasesor').innerHTML='';
+    $('#propnuevas').innerHTML='';
   }
 }
 
@@ -506,6 +519,46 @@ function renderPropAsesor(){
     }
   });
 }
+
+// ===== Propiedades nuevas (últimos 7 días, con quién las subió) =====
+function haceTiempo(f){
+  if(!f) return '';
+  const ms = Date.now() - new Date(f).getTime();
+  const horas = Math.floor(ms/3600000);
+  if(horas < 1) return 'hace un momento';
+  if(horas < 24) return 'hace '+horas+(horas===1?' hora':' horas');
+  const dias = Math.floor(horas/24);
+  return 'hace '+dias+(dias===1?' día':' días');
+}
+function renderPropNuevas(){
+  const host=$('#propnuevas');
+  host.innerHTML='';
+  const hoy0=new Date(); hoy0.setHours(0,0,0,0);
+  const diasAtras=(n)=>{const d=new Date(hoy0);d.setDate(d.getDate()-n);return d};
+  const desde = diasAtras(6);
+  const nuevas = PROPS.filter(p=>p.captured_by_advisor_id && p.created_at && new Date(p.created_at)>=desde)
+    .slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  if(!nuevas.length){
+    host.innerHTML=vacioHTML('Nadie ha captado propiedades nuevas en los últimos 7 días.','📭');
+    return;
+  }
+  const wrap=document.createElement('div');
+  wrap.className='proptabla';
+  nuevas.forEach(p=>{
+    const row=document.createElement('div');
+    row.className='proprow';
+    row.innerHTML='<div class="pmain"><div class="pt">'+esc(p.title||p.eb_public_id||'Sin título')+' 📸</div>'
+      +'<div class="pm">'+[esc(p.eb_public_id||''),
+          p.price_amount?fmt(p.price_amount)+(p.operation_type==='rental'?'/mes':''):'',
+          esc(p.property_type||''), esc(p.location_name||'')].filter(Boolean).join(' · ')+'</div></div>'
+      +'<div class="pown-edit asig" style="flex-direction:column;align-items:flex-end;gap:2px">'
+        +'<span class="pown asig">'+esc(nomAsesor(p.captured_by_advisor_id))+'</span>'
+        +'<span class="pm" style="margin-top:0">'+esc(haceTiempo(p.created_at))+'</span>'
+      +'</div>';
+    wrap.appendChild(row);
+  });
+  host.appendChild(wrap);
+}
 $('#prop-filtros').addEventListener('click',e=>{
   const b=e.target.closest('button[data-f]');
   if(!b)return;
@@ -521,12 +574,21 @@ $('#pa-vertodo').addEventListener('click',()=>{ PA_EXPANDED=!PA_EXPANDED; render
 $('#sd-vertodo').addEventListener('click',()=>{ SIN_EXPANDED=!SIN_EXPANDED; renderSinDueno(); });
 
 // ===== Navegación lateral =====
+function irASeccion(sec){
+  const b=document.querySelector('#anav button[data-sec="'+sec+'"]');
+  document.querySelectorAll('#anav .anav-item').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.asec').forEach(s=>s.classList.toggle('on', s.id==='sec-'+sec));
+}
 $('#anav').addEventListener('click',e=>{
   const b=e.target.closest('button[data-sec]');
   if(!b)return;
-  const sec=b.dataset.sec;
-  document.querySelectorAll('#anav .anav-item').forEach(x=>x.classList.toggle('on',x===b));
-  document.querySelectorAll('.asec').forEach(s=>s.classList.toggle('on', s.id==='sec-'+sec));
+  irASeccion(b.dataset.sec);
+});
+// La tarjeta "Captaciones nuevas (semana)" del panel de inicio se re-dibuja cada
+// vez que carga el dashboard, así que el click se escucha en el contenedor fijo
+// (delegación) en vez de en la tarjeta misma.
+$('#dash-kpis').addEventListener('click',e=>{
+  if(e.target.closest('#kpi-capsemana')) irASeccion('propnuevas');
 });
 
 // ===== Reportes del CRM (misma lógica que en el CRM, sección Reportes) =====
