@@ -108,7 +108,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .ph-thumb.dragging{opacity:.35;transform:scale(.95)}
 .ph-thumb img{width:100%;height:100%;object-fit:cover;pointer-events:none}
 .ph-badge{position:absolute;bottom:3px;left:3px;background:var(--gold);color:var(--navy);font-size:8px;font-weight:800;padding:1px 5px;border-radius:5px;pointer-events:none}
-.ph-rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:white;border:none;width:18px;height:18px;border-radius:50%;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.ph-rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:white;border:none;width:24px;height:24px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
 .ph-rm:hover{background:#ef4444}
 .ph-drag-hint{font-size:10px;color:#94a3b8;text-align:center;margin-top:5px;display:none}
 .ph-drag-hint.show{display:block}
@@ -2887,7 +2887,7 @@ function renderPhotoGrid() {
     div.draggable = true;
     const badgeTxt = '#' + (i + 1) + (isUnused ? ' · fuera del video' : '');
     const isMain = (u === mainPhotoUrl);
-    div.innerHTML = `<img src="${u}"><span class="ph-badge">${badgeTxt}</span><button class="ph-rm" style="top:2px;left:2px;right:auto;background:${isMain ? '#C9A84C' : 'rgba(0,0,0,.55)'};color:${isMain ? '#0b1220' : '#fff'}" onclick="toggleMainPhoto(${i})" title="Marcar como Foto Principal">${isMain ? '⭐' : '☆'}</button><button class="ph-rm" onclick="removePhoto(${i})">×</button><button class="ph-rm" style="top:auto;bottom:2px;right:26px;width:20px;height:20px" onclick="movePhoto(${i},-1)">◀</button><button class="ph-rm" style="top:auto;bottom:2px;right:2px;width:20px;height:20px" onclick="movePhoto(${i},1)">▶</button>`;
+    div.innerHTML = `<img src="${u}"><span class="ph-badge">${badgeTxt}</span><button class="ph-rm" style="top:2px;left:2px;right:auto;background:${isMain ? '#C9A84C' : 'rgba(0,0,0,.55)'};color:${isMain ? '#0b1220' : '#fff'}" onclick="toggleMainPhoto(${i})" title="Marcar como Foto Principal">${isMain ? '⭐' : '☆'}</button><button class="ph-rm" onclick="removePhoto(${i})">×</button><button class="ph-rm" style="top:auto;bottom:2px;right:29px;width:26px;height:26px" onclick="movePhoto(${i},-1)">◀</button><button class="ph-rm" style="top:auto;bottom:2px;right:2px;width:26px;height:26px" onclick="movePhoto(${i},1)">▶</button>`;
 
     div.addEventListener('dragstart', e => {
       _dragIdx = i;
