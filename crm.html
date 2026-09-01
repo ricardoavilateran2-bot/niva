@@ -53,7 +53,7 @@ input,select,textarea{font-family:inherit}
 #modalNuevo h3{margin:0 0 14px;font-size:17px;color:var(--navy)}
 #modalNuevo label{display:block;font-size:12.5px;font-weight:700;color:var(--mut);margin:12px 0 5px}
 #modalNuevo label small{font-weight:500;opacity:.8}
-#modalNuevo input,#modalNuevo select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;box-sizing:border-box;font-family:inherit}
+#modalNuevo input,#modalNuevo select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:16px;background:#fff;box-sizing:border-box;font-family:inherit}
 #modalNuevo input:focus,#modalNuevo select:focus{outline:none;border-color:rgba(201,168,76,.7);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
 #modalNuevo .merr{min-height:18px;margin-top:10px;font-size:12.5px;color:#c0392b;font-weight:600}
 #modalNuevo .macc{display:flex;gap:10px;margin-top:6px}
@@ -89,7 +89,7 @@ main{padding:20px 20px 60px;max-width:720px;margin:0 auto}
 .tipofix{padding:0 14px 14px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut)}
 .tipofix button{border:1px solid var(--border);background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;cursor:pointer}
 .tipofix button:hover{background:#f1f3f7}
-.tipofix select{padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff}
+.tipofix select{padding:8px 8px;border:1px solid var(--border);border-radius:8px;font-size:16px;background:#fff}
 @media(max-width:719px){
   #app{flex-direction:column}
   #sbar{width:100%;height:auto;position:sticky;flex-direction:column;z-index:30}
@@ -105,7 +105,7 @@ main{padding:20px 20px 60px;max-width:720px;margin:0 auto}
 .filtros{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px}
 .f{border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 13px;font-size:12.5px;white-space:nowrap;color:var(--mut);cursor:pointer;font-weight:600;transition:all .15s}
 .f.on{background:var(--navy);color:#fff;border-color:var(--navy)}
-#buscar{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;margin-bottom:12px;background:#fff}
+#buscar{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-size:16px;margin-bottom:12px;background:#fff}
 #buscar:focus{outline:none;border-color:rgba(201,168,76,.7);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
 
 .card{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 3px rgba(15,23,42,.06);border:1px solid rgba(226,232,240,.7);margin-bottom:12px;overflow:hidden;transition:box-shadow .18s}
@@ -137,7 +137,7 @@ details p{font-size:13.5px;background:#f1f3f7;border-radius:8px;padding:8px;marg
 .sanombres{font-size:12.5px;color:var(--txt);margin-top:8px;line-height:1.5}
 .sanombres span{display:inline-block;background:#f1f3f7;border-radius:6px;padding:2px 7px;margin:0 4px 4px 0}
 .saacc{display:flex;gap:8px;margin-top:11px;align-items:center;flex-wrap:wrap}
-.saacc select{flex:1;min-width:170px;padding:9px 10px;border:1px solid var(--border);border-radius:9px;font-size:14px;background:#fff}
+.saacc select{flex:1;min-width:170px;padding:9px 10px;border:1px solid var(--border);border-radius:9px;font-size:16px;background:#fff}
 .saacc button{padding:9px 16px;border:0;border-radius:9px;background:var(--navy);color:#fff;font-weight:700;font-size:13.5px;cursor:pointer}
 .saacc button:disabled{opacity:.5;cursor:default}
 .saacc button.elimg{background:#f6e8e4;color:#b4451f}
@@ -167,7 +167,11 @@ body[data-vista="tablero"] #buscar{max-width:640px}
 .kbm{font-size:11px;color:var(--mut);margin-top:5px;display:flex;justify-content:space-between;gap:8px}
 .kbm b{color:var(--navy);font-weight:700}
 .kbacc{display:flex;gap:5px;margin-top:8px}
-.kbacc a,.kbacc button{flex:1 1 0;min-width:0;text-align:center;font-size:10.5px;font-weight:700;padding:5px 1px;border-radius:7px;border:0;color:#fff;text-decoration:none;cursor:pointer;display:block;white-space:nowrap;overflow:hidden}
+.kbacc a,.kbacc button{flex:1 1 0;min-width:0;text-align:center;font-size:11.5px;font-weight:700;padding:11px 2px;border-radius:7px;border:0;color:#fff;text-decoration:none;cursor:pointer;display:block;white-space:nowrap;overflow:hidden}
+/* Mover de etapa sin arrastrar — el drag-and-drop del tablero no funciona en
+   celular/iPad (no dispara eventos táctiles), así que cada tarjeta trae este
+   select como alternativa que funciona igual con dedo, mouse o teclado. */
+.kbmover{width:100%;margin-top:6px;padding:10px 8px;border-radius:7px;border:1px solid rgba(0,0,0,.12);background:#f6f8fb;color:var(--navy);font-size:16px;font-weight:600;font-family:inherit;cursor:pointer}
 .kbvacia{font-size:12px;color:var(--mut);text-align:center;padding:14px 6px;font-style:italic}
 #modalFicha{position:fixed;inset:0;background:rgba(8,14,26,.62);display:flex;align-items:flex-start;justify-content:center;z-index:70;padding:20px 12px;overflow-y:auto}
 #modalFicha .fbox{width:100%;max-width:520px}
@@ -196,7 +200,7 @@ body[data-vista="tablero"] #buscar{max-width:640px}
 .acc:disabled{opacity:.6;cursor:default}
 .card.esarchivada{opacity:.82}
 .estado{padding:0 14px 12px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut)}
-.estado select{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff}
+.estado select{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:16px;background:#fff}
 .notas{padding:12px 14px 14px;border-top:1px solid var(--border);margin-top:2px}
 .notas .nlabel{font-size:11px;font-weight:800;color:var(--mut);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
 .notas .ncampo{margin-bottom:8px}
@@ -726,13 +730,20 @@ function abrirFicha(l){
   m.addEventListener('click',e=>{if(e.target===m)m.remove()});
   document.body.appendChild(m);
 }
-function kbCard(l){
+function kbCard(l,colsVisibles){
   const d=document.createElement('div');
   d.className='kbcard s-'+esc(l.status);
   d.draggable=true;d.dataset.id=l.id;
   const nombre=(l.full_name&&l.full_name.trim().length>2)?l.full_name:'Sin nombre';
   const f=l.happened_at||l.created_at;
   const fecha=f?new Date(f).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}):'';
+  // Select para mover de etapa con un tap — el drag-and-drop de abajo (dragstart/
+  // dragend) sigue funcionando para mouse en laptop, pero no dispara en touch
+  // (celular/iPad), así que sin esto no había forma de mover un lead de etapa
+  // desde esos dispositivos más que abriendo la Ficha (poco descubrible).
+  const cols=colsVisibles||COLS;
+  const moverOpts='<option value="">Mover a…</option>'+cols.filter(c=>c[0]!==l.status)
+    .map(c=>'<option value="'+esc(c[0])+'">'+esc(c[1])+'</option>').join('');
   d.innerHTML='<div class="kbt">'+esc(nombre)+'</div>'
     +'<div class="kbp">'+(l.property_title?esc(l.property_title):'<i style="color:#8a94a6">Sin propiedad</i>')+'</div>'
     +'<div class="kbm"><b>'+(l.price_amount?fmt(l.price_amount)+(l.operation_type==='rental'?'/mes':''):'')+'</b><span>'+fecha+'</span></div>'
@@ -741,9 +752,13 @@ function kbCard(l){
     +(l.phone_normalized?'<a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+esc(String(l.phone_normalized).replace('+',''))+'">WhatsApp</a>':'')
     +(l.phone_normalized?'<a class="tel" href="tel:'+esc(l.phone_normalized)+'">Llamar</a>':'')
     +'<button class="ver" style="background:#64748b">Ficha</button>'
-    +'</div>';
+    +'</div>'
+    +'<select class="kbmover">'+moverOpts+'</select>';
   d.querySelector('.ver').onclick=(e)=>{e.stopPropagation();abrirFicha(l)};
   d.querySelectorAll('.kbacc a').forEach(a=>a.addEventListener('click',e=>e.stopPropagation()));
+  const sel=d.querySelector('.kbmover');
+  sel.addEventListener('click',e=>e.stopPropagation());
+  sel.addEventListener('change',e=>{e.stopPropagation();if(sel.value)moverEtapa(l.id,sel.value)});
   d.addEventListener('click',()=>abrirFicha(l));
   d.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',l.id);d.classList.add('arrastrando')});
   d.addEventListener('dragend',()=>d.classList.remove('arrastrando'));
@@ -779,7 +794,7 @@ function renderTablero(host,arr){
     const col=document.createElement('div');col.className='kbcol';col.dataset.st=st;
     col.innerHTML='<div class="kbh"><span>'+titulo+'</span><span class="kbn">'+items.length+'</span></div>';
     if(!items.length)col.insertAdjacentHTML('beforeend','<div class="kbvacia">Vacío</div>');
-    items.forEach(l=>col.appendChild(kbCard(l)));
+    items.forEach(l=>col.appendChild(kbCard(l,cols)));
     col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('sobre')});
     col.addEventListener('dragleave',()=>col.classList.remove('sobre'));
     col.addEventListener('drop',e=>{e.preventDefault();col.classList.remove('sobre');
