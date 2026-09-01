@@ -414,7 +414,7 @@ async function sincronizar(){
         if(op.tipo==='status_change'){
           const {error}=await sb.from('leads').update({status:op.nuevo}).eq('id',op.leadId);
           if(error)throw error;
-          sb.from('lead_interactions').insert({lead_id:op.leadId,type:'status_change',actor:'advisor',payload:{de:op.prev,a:op.nuevo}});
+                    sb.from('lead_interactions').insert({lead_id:op.leadId,type:'status_change',actor:'advisor',payload:{de:op.prev,a:op.nuevo}}).then(()=>{});
         }
         exitosos.add(op.id);
       }catch(e){
@@ -824,7 +824,7 @@ function renderSinAsignar(host){
       const {error}=await sb.from('leads').update({archived_at:null,archived_by:null}).eq('id',l.id);
       if(error){btnR.disabled=false;btnR.textContent='↩️ Restaurar';toast('No se pudo restaurar');return}
       l.archived_at=null;l.archived_by=null;
-      sb.from('lead_interactions').insert({lead_id:l.id,type:'unarchived',actor:'advisor',payload:{}});
+            sb.from('lead_interactions').insert({lead_id:l.id,type:'unarchived',actor:'advisor',payload:{}}).then(()=>{});
       toast('Lead restaurado');
       pintar();cargarContadores();
     };
@@ -894,7 +894,7 @@ async function moverEtapa(id,nuevo){
     toast('Movido a '+EST[nuevo]+' (pendiente de sincronizar)');
     return;
   }
-  sb.from('lead_interactions').insert({lead_id:id,type:'status_change',actor:'advisor',payload:{de:prev,a:nuevo}});
+    sb.from('lead_interactions').insert({lead_id:id,type:'status_change',actor:'advisor',payload:{de:prev,a:nuevo}}).then(()=>{});
   toast('Movido a '+EST[nuevo]);
 }
 function renderTablero(host,arr){
@@ -1054,7 +1054,7 @@ function cardLead(l){
     if(l.status==='new'){await sb.from('leads').update({status:'contacted'}).eq('id',l.id);l.status='contacted';toast('Lead marcado como ACTIVO');pintar();cargarContadores()}
   };
   const telA=d.querySelector('.tel');
-  if(telA)telA.addEventListener('click',()=>{sb.from('lead_interactions').insert({lead_id:l.id,type:'call_click',actor:'advisor',payload:{}})});
+    if(telA)telA.addEventListener('click',()=>{sb.from('lead_interactions').insert({lead_id:l.id,type:'call_click',actor:'advisor',payload:{}}).then(()=>{})});
   d.querySelector('.estado select').onchange=async(e)=>{
     const nv=e.target.value, prev=l.status;
     if(!navigator.onLine){
@@ -1091,7 +1091,7 @@ function cardLead(l){
       toast('No se pudo '+(archivando?'archivar':'restaurar'));return;
     }
     l.archived_at=cambio.archived_at;l.archived_by=cambio.archived_by;
-    sb.from('lead_interactions').insert({lead_id:l.id,type:archivando?'archived':'unarchived',actor:'advisor',payload:{}});
+        sb.from('lead_interactions').insert({lead_id:l.id,type:archivando?'archived':'unarchived',actor:'advisor',payload:{}}).then(()=>{});
     toast(archivando?'Lead archivado':'Lead restaurado');
     pintar();cargarContadores();
   }
