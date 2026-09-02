@@ -292,7 +292,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     const { data, error } = await sb
       .from("scouting_leads")
       .select("id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at")
-      .gte("score", 3)
+      .or("score.gte.3,portal.neq.inmuebles24")
       .order("score", { ascending: false })
       .order("detectado_at", { ascending: false })
       .limit(500);
