@@ -677,6 +677,7 @@ async function guardarCaptacion(){
   err.textContent='';btn.disabled=true;btn.textContent='Subiendo fotos...';
   try{
     const photoUrls=new Array(CAP_FOTOS.length);
+    const photoPaths=new Array(CAP_FOTOS.length);
     let subidas=0;
     async function subirFoto(i){
       const f=CAP_FOTOS[i];
@@ -691,6 +692,7 @@ async function guardarCaptacion(){
       if(up.error)throw new Error('No se pudo subir la foto '+(i+1)+' de '+CAP_FOTOS.length+' ('+f.file.name+'): '+up.error.message);
       const pu=sb.storage.from('captaciones').getPublicUrl(path);
       photoUrls[i]=pu.data.publicUrl;
+      photoPaths[i]=path;
       subidas++;
       btn.textContent='Subiendo fotos... ('+subidas+' de '+CAP_FOTOS.length+')';
     }
@@ -731,6 +733,27 @@ async function guardarCaptacion(){
       const msgBase = out.error || ('EasyBroker rechazó la publicación (HTTP '+res.status+').');
       throw new Error(detalle ? (msgBase+' — Motivo: '+detalle) : (msgBase+' Revisa que todos los campos obligatorios estén completos.'));
     }
+    // ── Content Studio: guardar fotos + datos de esta captación (selector de propiedades) ──
+    try{
+      await sb.from('captacion_fotos').insert({
+        titulo:$('#cap-titulo').value.trim()||null,
+        tipo, operacion:op, precio,
+        recamaras:$('#cap-rec').value||null, banos:$('#cap-bano').value||null,
+        medios_banos:$('#cap-mbano').value||null, estacionamientos:$('#cap-est').value||null,
+        m2c:$('#cap-m2c').value||null, m2t:$('#cap-m2t').value||null,
+        colonia, municipio:mpio, descripcion:desc,
+        fotos:photoUrls, archivos:photoPaths,
+        creado_por:(session&&session.user&&session.user.email)||null
+      });
+      // Rotación de espacio: si el almacenamiento pasa de 800MB, se liberan las fotos
+      // más antiguas (+45 días) hasta bajar a 650MB. EasyBroker conserva sus copias,
+      // así que los anuncios publicados no pierden nada.
+      const {data:podar}=await sb.rpc('podar_fotos_captaciones');
+      if(Array.isArray(podar)&&podar.length){
+        for(let i=0;i<podar.length;i+=100){ await sb.storage.from('captaciones').remove(podar.slice(i,i+100)); }
+        console.log('[NIVA] Rotación: '+podar.length+' fotos antiguas liberadas');
+      }
+    }catch(_eCS){ console.warn('[NIVA] captacion_fotos (no crítico):',_eCS); }
     toast('Captación publicada ✅');
     $('#cap-tipo').value='Casa';$('#cap-op').value='rental';$('#cap-precio').value='';
     $('#cap-titulo').value='';$('#cap-desc').value='';
