@@ -398,7 +398,11 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 <div class="panel-form no-print" id="niva-panel-form">
 <div class="fi">
 
-<div class="sec">🏠 Datos de la Propiedad</div>
+<div class="sec">📂 Usar una captación reciente</div>
+  <select class="fc" id="capSelector" style="margin-bottom:4px" onchange="cargarCaptacionSel(this.value)"><option value="">— Elige una propiedad captada: fotos y datos se llenan solos —</option></select>
+  <div id="capSelHint" style="font-size:11px;color:#94a3b8;margin:0 0 12px">Aquí aparecerán las captaciones que publiques desde el módulo Captaciones — al elegir una, las fotos y todos los datos se llenan solos.</div>
+  
+  <div class="sec">🏠 Datos de la Propiedad</div>
 <div class="row2">
   <div class="fg"><label class="fl">Tipo</label>
     <select class="fc" id="tipo"><option>Bodega</option><option>Casa</option><option>Departamento</option><option>Local Comercial</option><option>Oficina</option><option>Quinta / Cabaña</option><option>Terreno</option></select>
@@ -501,10 +505,6 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 <input type="hidden" id="asesor" value="">
 <input type="hidden" id="tel" value="">
 
-<div class="sec" id="capSelTitle" style="display:none">📂 Usar una captación reciente</div>
-  <select class="fc" id="capSelector" style="display:none;margin-bottom:10px" onchange="cargarCaptacionSel(this.value)"><option value="">— Elige una propiedad captada: fotos y datos se llenan solos —</option></select>
-  <div id="capSelHint" style="display:none;font-size:11px;color:#94a3b8;margin:0 0 10px"></div>
-  
   <div class="sec">📷 Fotos de la Propiedad</div>
 <input type="file" id="fotoInput" accept="image/*" multiple style="display:none" onchange="addPhotos(this)">
 <div class="drop-zone" onclick="document.getElementById('fotoInput').click()">
@@ -2885,9 +2885,8 @@ function addPhotos(input) {
     o.textContent = (c.titulo || ((c.tipo || 'Propiedad') + ' en ' + (c.colonia || ''))) + ' · ' + (c.precio ? fmtP(Number(c.precio)) : '') + ' · ' + nf + ' fotos · ' + f;
   sel.appendChild(o);
   });
-  const t = document.getElementById('capSelTitle'), w = document.getElementById('capSelector');
-  if (t) t.style.display = '';
-  if (w) w.style.display = '';
+  const h = document.getElementById('capSelHint');
+    if (h) h.textContent = 'Elige una propiedad — fotos y datos se llenan solos (y puedes editarlos antes de generar).';
   } catch(e) { console.warn('[NIVA] capSelector:', e); }
   }
   async function cargarCaptacionSel(v) {
