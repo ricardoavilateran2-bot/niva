@@ -598,14 +598,15 @@ $('#dash-kpis').addEventListener('click',e=>{
 let REP=null;
 async function cargarDatosRep(){
   if(REP)return REP;
-  const [l,c,p,a,i,pc,pv]=await Promise.all([
+  const [l,c,p,a,i,pc,pv,agx]=await Promise.all([
     sb.from('leads').select('*'),
     sb.from('contacts').select('*'),
     sb.from('properties').select('id,eb_public_id,title,property_type,operation_type,price_amount,location_name,eb_status,bedrooms,bathrooms,construction_size,eb_created_at'),
     sb.from('advisors').select('*'),
     sb.from('lead_interactions').select('lead_id,type,actor,created_at'),
     sb.from('portal_costos').select('*'),
-    sb.from('portal_volumen').select('*')
+    sb.from('portal_volumen').select('*'),
+    sb.from('asesores_externos').select('*')
   ]);
   for(const r of [l,c,p,a,i]) if(r.error) throw new Error(r.error.message);
   const cMap={},pMap={},aMap={};
@@ -613,7 +614,7 @@ async function cargarDatosRep(){
   (p.data||[]).forEach(x=>pMap[x.id]=x);
   (a.data||[]).forEach(x=>aMap[x.id]=x);
   REP={L:l.data||[],C:c.data||[],P:p.data||[],A:a.data||[],I:i.data||[],
-       COST:(pc&&pc.data)||[],VOL:(pv&&pv.data)||[],cMap,pMap,aMap};
+       COST:(pc&&pc.data)||[],VOL:(pv&&pv.data)||[],AGX:(agx&&agx.data)||[],cMap,pMap,aMap};
   return REP;
 }
 const repNomAsesor=(id)=>{const a=id?REP.aMap[id]:null;if(!a)return 'Sin asignar';return (((a.first_name||'')+' '+(a.last_name||'')).trim())||a.niva_code||'Asesor'};
@@ -685,6 +686,12 @@ function expInter(){
   descargarCSV('actividad',
     ['fecha','cliente','accion','quien'],
     REP.I.map(i=>[String(i.created_at||'').slice(0,16).replace('T',' '),cDe(i.lead_id),i.type,i.actor||'']));
+}
+function expListaNegra(){
+  const P=(v)=>Array.isArray(v)?v.join(' '):(v||'');
+  descargarCSV('lista_negra_asesores',
+    ['nombre','telefono','inmobiliaria','email','origen','veces_detectado','ultima_deteccion','portales','agregado'],
+    (REP.AGX||[]).map(a=>[a.nombre||'',a.telefono||'',a.inmobiliaria||'',a.email||'',a.origen||'',a.veces_detectado||'',String(a.ultima_deteccion||'').slice(0,10),P(a.portales),String(a.created_at||'').slice(0,10)]));
 }
 
 function repResumen(){
@@ -901,7 +908,10 @@ async function renderReportes(){
   let htm='<div class="repwrap">'
     +'<div class="repsec"><div class="reph">⬇️ Descargar datos completos (CSV — se abre en Excel)</div><div class="repgrid">'
     +b('exp-leads','📋 Leads completos')+b('exp-clientes','👤 Clientes')+b('exp-props','🏠 Propiedades')+b('exp-asesores','👔 Asesores')+b('exp-inter','⚡ Actividad')
-    +'</div></div>';
+    +'</div></div>'
+    +'<div class="repsec"><div class="reph">🚫 Lista negra de asesores</div>'
+    +'<div class="repnote" style="margin-bottom:12px">'+((REP.AGX||[]).length).toLocaleString('es-MX')+' números registrados. El scraping los usa para descartar asesores automáticamente. La lista crece sola con cada escaneo.</div>'
+    +'<div class="repgrid">'+b('exp-lista-negra','⬇️ Descargar lista negra (CSV)')+'</div></div>';
   REP_CATS.forEach(cat=>{
     htm+='<div class="repsec"><div class="reph">'+cat.title+'</div><div class="repgrid">'
       +cat.ids.map(id=>b(id,REP_META[id].label)).join('')
@@ -912,7 +922,7 @@ async function renderReportes(){
     +'<button class="repbtn" id="rep-download" style="background:linear-gradient(135deg,var(--gold),#b8922e);color:var(--navy2);border-color:transparent">⬇️ Descargar este reporte en Excel</button>'
     +'</div><div id="repout"></div></div></div>';
   host.innerHTML=htm;
-  const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter };
+  const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter,'exp-lista-negra':expListaNegra };
   Object.entries(acc).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=fn;});
   let reporteActual='resumen_general';
   Object.entries(REP_META).forEach(([id,meta])=>{const el=document.getElementById(id);if(el)el.onclick=()=>{
