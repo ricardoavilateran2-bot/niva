@@ -162,7 +162,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 
   <div class="nota-pie">
     El tel&eacute;fono del anunciante se ve dentro del anuncio original (bot&oacute;n &ldquo;Ver anuncio&rdquo;).
-    El sistema marca como &ldquo;posible due&ntilde;o&rdquo; los anuncios donde el contacto parece persona (no negocio),
+    <b style="color:var(--gold2)">Solo trato directo.</b> El panel oculta autom&aacute;ticamente las cuentas con nombre de inmobiliaria (inmuebles, inmobiliaria, grupo, asesores, marcas en MAY&Uacute;SCULAS o razones sociales tipo SA de CV). El sistema marca como &ldquo;posible due&ntilde;o&rdquo; los anuncios donde el contacto parece persona,
     sin frases de agencia ni folios tipo EB-XXXX. Los cambios de estatus y asignaci&oacute;n los hace el administrador.
   </div>
 </div>
@@ -181,6 +181,19 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   }
 
   function esc(s){ const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+
+  // Filtro TRATO DIRECTO: oculta cuentas con nombre de inmobiliaria (Inmuebles24, Vivanuncios, Mercado Libre, Avisos de Ocasion, Propiedades.com)
+  const AGENCIA_KW = ["inmobiliaria","inmobiliar","inmueble","bienes raices","bien raiz","raices","realty","real estate","realestate","realtor","propiedades","grupo ","asesor","asesoria","broker","corredor","corretaje","remax","re/max","century","coldwell","banker","keller","engel","volkers","tecnocasa","lahaus","la haus","easybroker","desarrolladora","desarrollos","desarrollo inmob","constructora","promotora","urbaniza","arrendadora","arrendamiento","agencia","negocios inmob","servicios inmob","soluciones inmob","patrimonio","inversiones","asociados","habitat","abitat","viviendas","inmobiliari","properties","property","cbre"," jll","spaces","& ","s.a. de c.v","sa de cv","s. de r.l","sapi","srl"];
+  function normaliza(s){ s=(s||"").toString().toLowerCase().normalize("NFD"); let o=""; for(let i=0;i<s.length;i++){ const cc=s.charCodeAt(i); if(cc<0x300||cc>0x36f) o+=s[i]; } return o; }
+  function esAgencia(l){
+    const nombre=(l.nombre_contacto||"").trim(); if(!nombre) return false;
+    const n=normaliza(nombre);
+    if(AGENCIA_KW.some(k=>n.indexOf(k)>=0)) return true;
+    let letras=""; for(let i=0;i<nombre.length;i++){ const ch=nombre[i]; if(ch.toLowerCase()!==ch.toUpperCase()) letras+=ch; }
+    if(letras.length>=2 && letras===letras.toUpperCase() && letras!==letras.toLowerCase()) return true;
+    if(n.indexOf("&")>=0||n.indexOf("@")>=0||n.indexOf(".com")>=0||n.indexOf(".mx")>=0||n.indexOf("sapi")>=0||n.indexOf("sa de cv")>=0||n.indexOf(" cv")>=0) return true;
+    return false;
+  }
 
   function ownerChip(s){
     if (s >= 6) return '<span class="chip owner-hi">Muy probable due&ntilde;o</span>';
@@ -287,7 +300,8 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       $("lista").innerHTML = '<div class="vacio"><span class="vi">&#9888;&#65039;</span>No se pudieron cargar los leads: ' + esc(error.message) + '</div>';
       return;
     }
-    LEADS = data || [];
+    // Solo TRATO DIRECTO: se descartan las cuentas con nombre de inmobiliaria.
+    LEADS = (data || []).filter(l => !esAgencia(l));
     render();
   }
 
