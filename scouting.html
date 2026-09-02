@@ -69,6 +69,13 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .filtros select{padding:9px 12px;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:var(--navy);color:var(--white);font:inherit;font-size:13px}
 .btn-gold{padding:10px 16px;border:0;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy2);font:inherit;font-size:13px;font-weight:800;cursor:pointer}
 .btn-gold:hover{opacity:.9}
+.portal-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:2px}
+.ptab{padding:8px 14px;border:0;border-bottom:2px solid transparent;background:none;color:rgba(255,255,255,.55);font:inherit;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px 6px 0 0;white-space:nowrap}
+.ptab:hover{color:var(--white)}
+.ptab.on{color:var(--gold2);border-bottom-color:var(--gold)}
+.ptab .cnt{display:inline-block;margin-left:6px;font-size:11px;font-weight:800;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border-radius:20px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.ptab.on .cnt{background:rgba(201,168,76,.25);color:var(--gold2)}
+.chip.portal{background:rgba(96,165,250,.15);color:#93c5fd}
 
 .lead{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-left:3px solid var(--gold);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
 .lead.descartado{opacity:.45;border-left-color:rgba(255,255,255,.2)}
@@ -129,6 +136,8 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     <div class="dkpi"><div class="dl">En renta</div><div class="dv" id="k-renta">–</div></div>
   </div>
 
+  <div class="portal-tabs" id="portal-tabs"></div>
+
   <div class="filtros">
     <input type="search" id="f-q" placeholder="Buscar colonia, torre, contacto&hellip;" aria-label="Buscar">
     <select id="f-op" aria-label="Operación">
@@ -172,8 +181,10 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   const ESTATUS = ["nuevo","contactado","asignado","descartado"];
   const TIPO = {casa:"Casa", departamento:"Depto", terreno:"Terreno", local_comercial:"Local"};
   const fmt = new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0});
-  let LEADS = [], isAdmin = false;
+  let LEADS = [], isAdmin = false, portalSel = "";
   const $ = id => document.getElementById(id);
+  const PORTALES = [["","Todos"],["inmuebles24","Inmuebles24"],["vivanuncios","Vivanuncios"],["mercadolibre","Mercado Libre"],["avisos_ocasion","Avisos de Ocasión"],["facebook","Facebook"]];
+  const portalLabel = p => { const f = PORTALES.find(x => x[0] === (p || "inmuebles24")); return f ? f[1] : (p || "inmuebles24"); };
 
   function toast(msg){
     const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
@@ -213,8 +224,23 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       (!op || l.operacion === op) &&
       (!tp || l.tipo_propiedad === tp) &&
       (!st || (l.estatus || "nuevo") === st) &&
+      (!portalSel || (l.portal || "inmuebles24") === portalSel) &&
       (!q || ((l.titulo||"") + " " + (l.nombre_contacto||"") + " " + (l.descripcion||"")).toLowerCase().includes(q))
     );
+  }
+
+  function renderTabs(){
+    const host = $("portal-tabs");
+    if (!host) return;
+    host.innerHTML = "";
+    for (const [key, label] of PORTALES){
+      const n = key ? LEADS.filter(l => (l.portal || "inmuebles24") === key).length : LEADS.length;
+      const b = document.createElement("button");
+      b.className = "ptab" + (portalSel === key ? " on" : "");
+      b.innerHTML = esc(label) + '<span class="cnt">' + n + '</span>';
+      b.addEventListener("click", () => { portalSel = key; render(); });
+      host.appendChild(b);
+    }
   }
 
   function render(){
@@ -233,6 +259,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
         '<div class="lead-meta">' + ownerChip(l.score) + estChip(l.estatus) +
           '<span class="chip">' + esc(l.operacion) + '</span>' +
           '<span class="chip">' + esc(TIPO[l.tipo_propiedad] || l.tipo_propiedad) + '</span>' +
+          '<span class="chip portal">' + esc(portalLabel(l.portal)) + '</span>' +
           '<span>Contacto: <b style="color:rgba(255,255,255,.8)">' + esc(l.nombre_contacto || "—") + '</b></span>' +
           (l.asesor_asignado ? '<span>&rarr; Asesor: <b style="color:#4ade80">' + esc(l.asesor_asignado) + '</b></span>' : '') +
         '</div>' +
@@ -241,7 +268,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       const acc = el.querySelector(".lead-acc");
       const a = document.createElement("a");
       a.href = l.url; a.target = "_blank"; a.rel = "noopener";
-      a.innerHTML = "Ver anuncio en Inmuebles24 &rarr;";
+      a.innerHTML = "Ver anuncio en " + esc(portalLabel(l.portal)) + " &rarr;";
       acc.appendChild(a);
       if (isAdmin){
         const sel = document.createElement("select");
@@ -263,6 +290,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     $("k-nuevos").textContent = LEADS.filter(l => !l.estatus || l.estatus === "nuevo").length;
     $("k-venta").textContent = LEADS.filter(l => l.operacion === "venta").length;
     $("k-renta").textContent = LEADS.filter(l => l.operacion === "renta").length;
+    renderTabs();
   }
 
   async function saveLead(l, patch, el){
@@ -291,7 +319,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     const sb = window.__nivaSb;
     const { data, error } = await sb
       .from("scouting_leads")
-      .select("id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at")
+      .select("id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at, portal")
       .or("score.gte.3,portal.neq.inmuebles24")
       .order("score", { ascending: false })
       .order("detectado_at", { ascending: false })
