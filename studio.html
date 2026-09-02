@@ -2872,7 +2872,11 @@ function addPhotos(input) {
    try {
   const sbc = window.__nivaSb;
   if (!sbc) return;
-    const { data, error } = await sbc.from('captacion_fotos').select('*').order('created_at', {ascending:false}).limit(30);
+    // Cada asesor ve SOLO sus captaciones; el admin las ve todas
+    const emailCap = (window.__nivaSession && window.__nivaSession.user && window.__nivaSession.user.email) || '';
+  let qCap = sbc.from('captacion_fotos').select('*').order('created_at', {ascending:false}).limit(30);
+                                              if (emailCap && emailCap.split('@')[0] !== 'admin') qCap = qCap.eq('creado_por', emailCap);
+  const { data, error } = await qCap;
   if (error || !data || !data.length) return;
   CAPS_RECIENTES = data;
   const sel = document.getElementById('capSelector');
