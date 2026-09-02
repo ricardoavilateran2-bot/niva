@@ -501,7 +501,11 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 <input type="hidden" id="asesor" value="">
 <input type="hidden" id="tel" value="">
 
-<div class="sec">📷 Fotos de la Propiedad</div>
+<div class="sec" id="capSelTitle" style="display:none">📂 Usar una captación reciente</div>
+  <select class="fc" id="capSelector" style="display:none;margin-bottom:10px" onchange="cargarCaptacionSel(this.value)"><option value="">— Elige una propiedad captada: fotos y datos se llenan solos —</option></select>
+  <div id="capSelHint" style="display:none;font-size:11px;color:#94a3b8;margin:0 0 10px"></div>
+  
+  <div class="sec">📷 Fotos de la Propiedad</div>
 <input type="file" id="fotoInput" accept="image/*" multiple style="display:none" onchange="addPhotos(this)">
 <div class="drop-zone" onclick="document.getElementById('fotoInput').click()">
   <div class="dz-icon">📷</div>
@@ -2862,7 +2866,72 @@ function addPhotos(input) {
   input.value = '';
 }
 
-function removePhoto(i) { photos.splice(i, 1); renderPhotoGrid(); }
+// ── Captaciones recientes → fotos y datos automáticos (guardadas por captaciones.html) ──
+  let CAPS_RECIENTES = [];
+  async function cargarListaCaptaciones() {
+   try {
+  const sbc = window.__nivaSb;
+  if (!sbc) return;
+    const { data, error } = await sbc.from('captacion_fotos').select('*').order('created_at', {ascending:false}).limit(30);
+  if (error || !data || !data.length) return;
+  CAPS_RECIENTES = data;
+  const sel = document.getElementById('capSelector');
+  if (!sel) return;
+                         data.forEach((c, i) => {
+                                      const o = document.createElement('option');
+  o.value = String(i);
+  const f = c.created_at ? new Date(c.created_at).toLocaleDateString('es-MX', {day:'2-digit', month:'short'}) : '';
+  const nf = Array.isArray(c.fotos) ? c.fotos.length : 0;
+    o.textContent = (c.titulo || ((c.tipo || 'Propiedad') + ' en ' + (c.colonia || ''))) + ' · ' + (c.precio ? fmtP(Number(c.precio)) : '') + ' · ' + nf + ' fotos · ' + f;
+  sel.appendChild(o);
+  });
+  const t = document.getElementById('capSelTitle'), w = document.getElementById('capSelector');
+  if (t) t.style.display = '';
+  if (w) w.style.display = '';
+  } catch(e) { console.warn('[NIVA] capSelector:', e); }
+  }
+  async function cargarCaptacionSel(v) {
+  if (v === '') return;
+  const c = CAPS_RECIENTES[Number(v)];
+    if (!c) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val != null && String(val) !== '') el.value = val; };
+    const clampSel = (id, val, max, cero) => { const n = parseInt(val, 10); if (isNaN(n)) return; if (n <= 0) { set(id, cero); return; } set(id, String(Math.min(n, max))); };
+  set('tipo', c.tipo === 'Local comercial' ? 'Local Comercial' : c.tipo);
+  set('op', c.operacion === 'sale' ? 'Venta' : 'Renta');
+  set('col', c.colonia);
+  set('city', c.municipio);
+  set('price', c.precio);
+  clampSel('rec', c.recamaras, 5, '0');
+    clampSel('ban', c.banos, 5, '1');
+  clampSel('mban', c.medios_banos, 3, 'N/A');
+  clampSel('estac', c.estacionamientos, 4, '0');
+  set('m2c', c.m2c);
+  set('m2t', c.m2t);
+  set('desc', c.descripcion);
+  const hint = document.getElementById('capSelHint');
+  const urls = Array.isArray(c.fotos) ? c.fotos : [];
+  if (!urls.length) { if (hint) { hint.style.display = ''; hint.textContent = 'Esta captación no tiene fotos guardadas.'; } return; }
+        if (hint) { hint.style.display = ''; hint.textContent = '⏳ Cargando ' + urls.length + ' fotos...'; }
+  const nuevas = await Promise.all(urls.map(u => new Promise(res => {
+                                   const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => { try {
+  const MAXW = 1600, sc = Math.min(1, MAXW / Math.max(img.width, img.height));
+    const cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round(img.width * sc));
+  cv.height = Math.max(1, Math.round(img.height * sc));
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+                                      res(cv.toDataURL('image/jpeg', 0.88));
+  } catch(e) { res(null); } };
+  img.onerror = () => res(null);
+  img.src = u;
+  })));
+  const ok = nuevas.filter(Boolean);
+               if (ok.length) { photos = ok; mainPhotoUrl = null; renderPhotoGrid(); }
+                                             if (hint) hint.textContent = ok.length ? ('✅ ' + ok.length + ' fotos y datos cargados. Reordena, quita o marca tu Foto Principal.') : 'No se pudieron cargar las fotos (pueden haber sido liberadas por espacio).';
+  }
+  (function _esperaSbCaps(n) { if (window.__nivaSb) { cargarListaCaptaciones(); } else if (n > 0) { setTimeout(() => _esperaSbCaps(n - 1), 300); } })(50);
+  function removePhoto(i) { photos.splice(i, 1); renderPhotoGrid(); }
 function movePhoto(i, d) { const j = i + d; if (j < 0 || j >= photos.length) return; const t = photos[i]; photos[i] = photos[j]; photos[j] = t; renderPhotoGrid(); }
 
 let _dragIdx = null;
