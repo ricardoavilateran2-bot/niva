@@ -776,6 +776,9 @@ $('#mt-ver').onclick=()=>{
   $('#mt-ver').classList.add('on');$('#mt-subir').classList.remove('on');
   $('#modo-ver').classList.remove('hidden');$('#modo-subir').classList.add('hidden');
 };
+  // Pedido de Ricardo: "Ver propiedades" va primero y es la vista inicial del modulo
+  document.querySelector('.modetabs').insertBefore($('#mt-ver'), $('#mt-subir'));
+  $('#mt-ver').onclick();
 document.querySelectorAll('#pf-tipo .pf').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#pf-tipo .pf').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   PT=b.dataset.f;renderProps();
