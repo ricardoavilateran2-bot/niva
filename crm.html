@@ -320,7 +320,7 @@ async function ebToggle(propertyId, action, motivo){
   if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
   return { data: j };
 }
-let LEADS=[], PROPS=[], ASESORES=[], DUENOS={}, TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='';
+let LEADS=[], PROPS=[], ASESORES=[], DUENOS={}, TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='', ADVISOR_DISPLAY_NAME='';
 let RANGO=null; // null | 'hoy' | 'semana' — filtro de fecha activado por deep-link desde admin.html
 // Deep-link desde el panel de administrador: crm.html?tab=todos&fil=new  ó  ?tab=todos&rango=hoy|semana
 (function aplicarFiltrosDeURL(){
@@ -478,7 +478,7 @@ async function iniciar(){
   const {data:{user}}=await sb.auth.getUser();
   const uname=(user?.email??'').split('@')[0];
   $('#hname').textContent=uname; // placeholder inmediato mientras resuelve el nombre
-  resolveAdvisorDisplayName(uname).then(n=>{ $('#hname').textContent=n; });
+  resolveAdvisorDisplayName(uname).then(n=>{ ADVISOR_DISPLAY_NAME=n; $('#hname').textContent=n; });
   USUARIO=uname;
   ESADMIN=(uname==='admin');
   const tabSinId=$('#tab-sinid');
@@ -1042,7 +1042,7 @@ function cardLead(l){
   const btnWa=d.querySelector('.wa');
   if(btnWa)btnWa.onclick=()=>{
     if(wab.classList.contains('hidden')){
-      wab.querySelector('textarea').value='Hola '+(l.full_name?l.full_name.split(' ')[0]:'')+', soy tu asesor de NIVA Inmobiliaria. Vi tu interés en "'+(l.property_title||'nuestra propiedad')+'"'+(l.price_amount?' ('+fmt(l.price_amount)+(l.operation_type==='rental'?' al mes':'')+')':'')+'. ¿Te gustaría agendar una visita o resolver alguna duda?';
+      wab.querySelector('textarea').value='Hola '+(l.full_name?l.full_name.split(' ')[0]:'')+', soy '+(ADVISOR_DISPLAY_NAME||'tu asesor')+', asesor inmobiliario de NIVA Inmobiliaria. Vi tu interés en "'+(l.property_title||'nuestra propiedad')+'"'+(l.price_amount?' ('+fmt(l.price_amount)+(l.operation_type==='rental'?' al mes':'')+')':'')+'. ¿Te gustaría agendar una visita o resolver alguna duda?';
       wab.classList.remove('hidden');
     } else wab.classList.add('hidden');
   };
