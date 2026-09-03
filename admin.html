@@ -687,6 +687,32 @@ function expInter(){
     ['fecha','cliente','accion','quien'],
     REP.I.map(i=>[String(i.created_at||'').slice(0,16).replace('T',' '),cDe(i.lead_id),i.type,i.actor||'']));
 }
+// Backfill puntual: 59 anunciantes detectados por señales de descripción (asesor,
+// inmobiliaria, corredor, contactanos, etc.) en el barrido de Trato Directo de
+// Inmuebles24 (todo Nuevo León) del 03-sep-2026. Formato: [telefono, nombre, señal, veces].
+// Se agregan una sola vez con este botón; de aquí en adelante el scraping diario ya
+// los agrega solo (misma lógica, deployada en la función scouting-inmuebles24).
+const NUEVOS_AGENTES_03SEP = [["2292196201","Mauro Cavallari","contactanos",1],["8114734918","Edna Torrejon","asesor",1],["8181197600","Alejandro Lavariega","inmobiliaria",1],["8137770008","Arnulfo Daniel Flores","asesor",1],["8115029487","Lauro Garza","inmobiliaria",2],["8110801569","Royalty Land","inmobiliaria",1],["8116807101","Silvia Sanchez","corredor",1],["8115142584","Daniber Sanmiguel","www.",2],["8128829585","ELVIRA","grupo",2],["8116604152","Gustavo A. S. Garza","asesor",2],["8131560892","Zaira Olivares","desarrollos",2],["8186546584","Socorro Lopez","desarrollos|contacta",3],["8116939412","Jose German Gomez","desarrollos",1],["8118791757","JANETH CAVAZOS","contactanos",1],["8180633820","William Sarzosa","contactanos",1],["8116277631","Elsa Zelaya","asesor",1],["8110366038","Mauricio","desarrollos",1],["8117562798","Jose Gomez","desarrollos",1],["8291029636","Erasmo Garza","contactanos",1],["8119115341","D P","asesor",1],["8117996003","Jose","asesor",1],["8182548786","daniela gz","asesor",1],["8181135607","Rodrigo Avalos","grupo",1],["8116689413","Central Inmobiliaria","corredor",1],["5520146955","Abraham Rosales","contactanos",1],["8183093178","Hector Gonzalez","desarrollos",1],["8115544786","Enrique Chavez De La Fuente","asesor",1],["8119774238","Fernando Gonzalez Rocha","bienes raices",1],["8138454282","Jose Garza","bienes raices",2],["8123198927","Dagoberto Fernandez Lozano","asesor",1],["8110257143","Grupo Bernal Real Estate","contactanos",1],["8110402014","Estefania Ortegon","inmobiliaria",1],["8112160405","Omar Munoz","broker",1],["8123474490","Fernanda Martinez","grupo",1],["8182592663","Luis Angel Gonzalez Flores","desarrollos",1],["8118240635","JESUS CASTILLO","desarrollos",2],["8121003092","Samira","contactanos",1],["8131950850","Jorge Javier Rodriguez","corredor",1],["8182019882","dana","contactanos",1],["8126267533","Carlos Alor","desarrollos",1],["8114811586","Alejandro Ramos","corredor",1],["8121252525","Operadora JTCH","asesor",1],["8119025880","Beatriz Roiz","inmobiliaria",2],["8111573782","Gabriela Iglesias Ordaz","corredor",3],["8116723646","NORMA MANCERA MELENDEZ","inmobiliaria",2],["8115889458","ANTONIO","corredor",1],["8116289143","Erik R Gonzalez","contactanos",2],["8182870540","Emmanuel Lopez","corredor",1],["8114133190","Diana Gonzalez","corredor",1],["8123752393","Karla Midence","inmobiliaria",1],["8118739206","Laura Garza","asesor",1],["5644172137","Teijo Real Estate Teijo","real estate",1],["8112555566","Ana Veronica Gonzalez","asesor",1],["8130717098","Miguel De La O","asesor",3],["8110281619","Josue Salomon Ortega Fraire","broker",4],["8120750075","Glenda Quintero","remax",2],["8115777610","Juan Carlos Martinez Varela","desarrollos",1],["8120263519","Bernardo","asesor",1],["8110687361","Gilberto Ramirez","corredor",1]];
+async function impListaNegra(){
+  const st=document.getElementById('imp-status');
+  const btn=document.getElementById('imp-lista-negra');
+  if(btn) btn.disabled=true;
+  st.textContent='Importando...';
+  const existentes=new Set((REP.AGX||[]).map(a=>String(a.telefono||'').replace(/\D/g,'').slice(-10)).filter(Boolean));
+  let nuevos=0, yaExistian=0, errores=0;
+  for(const [tel,nombre,senal,veces] of NUEVOS_AGENTES_03SEP){
+    if(existentes.has(tel)){ yaExistian++; continue; }
+    const {error}=await sb.from('asesores_externos').insert({
+      nombre: nombre, inmobiliaria: nombre, telefono: tel,
+      origen: 'scraping_manual_desc',
+      notas: 'Detectado por señal "'+senal+'" en descripción (barrido Trato Directo NL, 03-sep-2026)',
+      veces_detectado: veces, ultima_deteccion: new Date().toISOString(), portales: ['inmuebles24']
+    });
+    if(error){ errores++; } else { nuevos++; existentes.add(tel); }
+  }
+  st.textContent='Listo: '+nuevos+' agregados, '+yaExistian+' ya existían, '+errores+' con error.';
+  if(btn) btn.textContent='📥 Importado ('+nuevos+' nuevos)';
+}
 function expListaNegra(){
   const P=(v)=>Array.isArray(v)?v.join(' '):(v||'');
   descargarCSV('lista_negra_asesores',
@@ -911,7 +937,8 @@ async function renderReportes(){
     +'</div></div>'
     +'<div class="repsec"><div class="reph">🚫 Lista negra de asesores</div>'
     +'<div class="repnote" style="margin-bottom:12px">'+((REP.AGX||[]).length).toLocaleString('es-MX')+' números registrados. El scraping los usa para descartar asesores automáticamente. La lista crece sola con cada escaneo.</div>'
-    +'<div class="repgrid">'+b('exp-lista-negra','⬇️ Descargar lista negra (CSV)')+'</div></div>';
+    +'<div class="repgrid">'+b('exp-lista-negra','⬇️ Descargar lista negra (CSV)')+b('imp-lista-negra','📥 Importar 59 detectados (análisis 03-sep)')+'</div>'
+    +'<div class="repnote" id="imp-status" style="margin-top:10px"></div></div>';
   REP_CATS.forEach(cat=>{
     htm+='<div class="repsec"><div class="reph">'+cat.title+'</div><div class="repgrid">'
       +cat.ids.map(id=>b(id,REP_META[id].label)).join('')
@@ -922,7 +949,7 @@ async function renderReportes(){
     +'<button class="repbtn" id="rep-download" style="background:linear-gradient(135deg,var(--gold),#b8922e);color:var(--navy2);border-color:transparent">⬇️ Descargar este reporte en Excel</button>'
     +'</div><div id="repout"></div></div></div>';
   host.innerHTML=htm;
-  const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter,'exp-lista-negra':expListaNegra };
+  const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter,'exp-lista-negra':expListaNegra,'imp-lista-negra':impListaNegra };
   Object.entries(acc).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=fn;});
   let reporteActual='resumen_general';
   Object.entries(REP_META).forEach(([id,meta])=>{const el=document.getElementById(id);if(el)el.onclick=()=>{
