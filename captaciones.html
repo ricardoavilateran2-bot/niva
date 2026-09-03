@@ -73,7 +73,7 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus { outline: none; border-color: rgba(201,168,76,.5); background: rgba(255,255,255,.09); }
 input::placeholder, textarea::placeholder { color: rgba(255,255,255,.25); }
 select option { background: #1B2A4A; color: #fff; }
-textarea { resize: vertical; min-height: 90px; } .colonia-wrap{position:relative} .colonia-sug{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--navy2);border:1px solid rgba(201,168,76,.35);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.45);max-height:230px;overflow-y:auto;z-index:50;-webkit-overflow-scrolling:touch} .colonia-sug-item{padding:11px 14px;font-size:14.5px;color:#fff;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06)} .colonia-sug-item:last-child{border-bottom:none} .colonia-sug-item:hover,.colonia-sug-item.hi{background:rgba(201,168,76,.16)} .colonia-sug-empty{padding:11px 14px;font-size:13px;color:rgba(255,255,255,.4)}
+textarea { resize: vertical; min-height: 90px; }
 #cap-fotos-prev { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; margin-top: 10px; }
 .cap-thumb { position: relative; width: 76px; display: flex; flex-direction: column; gap: 5px; cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; }
 .cap-thumb.dragging { opacity: .4; }
@@ -240,7 +240,7 @@ textarea { resize: vertical; min-height: 90px; } .colonia-wrap{position:relative
           <input id="cap-mpio-otro" placeholder="Escribe el municipio (ej. Guadalupe)" style="display:none;margin-top:8px">
         </div>
         <div class="form-group">
-          <label for="cap-zona">Colonia <small>(catálogo oficial de EasyBroker)</small></label><input id="cap-zona" placeholder="Escribe para buscar la colonia..." autocomplete="off"><div id="cap-zona-sug" class="colonia-sug" style="display:none"></div></div>
+          <label for="cap-zona">Colonia <small>(catálogo oficial de EasyBroker)</small></label><select id="cap-zona" required><option value="">Selecciona una colonia...</option></select></div>
         <div class="form-group full">
           <label for="cap-titulo">Título <small>(opcional — se genera automático si lo dejas vacío)</small></label>
           <input id="cap-titulo" placeholder="Ej. Casa en venta en Cumbres">
@@ -441,27 +441,7 @@ const EB_COLONIAS={"Monterrey": ["1 de Mayo (F-97)", "10 de Junio", "10 de Marzo
 // Lista propia de sugerencias de colonia - reemplaza el <datalist> nativo, que en
   // Chrome de Android casi nunca despliega el desplegable al escribir (bug conocido
   // del navegador). Con esto funciona igual en iOS, Windows y Android.
-  let COL_LIST=[];
-  function _quitaAcentos(s){ var a=String.fromCharCode(225,224,228,226), e=String.fromCharCode(233,232,235,234), i=String.fromCharCode(237,236,239,238), o=String.fromCharCode(243,242,246,244), u=String.fromCharCode(250,249,252,251), n=String.fromCharCode(241); s=(s||'').toLowerCase(); var r=''; for(var k=0;k<s.length;k++){ var c=s[k]; if(a.indexOf(c)>=0)c='a'; else if(e.indexOf(c)>=0)c='e'; else if(i.indexOf(c)>=0)c='i'; else if(o.indexOf(c)>=0)c='o'; else if(u.indexOf(c)>=0)c='u'; else if(c===n)c='n'; r+=c; } return r; }
-  function pintarColonias(){
-      const m=$('#cap-mpio').value;
-      $('#cap-mpio-otro').style.display=(m==='__otro__')?'':'none';
-      COL_LIST=EB_COLONIAS[m]||[];
-      renderColoniaSug();
-  }
-  function renderColoniaSug(){ const box=$('#cap-zona-sug'); const raw=$('#cap-zona').value.trim(); const q=_quitaAcentos(raw); const list=q?COL_LIST.filter(c=>_quitaAcentos(c).includes(q)):COL_LIST; if(!list.length){ box.innerHTML='<div class="colonia-sug-empty">Sin coincidencias en el catálogo de EasyBroker</div>'; box.style.display='block'; return; } box.innerHTML=list.map(c=>'<div class="colonia-sug-item" data-c="'+esc(c)+'">'+esc(c)+'</div>').join(''); box.style.display='block'; }
-  $('#cap-zona').addEventListener('input', renderColoniaSug);
-  $('#cap-zona').addEventListener('focus', renderColoniaSug); $('#cap-zona').addEventListener('click', renderColoniaSug);
-  $('#cap-zona-sug').addEventListener('mousedown', (e)=>{
-      const item=e.target.closest('.colonia-sug-item');
-      if(!item) return;
-      e.preventDefault();
-      $('#cap-zona').value=item.dataset.c;
-      $('#cap-zona-sug').style.display='none';
-  });
-  document.addEventListener('click', (e)=>{
-      if(!e.target.closest('.colonia-wrap')) $('#cap-zona-sug').style.display='none';
-  });
+  let COL_LIST=[]; function pintarColonias(){ const m=$('#cap-mpio').value; $('#cap-mpio-otro').style.display=(m==='__otro__')?'':'none'; COL_LIST=EB_COLONIAS[m]||[]; const sel=$('#cap-zona'); sel.innerHTML='<option value="">Selecciona una colonia...</option>'+COL_LIST.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join(''); }
 
 $('#pe-cancel').onclick=cerrarEdicion;
 $('#pe-save').onclick=guardarEdicion;
@@ -682,7 +662,7 @@ async function guardarCaptacion(){
   const desc=$('#cap-desc').value.trim();
   if(!precio||precio<=0){err.textContent='Escribe un precio válido.';return}
   if(!mpio){err.textContent='Escribe el municipio.';return}
-  if(!colonia){err.textContent='Escribe o elige la colonia.';return}
+  if(!colonia){err.textContent='Selecciona una colonia de la lista. Este campo es obligatorio.';return}
   if(EB_COLONIAS[mpio] && !EB_COLONIAS[mpio].includes(colonia)){
     err.textContent='La colonia "'+colonia+'" no está en el catálogo oficial de EasyBroker para '+mpio+'. Escríbela de nuevo y elígela de la lista que aparece al teclear.';
     return;
