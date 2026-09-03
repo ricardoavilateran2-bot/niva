@@ -713,6 +713,37 @@ async function impListaNegra(){
   st.textContent='Listo: '+nuevos+' agregados, '+yaExistian+' ya existían, '+errores+' con error.';
   if(btn) btn.textContent='📥 Importado ('+nuevos+' nuevos)';
 }
+function wireQuitarAsesor(){
+  const btn=document.getElementById('qn-buscar');
+  const inp=document.getElementById('qn-tel');
+  const out=document.getElementById('qn-resultado');
+  if(!btn||btn.dataset.wired) return;
+  btn.dataset.wired='1';
+  btn.onclick=async ()=>{
+    const tel=(inp.value||'').replace(/\D/g,'').slice(-10);
+    if(tel.length<10){ out.innerHTML='<span style="color:#b4433b">Escribe los 10 dígitos del teléfono.</span>'; return; }
+    out.textContent='Buscando...';
+    const {data,error}=await sb.from('asesores_externos').select('*').ilike('telefono','%'+tel+'%');
+    if(error){ out.innerHTML='<span style="color:#b4433b">Error: '+error.message+'</span>'; return; }
+    if(!data||!data.length){ out.textContent='No está en la lista negra.'; return; }
+    out.innerHTML=data.map(a=>
+      '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--linea,#eee)">'
+      +'<div style="flex:1"><b>'+esc(a.nombre||'(sin nombre)')+'</b> · '+esc(a.telefono||'')+'<br>'
+      +'<span style="color:#888;font-size:.85em">'+esc(a.origen||'')+' — '+esc(a.notas||'')+'</span></div>'
+      +'<button class="repbtn" data-id="'+a.id+'" style="background:#b4433b;color:#fff;border-color:transparent">🗑️ Quitar (es dueño directo)</button>'
+      +'</div>'
+    ).join('');
+    out.querySelectorAll('button[data-id]').forEach(b=>{
+      b.onclick=async ()=>{
+        b.disabled=true; b.textContent='Quitando...';
+        const {error:delErr}=await sb.from('asesores_externos').delete().eq('id', b.dataset.id);
+        b.closest('div').outerHTML = delErr
+          ? '<div style="color:#b4433b;padding:6px 0">Error al quitar: '+esc(delErr.message)+'</div>'
+          : '<div style="color:#2e7d46;padding:6px 0">✓ Quitado de la lista negra. Ya no se descartará por este teléfono.</div>';
+      };
+    });
+  };
+}
 function expListaNegra(){
   const P=(v)=>Array.isArray(v)?v.join(' '):(v||'');
   descargarCSV('lista_negra_asesores',
@@ -938,7 +969,13 @@ async function renderReportes(){
     +'<div class="repsec"><div class="reph">🚫 Lista negra de asesores</div>'
     +'<div class="repnote" style="margin-bottom:12px">'+((REP.AGX||[]).length).toLocaleString('es-MX')+' números registrados. El scraping los usa para descartar asesores automáticamente. La lista crece sola con cada escaneo.</div>'
     +'<div class="repgrid">'+b('exp-lista-negra','⬇️ Descargar lista negra (CSV)')+b('imp-lista-negra','📥 Importar 59 detectados (análisis 03-sep)')+'</div>'
-    +'<div class="repnote" id="imp-status" style="margin-top:10px"></div></div>';
+    +'<div class="repnote" id="imp-status" style="margin-top:10px"></div>'
+    +'<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--linea,#e5e5e5)">'
+    +'<div style="font-weight:600;margin-bottom:6px">¿Un asesor te reclamó que sí es dueño directo?</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+    +'<input id="qn-tel" type="text" placeholder="Teléfono (10 dígitos)" style="padding:8px 10px;border:1px solid var(--linea,#ccc);border-radius:6px;min-width:180px">'
+    +'<button class="repbtn" id="qn-buscar">🔍 Buscar</button>'
+    +'</div><div id="qn-resultado" style="margin-top:10px"></div></div></div>';
   REP_CATS.forEach(cat=>{
     htm+='<div class="repsec"><div class="reph">'+cat.title+'</div><div class="repgrid">'
       +cat.ids.map(id=>b(id,REP_META[id].label)).join('')
@@ -951,6 +988,7 @@ async function renderReportes(){
   host.innerHTML=htm;
   const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter,'exp-lista-negra':expListaNegra,'imp-lista-negra':impListaNegra };
   Object.entries(acc).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=fn;});
+  wireQuitarAsesor();
   let reporteActual='resumen_general';
   Object.entries(REP_META).forEach(([id,meta])=>{const el=document.getElementById(id);if(el)el.onclick=()=>{
     document.querySelectorAll('.repgrid .repbtn').forEach(x=>{if(REP_META[x.id])x.classList.remove('on')});
