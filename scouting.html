@@ -129,10 +129,10 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   <div class="page-hero">
     <div class="badge">
       <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
-      Escaneo diario &middot; Inmuebles24 &middot; Monterrey
+      Escaneo 3x al d&iacute;a &middot; Inmuebles24 &middot; Mercado Libre &middot; Vivanuncios &middot; Nuevo Le&oacute;n
     </div>
     <h1>Dueños directos, <span>detectados solos.</span></h1>
-    <p>Cada mañana el sistema escanea Inmuebles24 y separa los anuncios que parecen publicados por el dueño (no por otra inmobiliaria). Abre el anuncio para ver el teléfono y contacta antes que nadie.</p>
+    <p>Tres veces al día el sistema escanea Inmuebles24, Mercado Libre y Vivanuncios en todo Nuevo León, y separa los anuncios que parecen publicados por el dueño (no por otra inmobiliaria). Abre el anuncio o usa el teléfono para contactar antes que nadie.</p>
   </div>
 
   <div class="dash-grid">
@@ -309,10 +309,13 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       lista.appendChild(el);
     }
     $("vacio").classList.toggle("hidden", rows.length > 0);
-    $("k-total").textContent = LEADS.length;
-    $("k-nuevos").textContent = LEADS.filter(l => !l.estatus || l.estatus === "nuevo").length;
-    $("k-venta").textContent = LEADS.filter(l => l.operacion === "venta").length;
-    $("k-renta").textContent = LEADS.filter(l => l.operacion === "renta").length;
+    // KPIs: respetan el portal seleccionado (pestaña activa), no el resto de los filtros
+    // (búsqueda/operación/tipo/estatus/hoy) para que sigan siendo un resumen general de ese portal.
+    const base = portalSel ? LEADS.filter(l => (l.portal || "inmuebles24") === portalSel) : LEADS;
+    $("k-total").textContent = base.length;
+    $("k-nuevos").textContent = base.filter(l => !l.estatus || l.estatus === "nuevo").length;
+    $("k-venta").textContent = base.filter(l => l.operacion === "venta").length;
+    $("k-renta").textContent = base.filter(l => l.operacion === "renta").length;
     renderTabs();
   }
 
