@@ -449,21 +449,9 @@ const EB_COLONIAS={"Monterrey": ["1 de Mayo (F-97)", "10 de Junio", "10 de Marzo
       COL_LIST=EB_COLONIAS[m]||[];
       renderColoniaSug();
   }
-  function renderColoniaSug(){
-      const box=$('#cap-zona-sug');
-      const q=_quitaAcentos($('#cap-zona').value.trim());
-      if(!q){ box.style.display='none'; box.innerHTML=''; return; }
-      const matches=COL_LIST.filter(c=>_quitaAcentos(c).includes(q)).slice(0,40);
-      if(!matches.length){
-            box.innerHTML='<div class="colonia-sug-empty">Sin coincidencias en el catálogo de EasyBroker</div>';
-            box.style.display='block';
-            return;
-      }
-      box.innerHTML=matches.map(c=>'<div class="colonia-sug-item" data-c="'+esc(c)+'">'+esc(c)+'</div>').join('');
-      box.style.display='block';
-  }
+  function renderColoniaSug(){ const box=$('#cap-zona-sug'); const raw=$('#cap-zona').value.trim(); const q=_quitaAcentos(raw); const list=q?COL_LIST.filter(c=>_quitaAcentos(c).includes(q)):COL_LIST; if(!list.length){ box.innerHTML='<div class="colonia-sug-empty">Sin coincidencias en el catálogo de EasyBroker</div>'; box.style.display='block'; return; } box.innerHTML=list.map(c=>'<div class="colonia-sug-item" data-c="'+esc(c)+'">'+esc(c)+'</div>').join(''); box.style.display='block'; }
   $('#cap-zona').addEventListener('input', renderColoniaSug);
-  $('#cap-zona').addEventListener('focus', renderColoniaSug);
+  $('#cap-zona').addEventListener('focus', renderColoniaSug); $('#cap-zona').addEventListener('click', renderColoniaSug);
   $('#cap-zona-sug').addEventListener('mousedown', (e)=>{
       const item=e.target.closest('.colonia-sug-item');
       if(!item) return;
