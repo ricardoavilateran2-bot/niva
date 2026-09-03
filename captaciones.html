@@ -240,7 +240,7 @@ textarea { resize: vertical; min-height: 90px; }
           <input id="cap-mpio-otro" placeholder="Escribe el municipio (ej. Guadalupe)" style="display:none;margin-top:8px">
         </div>
         <div class="form-group">
-          <label for="cap-zona">Colonia <small>(catálogo oficial de EasyBroker)</small></label><select id="cap-zona" required><option value="">Selecciona una colonia...</option></select></div>
+          <label for="cap-zona">Colonia <small>(catálogo oficial de EasyBroker)</small></label><select id="cap-zona"><option value="">Selecciona una colonia...</option></select><input id="cap-zona-libre" placeholder="Escribe la colonia" autocomplete="off" style="display:none;margin-top:8px"></div>
         <div class="form-group full">
           <label for="cap-titulo">Título <small>(opcional — se genera automático si lo dejas vacío)</small></label>
           <input id="cap-titulo" placeholder="Ej. Casa en venta en Cumbres">
@@ -441,7 +441,7 @@ const EB_COLONIAS={"Monterrey": ["1 de Mayo (F-97)", "10 de Junio", "10 de Marzo
 // Lista propia de sugerencias de colonia - reemplaza el <datalist> nativo, que en
   // Chrome de Android casi nunca despliega el desplegable al escribir (bug conocido
   // del navegador). Con esto funciona igual en iOS, Windows y Android.
-  let COL_LIST=[]; function pintarColonias(){ const m=$('#cap-mpio').value; $('#cap-mpio-otro').style.display=(m==='__otro__')?'':'none'; COL_LIST=EB_COLONIAS[m]||[]; const sel=$('#cap-zona'); sel.innerHTML='<option value="">Selecciona una colonia...</option>'+COL_LIST.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join(''); }
+  let COL_LIST=[]; function pintarColonias(){ const m=$('#cap-mpio').value; const esOtro=(m==='__otro__'); $('#cap-mpio-otro').style.display=esOtro?'':'none'; COL_LIST=EB_COLONIAS[m]||[]; const sel=$('#cap-zona'), libre=$('#cap-zona-libre'); if(esOtro){ sel.style.display='none'; sel.required=false; libre.style.display=''; } else { sel.style.display=''; sel.required=true; libre.style.display='none'; libre.value=''; sel.innerHTML='<option value="">Selecciona una colonia...</option>'+COL_LIST.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join(''); } }
 
 $('#pe-cancel').onclick=cerrarEdicion;
 $('#pe-save').onclick=guardarEdicion;
@@ -656,14 +656,12 @@ async function guardarCaptacion(){
   const err=$('#cap-err'), btn=$('#cap-save');
   const tipo=$('#cap-tipo').value, op=$('#cap-op').value;
   const precio=Number($('#cap-precio').value.replace(/[^\d.]/g,''));
-  let mpio=$('#cap-mpio').value;
-  if(mpio==='__otro__')mpio=$('#cap-mpio-otro').value.trim();
-  const colonia=$('#cap-zona').value.trim();
+  let mpio=$('#cap-mpio').value; const esOtroMpio=(mpio==='__otro__'); if(esOtroMpio)mpio=$('#cap-mpio-otro').value.trim(); const colonia=(esOtroMpio?$('#cap-zona-libre').value:$('#cap-zona').value).trim();
   const desc=$('#cap-desc').value.trim();
   if(!precio||precio<=0){err.textContent='Escribe un precio válido.';return}
   if(!mpio){err.textContent='Escribe el municipio.';return}
-  if(!colonia){err.textContent='Selecciona una colonia de la lista. Este campo es obligatorio.';return}
-  if(EB_COLONIAS[mpio] && !EB_COLONIAS[mpio].includes(colonia)){
+  if(!colonia){err.textContent=esOtroMpio?'Escribe la colonia. Este campo es obligatorio.':'Selecciona una colonia de la lista. Este campo es obligatorio.';return}
+  if(!esOtroMpio && EB_COLONIAS[mpio] && !EB_COLONIAS[mpio].includes(colonia)){
     err.textContent='La colonia "'+colonia+'" no está en el catálogo oficial de EasyBroker para '+mpio+'. Escríbela de nuevo y elígela de la lista que aparece al teclear.';
     return;
   }
@@ -754,7 +752,7 @@ async function guardarCaptacion(){
     $('#cap-titulo').value='';$('#cap-desc').value='';
     $('#cap-rec').value='';$('#cap-bano').value='';$('#cap-mbano').value='';$('#cap-est').value='';$('#cap-m2c').value='';$('#cap-m2t').value='';
     $('#cap-fotos').value='';CAP_FOTOS=[];pintarFotosCap();
-    $('#cap-zona').value='';$('#cap-mpio-otro').style.display='none';$('#cap-mpio-otro').value='';
+    $('#cap-zona').value='';$('#cap-zona-libre').value='';$('#cap-mpio-otro').style.display='none';$('#cap-mpio-otro').value='';
     btn.disabled=false;btn.textContent='Publicar captación';
     await cargar();
   }catch(e){
