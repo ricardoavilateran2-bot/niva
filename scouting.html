@@ -100,6 +100,9 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .lead-acc a:hover{text-decoration:underline}
 .lead-acc select, .lead-acc input[type=text]{padding:6px 9px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:var(--navy);color:var(--white);font:inherit;font-size:12px}
 .lead-acc .who{margin-left:auto;color:rgba(255,255,255,.4);font-size:11.5px}
+.acc-tel{color:var(--gold2)!important;font-weight:800;font-variant-numeric:tabular-nums}
+.acc-wa{background:#25D366;color:#fff!important;padding:5px 13px;border-radius:8px;font-weight:800;font-size:11.5px}
+.acc-wa:hover{opacity:.9;text-decoration:none!important}
 .vacio { text-align: center; padding: 40px 20px; color: rgba(255,255,255,.4); font-size: 14px; }
 .vacio .vi { display: block; font-size: 34px; margin-bottom: 10px; }
 .skel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:16px;margin-bottom:10px}
@@ -279,6 +282,17 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       a.href = l.url; a.target = "_blank"; a.rel = "noopener";
       a.innerHTML = "Ver anuncio en " + esc(portalLabel(l.portal)) + " &rarr;";
       acc.appendChild(a);
+      if (l.telefono) {
+        const tel = String(l.telefono).replace(/\D/g, "").slice(-10);
+        const c = document.createElement("a");
+        c.className = "acc-tel"; c.href = "tel:+52" + tel;
+        c.innerHTML = "&#128222; " + esc(l.telefono);
+        acc.appendChild(c);
+        const w = document.createElement("a");
+        w.className = "acc-wa"; w.href = "https://wa.me/52" + tel; w.target = "_blank"; w.rel = "noopener";
+        w.innerHTML = "WhatsApp";
+        acc.appendChild(w);
+      }
       if (isAdmin){
         const sel = document.createElement("select");
         sel.innerHTML = ESTATUS.map(e => '<option value="'+e+'"'+(((l.estatus||"nuevo")===e)?" selected":"")+'>'+e.charAt(0).toUpperCase()+e.slice(1)+'</option>').join("");
@@ -314,8 +328,8 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   function exportCsv(){
     const rows = filtered();
     const q = v => '"' + String(v == null ? "" : v).replace(/"/g,'""') + '"';
-    const lines = ["titulo,operacion,tipo,precio,contacto,estatus,asesor_asignado,senal,url"];
-    for (const l of rows) lines.push([l.titulo, l.operacion, TIPO[l.tipo_propiedad]||l.tipo_propiedad, l.precio||"", l.nombre_contacto||"", l.estatus||"nuevo", l.asesor_asignado||"", (l.score>=6?"muy probable dueno":"posible dueno"), l.url].map(q).join(","));
+    const lines = ["titulo,operacion,tipo,precio,contacto,telefono,estatus,asesor_asignado,senal,url"];
+    for (const l of rows) lines.push([l.titulo, l.operacion, TIPO[l.tipo_propiedad]||l.tipo_propiedad, l.precio||"", l.nombre_contacto||"", l.telefono||"", l.estatus||"nuevo", l.asesor_asignado||"", (l.score>=6?"muy probable dueno":"posible dueno"), l.url].map(q).join(","));
     const blob = new Blob(["﻿" + lines.join("\n")], {type:"text/csv;charset=utf-8"});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -328,7 +342,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     const sb = window.__nivaSb;
     const { data, error } = await sb
       .from("scouting_leads")
-      .select("id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at, portal")
+      .select("id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at, portal, telefono")
       .or("score.gte.3,portal.neq.inmuebles24")
       .order("score", { ascending: false })
       .order("detectado_at", { ascending: false })
