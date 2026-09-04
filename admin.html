@@ -205,7 +205,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <button class="anav-item on" data-sec="inicio">🏁 Panel de inicio</button>
       <button class="anav-item" data-sec="sindueno">⚠️ Sin dueño</button>
       <button class="anav-item" data-sec="propasesor">🏠 Propiedades y asesores</button>
-      <button class="anav-item" data-sec="propnuevas">🆕 Propiedades nuevas</button>
+      <button class="anav-item" data-sec="propnuevas">🆕 Propiedades nuevas</button><button class="anav-item" data-sec="propbaja">🚫 Dadas de baja</button>
       <a class="anav-item" href="cierres.html" style="text-decoration:none;display:flex">🤝 Cierres</a>
       <button class="anav-item" data-sec="reportes">📊 Reportes</button>
       <a class="anav-item" href="renovaciones.html" style="text-decoration:none;display:flex">🔁 Renovaciones</a>
@@ -248,7 +248,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     <section class="asec" id="sec-propnuevas">
       <div class="sec-head"><h2>🆕 Propiedades nuevas (últimos 7 días)</h2></div>
       <div class="repnote" style="margin-top:-8px">Propiedades captadas desde el módulo de Captaciones esta semana, con el asesor que las subió.</div>
-      <div id="propnuevas"></div>
+      <div id="propnuevas"></div></section><section class="asec" id="sec-propbaja"><div class="sec-head"><h2>🚫 Propiedades dadas de baja (últimos 7 días)</h2></div><div class="repnote" style="margin-top:-8px">Propiedades que los asesores dieron de baja esta semana, con quién la dio de baja y el motivo.</div><div id="propbaja"></div>
     </section>
 
     <section class="asec" id="sec-reportes">
@@ -274,7 +274,7 @@ const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
 function vacioHTML(m,i){return '<div class="vacio"><span class="vi">'+(i||'📭')+'</span>'+esc(m)+'</div>'}
 
-let PROPS=[], LEADS=[], ASESORES=[], DUENOS={};
+let PROPS=[], PROPS_BAJA=[], LEADS=[], ASESORES=[], DUENOS={};
 
 function skeleton(host){
   host.innerHTML='';
@@ -364,18 +364,18 @@ function renderDashboard(){
 async function cargar(){
   skeleton($('#sindueno'));
   skeleton($('#propasesor'));
-  skeleton($('#propnuevas'));
+  skeleton($('#propnuevas')); skeleton($('#propbaja'));
   $('#dash-kpis').innerHTML='<div class="skel"><div class="l" style="width:60%"></div><div class="l" style="width:40%;margin-bottom:0"></div></div>';
   try{
-        const [p,l,a,d] = await Promise.all([
+        const [p,l,a,d,pb] = await Promise.all([
       sb.from('my_properties').select('*'),
       sb.from('my_leads').select('*'),
       sb.from('advisors').select('id,first_name,last_name,niva_code,status'),
-      sb.from('property_advisors').select('property_id,advisor_id')
+      sb.from('property_advisors').select('property_id,advisor_id'), sb.from('my_properties_canceladas').select('*')
     ]);
     if(p.error) throw new Error(p.error.message||'propiedades');
     if(l.error) throw new Error(l.error.message||'leads');
-    PROPS = p.data||[];
+    PROPS = p.data||[]; PROPS_BAJA = pb.data||[];
     LEADS = l.data||[];
     ASESORES = (a.data||[]).filter(x=>x.status!=='inactive')
       .map(x=>({id:x.id, n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor'}))
@@ -389,13 +389,13 @@ async function cargar(){
 
     renderSinDueno();
     renderPropAsesor();
-    renderPropNuevas();
+    renderPropNuevas(); renderPropBaja();
     renderDashboard();
   }catch(e){
     console.error('[admin] error de carga:', e);
     $('#sindueno').innerHTML='<div class="vacio">⚠️ No se pudieron cargar los datos'+(e.message?': '+esc(e.message):'')+'.</div>';
     $('#propasesor').innerHTML='';
-    $('#propnuevas').innerHTML='';
+    $('#propnuevas').innerHTML=''; $('#propbaja').innerHTML='';
   }
 }
 
@@ -560,7 +560,7 @@ function renderPropNuevas(){
   });
   host.appendChild(wrap);
 }
-$('#prop-filtros').addEventListener('click',e=>{
+function renderPropBaja(){const host=$('#propbaja');host.innerHTML='';const hoy0=new Date();hoy0.setHours(0,0,0,0);const diasAtras=(n)=>{const d=new Date(hoy0);d.setDate(d.getDate()-n);return d};const desde=diasAtras(6);const bajas=(PROPS_BAJA||[]).filter(p=>p.cancelada_at&&new Date(p.cancelada_at)>=desde).slice().sort((a,b)=>new Date(b.cancelada_at)-new Date(a.cancelada_at));if(!bajas.length){host.innerHTML=vacioHTML('Nadie ha dado de baja propiedades en los últimos 7 días.','🚫');return;}const wrap=document.createElement('div');wrap.className='proptabla';bajas.forEach(p=>{const row=document.createElement('div');row.className='proprow';row.innerHTML='<div class="pmain"><div class="pt">'+esc(p.title||p.eb_public_id||'Sin título')+'</div><div class="pm">'+[esc(p.eb_public_id||''),p.price_amount?fmt(p.price_amount)+(p.operation_type==='rental'?'/mes':''):'',esc(p.property_type||''),esc(p.location_name||'')].filter(Boolean).join(' · ')+(p.cancelada_motivo?'<br>Motivo: '+esc(p.cancelada_motivo):'')+'</div></div>'+'<div class="pown-edit asig" style="flex-direction:column;align-items:flex-end;gap:2px"><span class="pown asig">'+esc(nomAsesor(p.captured_by_advisor_id))+'</span><span class="pm" style="margin-top:0">'+esc(haceTiempo(p.cancelada_at))+'</span></div>';wrap.appendChild(row);});host.appendChild(wrap);} $('#prop-filtros').addEventListener('click',e=>{
   const b=e.target.closest('button[data-f]');
   if(!b)return;
   PA_FILTRO=b.dataset.f;
