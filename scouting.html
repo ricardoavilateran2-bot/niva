@@ -110,6 +110,21 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
 .nota-pie{font-size:12px;color:rgba(255,255,255,.4);line-height:1.7;margin-top:28px;border-top:1px solid rgba(255,255,255,.09);padding-top:14px}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--navy2);font-weight:800;font-size:13px;padding:10px 22px;border-radius:10px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+
+.fb-zona{background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px}
+.fb-zona-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.fb-zona-head h3{font-size:14px;font-weight:800;display:flex;align-items:center;gap:8px}
+.fb-tag{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#93c5fd;background:rgba(96,165,250,.18);border-radius:20px;padding:2px 9px}
+.btn-gold.sm{padding:7px 13px;font-size:12px}
+.btn-outline{padding:7px 13px;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:transparent;color:rgba(255,255,255,.7);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.btn-outline:hover{border-color:rgba(255,255,255,.4);color:var(--white)}
+.fb-zona-body{margin-top:14px}
+.fb-zona-note{font-size:12.5px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:14px;max-width:760px}
+.fb-zona-precios{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.fb-zona-precios label{font-size:11.5px;font-weight:700;color:rgba(255,255,255,.55);display:flex;flex-direction:column;gap:5px}
+.fb-zona-precios input{padding:8px 10px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:var(--navy);color:var(--white);font:inherit;font-size:13px;width:150px;font-variant-numeric:tabular-nums}
+.fb-zona-acc{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+#fb-zona-status{font-size:12px;color:rgba(255,255,255,.45)}
 </style>
 </head>
 <body>
@@ -143,6 +158,24 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   </div>
 
   <div class="portal-tabs" id="portal-tabs"></div>
+
+  <div class="fb-zona hidden" id="fb-zona">
+    <div class="fb-zona-head">
+      <h3>&#128205; Precio m&iacute;nimo &middot; Facebook <span class="fb-tag">Solo admin</span></h3>
+      <button class="btn-gold sm" id="fb-zona-toggle">Editar</button>
+    </div>
+    <div class="fb-zona-body hidden" id="fb-zona-body">
+      <p class="fb-zona-note">Se escanea toda el &aacute;rea metropolitana de Monterrey en Facebook Marketplace. Estos m&iacute;nimos aplican &uacute;nicamente a Facebook, no afectan Inmuebles24, Vivanuncios ni Mercado Libre.</p>
+      <div class="fb-zona-precios">
+        <label>Renta m&iacute;nima (MXN/mes)<input type="number" id="fb-precio-renta" step="500" min="0"></label>
+        <label>Venta m&iacute;nima (MXN)<input type="number" id="fb-precio-venta" step="50000" min="0"></label>
+      </div>
+      <div class="fb-zona-acc">
+        <button class="btn-gold sm" id="fb-zona-guardar">Guardar</button>
+        <span id="fb-zona-status"></span>
+      </div>
+    </div>
+  </div>
 
   <div class="filtros">
     <input type="search" id="f-q" placeholder="Buscar colonia, torre, contacto&hellip;" aria-label="Buscar">
@@ -189,6 +222,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   const TIPO = {casa:"Casa", departamento:"Depto", terreno:"Terreno", local_comercial:"Local"};
   const fmt = new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0});
   let LEADS = [], isAdmin = false, portalSel = "";
+  let FB_CFG = { precio_min_renta: 20000, precio_min_venta: 2500000 };
   const $ = id => document.getElementById(id);
   const PORTALES = [["","Todos"],["inmuebles24","Inmuebles24"],["vivanuncios","Vivanuncios"],["mercadolibre","Mercado Libre"],["avisos_ocasion","Avisos de Ocasión"],["facebook","Facebook"]];
   const portalLabel = p => { const f = PORTALES.find(x => x[0] === (p || "inmuebles24")); return f ? f[1] : (p || "inmuebles24"); };
@@ -359,10 +393,43 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     render();
   }
 
+  // ---- Precio mínimo de Facebook (solo admin) ----
+  async function cargarFbZona(){
+    const sb = window.__nivaSb;
+    const { data, error } = await sb.from("scouting_config").select("value").eq("id", "facebook_zona").maybeSingle();
+    if (error || !data) return;
+    FB_CFG = Object.assign({ precio_min_renta: 20000, precio_min_venta: 2500000 }, data.value || {});
+    $("fb-precio-renta").value = FB_CFG.precio_min_renta;
+    $("fb-precio-venta").value = FB_CFG.precio_min_venta;
+  }
+
+  function guardarFbZona(){
+    const value = {
+      precio_min_renta: Number($("fb-precio-renta").value) || 0,
+      precio_min_venta: Number($("fb-precio-venta").value) || 0
+    };
+    const sb = window.__nivaSb;
+    $("fb-zona-status").textContent = "Guardando…";
+    sb.from("scouting_config").update({ value, actualizado_at: new Date().toISOString() }).eq("id", "facebook_zona").then(({ error }) => {
+      if (error){ $("fb-zona-status").textContent = "Error: " + error.message; return; }
+      FB_CFG = value;
+      $("fb-zona-status").textContent = "Guardado";
+      toast("Precio mínimo de Facebook guardado");
+    });
+  }
+
   function arrancar(){
     if (!window.__nivaSb){ setTimeout(arrancar, 120); return; }
     isAdmin = window.__nivaUser === "admin";
-    if (isAdmin) $("btn-csv").classList.remove("hidden");
+    if (isAdmin){
+      $("btn-csv").classList.remove("hidden");
+      $("fb-zona").classList.remove("hidden");
+      cargarFbZona();
+      $("fb-zona-toggle").addEventListener("click", () => {
+        $("fb-zona-body").classList.toggle("hidden");
+      });
+      $("fb-zona-guardar").addEventListener("click", guardarFbZona);
+    }
     $("btn-csv").addEventListener("click", exportCsv);
     $("f-hoy").addEventListener("change", () => { $("lbl-hoy").classList.toggle("on", $("f-hoy").checked); render(); });
     ["f-q","f-op","f-tipo","f-est"].forEach(id => {
