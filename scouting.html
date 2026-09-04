@@ -381,9 +381,8 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       .from("scouting_leads")
       .select("id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at, portal, telefono")
       .or("score.gte.3,portal.neq.inmuebles24")
-      .order("score", { ascending: false })
       .order("detectado_at", { ascending: false })
-      .limit(500);
+      .limit(3000);
     if (error){
       $("lista").innerHTML = '<div class="vacio"><span class="vi">&#9888;&#65039;</span>No se pudieron cargar los leads: ' + esc(error.message) + '</div>';
       return;
