@@ -224,7 +224,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   let LEADS = [], isAdmin = false, portalSel = "";
   let FB_CFG = { precio_min_renta: 20000, precio_min_venta: 2500000 };
   const $ = id => document.getElementById(id);
-  const PORTALES = [["","Todos"],["inmuebles24","Inmuebles24"],["vivanuncios","Vivanuncios"],["mercadolibre","Mercado Libre"],["avisos_ocasion","Avisos de Ocasión"],["facebook","Facebook"]];
+  const PORTALES = [["","Todos"],["inmuebles24","Inmuebles24"],["vivanuncios","Vivanuncios"],["mercadolibre","Mercado Libre"],["facebook","Facebook"]];
   const portalLabel = p => { const f = PORTALES.find(x => x[0] === (p || "inmuebles24")); return f ? f[1] : (p || "inmuebles24"); };
 
   function toast(msg){
