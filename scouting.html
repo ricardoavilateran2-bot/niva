@@ -94,6 +94,13 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .chip.est-contactado{background:rgba(96,165,250,.18);color:#93c5fd}
 .chip.est-asignado{background:rgba(74,222,128,.15);color:#4ade80}
 .chip.est-descartado{background:rgba(255,255,255,.08);color:rgba(255,255,255,.45)}
+.chip.est-capturado{background:rgba(74,222,128,.22);color:#4ade80}
+.chip.est-agencia{background:rgba(248,113,113,.16);color:#f87171}
+.btn-outline.sm{padding:6px 12px;font-size:11.5px;border-radius:8px}
+.btn-outline.warn{border-color:rgba(248,113,113,.4);color:#f87171}
+.btn-outline.warn:hover{border-color:#f87171;color:#fca5a5}
+.btn-outline.ok{border-color:rgba(74,222,128,.4);color:#4ade80}
+.btn-outline.ok:hover{border-color:#4ade80;color:#6ee7a0}
 .lead-desc{font-size:12.5px;color:rgba(255,255,255,.5);line-height:1.6;margin-top:8px;max-width:760px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .lead-acc{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px dashed rgba(255,255,255,.1);font-size:12.5px}
 .lead-acc a{color:var(--gold);font-weight:700;text-decoration:none}
@@ -196,6 +203,8 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <option value="nuevo">Nuevos</option>
       <option value="contactado">Contactados</option>
       <option value="asignado">Asignados</option>
+      <option value="capturado">Ya captados</option>
+      <option value="agencia">Marcados como asesor/agencia</option>
       <option value="descartado">Descartados</option>
     </select>
     <label class="chk-hoy" id="lbl-hoy"><input type="checkbox" id="f-hoy"> &#128197; Solo de hoy</label>
@@ -218,7 +227,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 
 <script>
 (function(){
-  const ESTATUS = ["nuevo","contactado","asignado","descartado"];
+  const ESTATUS = ["nuevo","contactado","asignado","capturado","agencia","descartado"];
   const TIPO = {casa:"Casa", departamento:"Depto", terreno:"Terreno", local_comercial:"Local"};
   const fmt = new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0});
   let LEADS = [], isAdmin = false, portalSel = "";
@@ -254,7 +263,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 
   function estChip(e){
     const v = e || "nuevo";
-    const lbl = {nuevo:"Nuevo", contactado:"Contactado", asignado:"Asignado", descartado:"Descartado"}[v] || v;
+    const lbl = {nuevo:"Nuevo", contactado:"Contactado", asignado:"Asignado", capturado:"Ya captado", agencia:"Es asesor/agencia", descartado:"Descartado"}[v] || v;
     return '<span class="chip est-' + v + '">' + lbl + '</span>';
   }
 
@@ -265,14 +274,18 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     const q = $("f-q").value.trim().toLowerCase();
     const op = $("f-op").value, tp = $("f-tipo").value, st = $("f-est").value;
     const hoy = $("f-hoy").checked;
-    return LEADS.filter(l =>
-      (!op || l.operacion === op) &&
-      (!tp || l.tipo_propiedad === tp) &&
-      (!st || (l.estatus || "nuevo") === st) &&
-      (!portalSel || (l.portal || "inmuebles24") === portalSel) &&
-      (!hoy || esDeHoy(l)) &&
-      (!q || ((l.titulo||"") + " " + (l.nombre_contacto||"") + " " + (l.descripcion||"")).toLowerCase().includes(q))
-    );
+    return LEADS.filter(l => {
+      const v = l.estatus || "nuevo";
+      // Sin filtro de estatus explícito: los ya captados o marcados como agencia
+      // se ocultan de la lista general para todos los asesores.
+      if (st) { if (v !== st) return false; }
+      else if (v === "capturado" || v === "agencia") return false;
+      return (!op || l.operacion === op) &&
+        (!tp || l.tipo_propiedad === tp) &&
+        (!portalSel || (l.portal || "inmuebles24") === portalSel) &&
+        (!hoy || esDeHoy(l)) &&
+        (!q || ((l.titulo||"") + " " + (l.nombre_contacto||"") + " " + (l.descripcion||"")).toLowerCase().includes(q));
+    });
   }
 
   function renderTabs(){
@@ -316,6 +329,28 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       a.href = l.url; a.target = "_blank"; a.rel = "noopener";
       a.innerHTML = "Ver anuncio en " + esc(portalLabel(l.portal)) + " &rarr;";
       acc.appendChild(a);
+      // Cualquier asesor logueado (no solo admin) puede marcar el lead como
+      // ya captado, o como que en realidad es un asesor/agencia y no un dueño.
+      // En ambos casos el lead desaparece de la lista general para todos.
+      if ((l.estatus || "nuevo") !== "capturado" && (l.estatus || "nuevo") !== "agencia"){
+        const btnCap = document.createElement("button");
+        btnCap.type = "button"; btnCap.className = "btn-outline sm ok";
+        btnCap.textContent = "✓ Ya lo capté";
+        btnCap.addEventListener("click", () => {
+          if (!confirm("¿Marcar como ya captado? Desaparecerá de la lista de posibles dueños para todos los asesores.")) return;
+          saveLead(l, { estatus: "capturado", asesor_asignado: window.__nivaUser || l.asesor_asignado || null }, el);
+        });
+        acc.appendChild(btnCap);
+
+        const btnAgencia = document.createElement("button");
+        btnAgencia.type = "button"; btnAgencia.className = "btn-outline sm warn";
+        btnAgencia.textContent = "🏢 Es asesor, no dueño";
+        btnAgencia.addEventListener("click", () => {
+          if (!confirm("¿Marcar este contacto como asesor/agencia? Se quitará de la lista de posibles dueños para todos.")) return;
+          saveLead(l, { estatus: "agencia" }, el);
+        });
+        acc.appendChild(btnAgencia);
+      }
       if (l.telefono) {
         const tel = String(l.telefono).replace(/\D/g, "").slice(-10);
         const c = document.createElement("a");
