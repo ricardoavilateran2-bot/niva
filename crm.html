@@ -1038,11 +1038,11 @@ function cardLead(l){
     }
     btnGuardarNombre.disabled=false;btnGuardarNombre.textContent='Guardar';
   };
-  const wab=d.querySelector('.wabox');
+  function mensajeWa(l){const nombre=l.full_name?l.full_name.split(' ')[0]:'';const quien=ADVISOR_DISPLAY_NAME||'tu asesor';if(tipoLead(l)==='agent'){const datos=[];if(l.price_amount)datos.push(fmt(l.price_amount)+(l.operation_type==='rental'?'/mes':''));if(l.location_name)datos.push(l.location_name);return 'Hola '+nombre+', soy '+quien+' de NIVA Inmobiliaria. Te comparto la información de "'+(l.property_title||'la propiedad')+'"'+(datos.length?': '+datos.join(' · '):'')+(l.public_url?'. '+l.public_url:'');}return 'Hola '+nombre+', soy '+quien+', asesor inmobiliario de NIVA Inmobiliaria. Vi tu interés en "'+(l.property_title||'nuestra propiedad')+'"'+(l.price_amount?' ('+fmt(l.price_amount)+(l.operation_type==='rental'?' al mes':'')+')':'')+'. ¿Te gustaría agendar una visita o resolver alguna duda?';} const wab=d.querySelector('.wabox');
   const btnWa=d.querySelector('.wa');
   if(btnWa)btnWa.onclick=()=>{
     if(wab.classList.contains('hidden')){
-      wab.querySelector('textarea').value='Hola '+(l.full_name?l.full_name.split(' ')[0]:'')+', soy '+(ADVISOR_DISPLAY_NAME||'tu asesor')+', asesor inmobiliario de NIVA Inmobiliaria. Vi tu interés en "'+(l.property_title||'nuestra propiedad')+'"'+(l.price_amount?' ('+fmt(l.price_amount)+(l.operation_type==='rental'?' al mes':'')+')':'')+'. ¿Te gustaría agendar una visita o resolver alguna duda?';
+      wab.querySelector('textarea').value=mensajeWa(l);
       wab.classList.remove('hidden');
     } else wab.classList.add('hidden');
   };
