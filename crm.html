@@ -216,6 +216,12 @@ body[data-vista="tablero"] #buscar{max-width:640px}
 .nombrebox .ninput{flex:1;min-width:160px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px}
 .nombrebox .nguardar{padding:9px 14px;background:var(--navy);color:#fff;border:0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
 .nombrebox .ncancelar{padding:9px 14px;background:#fff;color:var(--mut);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
+.addtel{background:none;border:none;cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:700;padding:0;text-decoration:underline}
+.telbox{padding:0 14px 12px;display:flex;gap:6px;flex-wrap:wrap}
+.telbox.hidden{display:none}
+.telbox .tinput{flex:1;min-width:160px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px}
+.telbox .tguardar{padding:9px 14px;background:var(--navy);color:#fff;border:0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
+.telbox .tcancelar{padding:9px 14px;background:#fff;color:var(--mut);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
 .wabox{padding:0 14px 12px}
 .wabox textarea{width:100%;min-height:84px;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:14px}
 .wabox .go{margin-top:8px;width:100%;padding:11px;background:#25d366;color:#fff;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
@@ -949,6 +955,11 @@ function bloqueInteres(l){
     +(sinMsg?'<div class="inota">No dejó mensaje escrito — el portal solo avisa que pidió tus datos desde este aviso.</div>':'')
     +'</div>';
 }
+function telRowHTML(l){
+  return l.phone_normalized
+    ?('📱 <a href="tel:'+esc(l.phone_normalized)+'" style="color:var(--navy);font-weight:700;text-decoration:none">'+esc(ftel(l.phone_normalized))+'</a> <button type="button" class="editnombre editel" title="Editar teléfono">✏️</button>')
+    :('📱 <button type="button" class="addtel">+ Agregar teléfono</button>');
+}
 function cardLead(l){
   const d=document.createElement('div');d.className='card'+(esArchivado(l)?' esarchivada':'');
   const fecha=l.happened_at?new Date(l.happened_at).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
@@ -959,7 +970,7 @@ function cardLead(l){
     :'<div class="cimg-ph">'+inicial+'</div>';
   const metaSpecs=[l.bedrooms?l.bedrooms+' rec':null,l.bathrooms?l.bathrooms+' baños':null,m2ok(l.construction_size)?l.construction_size+' m²':null].filter(Boolean).join(' · ');
   const metaSrc=[ESRC[l.source],l.eb_public_id?esc(l.eb_public_id):null,ESADMIN?(l.advisor_name?'👔 '+esc(l.advisor_name):'⚠️ Sin asesor'):null].filter(Boolean).join(' · ');
-  const telVisible=l.phone_normalized?('<div class="cmeta">📱 <a href="tel:'+esc(l.phone_normalized)+'" style="color:var(--navy);font-weight:700;text-decoration:none">'+esc(ftel(l.phone_normalized))+'</a></div>'):'';
+  const telVisible='<div class="cmeta telrow">'+telRowHTML(l)+'</div>';
   const fechaVisible=fecha?('<div class="cmeta">🕐 Se comunicó: <strong style="color:var(--txt)">'+fecha+'</strong></div>'):'';
   d.innerHTML='<div class="crow">'
     +imgHTML
@@ -971,6 +982,7 @@ function cardLead(l){
     +'<div class="cmeta"><span class="cprice">'+fmt(l.price_amount)+(l.operation_type==='rental'?' /mes':'')+'</span>'+(l.location_name?' · '+esc(l.location_name):'')+'</div>'
     +(metaSpecs?'<div class="cmeta">'+metaSpecs+'</div>':'')
     +telVisible
+    +'<div class="telbox hidden"><input type="text" class="tinput" inputmode="numeric" placeholder="8112345678 (10 dígitos)" value="'+esc(l.phone_normalized?ftel(l.phone_normalized):'')+'"><button type="button" class="tguardar">Guardar</button><button type="button" class="tcancelar">Cancelar</button></div>'
     +fechaVisible
     +'<div class="cmeta">'+metaSrc+'</div>'
     +'</div></div>'
@@ -1037,6 +1049,42 @@ function cardLead(l){
       toast('Error: '+(err.message||'no se pudo actualizar el nombre'));
     }
     btnGuardarNombre.disabled=false;btnGuardarNombre.textContent='Guardar';
+  };
+  const tbox=d.querySelector('.telbox');
+  const telrow=d.querySelector('.telrow');
+  const abrirTelBox=()=>{ tbox.classList.remove('hidden'); const inp=tbox.querySelector('.tinput'); inp.focus(); inp.select(); };
+  function bindTelBtns(){
+    const be=d.querySelector('.editel'); if(be)be.onclick=abrirTelBox;
+    const ba=d.querySelector('.addtel'); if(ba)ba.onclick=abrirTelBox;
+  }
+  bindTelBtns();
+  const btnCancelTel=d.querySelector('.tcancelar');
+  if(btnCancelTel)btnCancelTel.onclick=()=>tbox.classList.add('hidden');
+  const btnGuardarTel=d.querySelector('.tguardar');
+  if(btnGuardarTel)btnGuardarTel.onclick=async()=>{
+    const digitos=tbox.querySelector('.tinput').value.replace(/D/g,'');
+    if(digitos.length!==10){toast('El teléfono debe tener 10 dígitos');return}
+    const nuevoTel='+52'+digitos;
+    btnGuardarTel.disabled=true;btnGuardarTel.textContent='...';
+    try{
+      if(l.contact_id){
+        const {error}=await sb.from('contacts').update({phone_normalized:nuevoTel}).eq('id',l.contact_id);
+        if(error)throw error;
+      }else{
+        const {error}=await sb.from('leads').update({phone_normalized:nuevoTel}).eq('id',l.id);
+        if(error)throw error;
+      }
+      l.phone_normalized=nuevoTel;
+      guardarCache();
+      toast('Teléfono actualizado ✅');
+      telrow.innerHTML=telRowHTML(l);
+      bindTelBtns();
+      tbox.querySelector('.tinput').value=ftel(nuevoTel);
+      tbox.classList.add('hidden');
+    }catch(err){
+      toast('Error: '+(err.message||'no se pudo actualizar el teléfono'));
+    }
+    btnGuardarTel.disabled=false;btnGuardarTel.textContent='Guardar';
   };
   function mensajeWa(l){const nombre=l.full_name?l.full_name.split(' ')[0]:'';const quien=ADVISOR_DISPLAY_NAME||'tu asesor';if(tipoLead(l)==='agent'){const datos=[];if(l.price_amount)datos.push(fmt(l.price_amount)+(l.operation_type==='rental'?'/mes':''));if(l.location_name)datos.push(l.location_name);return 'Hola '+nombre+', soy '+quien+' de NIVA Inmobiliaria. Te comparto la información de "'+(l.property_title||'la propiedad')+'"'+(datos.length?': '+datos.join(' · '):'')+(l.public_url?'. '+l.public_url:'');}return 'Hola '+nombre+', soy '+quien+', asesor inmobiliario de NIVA Inmobiliaria. Vi tu interés en "'+(l.property_title||'nuestra propiedad')+'"'+(l.price_amount?' ('+fmt(l.price_amount)+(l.operation_type==='rental'?' al mes':'')+')':'')+'. ¿Te gustaría agendar una visita o resolver alguna duda?';} const wab=d.querySelector('.wabox');
   const btnWa=d.querySelector('.wa');
