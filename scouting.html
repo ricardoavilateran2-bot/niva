@@ -101,6 +101,11 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .btn-outline.warn:hover{border-color:#f87171;color:#fca5a5}
 .btn-outline.ok{border-color:rgba(74,222,128,.4);color:#4ade80}
 .btn-outline.ok:hover{border-color:#4ade80;color:#6ee7a0}
+.lead-danger{display:flex;gap:16px;align-items:center;justify-content:flex-end;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)}
+.lead-danger .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.28);margin-right:4px}
+.lead-danger .btn-outline{opacity:.55;transition:opacity .15s}
+.lead-danger .btn-outline:hover{opacity:1}
+.lead-danger .btn-outline.ok{margin-right:2px}
 .lead-desc{font-size:12.5px;color:rgba(255,255,255,.5);line-height:1.6;margin-top:8px;max-width:760px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .lead-acc{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px dashed rgba(255,255,255,.1);font-size:12.5px}
 .lead-acc a{color:var(--gold);font-weight:700;text-decoration:none}
@@ -332,7 +337,18 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       // Cualquier asesor logueado (no solo admin) puede marcar el lead como
       // ya captado, o como que en realidad es un asesor/agencia y no un dueño.
       // En ambos casos el lead desaparece de la lista general para todos.
+      // Estos dos botones van en su propia fila, separados del resto de
+      // acciones (Ver anuncio / teléfono / WhatsApp), para que no se den
+      // clics por accidente al usar los otros enlaces.
       if ((l.estatus || "nuevo") !== "capturado" && (l.estatus || "nuevo") !== "agencia"){
+        const danger = document.createElement("div");
+        danger.className = "lead-danger";
+
+        const lbl = document.createElement("span");
+        lbl.className = "lbl";
+        lbl.textContent = "Marcar como:";
+        danger.appendChild(lbl);
+
         const btnCap = document.createElement("button");
         btnCap.type = "button"; btnCap.className = "btn-outline sm ok";
         btnCap.textContent = "✓ Ya lo capté";
@@ -340,7 +356,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
           if (!confirm("¿Marcar como ya captado? Desaparecerá de la lista de posibles dueños para todos los asesores.")) return;
           saveLead(l, { estatus: "capturado", asesor_asignado: window.__nivaUser || l.asesor_asignado || null }, el);
         });
-        acc.appendChild(btnCap);
+        danger.appendChild(btnCap);
 
         const btnAgencia = document.createElement("button");
         btnAgencia.type = "button"; btnAgencia.className = "btn-outline sm warn";
@@ -349,7 +365,9 @@ header { display: flex; align-items: center; justify-content: space-between; pad
           if (!confirm("¿Marcar este contacto como asesor/agencia? Se quitará de la lista de posibles dueños para todos.")) return;
           saveLead(l, { estatus: "agencia" }, el);
         });
-        acc.appendChild(btnAgencia);
+        danger.appendChild(btnAgencia);
+
+        el.appendChild(danger);
       }
       if (l.telefono) {
         const tel = String(l.telefono).replace(/\D/g, "").slice(-10);
