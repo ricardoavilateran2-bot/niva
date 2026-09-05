@@ -281,10 +281,16 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     const hoy = $("f-hoy").checked;
     return LEADS.filter(l => {
       const v = l.estatus || "nuevo";
-      // Sin filtro de estatus explícito: los ya captados o marcados como agencia
-      // se ocultan de la lista general para todos los asesores.
+      // Los leads ya captados, marcados como asesor/agencia, o descartados
+      // (datos basura/inválidos) solo los puede ver el admin -- para cualquier
+      // otro asesor quedan totalmente fuera de la lista sin importar qué
+      // estatus elija en el filtro.
+      if (!isAdmin && (v === "capturado" || v === "agencia" || v === "descartado")) return false;
+      // Sin filtro de estatus explícito: los ya captados, marcados como
+      // agencia, o descartados se ocultan de la lista general por default
+      // (el admin los puede ver eligiendo ese estatus específico en el filtro).
       if (st) { if (v !== st) return false; }
-      else if (v === "capturado" || v === "agencia") return false;
+      else if (v === "capturado" || v === "agencia" || v === "descartado") return false;
       return (!op || l.operacion === op) &&
         (!tp || l.tipo_propiedad === tp) &&
         (!portalSel || (l.portal || "inmuebles24") === portalSel) &&
@@ -325,7 +331,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
           '<span class="chip">' + esc(TIPO[l.tipo_propiedad] || l.tipo_propiedad) + '</span>' +
           '<span class="chip portal">' + esc(portalLabel(l.portal)) + '</span>' +
           '<span>Contacto: <b style="color:rgba(255,255,255,.8)">' + esc(l.nombre_contacto || "—") + '</b></span>' +
-          (l.asesor_asignado ? '<span>&rarr; Asesor: <b style="color:#4ade80">' + esc(l.asesor_asignado) + '</b></span>' : '') +
+          (isAdmin && l.asesor_asignado ? '<span>&rarr; Asesor: <b style="color:#4ade80">' + esc(l.asesor_asignado) + '</b></span>' : '') +
         '</div>' +
         (l.descripcion ? '<div class="lead-desc">' + esc(l.descripcion) + '</div>' : '') +
         '<div class="lead-acc"></div>';
@@ -481,6 +487,13 @@ header { display: flex; align-items: center; justify-content: space-between; pad
         $("fb-zona-body").classList.toggle("hidden");
       });
       $("fb-zona-guardar").addEventListener("click", guardarFbZona);
+    } else {
+      // Los asesores normales no deben ni poder elegir estos estatus en el
+      // filtro -- ya captados / agencia / descartados son solo del admin.
+      ["capturado","agencia","descartado"].forEach(v => {
+        const opt = $("f-est").querySelector('option[value="'+v+'"]');
+        if (opt) opt.remove();
+      });
     }
     $("btn-csv").addEventListener("click", exportCsv);
     $("f-hoy").addEventListener("change", () => { $("lbl-hoy").classList.toggle("on", $("f-hoy").checked); render(); });
