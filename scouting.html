@@ -13,6 +13,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     window.__nivaSb = sb;
     window.__nivaCfg = cfg;
     window.__nivaUser = (session.user?.email||'').split('@')[0];
+    try {
+      const { data: advRow } = await sb.from('advisors').select('id, first_name, last_name').eq('user_id', session.user.id).maybeSingle();
+      window.__nivaAdvisorId = advRow ? advRow.id : null;
+      window.__nivaAdvisorName = advRow ? (advRow.first_name + ' ' + advRow.last_name) : null;
+      const { data: advList } = await sb.from('advisors').select('id, first_name, last_name').order('first_name');
+      window.__nivaAdvisors = advList || [];
+    } catch (e) {
+      console.error('niva-advisor-lookup', e);
+      window.__nivaAdvisorId = null; window.__nivaAdvisorName = null; window.__nivaAdvisors = [];
+    }
     sb.auth.onAuthStateChange((_e, s)=>{ if(!s) window.location.replace('./index.html'); });
   }catch(e){ console.error('niva-auth-guard', e); window.location.replace('./index.html'); }
 })();
@@ -247,6 +257,11 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   }
 
   function esc(s){ const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+  function advisorName(id){
+    if (!id) return "";
+    const a = (window.__nivaAdvisors||[]).find(x => x.id === id);
+    return a ? (a.first_name + " " + a.last_name) : id;
+  }
 
   // Filtro TRATO DIRECTO: oculta cuentas con nombre de inmobiliaria (Inmuebles24, Vivanuncios, Mercado Libre, Avisos de Ocasion, Propiedades.com)
   const AGENCIA_KW = ["inmobiliaria","inmobiliar","inmueble","bienes raices","bien raiz","raices","realty","real estate","realestate","realtor","propiedades","grupo ","asesor","asesoria","broker","corredor","corretaje","remax","re/max","century","coldwell","banker","keller","engel","volkers","tecnocasa","lahaus","la haus","easybroker","desarrolladora","desarrollos","desarrollo inmob","constructora","promotora","urbaniza","arrendadora","arrendamiento","agencia","negocios inmob","servicios inmob","soluciones inmob","patrimonio","inversiones","asociados","habitat","abitat","viviendas","inmobiliari","properties","property","cbre"," jll","spaces","& ","s.a. de c.v","sa de cv","s. de r.l","sapi","srl"];
@@ -331,7 +346,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
           '<span class="chip">' + esc(TIPO[l.tipo_propiedad] || l.tipo_propiedad) + '</span>' +
           '<span class="chip portal">' + esc(portalLabel(l.portal)) + '</span>' +
           '<span>Contacto: <b style="color:rgba(255,255,255,.8)">' + esc(l.nombre_contacto || "—") + '</b></span>' +
-          (isAdmin && l.asesor_asignado ? '<span>&rarr; Asesor: <b style="color:#4ade80">' + esc(l.asesor_asignado) + '</b></span>' : '') +
+          (isAdmin && l.asesor_asignado ? '<span>&rarr; Asesor: <b style="color:#4ade80">' + esc(advisorName(l.asesor_asignado)) + '</b></span>' : '') +
         '</div>' +
         (l.descripcion ? '<div class="lead-desc">' + esc(l.descripcion) + '</div>' : '') +
         '<div class="lead-acc"></div>';
@@ -360,7 +375,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
         btnCap.textContent = "✓ Ya lo capté";
         btnCap.addEventListener("click", () => {
           if (!confirm("¿Marcar como ya captado? Desaparecerá de la lista de posibles dueños para todos los asesores.")) return;
-          saveLead(l, { estatus: "capturado", asesor_asignado: window.__nivaUser || l.asesor_asignado || null }, el);
+          saveLead(l, { estatus: "capturado", asesor_asignado: window.__nivaAdvisorId || l.asesor_asignado || null }, el);
         });
         danger.appendChild(btnCap);
 
@@ -390,9 +405,9 @@ header { display: flex; align-items: center; justify-content: space-between; pad
         const sel = document.createElement("select");
         sel.innerHTML = ESTATUS.map(e => '<option value="'+e+'"'+(((l.estatus||"nuevo")===e)?" selected":"")+'>'+e.charAt(0).toUpperCase()+e.slice(1)+'</option>').join("");
         sel.addEventListener("change", () => saveLead(l, { estatus: sel.value }, el));
-        const inp = document.createElement("input");
-        inp.type = "text"; inp.placeholder = "Asignar a asesor…"; inp.value = l.asesor_asignado || "";
-        inp.addEventListener("change", () => saveLead(l, { asesor_asignado: inp.value.trim() || null, estatus: inp.value.trim() ? "asignado" : (l.estatus||"nuevo") }, el));
+        const inp = document.createElement("select");
+        inp.innerHTML = '<option value="">Asignar a asesor…</option>' + (window.__nivaAdvisors||[]).map(a => '<option value="'+a.id+'"'+(l.asesor_asignado===a.id?" selected":"")+'>'+esc(a.first_name+" "+a.last_name)+'</option>').join("");
+        inp.addEventListener("change", () => saveLead(l, { asesor_asignado: inp.value || null, estatus: inp.value ? "asignado" : (l.estatus||"nuevo") }, el));
         acc.appendChild(sel); acc.appendChild(inp);
       }
       const who = document.createElement("span");
@@ -425,7 +440,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     const rows = filtered();
     const q = v => '"' + String(v == null ? "" : v).replace(/"/g,'""') + '"';
     const lines = ["titulo,operacion,tipo,precio,contacto,telefono,estatus,asesor_asignado,senal,url"];
-    for (const l of rows) lines.push([l.titulo, l.operacion, TIPO[l.tipo_propiedad]||l.tipo_propiedad, l.precio||"", l.nombre_contacto||"", l.telefono||"", l.estatus||"nuevo", l.asesor_asignado||"", (l.score>=6?"muy probable dueno":"posible dueno"), l.url].map(q).join(","));
+    for (const l of rows) lines.push([l.titulo, l.operacion, TIPO[l.tipo_propiedad]||l.tipo_propiedad, l.precio||"", l.nombre_contacto||"", l.telefono||"", l.estatus||"nuevo", advisorName(l.asesor_asignado), (l.score>=6?"muy probable dueno":"posible dueno"), l.url].map(q).join(","));
     const blob = new Blob(["﻿" + lines.join("\n")], {type:"text/csv;charset=utf-8"});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
