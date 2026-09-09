@@ -5611,37 +5611,38 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
   let frameCount = 0;
   const frameDurationUs = Math.round(1e6 / 30);
 
-  try {
-    await video.play();
-  } catch (playErr) {
-    console.error('[NIVA][MP4] video.play() falló, reintentando una vez:', playErr && playErr.name, playErr && playErr.message);
-    try {
-      await video.play();
-    } catch (playErr2) {
-      try { video.parentNode && video.parentNode.removeChild(video); } catch(e) {}
-      throw new Error('No se pudo reproducir el WebM grabado para convertirlo a MP4 (' + (playErr2 && playErr2.name) + ': ' + (playErr2 && playErr2.message) + ')');
-    }
-  }
-  await new Promise(resolve => {
+  // Recorremos el video con currentTime + evento 'seeked' en vez de reproducirlo con
+  // play() — Safari/iOS puede rechazar play() con NotAllowedError ("The request is not
+  // allowed by the user agent or the platform...") si pasó demasiado tiempo desde el
+  // gesto del usuario (bug reportado: "No se pudo unir audio y video"). Con seek no se
+  // necesita ningún permiso de autoplay.
+  await new Promise((resolve, reject) => {
     let settled = false;
     const finish = () => { if (!settled) { settled = true; resolve(); } };
-    function onFrame(now, metadata) {
+    const fail = (e) => { if (!settled) { settled = true; reject(e); } };
+    const vidDur = (video.duration && isFinite(video.duration)) ? video.duration : dur;
+    const totalFrames = Math.max(1, Math.round(vidDur * 30));
+    let frameIdx = 0;
+    const seekNext = () => {
       if (settled) return;
-      if (encodeErr) { finish(); return; }
+      if (frameIdx >= totalFrames || encodeErr) { finish(); return; }
+      video.currentTime = Math.min(frameIdx / 30, Math.max(0, vidDur - 0.001));
+    };
+    video.onseeked = () => {
+      if (settled) return;
       try {
         cctx.drawImage(video, 0, 0, W, H);
-        const vf = new VideoFrame(canvas, { timestamp: Math.round(metadata.mediaTime * 1e6), duration: frameDurationUs });
+        const vf = new VideoFrame(canvas, { timestamp: Math.round(frameIdx * frameDurationUs), duration: frameDurationUs });
         videoEncoder.encode(vf, { keyFrame: frameCount % 30 === 0 });
         vf.close();
         frameCount++;
-      } catch(e) { encodeErr = encodeErr || e; finish(); return; }
-      if (!video.ended) video.requestVideoFrameCallback(onFrame);
-      else finish();
-    }
-    video.requestVideoFrameCallback(onFrame);
-    video.onended = finish;
-    // Salvaguarda: si el video no dispara 'ended' a tiempo, no bloquear indefinidamente.
-    setTimeout(finish, (dur + 15) * 1000);
+      } catch(e) { encodeErr = encodeErr || e; fail(e); return; }
+      frameIdx++;
+      seekNext();
+    };
+    video.onerror = () => fail(new Error('Error leyendo el video grabado durante la conversión de cuadros [MP4]'));
+    setTimeout(() => { if (!settled) finish(); }, (dur + 15) * 1000);
+    seekNext();
   });
   try { video.pause(); } catch(e) {}
   try { URL.revokeObjectURL(videoURL); } catch(e) {}
@@ -5798,36 +5799,38 @@ async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
   let frameCount = 0;
   const frameDurationUs = Math.round(1e6 / 30);
 
-  try {
-    await video.play();
-  } catch (playErr) {
-    console.error('[NIVA][IOS-MUX] video.play() falló, reintentando una vez:', playErr && playErr.name, playErr && playErr.message);
-    try {
-      await video.play();
-    } catch (playErr2) {
-      try { video.parentNode && video.parentNode.removeChild(video); } catch(e) {}
-      throw new Error('No se pudo reproducir el video grabado para unirlo con el audio (' + (playErr2 && playErr2.name) + ': ' + (playErr2 && playErr2.message) + ')');
-    }
-  }
-  await new Promise(resolve => {
+  // Recorremos el video con currentTime + evento 'seeked' en vez de reproducirlo con
+  // play() — Safari/iOS puede rechazar play() con NotAllowedError ("The request is not
+  // allowed by the user agent or the platform...") si pasó demasiado tiempo desde el
+  // gesto del usuario (bug reportado: "No se pudo unir audio y video"). Con seek no se
+  // necesita ningún permiso de autoplay.
+  await new Promise((resolve, reject) => {
     let settled = false;
     const finish = () => { if (!settled) { settled = true; resolve(); } };
-    function onFrame(now, metadata) {
+    const fail = (e) => { if (!settled) { settled = true; reject(e); } };
+    const vidDur = (video.duration && isFinite(video.duration)) ? video.duration : dur;
+    const totalFrames = Math.max(1, Math.round(vidDur * 30));
+    let frameIdx = 0;
+    const seekNext = () => {
       if (settled) return;
-      if (encodeErr) { finish(); return; }
+      if (frameIdx >= totalFrames || encodeErr) { finish(); return; }
+      video.currentTime = Math.min(frameIdx / 30, Math.max(0, vidDur - 0.001));
+    };
+    video.onseeked = () => {
+      if (settled) return;
       try {
         cctx.drawImage(video, 0, 0, W, H);
-        const vf = new VideoFrame(canvas, { timestamp: Math.round(metadata.mediaTime * 1e6), duration: frameDurationUs });
+        const vf = new VideoFrame(canvas, { timestamp: Math.round(frameIdx * frameDurationUs), duration: frameDurationUs });
         videoEncoder.encode(vf, { keyFrame: frameCount % 30 === 0 });
         vf.close();
         frameCount++;
-      } catch(e) { encodeErr = encodeErr || e; finish(); return; }
-      if (!video.ended) video.requestVideoFrameCallback(onFrame);
-      else finish();
-    }
-    video.requestVideoFrameCallback(onFrame);
-    video.onended = finish;
-    setTimeout(finish, (dur + 15) * 1000);
+      } catch(e) { encodeErr = encodeErr || e; fail(e); return; }
+      frameIdx++;
+      seekNext();
+    };
+    video.onerror = () => fail(new Error('Error leyendo el video grabado durante la conversión de cuadros [IOS-MUX]'));
+    setTimeout(() => { if (!settled) finish(); }, (dur + 15) * 1000);
+    seekNext();
   });
   try { video.pause(); } catch(e) {}
   try { URL.revokeObjectURL(videoURL); } catch(e) {}
