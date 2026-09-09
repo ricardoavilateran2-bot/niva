@@ -412,43 +412,43 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
   </div>
 </div>
 <div class="fg"><label class="fl">Colonia / Fraccionamiento</label><input class="fc" type="text" id="col" placeholder="Ej: Valle Oriente, San Pedro"></div>
-<div class="fg"><label class="fl">Municipio</label>
-  <select class="fc" id="city">
-    <optgroup label="─ Zona Metropolitana Core ─">
-      <option value="Monterrey" selected>Monterrey</option>
-      <option value="Apodaca">Apodaca</option>
-      <option value="García">García</option>
-      <option value="General Escobedo">General Escobedo</option>
-      <option value="Guadalupe">Guadalupe</option>
-      <option value="Juárez">Juárez</option>
-      <option value="San Nicolás de los Garza">San Nicolás de los Garza</option>
-      <option value="San Pedro Garza García">San Pedro Garza García</option>
-      <option value="Santa Catarina">Santa Catarina</option>
-      <option value="Santiago">Santiago</option>
-    </optgroup>
-    <optgroup label="─ Área Conurbada ─">
-            <option value="Abasolo">Abasolo</option>
-      <option value="Cadereyta Jiménez">Cadereyta Jiménez</option>
-      <option value="Ciénega de Flores">Ciénega de Flores</option>
-      <option value="Doctor González">Doctor González</option>
-      <option value="El Carmen">El Carmen</option>
-      <option value="General Zuazua">General Zuazua</option>
-      <option value="Hidalgo">Hidalgo</option>
-      <option value="Mina">Mina</option>
-      <option value="Pesquería">Pesquería</option>
-      <option value="Salinas Victoria">Salinas Victoria</option>
-    </optgroup>
-    <optgroup label="─ Municipios Cercanos ─">
-            <option value="Allende">Allende</option>
-      <option value="China">China</option>
-      <option value="Galeana">Galeana</option>
-      <option value="Linares">Linares</option>
-      <option value="Montemorelos">Montemorelos</option>
-      <option value="Rayones">Rayones</option>
-      <option value="Sabinas Hidalgo">Sabinas Hidalgo</option>
-    </optgroup>
+<div class="fg"><label class="fl">Estado</label>
+  <select class="fc" id="estado">
+    <option value="Aguascalientes">Aguascalientes</option>
+    <option value="Baja California">Baja California</option>
+    <option value="Baja California Sur">Baja California Sur</option>
+    <option value="Campeche">Campeche</option>
+    <option value="Chiapas">Chiapas</option>
+    <option value="Chihuahua">Chihuahua</option>
+    <option value="Ciudad de México">Ciudad de México</option>
+    <option value="Coahuila">Coahuila</option>
+    <option value="Colima">Colima</option>
+    <option value="Durango">Durango</option>
+    <option value="Guanajuato">Guanajuato</option>
+    <option value="Guerrero">Guerrero</option>
+    <option value="Hidalgo">Hidalgo</option>
+    <option value="Jalisco">Jalisco</option>
+    <option value="México">México</option>
+    <option value="Michoacán">Michoacán</option>
+    <option value="Morelos">Morelos</option>
+    <option value="Nayarit">Nayarit</option>
+    <option value="Nuevo León" selected>Nuevo León</option>
+    <option value="Oaxaca">Oaxaca</option>
+    <option value="Puebla">Puebla</option>
+    <option value="Querétaro">Querétaro</option>
+    <option value="Quintana Roo">Quintana Roo</option>
+    <option value="San Luis Potosí">San Luis Potosí</option>
+    <option value="Sinaloa">Sinaloa</option>
+    <option value="Sonora">Sonora</option>
+    <option value="Tabasco">Tabasco</option>
+    <option value="Tamaulipas">Tamaulipas</option>
+    <option value="Tlaxcala">Tlaxcala</option>
+    <option value="Veracruz">Veracruz</option>
+    <option value="Yucatán">Yucatán</option>
+    <option value="Zacatecas">Zacatecas</option>
   </select>
 </div>
+<div class="fg"><label class="fl">Municipio</label><input class="fc" type="text" id="city" value="Monterrey" placeholder="Ej: Monterrey"></div>
 <div class="fg"><label class="fl">Precio (MXN)</label><input class="fc" type="number" id="price" placeholder="Ej: 3500000"></div>
 
 <div class="sec">📐 Características</div>
@@ -3027,6 +3027,7 @@ function getV() {
     tipo:    document.getElementById('tipo').value,
     op:      document.getElementById('op').value,
     col:     document.getElementById('col').value.trim() || 'Monterrey',
+    estado:  (document.getElementById('estado')||{}).value || 'Nuevo León',
     city:    document.getElementById('city').value.trim() || 'Monterrey, NL',
     price:   parseInt(document.getElementById('price').value) || 0,
     rec:     document.getElementById('rec').value,
