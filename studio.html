@@ -6293,6 +6293,21 @@ function nivaVidWizardShow(step) {
   // Al entrar al Paso 3 (Hook): la IA normalmente ya eligió y aplicó el mejor
   // hook automáticamente (flujo simplificado) sin pintar la lista — aquí la
   // pintamos para que el asesor vea cuál se usó y, si quiere, elija otro.
+  // FIX: los paneles internos de los pasos 2 y 5 traen su propio
+  // style="display:none" en el HTML y normalmente solo se les quita al
+  // completar un paso anterior de la generación (elegir estilo, elegir hook +
+  // generar guion). Si el asesor navega el wizard con Siguiente/Atrás antes de
+  // que eso ocurra, el paso se veía completamente en blanco. Igual que ya se
+  // hacía para el Paso 3 (hooks) abajo, forzamos que el panel de cada paso se
+  // muestre en cuanto se entra a ese paso.
+  if (step === 2) {
+    const objPanel = document.getElementById('vid-objetivo-panel');
+    if (objPanel) objPanel.style.display = 'block';
+  }
+  if (step === 5) {
+    const scriptOuter = document.getElementById('vid-script-outer');
+    if (scriptOuter) scriptOuter.style.display = 'block';
+  }
   if (step === 3) {
     const hooksPanel = document.getElementById('vid-hooks-panel');
     if (hooksPanel) hooksPanel.style.display = 'block';
