@@ -7311,7 +7311,7 @@ ${photoClassInfo}
 
 HOOK ELEGIDO: "${hook.texto}"
 DURACIÓN OBJETIVO: ${durTarget} segundos
-LÍMITE DE PALABRAS de narracion_completa: MÁXIMO ${Math.max(8, Math.round(durTarget * (140/60)))} palabras en total (ritmo de voz natural en español, ~140 palabras/min). Esto es una regla dura — cuenta las palabras antes de responder. Si no alcanzas a contar todo el recorrido, prioriza HOOK + WOW + PRECIO + CTA y recorta o elimina detalles secundarios en vez de exceder el límite.
+LÍMITE DE PALABRAS de narracion_completa: entre MÍNIMO ${Math.max(6, Math.round(durTarget * (110/60)))} y MÁXIMO ${Math.max(8, Math.round(durTarget * (140/60)))} palabras en total (ritmo de voz natural en español, ~110-140 palabras/min). Esto es una regla dura — cuenta las palabras antes de responder. NO entregues un guion corto "por seguridad": si te quedas muy por debajo del mínimo, el video sale más corto de lo que el usuario pidió. Si no alcanzas a contar todo el recorrido dentro del máximo, prioriza HOOK + WOW + PRECIO + CTA y recorta o elimina detalles secundarios en vez de exceder el límite — pero SIEMPRE llega al mínimo agregando más detalle sensorial, contexto del vecindario o beneficios si hace falta.
 FOTOS DISPONIBLES: ${photos.length} (foto_idx: 0 a ${Math.max(photos.length-1,0)})
 
 INSTRUCCIONES DE NARRATIVA:
@@ -9873,6 +9873,13 @@ async function playVideoEL() {
           console.log('[VIDEO_DURATION] finalDuration=' + finalDuration + 's | audioDuration=' + (audio.duration||0).toFixed(1) + 's | audioMode=' + audioMode + ' | photos=' + photoList.length + ' | scriptLen=' + scriptLen);
 
           const _nivaRealTotalMs = startVideoAnimation(photoList, finalDurMs, scriptTxt);
+          // FIX: usar la duración REAL calculada por el render (alineada a la voz real),
+          // no solo la estimación previa (finalDuration), para que todo lo que dependa
+          // de "videoDurationSeconds" después (envío, reparación de cabeceras MP4, etc.)
+          // refleje lo que el video realmente dura.
+          if (_nivaRealTotalMs && isFinite(_nivaRealTotalMs) && _nivaRealTotalMs > 0) {
+            videoDurationSeconds = _nivaRealTotalMs / 1000;
+          }
           if (musicSource) {
             activeMusicSource = musicSource;
             try { musicSource.start(0); } catch(eStart) { console.warn('[NIVA][RENDER] musicSource.start() falló (probablemente reutilizado de un intento previo) — se continúa sin música:', eStart); activeMusicSource = null; }
@@ -12324,7 +12331,7 @@ function stopVideo() {
   // (mismo tamano de archivo, solo se llenan los campos que venian en 0).
   async function _fixMp4DurationBlob(blob, seconds) {
       try {
-            if (!blob || !seconds || !isFinite(seconds) || seconds <= 0) return blob;
+            if (!blob || !seconds || !isFinite(seconds) || seconds <= 0) { console.warn('[NIVA][MP4 FIX] No se pudo determinar la duración real — se envía el video sin reparar cabeceras (puede mostrar "0 segundos" en WhatsApp).'); return blob; }
             const buf = new Uint8Array(await blob.arrayBuffer());
             const dv = new DataView(buf.buffer);
             let patched = false, mvTs = 600;
@@ -12343,14 +12350,18 @@ function stopVideo() {
                                           const ts = dv.getUint32(tsOff);
                                           if (typ === 'mvhd' && ts > 0) mvTs = ts;
                                           const d = Math.round(seconds * (ts || 600));
-                                          if (ver === 1) { if (Number(dv.getBigUint64(dOff)) === 0) { dv.setBigUint64(dOff, BigInt(d)); patched = true; } }
-                                          else if (dv.getUint32(dOff) === 0) { dv.setUint32(dOff, d); patched = true; }
+                                          // FIX: forzar la escritura de la duración real siempre, no solo
+                                          // cuando el campo original venía en 0 — algunos muxers escriben un
+                                          // valor distinto de 0 pero igual incorrecto, y eso dejaba el video
+                                          // mostrando "0 segundos" en WhatsApp.
+                                          if (ver === 1) { dv.setBigUint64(dOff, BigInt(d)); patched = true; }
+                                          else { dv.setUint32(dOff, d); patched = true; }
                               }
                               if (typ === 'tkhd') {
                                           const dOff = ver === 1 ? q + 28 : q + 20;
                                           const d = Math.round(seconds * mvTs);
-                                          if (ver === 1) { if (Number(dv.getBigUint64(dOff)) === 0) { dv.setBigUint64(dOff, BigInt(d)); patched = true; } }
-                                          else if (dv.getUint32(dOff) === 0) { dv.setUint32(dOff, d); patched = true; }
+                                          if (ver === 1) { dv.setBigUint64(dOff, BigInt(d)); patched = true; }
+                                          else { dv.setUint32(dOff, d); patched = true; }
                               }
                               off += size;
                     }
