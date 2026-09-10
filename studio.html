@@ -10100,7 +10100,18 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
     scaledScenes = scenes.map((s, i) => ({...s, durMs: alignedDurMs[i]}));
   } else {
     const totalSceneDur = scenes.reduce((a,s) => a+(s.duracion_seg||5), 0) * 1000;
-    const scaleTime = totalMs > 0 ? totalMs / totalSceneDur : 1;
+    // FIX DE RAÍZ: cuando el alineado real de ElevenLabs falla (texto no encontrado,
+    // sin narración, etc.), este fallback antes estiraba las escenas hasta "totalMs"
+    // — el ESTIMADO elegido antes de generar la voz (p.ej. 40s) — sin importar cuánto
+    // durara realmente el audio grabado. Resultado: la voz terminaba a los 23s pero el
+    // video (canvas + grabación) seguía animando fotos en silencio hasta los 40s, y eso
+    // es lo que se descargaba. Ahora, si ya conocemos la duración REAL del audio de voz
+    // (_voiceAudioDuration, capturada justo antes de esta llamada), se escala a esa
+    // duración real en vez de al estimado — el video nunca dura más que la voz.
+    const targetMs = (typeof _voiceAudioDuration === 'number' && _voiceAudioDuration > 0)
+      ? _voiceAudioDuration * 1000
+      : totalMs;
+    const scaleTime = targetMs > 0 ? targetMs / totalSceneDur : 1;
     scaledScenes = scenes.map(s => ({...s, durMs: (s.duracion_seg||5)*1000*scaleTime}));
   }
   // ── Garantizar duración mínima de la escena de cierre ──
