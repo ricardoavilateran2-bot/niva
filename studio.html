@@ -12379,18 +12379,31 @@ function stopVideo() {
                                           const ts = dv.getUint32(tsOff);
                                           if (typ === 'mvhd' && ts > 0) mvTs = ts;
                                           const d = Math.round(seconds * (ts || 600));
-                                          // FIX: forzar la escritura de la duración real siempre, no solo
-                                          // cuando el campo original venía en 0 — algunos muxers escriben un
-                                          // valor distinto de 0 pero igual incorrecto, y eso dejaba el video
-                                          // mostrando "0 segundos" en WhatsApp.
-                                          if (ver === 1) { dv.setBigUint64(dOff, BigInt(d)); patched = true; }
-                                          else { dv.setUint32(dOff, d); patched = true; }
+                                          // FIX (corregido): solo reescribimos si el campo viene en 0 (el bug
+                                          // real de Safari/iOS: "0 segundos" en WhatsApp) o claramente mal
+                                          // (difiere de la duración real por más de 1.5s). Sobrescribir SIEMPRE
+                                          // — como se hizo en un intento anterior — rompía archivos que el
+                                          // propio muxer ya había escrito bien, y eso causaba que WhatsApp
+                                          // mandara el video como si durara "1 segundo". Nunca tocar un
+                                          // archivo cuyas cabeceras ya son correctas.
+                                          const existing = ver === 1 ? Number(dv.getBigUint64(dOff)) : dv.getUint32(dOff);
+                                          const existingSec = (ts || 600) > 0 ? existing / (ts || 600) : 0;
+                                          const needsFix = existing === 0 || Math.abs(existingSec - seconds) > 1.5;
+                                          if (needsFix) {
+                                            if (ver === 1) { dv.setBigUint64(dOff, BigInt(d)); patched = true; }
+                                            else { dv.setUint32(dOff, d); patched = true; }
+                                          }
                               }
                               if (typ === 'tkhd') {
                                           const dOff = ver === 1 ? q + 28 : q + 20;
                                           const d = Math.round(seconds * mvTs);
-                                          if (ver === 1) { dv.setBigUint64(dOff, BigInt(d)); patched = true; }
-                                          else { dv.setUint32(dOff, d); patched = true; }
+                                          const existingTk = ver === 1 ? Number(dv.getBigUint64(dOff)) : dv.getUint32(dOff);
+                                          const existingTkSec = mvTs > 0 ? existingTk / mvTs : 0;
+                                          const needsFixTk = existingTk === 0 || Math.abs(existingTkSec - seconds) > 1.5;
+                                          if (needsFixTk) {
+                                            if (ver === 1) { dv.setBigUint64(dOff, BigInt(d)); patched = true; }
+                                            else { dv.setUint32(dOff, d); patched = true; }
+                                          }
                               }
                               off += size;
                     }
