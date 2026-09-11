@@ -106,6 +106,14 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .chip.est-descartado{background:rgba(255,255,255,.08);color:rgba(255,255,255,.45)}
 .chip.est-capturado{background:rgba(74,222,128,.22);color:#4ade80}
 .chip.est-agencia{background:rgba(248,113,113,.16);color:#f87171}
+.chip.cal-a{background:rgba(74,222,128,.22);color:#4ade80}
+.chip.cal-b{background:rgba(96,165,250,.20);color:#93c5fd}
+.chip.cal-c{background:rgba(201,168,76,.20);color:var(--gold2)}
+.chip.cal-d{background:rgba(248,113,113,.18);color:#fca5a5}
+.chip.cal-f{background:rgba(248,113,113,.28);color:#f87171}
+.chip.url-ok{background:rgba(74,222,128,.15);color:#4ade80}
+.chip.url-warn{background:rgba(248,113,113,.16);color:#f87171}
+.chip.tel-no{background:rgba(255,255,255,.06);color:rgba(255,255,255,.4)}
 .btn-outline.sm{padding:6px 12px;font-size:11.5px;border-radius:8px}
 .btn-outline.warn{border-color:rgba(248,113,113,.4);color:#f87171}
 .btn-outline.warn:hover{border-color:#f87171;color:#fca5a5}
@@ -223,6 +231,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <option value="descartado">Descartados</option>
     </select>
     <label class="chk-hoy" id="lbl-hoy"><input type="checkbox" id="f-hoy"> &#128197; Solo de hoy</label>
+    <label class="chk-hoy" id="lbl-completos"><input type="checkbox" id="f-completos"> &#9989; Solo leads completos</label>
     <button class="btn-gold hidden" id="btn-csv">Exportar CSV</button>
   </div>
 
@@ -287,6 +296,36 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     return '<span class="chip est-' + v + '">' + lbl + '</span>';
   }
 
+  // ---- Fase 7: calidad / lead_status / url_status / telefono_status ----
+  function calidadChip(l){
+    const c = (l.calidad_status || "").toUpperCase();
+    if (!c) return "";
+    return '<span class="chip cal-' + c.toLowerCase() + '">Calidad ' + esc(c) + '</span>';
+  }
+
+  const LEAD_STATUS_LBL = {
+    DISPONIBLE: "Disponible", EN_REVISION: "En revisión", CAPTADO: "Captado",
+    ASESOR: "Es asesor/agencia", LIBERACION_SOLICITADA: "Liberación solicitada", DESCARTADO: "Descartado"
+  };
+  function leadStatusChip(l){
+    const v = l.lead_status || "DISPONIBLE";
+    return '<span class="chip">' + esc(LEAD_STATUS_LBL[v] || v) + '</span>';
+  }
+
+  function urlStatusChip(l){
+    if (!l.url_checked_at) return '<span class="chip">URL pendiente de verificar</span>';
+    const dias = Math.floor((Date.now() - new Date(l.url_checked_at).getTime()) / 86400000);
+    const hace = dias <= 0 ? "hoy" : (dias === 1 ? "hace 1 día" : "hace " + dias + " días");
+    const ok = l.url_status === "URL_VALIDA" || l.url_status === "VALIDA" || !l.url_status;
+    return '<span class="chip ' + (ok ? "url-ok" : "url-warn") + '">Verificado ' + hace + (ok ? "" : " · " + esc(l.url_status)) + '</span>';
+  }
+
+  function esVisibleParaAsesor(l){
+    if (l.visible_para_asesores === false) return false;
+    const v = l.lead_status || "DISPONIBLE";
+    return v === "DISPONIBLE" || v === "EN_REVISION";
+  }
+
   function inicioDeHoy(){ const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
   function esDeHoy(l){ return l.detectado_at && new Date(l.detectado_at).getTime() >= inicioDeHoy(); }
 
@@ -294,7 +333,13 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     const q = $("f-q").value.trim().toLowerCase();
     const op = $("f-op").value, tp = $("f-tipo").value, st = $("f-est").value;
     const hoy = $("f-hoy").checked;
+    const completos = $("f-completos") && $("f-completos").checked;
     return LEADS.filter(l => {
+      // Gate principal (Fase 7): un asesor normal solo ve leads con
+      // visible_para_asesores = true y en un estado comercial disponible.
+      // El admin sigue viendo todo para poder administrar.
+      if (!isAdmin && !esVisibleParaAsesor(l)) return false;
+
       const v = l.estatus || "nuevo";
       // Los leads ya captados, marcados como asesor/agencia, o descartados
       // (datos basura/inválidos) solo los puede ver el admin -- para cualquier
@@ -306,6 +351,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       // (el admin los puede ver eligiendo ese estatus específico en el filtro).
       if (st) { if (v !== st) return false; }
       else if (v === "capturado" || v === "agencia" || v === "descartado") return false;
+      if (completos && !["A","B"].includes((l.calidad_status||"").toUpperCase())) return false;
       return (!op || l.operacion === op) &&
         (!tp || l.tipo_propiedad === tp) &&
         (!portalSel || (l.portal || "inmuebles24") === portalSel) &&
@@ -342,6 +388,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
             '<small>' + (l.operacion === "renta" ? "mensuales" : "venta") + '</small></div>' +
         '</div>' +
         '<div class="lead-meta">' + ownerChip(l.score) + estChip(l.estatus) +
+          calidadChip(l) + leadStatusChip(l) + urlStatusChip(l) +
           '<span class="chip">' + esc(l.operacion) + '</span>' +
           '<span class="chip">' + esc(TIPO[l.tipo_propiedad] || l.tipo_propiedad) + '</span>' +
           '<span class="chip portal">' + esc(portalLabel(l.portal)) + '</span>' +
@@ -376,8 +423,8 @@ header { display: flex; align-items: center; justify-content: space-between; pad
         btnCap.type = "button"; btnCap.className = "btn-outline sm ok";
         btnCap.textContent = "✓ Ya lo capté";
         btnCap.addEventListener("click", () => {
-          if (!confirm("¿Marcar como ya captado? Desaparecerá de la lista de posibles dueños para todos los asesores.")) return;
-          saveLead(l, { estatus: "capturado", asesor_asignado: window.__nivaAdvisorId || l.asesor_asignado || null }, el);
+          if (!confirm("¿Confirmas que vas a trabajar este lead?")) return;
+          capturarLead(l, el);
         });
         danger.appendChild(btnCap);
 
@@ -386,13 +433,25 @@ header { display: flex; align-items: center; justify-content: space-between; pad
         btnAgencia.textContent = "🏢 Es asesor, no dueño";
         btnAgencia.addEventListener("click", () => {
           if (!confirm("¿Marcar este contacto como asesor/agencia? Se quitará de la lista de posibles dueños para todos.")) return;
-          saveLead(l, { estatus: "agencia" }, el);
+          marcarAsesor(l, el);
         });
         danger.appendChild(btnAgencia);
 
+        // "Solicitar liberación" solo aparece para el asesor que captó el lead.
+        if (l.captado_por && window.__nivaAdvisorId && l.captado_por === window.__nivaAdvisorId){
+          const btnLib = document.createElement("button");
+          btnLib.type = "button"; btnLib.className = "btn-outline sm";
+          btnLib.textContent = "↩ Solicitar liberación";
+          btnLib.addEventListener("click", () => {
+            const motivo = prompt("¿Por qué quieres liberar este lead? (opcional)") || "";
+            solicitarLiberacion(l, motivo, el);
+          });
+          danger.appendChild(btnLib);
+        }
+
         el.appendChild(danger);
       }
-      if (l.telefono) {
+      if (l.telefono && l.telefono_status === "TELEFONO_VALIDO") {
         const tel = String(l.telefono).replace(/\D/g, "").slice(-10);
         const c = document.createElement("a");
         c.className = "acc-tel"; c.href = "tel:+52" + tel;
@@ -402,6 +461,11 @@ header { display: flex; align-items: center; justify-content: space-between; pad
         w.className = "acc-wa"; w.href = "https://wa.me/52" + tel; w.target = "_blank"; w.rel = "noopener";
         w.innerHTML = "WhatsApp";
         acc.appendChild(w);
+      } else {
+        const noTel = document.createElement("span");
+        noTel.className = "chip tel-no";
+        noTel.textContent = l.telefono_status ? "Tel: " + l.telefono_status : "Sin teléfono";
+        acc.appendChild(noTel);
       }
       if (isAdmin){
         const sel = document.createElement("select");
@@ -438,6 +502,62 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     render();
   }
 
+  function currentAdvisorId(){
+    return window.__nivaAdvisorId || window.__nivaUser || null;
+  }
+
+  function quitarDeLista(id){
+    LEADS = LEADS.filter(x => x.id !== id);
+    render();
+  }
+
+  // ---- Fase 7: acciones vía RPC atómicas (reemplazan los .update() directos
+  // para capturar / marcar asesor / solicitar liberación) ----
+  async function capturarLead(l, el){
+    const sb = window.__nivaSb;
+    const asesor = currentAdvisorId();
+    const { data, error } = await sb.rpc("scouting_capturar_lead", { p_lead_id: l.id, p_asesor: asesor });
+    if (error){ toast("No se pudo capturar: " + error.message); return; }
+    if (data && data.success === false){
+      if (data.reason === "ya_capturado"){
+        toast("🔒 Este lead acaba de ser captado por otro asesor");
+        await cargar();
+      } else {
+        toast("No se pudo capturar: " + (data.reason || "motivo desconocido"));
+      }
+      return;
+    }
+    quitarDeLista(l.id);
+    toast("Lead captado. ¡Éxito!");
+  }
+
+  async function marcarAsesor(l, el){
+    const sb = window.__nivaSb;
+    const asesor = currentAdvisorId();
+    const { data, error } = await sb.rpc("scouting_marcar_asesor", { p_lead_id: l.id, p_marcado_por: asesor, p_motivo: null });
+    if (error){ toast("No se pudo marcar: " + error.message); return; }
+    if (data && data.success === false){
+      toast("No se pudo marcar: " + (data.reason || "motivo desconocido"));
+      return;
+    }
+    quitarDeLista(l.id);
+    toast("Marcado como asesor/agencia");
+  }
+
+  async function solicitarLiberacion(l, motivo, el){
+    const sb = window.__nivaSb;
+    const asesor = currentAdvisorId();
+    const { data, error } = await sb.rpc("scouting_solicitar_liberacion", { p_lead_id: l.id, p_solicitado_por: asesor, p_motivo: motivo || null });
+    if (error){ toast("No se pudo solicitar liberación: " + error.message); return; }
+    if (data && data.success === false){
+      toast("No se pudo solicitar liberación: " + (data.reason || "motivo desconocido"));
+      return;
+    }
+    Object.assign(l, { lead_status: "LIBERACION_SOLICITADA" });
+    toast("Liberación solicitada");
+    render();
+  }
+
   function exportCsv(){
     const rows = filtered();
     const q = v => '"' + String(v == null ? "" : v).replace(/"/g,'""') + '"';
@@ -455,7 +575,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     const sb = window.__nivaSb;
     const { data, error } = await sb
       .from("scouting_leads")
-      .select("id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at, portal, telefono")
+      .select("id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at, portal, telefono, calidad_status, campos_faltantes, telefono_status, url_status, url_checked_at, lead_status, visible_para_asesores, captado_por, captado_at, consecutive_misses, last_verified_at")
       .or("score.gte.3,portal.neq.inmuebles24")
       .order("detectado_at", { ascending: false })
       .limit(3000);
@@ -466,6 +586,32 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     // Solo TRATO DIRECTO: se descartan las cuentas con nombre de inmobiliaria.
     LEADS = (data || []).filter(l => !esAgencia(l));
     render();
+  }
+
+  // ---- Fase 7: Realtime — refleja cambios de otros asesores sin recargar ----
+  function iniciarRealtime(){
+    const sb = window.__nivaSb;
+    if (!sb || !sb.channel) return;
+    sb.channel("scouting_leads_fase7")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "scouting_leads" }, (payload) => {
+        const row = payload.new;
+        if (!row || !row.id) return;
+        const idx = LEADS.findIndex(x => x.id === row.id);
+        if (idx === -1){
+          // No lo teníamos cargado (p.ej. estaba oculto): si ahora es visible
+          // para el asesor, lo agregamos a la lista local.
+          if (esVisibleParaAsesor(row) && !esAgencia(row)) { LEADS.push(row); render(); }
+          return;
+        }
+        LEADS[idx] = Object.assign({}, LEADS[idx], row);
+        if (!isAdmin && !esVisibleParaAsesor(LEADS[idx])){
+          // Dejó de estar disponible (lo captó/marcó otro asesor, etc.):
+          // se quita de la lista local sin necesidad de recargar la página.
+          LEADS.splice(idx, 1);
+        }
+        render();
+      })
+      .subscribe();
   }
 
   // ---- Precio mínimo de Facebook (solo admin) ----
@@ -514,10 +660,14 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     }
     $("btn-csv").addEventListener("click", exportCsv);
     $("f-hoy").addEventListener("change", () => { $("lbl-hoy").classList.toggle("on", $("f-hoy").checked); render(); });
+    if ($("f-completos")) {
+      $("f-completos").addEventListener("change", () => { $("lbl-completos").classList.toggle("on", $("f-completos").checked); render(); });
+    }
     ["f-q","f-op","f-tipo","f-est"].forEach(id => {
       $(id).addEventListener(id === "f-q" ? "input" : "change", render);
     });
     cargar();
+    iniciarRealtime();
   }
   arrancar();
 })();
