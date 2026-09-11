@@ -184,6 +184,21 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .sec-head h2{font-size:20px;font-weight:900;letter-spacing:-.01em}
 .vertodo-btn{padding:11px 16px;border-radius:9px;border:1px solid rgba(201,168,76,.4);background:rgba(201,168,76,.08);color:var(--gold);font-size:12.5px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap}
 .vertodo-btn:hover{background:rgba(201,168,76,.18)}
+.sco-kpi .dv{font-size:28px}
+.sco-kpi.sco-warn::before{background:#f87171}
+.scomodal-bg{position:fixed;inset:0;z-index:200;background:rgba(4,8,16,.72);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.scomodal-bg.hidden{display:none}
+.scomodal{background:#12213d;border:1px solid rgba(201,168,76,.3);border-radius:16px;max-width:900px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.scomodal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 22px;border-bottom:1px solid rgba(255,255,255,.1)}
+.scomodal-title{font-size:17px;font-weight:900}
+.scomodal-sub{font-size:12.5px;color:rgba(255,255,255,.5);margin-top:4px}
+.scomodal-close{background:rgba(255,255,255,.08);border:0;color:#fff;width:32px;height:32px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0}
+.scomodal-close:hover{background:rgba(255,255,255,.18)}
+.scomodal-body{padding:16px 22px 24px;max-height:70vh;overflow-y:auto}
+.scotabla{width:100%;border-collapse:collapse;font-size:13px}
+.scotabla th{text-align:left;padding:8px 10px;border-bottom:2px solid rgba(255,255,255,.12);font-size:10.5px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;position:sticky;top:0;background:#12213d}
+.scotabla td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top;color:rgba(255,255,255,.85)}
+.scopill{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;background:rgba(201,168,76,.15);color:var(--gold);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -208,6 +223,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <button class="anav-item" data-sec="propnuevas">🆕 Propiedades nuevas</button><button class="anav-item" data-sec="propbaja">🚫 Dadas de baja</button>
       <a class="anav-item" href="cierres.html" style="text-decoration:none;display:flex">🤝 Cierres</a>
       <button class="anav-item" data-sec="reportes">📊 Reportes</button>
+      <button class="anav-item" data-sec="scouting">🔎 Calidad del Scouting</button>
       <a class="anav-item" href="renovaciones.html" style="text-decoration:none;display:flex">🔁 Renovaciones</a>
     </nav>
   </aside>
@@ -256,10 +272,29 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <div id="reportes"></div>
     </section>
 
+    <section class="asec" id="sec-scouting">
+      <div class="sec-head"><h2>🔎 Calidad del Scouting</h2></div>
+      <div class="repnote" style="margin-top:-8px">Salud de los leads captados por el scraper: disponibilidad, datos faltantes, URLs caídas y posibles duplicados. Haz clic en cualquier tarjeta para ver los leads detrás del número.</div>
+      <div class="dash-grid" id="scouting-kpis" style="grid-template-columns:repeat(4,1fr)"></div>
+    </section>
+
   </main>
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div id="scouting-modal" class="scomodal-bg hidden">
+  <div class="scomodal">
+    <div class="scomodal-head">
+      <div>
+        <div class="scomodal-title" id="sco-modal-title">—</div>
+        <div class="scomodal-sub" id="sco-modal-sub"></div>
+      </div>
+      <button class="scomodal-close" id="sco-modal-close" type="button">✕</button>
+    </div>
+    <div class="scomodal-body" id="sco-modal-body"><div class="vacio">Cargando…</div></div>
+  </div>
+</div>
 
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -1005,6 +1040,117 @@ async function renderReportes(){
 
 cargar();
 renderReportes();
+
+// ===== Calidad del Scouting (FASE 8) =====
+// Fuentes: vistas SQL aditivas scouting_dashboard_stats / scouting_dashboard_*
+// (ver fase8_dashboard_views.sql). Cada tarjeta = 1 indicador = 1 vista de
+// drill-down; el click abre un modal con los leads/pares reales detrás del número.
+const SCO_INDICADORES = [
+  {key:'disponibles',          label:'Disponibles',              vista:'scouting_dashboard_disponibles',         desc:'lead_status = DISPONIBLE y visible_para_asesores = true'},
+  {key:'captados',             label:'Captados',                 vista:'scouting_dashboard_captados',            desc:'lead_status = CAPTADO'},
+  {key:'asesores',             label:'Con asesor',               vista:'scouting_dashboard_asesores',            desc:'lead_status = ASESOR'},
+  {key:'descartados',          label:'Descartados',              vista:'scouting_dashboard_descartados',         desc:'lead_status = DESCARTADO'},
+  {key:'sin_telefono',         label:'Sin teléfono',             vista:'scouting_dashboard_sin_telefono',        desc:'telefono_status = TELEFONO_NO_ENCONTRADO', warn:true},
+  {key:'url_invalida',         label:'URL inválida',             vista:'scouting_dashboard_url_invalida',        desc:'url_status en (INVALID, NOT_FOUND)', warn:true},
+  {key:'incompletos',          label:'Incompletos',              vista:'scouting_dashboard_incompletos',         desc:'calidad_status en (C, D, F)', warn:true},
+  {key:'pendientes_revision',  label:'Pendientes de revisión',   vista:'scouting_dashboard_pendientes_revision', desc:'calidad_status=C, url_status=REQUIRES_REVIEW o lead_status=EN_REVISION'},
+  {key:'posibles_duplicados',  label:'Posibles duplicados',      vista:'scouting_dashboard_duplicados',          desc:'leads en pares AUTO_MATCH/REVIEW de scouting_match_dryrun_results', warn:true, esPar:true},
+];
+
+async function cargarScoutingKPIs(){
+  const host=$('#scouting-kpis');
+  if(!host) return;
+  host.innerHTML='<div class="skel"><div class="l" style="width:60%"></div><div class="l" style="width:40%;margin-bottom:0"></div></div>';
+  try{
+    const {data,error}=await sb.from('scouting_dashboard_stats').select('*').single();
+    if(error) throw error;
+    host.innerHTML =
+      '<div class="dkpi"><div class="dl">Total de leads</div><div class="dv">'+(data.total_leads??'–')+'</div></div>'
+      + SCO_INDICADORES.map(ind=>{
+          const n=data[ind.key];
+          return '<div class="dkpi sco-kpi clickable'+(ind.warn&&n>0?' sco-warn':'')+'" data-ind="'+ind.key+'">'
+            +'<div class="dl">'+esc(ind.label)+'</div><div class="dv">'+(n??'–')+'</div>'
+            +(n?'<div class="dhint">Ver detalle →</div>':'')
+            +'</div>';
+        }).join('');
+  }catch(e){
+    console.error('[scouting-kpis]', e);
+    host.innerHTML='<div class="vacio">⚠️ No se pudo cargar la calidad del scouting'+(e.message?': '+esc(e.message):'')+'.</div>';
+  }
+}
+
+function scoFmtPrecio(n){ return (n==null||n==='')?'':'$'+Number(n).toLocaleString('es-MX'); }
+
+function scoRenderTablaLeads(rows){
+  if(!rows.length) return vacioHTML('No hay leads en este indicador ahora mismo.','✅');
+  const heads=['Título','Portal','Zona/Colonia','Precio','Tel.','URL','Calidad','Estado'];
+  const body=rows.map(r=>{
+    const zc=[r.zona,r.colonia].filter(Boolean).join(' / ');
+    return '<tr>'
+      +'<td>'+esc(r.titulo||'(sin título)')+'</td>'
+      +'<td><span class="scopill">'+esc(r.portal||'—')+'</span></td>'
+      +'<td>'+esc(zc)+'</td>'
+      +'<td>'+esc(scoFmtPrecio(r.precio))+'</td>'
+      +'<td>'+esc(r.telefono_status||'')+'</td>'
+      +'<td>'+esc(r.url_status||'')+'</td>'
+      +'<td>'+esc(r.calidad_status||'')+'</td>'
+      +'<td>'+esc(r.lead_status||'')+'</td>'
+      +'</tr>';
+  }).join('');
+  return '<table class="scotabla"><thead><tr>'+heads.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+body+'</tbody></table>';
+}
+
+function scoRenderTablaDuplicados(rows){
+  if(!rows.length) return vacioHTML('No hay pares candidatos a duplicado (AUTO_MATCH/REVIEW) ahora mismo.','✅');
+  const heads=['Lead A','Lead B','Score','Estado del match','Motivo'];
+  const body=rows.map(r=>
+    '<tr>'
+    +'<td>'+esc(r.lead_a_titulo||('#'+r.lead_a_id))+' <span class="scopill">'+esc(r.lead_a_portal||'')+'</span></td>'
+    +'<td>'+esc(r.lead_b_titulo||('#'+r.lead_b_id))+' <span class="scopill">'+esc(r.lead_b_portal||'')+'</span></td>'
+    +'<td>'+esc(r.score)+'</td>'
+    +'<td>'+esc(r.match_status)+'</td>'
+    +'<td>'+esc(r.motivo||'')+'</td>'
+    +'</tr>'
+  ).join('');
+  return '<table class="scotabla"><thead><tr>'+heads.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+body+'</tbody></table>';
+}
+
+async function abrirScoutingModal(indKey){
+  const ind=SCO_INDICADORES.find(x=>x.key===indKey);
+  if(!ind) return;
+  const bg=$('#scouting-modal'), title=$('#sco-modal-title'), sub=$('#sco-modal-sub'), body=$('#sco-modal-body');
+  title.textContent=ind.label;
+  sub.textContent=ind.desc;
+  body.innerHTML='<div class="vacio">Cargando…</div>';
+  bg.classList.remove('hidden');
+  try{
+    const {data,error}=await sb.from(ind.vista).select('*').limit(500);
+    if(error) throw error;
+    body.innerHTML = ind.esPar ? scoRenderTablaDuplicados(data||[]) : scoRenderTablaLeads(data||[]);
+  }catch(e){
+    console.error('[scouting-modal]', e);
+    body.innerHTML='<div class="vacio">⚠️ No se pudo cargar el detalle'+(e.message?': '+esc(e.message):'')+'.</div>';
+  }
+}
+function cerrarScoutingModal(){ $('#scouting-modal').classList.add('hidden'); }
+$('#scouting-kpis') && $('#scouting-kpis').addEventListener('click', e=>{
+  const card=e.target.closest('.sco-kpi[data-ind]');
+  if(!card) return;
+  abrirScoutingModal(card.dataset.ind);
+});
+$('#sco-modal-close').addEventListener('click', cerrarScoutingModal);
+$('#scouting-modal').addEventListener('click', e=>{ if(e.target.id==='scouting-modal') cerrarScoutingModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrarScoutingModal(); });
+
+// Solo se carga cuando el admin entra a la sección (evita gastar una consulta
+// en cada carga de página si nunca la visita).
+let SCO_LOADED=false;
+$('#anav').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-sec="scouting"]');
+  if(!b || SCO_LOADED) return;
+  SCO_LOADED=true;
+  cargarScoutingKPIs();
+});
 
 (function(){
   var btn=document.getElementById('niva-backfab');
