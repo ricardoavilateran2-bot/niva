@@ -94,6 +94,9 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .lead.descartado{opacity:.45;border-left-color:rgba(255,255,255,.2)}
 .lead-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
 .lead-tit{font-size:15px;font-weight:700;line-height:1.35;max-width:640px}
+.lead-loc{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:12.5px;font-weight:700;color:var(--gold2)}
+.lead-loc .pin{font-size:12px}
+.lead-loc.sin-datos{color:rgba(255,180,120,.85);font-weight:600;font-style:italic}
 .lead-precio{font-size:17px;font-weight:900;color:var(--gold2);white-space:nowrap;font-variant-numeric:tabular-nums}
 .lead-precio small{display:block;font-size:10px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;text-align:right}
 .lead-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:9px;font-size:12px;color:rgba(255,255,255,.55)}
@@ -381,19 +384,21 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     for (const l of rows){
       const el = document.createElement("article");
       el.className = "lead" + ((l.estatus === "descartado") ? " descartado" : "");
+      const locTxt = [l.colonia, l.zona].filter(Boolean).join(", ");
       el.innerHTML =
         '<div class="lead-top">' +
-          '<div class="lead-tit">' + esc(l.titulo || "(sin título)") + '</div>' +
+          '<div class="lead-tit">' + (l.titulo ? esc(l.titulo) : '<span style="color:rgba(255,180,120,.85);font-style:italic">(sin título — revisar anuncio)</span>') + '</div>' +
           '<div class="lead-precio">' + (l.precio ? fmt.format(l.precio) : "—") +
             '<small>' + (l.operacion === "renta" ? "mensuales" : "venta") + '</small></div>' +
         '</div>' +
+        (locTxt
+          ? '<div class="lead-loc"><span class="pin">&#128205;</span>' + esc(locTxt) + '</div>'
+          : '<div class="lead-loc sin-datos"><span class="pin">&#128205;</span>Ubicación no detectada — revisar anuncio</div>') +
         '<div class="lead-meta">' + ownerChip(l.score) + estChip(l.estatus) +
           calidadChip(l) + leadStatusChip(l) + urlStatusChip(l) +
           '<span class="chip">' + esc(l.operacion) + '</span>' +
           '<span class="chip">' + esc(TIPO[l.tipo_propiedad] || l.tipo_propiedad) + '</span>' +
           '<span class="chip portal">' + esc(portalLabel(l.portal)) + '</span>' +
-          (l.zona ? '<span class="chip">' + esc(l.zona) + '</span>' : "") +
-          (l.colonia ? '<span class="chip">' + esc(l.colonia) + '</span>' : "") +
           '<span>Contacto: <b style="color:rgba(255,255,255,.8)">' + esc(l.nombre_contacto || "—") + '</b></span>' +
           (isAdmin && l.asesor_asignado ? '<span>&rarr; Asesor: <b style="color:#4ade80">' + esc(advisorName(l.asesor_asignado)) + '</b></span>' : '') +
         '</div>' +
