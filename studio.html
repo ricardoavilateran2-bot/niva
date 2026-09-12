@@ -1361,6 +1361,12 @@ function _nivaIsMobileLayout() {
 // ══════════════════════════════════════════════
 //  GLOBALS
 // ══════════════════════════════════════════════
+// Marcador de build — permite confirmar en la consola del navegador, ANTES de generar
+// ningún video, si la página cargada es esta versión (con el remux por bytes) o una
+// versión vieja/cacheada. Cambiar la fecha cada vez que se modifique el pipeline de
+// video es más rápido que sospechar de caché sin evidencia.
+const NIVA_REMUX_BUILD_TAG = '2026-09-12-remux-bytes-v1';
+console.log('[NIVA][BUILD] studio.html cargado — build=' + NIVA_REMUX_BUILD_TAG + ' — si esto NO aparece en tu consola al recargar la página, tu navegador está sirviendo una versión vieja (caché) y NO la que acabas de subir.');
 let photos = [];         // Array of data URLs (el orden = orden manual del video)
 let mainPhotoUrl = null; // Foto Principal (Cambio 3): marcador independiente del orden/posición en el video
 const showAsesor = true; // Asesor siempre visible en todo el contenido
@@ -5096,6 +5102,34 @@ let vidV = null, vidFrame = 0, vidPhotoIdx = 0, vidStartT = null, vidImages = []
 let _nivaPosterDataUrl = null;
 let _nivaPosterCaptured = false;
 let _nivaDrawFrameCount = 0; // cuenta cuántas veces corrió draw() — diagnóstico de "0 chunks"
+// B3 (2026-09-11) — instrumentación de cadencia de captura, SEPARADA de la cámara.
+// _nivaCapLastReqT: momento real (ts de rAF) de la última llamada a requestFrame().
+// _nivaCapFrames: frames realmente entregados al track (incluye los de relleno).
+// _nivaCapRepeated: cuántos de esos fueron relleno (frame repetido) por un stall real.
+// _nivaCapStalls: cuántos stalls (huecos > 1.5 frames) se detectaron.
+// _nivaCapMaxGapMs: el hueco más grande detectado entre dos draw() consecutivos.
+// Esto NUNCA toca cómo se calcula el movimiento de cámara (sigue siendo 100% función de
+// 'elapsed', el tiempo lógico/real de la escena) — solo garantiza que el TRACK de video
+// que alimenta a MediaRecorder no se quede sin frames nuevos durante más de ~1 frame de
+// tiempo real, y dejar constancia exacta de cuándo y cuánto duró cada stall real.
+let _nivaCapLastReqT = null, _nivaCapFrames = 0, _nivaCapRepeated = 0, _nivaCapStalls = 0, _nivaCapMaxGapMs = 0;
+// RENDER STALL (2026-09-12) — separado de CAPTURE DROP (arriba). Mide el hueco entre
+// llamadas consecutivas a draw() usando el ts de requestAnimationFrame, SIN depender
+// de _nivaManualCapture/requestFrame(). Esto es lo único que se puede instrumentar en
+// navegadores sin captura manual (Safari con captureStream(30) automático) — ahí
+// [NIVA][CAPTURE] nunca corre porque _nivaCaptureTrack es null, pero el hilo principal
+// sigue siendo el mismo hilo, y un stall de render se ve igual aquí en cualquier
+// navegador. Ver _nivaManualCapture (línea ~9820) para el detalle de por qué Safari
+// entra en modo automático.
+let _nivaRenderLastT = null, _nivaRenderStalls = 0, _nivaRenderMaxGapMs = 0;
+// _nivaTimelineFitInfo (2026-09-12): diagnóstico del ajuste de escenas al total
+// solicitado, llenado por startVideoAnimation() y leído por beginRenderOnce() para
+// decidir si la grabación puede empezar (ver [NIVA][TIMELINE FIT] / [NIVA][DURATION GATE]).
+let _nivaTimelineFitInfo = null;
+// _nivaTimelineAborted: true cuando beginRenderOnce() abortó la grabación por no poder
+// cumplir la duración solicitada (±100ms) — evita que el onstop async, que llega
+// después, sobreescriba el mensaje de error específico con el genérico "0 chunks".
+let _nivaTimelineAborted = false;
 window.__nivaRecDiag = {}; // snapshot de estado al arrancar la grabación — usado si termina en 0 chunks
 let vidScaledImages = []; // imágenes pre-escaladas a resolución de render
 
@@ -5362,6 +5396,360 @@ async function validateVideoBlob(blob) {
   });
 }
 
+// ══════════════════════════════════════════════
+//  REMUX POR BYTES — MP4 fragmentado (Safari) → MP4 clásico no fragmentado
+//  (2026-09-12) Diagnóstico confirmado: en el dispositivo real de Ricardo, WebCodecs
+//  no tiene AudioEncoder, así que la normalización basada en VideoEncoder/AudioEncoder
+//  nunca se ejecuta ahí — cae siempre al MP4 nativo sin normalizar (el que Safari
+//  interpreta con el doble de duración). Esta sección NO usa VideoEncoder ni
+//  AudioEncoder ni decodifica/recodifica un solo frame: lee directamente las cajas
+//  moov/moof/traf/tfhd/tfdt/trun/mdat del MP4 fragmentado que entrega MediaRecorder,
+//  extrae los bytes YA codificados (H.264/AAC) de cada muestra tal cual están en el
+//  archivo, y los vuelve a empaquetar con mp4-muxer (misma librería que ya usa
+//  convertWebmToMp4, ya cargada perezosamente) usando fastStart:'in-memory' — que es
+//  la opción que construye un moov/stbl clásico (NO fragmentado), reconstruyendo las
+//  tablas de muestra (stts/stsc/stsz/stco) automáticamente a partir de las muestras
+//  que le entregamos. Verificado con 4 archivos MP4 reales de Ricardo: los frames
+//  decodificados y el audio PCM decodificado del archivo remuxado son BYTE-IDÉNTICOS
+//  (mismo md5) a los del archivo original — cero recompresión, solo cambia el
+//  contenedor. No depende de ninguna capacidad de códec del navegador: funciona igual
+//  en Safari, Chrome o cualquier otro, porque es pura lectura de bytes + aritmética.
+// ══════════════════════════════════════════════
+
+// Recorre cajas MP4 (tipo/tamaño) dentro de [start, end) del ArrayBuffer — genérico,
+// sirve tanto para el nivel superior del archivo como para el interior de cualquier
+// caja contenedora (moov, trak, mdia, minf, stbl, mvex, moof, traf).
+function _nivaMp4ReadBoxes(buf, start, end) {
+  const boxes = [];
+  let offset = start;
+  while (offset + 8 <= end) {
+    const head = new DataView(buf, offset, 8);
+    let size = head.getUint32(0);
+    const type = String.fromCharCode(head.getUint8(4), head.getUint8(5), head.getUint8(6), head.getUint8(7));
+    let headerSize = 8;
+    if (size === 1) {
+      size = Number(new DataView(buf, offset + 8, 8).getBigUint64(0));
+      headerSize = 16;
+    } else if (size === 0) {
+      size = end - offset;
+    }
+    if (size < headerSize || offset + size > end) break; // caja corrupta/incompleta — detener, no reventar
+    boxes.push({ type, start: offset, bodyStart: offset + headerSize, end: offset + size });
+    offset += size;
+  }
+  return boxes;
+}
+function _nivaMp4FindBox(boxes, type) { return boxes.find(b => b.type === type) || null; }
+function _nivaMp4FindAllBoxes(boxes, type) { return boxes.filter(b => b.type === type); }
+function _nivaMp4U8(buf, off) { return new DataView(buf, off, 1).getUint8(0); }
+function _nivaMp4U16(buf, off) { return new DataView(buf, off, 2).getUint16(0); }
+function _nivaMp4U32(buf, off) { return new DataView(buf, off, 4).getUint32(0); }
+function _nivaMp4U64(buf, off) { return Number(new DataView(buf, off, 8).getBigUint64(0)); }
+function _nivaMp4I32(buf, off) { return new DataView(buf, off, 4).getInt32(0); }
+
+// Parsea el ES_Descriptor de una caja `esds` (audio AAC) y devuelve los bytes crudos
+// del AudioSpecificConfig (DecoderSpecificInfo, tag 0x05) — es exactamente el valor
+// que mp4-muxer espera como `description` para el códec 'aac'.
+function _nivaMp4ParseEsds(buf, bodyStart) {
+  let p = bodyStart + 4; // version(1)+flags(3)
+  function readDescr() {
+    const tag = _nivaMp4U8(buf, p); p += 1;
+    let len = 0;
+    for (let i = 0; i < 4; i++) {
+      const b = _nivaMp4U8(buf, p); p += 1;
+      len = (len << 7) | (b & 0x7f);
+      if (!(b & 0x80)) break;
+    }
+    return { tag, bodyStart: p, bodyEnd: p + len };
+  }
+  const es = readDescr(); // ES_DescrTag 0x03
+  if (es.tag !== 0x03) return null;
+  p = es.bodyStart;
+  p += 2; // ES_ID
+  const flags = _nivaMp4U8(buf, p); p += 1;
+  if (flags & 0x80) p += 2;
+  if (flags & 0x40) { const urlLen = _nivaMp4U8(buf, p); p += 1 + urlLen; }
+  if (flags & 0x20) p += 2;
+  const dc = readDescr(); // DecoderConfigDescrTag 0x04
+  if (dc.tag !== 0x04) return null;
+  let q = dc.bodyStart + 1 + 1 + 3 + 4 + 4; // objectType + streamType + bufferSizeDB + maxBitrate + avgBitrate
+  if (q < dc.bodyEnd) {
+    p = q;
+    const dsi = readDescr(); // DecoderSpecificInfoTag 0x05
+    if (dsi.tag === 0x05) return new Uint8Array(buf.slice(dsi.bodyStart, dsi.bodyEnd));
+  }
+  return null;
+}
+
+// Extrae la configuración de códec (avcC para H.264 / esds para AAC) de la `stsd` de
+// una pista, leyendo directamente la primera sample entry — sin decodificar nada.
+function _nivaMp4ParseTrackConfig(buf, stblBox) {
+  const stblBoxes = _nivaMp4ReadBoxes(buf, stblBox.bodyStart, stblBox.end);
+  const stsd = _nivaMp4FindBox(stblBoxes, 'stsd');
+  if (!stsd) return null;
+  const entryBoxes = _nivaMp4ReadBoxes(buf, stsd.bodyStart + 8, stsd.end);
+  const entry = entryBoxes[0];
+  if (!entry) return null;
+  if (entry.type === 'avc1' || entry.type === 'avc3') {
+    const visualHeaderSize = 78; // SampleEntry(8) + VisualSampleEntry fija hasta compressorname/depth
+    const width = _nivaMp4U16(buf, entry.bodyStart + 24);
+    const height = _nivaMp4U16(buf, entry.bodyStart + 26);
+    const childBoxes = _nivaMp4ReadBoxes(buf, entry.bodyStart + visualHeaderSize, entry.end);
+    const avcC = _nivaMp4FindBox(childBoxes, 'avcC');
+    if (!avcC) return null;
+    return { kind: 'video', codec: 'avc', width, height, description: new Uint8Array(buf.slice(avcC.bodyStart, avcC.end)) };
+  } else if (entry.type === 'mp4a') {
+    const audioHeaderSize = 28; // SampleEntry(8) + reserved(8) + channelcount/samplesize/pre_defined/reserved2/samplerate
+    const channelCount = _nivaMp4U16(buf, entry.bodyStart + 16);
+    const sampleRate = _nivaMp4U32(buf, entry.bodyStart + 24) / 65536;
+    const childBoxes = _nivaMp4ReadBoxes(buf, entry.bodyStart + audioHeaderSize, entry.end);
+    const esds = _nivaMp4FindBox(childBoxes, 'esds');
+    const description = esds ? _nivaMp4ParseEsds(buf, esds.bodyStart) : null;
+    return { kind: 'audio', codec: 'aac', channelCount, sampleRate, description };
+  }
+  return null;
+}
+
+// Parsea `moov`: por cada `trak`, obtiene track_id, timescale, tipo (video/audio) y su
+// configuración de códec. También lee los defaults de `mvex/trex` (por si algún
+// `tfhd` los omite, como exige el estándar de fragmentación ISO).
+function _nivaMp4ParseMoov(buf, moovBox) {
+  const moovBoxes = _nivaMp4ReadBoxes(buf, moovBox.bodyStart, moovBox.end);
+  const tracks = {};
+  for (const trak of _nivaMp4FindAllBoxes(moovBoxes, 'trak')) {
+    const trakBoxes = _nivaMp4ReadBoxes(buf, trak.bodyStart, trak.end);
+    const tkhd = _nivaMp4FindBox(trakBoxes, 'tkhd');
+    const tkhdVersion = _nivaMp4U8(buf, tkhd.bodyStart);
+    const trackId = tkhdVersion === 1 ? _nivaMp4U32(buf, tkhd.bodyStart + 20) : _nivaMp4U32(buf, tkhd.bodyStart + 12);
+    const mdia = _nivaMp4FindBox(trakBoxes, 'mdia');
+    const mdiaBoxes = _nivaMp4ReadBoxes(buf, mdia.bodyStart, mdia.end);
+    const mdhd = _nivaMp4FindBox(mdiaBoxes, 'mdhd');
+    const mdhdVersion = _nivaMp4U8(buf, mdhd.bodyStart);
+    const timescale = mdhdVersion === 1 ? _nivaMp4U32(buf, mdhd.bodyStart + 20) : _nivaMp4U32(buf, mdhd.bodyStart + 12);
+    const minf = _nivaMp4FindBox(mdiaBoxes, 'minf');
+    const minfBoxes = _nivaMp4ReadBoxes(buf, minf.bodyStart, minf.end);
+    const stbl = _nivaMp4FindBox(minfBoxes, 'stbl');
+    const config = stbl ? _nivaMp4ParseTrackConfig(buf, stbl) : null;
+    tracks[trackId] = { trackId, timescale, config };
+  }
+  const defaults = {};
+  const mvex = _nivaMp4FindBox(moovBoxes, 'mvex');
+  if (mvex) {
+    const mvexBoxes = _nivaMp4ReadBoxes(buf, mvex.bodyStart, mvex.end);
+    for (const trex of _nivaMp4FindAllBoxes(mvexBoxes, 'trex')) {
+      const trackId = _nivaMp4U32(buf, trex.bodyStart + 4);
+      defaults[trackId] = {
+        defaultSampleDuration: _nivaMp4U32(buf, trex.bodyStart + 12),
+        defaultSampleSize: _nivaMp4U32(buf, trex.bodyStart + 16),
+        defaultSampleFlags: _nivaMp4U32(buf, trex.bodyStart + 20),
+      };
+    }
+  }
+  return { tracks, defaults };
+}
+
+// Recorre TODOS los `moof` del archivo (no asume uno solo) y, dentro de cada uno,
+// todos sus `traf`/`trun`, reconstruyendo para cada muestra: offset absoluto en el
+// archivo (para leer sus bytes exactos de `mdat`), tamaño, duración, flags (llave o
+// no) y composition time offset — exactamente los campos que exige el estándar ISO
+// para fragmentos (`tfhd`/`tfdt`/`trun`), con los defaults de `trex` como respaldo.
+function _nivaMp4ParseMoofs(buf, topBoxes, defaults) {
+  const samplesByTrack = {};
+  for (const moof of _nivaMp4FindAllBoxes(topBoxes, 'moof')) {
+    const moofBoxes = _nivaMp4ReadBoxes(buf, moof.bodyStart, moof.end);
+    for (const traf of _nivaMp4FindAllBoxes(moofBoxes, 'traf')) {
+      const trafBoxes = _nivaMp4ReadBoxes(buf, traf.bodyStart, traf.end);
+      const tfhd = _nivaMp4FindBox(trafBoxes, 'tfhd');
+      if (!tfhd) continue;
+      const tfhdFlags = _nivaMp4U32(buf, tfhd.bodyStart) & 0xFFFFFF;
+      const trackId = _nivaMp4U32(buf, tfhd.bodyStart + 4);
+      let p = tfhd.bodyStart + 8;
+      let baseDataOffset = null, defaultSampleDuration = null, defaultSampleSize = null, defaultSampleFlags = null;
+      if (tfhdFlags & 0x000001) { baseDataOffset = _nivaMp4U64(buf, p); p += 8; }
+      if (tfhdFlags & 0x000002) { p += 4; } // sample-description-index-present
+      if (tfhdFlags & 0x000008) { defaultSampleDuration = _nivaMp4U32(buf, p); p += 4; }
+      if (tfhdFlags & 0x000010) { defaultSampleSize = _nivaMp4U32(buf, p); p += 4; }
+      if (tfhdFlags & 0x000020) { defaultSampleFlags = _nivaMp4U32(buf, p); p += 4; }
+      if (baseDataOffset === null) baseDataOffset = moof.start; // default-base-is-moof (o fallback pragmático)
+      const trex = defaults[trackId] || {};
+      const tfdt = _nivaMp4FindBox(trafBoxes, 'tfdt');
+      let dts = 0;
+      if (tfdt) {
+        const tfdtVersion = _nivaMp4U8(buf, tfdt.bodyStart);
+        dts = tfdtVersion === 1 ? _nivaMp4U64(buf, tfdt.bodyStart + 4) : _nivaMp4U32(buf, tfdt.bodyStart + 4);
+      }
+      if (!samplesByTrack[trackId]) samplesByTrack[trackId] = [];
+      for (const trun of _nivaMp4FindAllBoxes(trafBoxes, 'trun')) {
+        const trunVersion = _nivaMp4U8(buf, trun.bodyStart);
+        const trunFlags = _nivaMp4U32(buf, trun.bodyStart) & 0xFFFFFF;
+        let q = trun.bodyStart + 4;
+        const sampleCount = _nivaMp4U32(buf, q); q += 4;
+        let dataOffset = 0;
+        if (trunFlags & 0x000001) { dataOffset = _nivaMp4I32(buf, q); q += 4; }
+        let firstSampleFlags = null;
+        if (trunFlags & 0x000004) { firstSampleFlags = _nivaMp4U32(buf, q); q += 4; }
+        let sampleOffset = baseDataOffset + dataOffset;
+        for (let i = 0; i < sampleCount; i++) {
+          let duration = defaultSampleDuration !== null ? defaultSampleDuration : (trex.defaultSampleDuration || 0);
+          let size = defaultSampleSize !== null ? defaultSampleSize : (trex.defaultSampleSize || 0);
+          let flags = (i === 0 && firstSampleFlags !== null) ? firstSampleFlags :
+            (defaultSampleFlags !== null ? defaultSampleFlags : (trex.defaultSampleFlags || 0));
+          let cts = 0;
+          if (trunFlags & 0x100) { duration = _nivaMp4U32(buf, q); q += 4; }
+          if (trunFlags & 0x200) { size = _nivaMp4U32(buf, q); q += 4; }
+          if (trunFlags & 0x400) { flags = _nivaMp4U32(buf, q); q += 4; }
+          if (trunFlags & 0x800) { cts = trunVersion === 1 ? _nivaMp4I32(buf, q) : _nivaMp4U32(buf, q); q += 4; }
+          samplesByTrack[trackId].push({ offset: sampleOffset, size, duration, dts, cts, flags });
+          sampleOffset += size;
+          dts += duration;
+        }
+      }
+    }
+  }
+  return samplesByTrack;
+}
+
+// Verificación estructural del resultado — confirma que el MP4 producido ya NO es
+// fragmentado (sin `moof`/`trun`) y sí tiene las tablas clásicas completas.
+function _nivaMp4ValidateNonFragmented(buf) {
+  const topBoxes = _nivaMp4ReadBoxes(buf, 0, buf.byteLength);
+  const moof = _nivaMp4FindAllBoxes(topBoxes, 'moof');
+  const moov = _nivaMp4FindBox(topBoxes, 'moov');
+  if (moof.length > 0) return { ok: false, reason: 'el resultado todavía contiene moof (' + moof.length + ')' };
+  if (!moov) return { ok: false, reason: 'el resultado no tiene moov' };
+  const moovBoxes = _nivaMp4ReadBoxes(buf, moov.bodyStart, moov.end);
+  let hasStbl = false, hasTrun = false;
+  const scan = (boxes) => {
+    for (const b of boxes) {
+      if (b.type === 'trun') hasTrun = true;
+      if (b.type === 'stbl') hasStbl = true;
+      if (['trak', 'mdia', 'minf', 'stbl'].includes(b.type)) scan(_nivaMp4ReadBoxes(buf, b.bodyStart, b.end));
+    }
+  };
+  scan(moovBoxes);
+  if (!hasStbl) return { ok: false, reason: 'el resultado no tiene stbl (tablas clásicas)' };
+  if (hasTrun) return { ok: false, reason: 'el resultado todavía contiene trun dentro de moov (inesperado)' };
+  return { ok: true, moofCount: moof.length };
+}
+
+// Remux por bytes: MP4 fragmentado (Safari) → MP4 clásico no fragmentado. NO usa
+// VideoEncoder ni AudioEncoder, NO decodifica ni recodifica ni un solo frame — solo
+// reubica los bytes YA codificados de cada muestra dentro de un contenedor distinto.
+async function _nivaRemuxFragmentedMp4(blob) {
+  const { Muxer, ArrayBufferTarget } = await loadMp4MuxerLib();
+  const arrBuf = await blob.arrayBuffer();
+  const topBoxes = _nivaMp4ReadBoxes(arrBuf, 0, arrBuf.byteLength);
+  const moov = _nivaMp4FindBox(topBoxes, 'moov');
+  if (!moov) throw new Error('El MP4 nativo no tiene caja moov — no se puede remuxar');
+  const { tracks, defaults } = _nivaMp4ParseMoov(arrBuf, moov);
+  const samplesByTrack = _nivaMp4ParseMoofs(arrBuf, topBoxes, defaults);
+
+  let videoTrackId = null, audioTrackId = null;
+  for (const tid of Object.keys(tracks)) {
+    const cfg = tracks[tid].config;
+    if (cfg && cfg.kind === 'video') videoTrackId = Number(tid);
+    if (cfg && cfg.kind === 'audio') audioTrackId = Number(tid);
+  }
+  if (videoTrackId === null) throw new Error('No se encontró pista de video en el MP4 nativo');
+  const videoTrack = tracks[videoTrackId];
+  const audioTrack = audioTrackId !== null ? tracks[audioTrackId] : null;
+  const videoSamples = samplesByTrack[videoTrackId] || [];
+  const audioSamples = audioTrackId !== null ? (samplesByTrack[audioTrackId] || []) : [];
+  if (videoSamples.length === 0) throw new Error('No se extrajeron muestras de video de los moof — remux abortado');
+  if (!videoTrack.config || !videoTrack.config.description) throw new Error('No se pudo leer la configuración H.264 (avcC) de la pista de video');
+  if (audioTrack && (!audioTrack.config || !audioTrack.config.description)) throw new Error('No se pudo leer la configuración AAC (esds) de la pista de audio');
+
+  const muxerConfig = {
+    target: new ArrayBufferTarget(),
+    video: { codec: 'avc', width: videoTrack.config.width, height: videoTrack.config.height },
+    fastStart: 'in-memory',
+    firstTimestampBehavior: 'offset',
+  };
+  if (audioTrack && audioSamples.length > 0) {
+    muxerConfig.audio = { codec: 'aac', numberOfChannels: audioTrack.config.channelCount, sampleRate: audioTrack.config.sampleRate };
+  }
+  const muxer = new Muxer(muxerConfig);
+  const ticksToUs = (ticks, timescale) => (ticks / timescale) * 1e6;
+
+  let videoMetaSent = false;
+  for (const s of videoSamples) {
+    const data = new Uint8Array(arrBuf, s.offset, s.size);
+    const timestamp = ticksToUs(s.dts + s.cts, videoTrack.timescale);
+    const duration = ticksToUs(s.duration, videoTrack.timescale);
+    const type = (s.flags & 0x00010000) ? 'delta' : 'key'; // bit is_non_sync_sample
+    const meta = !videoMetaSent ? { decoderConfig: {
+      codec: 'avc1', codedWidth: videoTrack.config.width, codedHeight: videoTrack.config.height, description: videoTrack.config.description
+    } } : undefined;
+    muxer.addVideoChunkRaw(data, type, timestamp, duration, meta, ticksToUs(s.cts, videoTrack.timescale));
+    videoMetaSent = true;
+  }
+  let audioMetaSent = false;
+  if (audioTrack && audioSamples.length > 0) {
+    for (const s of audioSamples) {
+      const data = new Uint8Array(arrBuf, s.offset, s.size);
+      const timestamp = ticksToUs(s.dts, audioTrack.timescale);
+      const duration = ticksToUs(s.duration, audioTrack.timescale);
+      const meta = !audioMetaSent ? { decoderConfig: {
+        codec: 'mp4a.40.2', sampleRate: audioTrack.config.sampleRate, numberOfChannels: audioTrack.config.channelCount, description: audioTrack.config.description
+      } } : undefined;
+      muxer.addAudioChunkRaw(data, 'key', timestamp, duration, meta);
+      audioMetaSent = true;
+    }
+  }
+  muxer.finalize();
+  const outBuf = muxer.target.buffer;
+  const structCheck = _nivaMp4ValidateNonFragmented(outBuf);
+  if (!structCheck.ok) throw new Error('El MP4 remuxado no pasó la validación estructural: ' + structCheck.reason);
+
+  const lastV = videoSamples[videoSamples.length - 1];
+  const outputVideoDurationSec = (lastV.dts + lastV.duration) / videoTrack.timescale;
+  let outputAudioDurationSec = null;
+  if (audioTrack && audioSamples.length > 0) {
+    const lastA = audioSamples[audioSamples.length - 1];
+    outputAudioDurationSec = (lastA.dts + lastA.duration) / audioTrack.timescale;
+  }
+  return {
+    blob: new Blob([outBuf], { type: 'video/mp4' }),
+    videoSamples: videoSamples.length,
+    audioSamples: audioSamples.length,
+    outputVideoDurationSec,
+    outputAudioDurationSec,
+    structCheck,
+  };
+}
+
+// ── [NIVA][EXPORT VALIDATE] — comparación final contra lo solicitado (2026-09-12) ──
+// requestedDurationMs viene de _nivaTimelineFitInfo (el gate de arriba ya garantizó
+// que el TIMELINE cumple ±100ms antes de grabar); aquí se compara contra lo que el
+// propio archivo YA ENTREGADO AL USUARIO reporta — nunca contra un blob intermedio.
+// Es diagnóstico — no vuelve a tocar el archivo; el cumplimiento real se garantiza
+// ANTES de grabar (arriba), no reescribiendo el MP4 después.
+async function _nivaExportValidate(finalBlob) {
+  try {
+    const _reqMs = _nivaTimelineFitInfo && _nivaTimelineFitInfo.requestedDurationMs
+      ? _nivaTimelineFitInfo.requestedDurationMs : (videoDurationSeconds ? videoDurationSeconds * 1000 : null);
+    let _actVideoMs = null;
+    try {
+      const _valV = await validateMp4Blob(finalBlob);
+      if (_valV.ok) _actVideoMs = _valV.duration * 1000;
+    } catch(eV) {}
+    let _actAudioMs = null;
+    try {
+      const _buf = await finalBlob.arrayBuffer();
+      const _tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const _ab = await _tmpCtx.decodeAudioData(_buf.slice(0));
+      _actAudioMs = _ab.duration * 1000;
+      try { _tmpCtx.close(); } catch(e) {}
+    } catch(eAud) { /* best-effort — algunos MP4 no decodifican aquí, no es bloqueante */ }
+    const _diffMs = (_reqMs !== null && _actVideoMs !== null) ? (_actVideoMs - _reqMs) : null;
+    console.log('[NIVA][EXPORT VALIDATE] requestedDurationMs=' + _reqMs +
+      ' actualVideoDurationMs=' + (_actVideoMs !== null ? _actVideoMs.toFixed(0) : 'n/a') +
+      ' actualAudioDurationMs=' + (_actAudioMs !== null ? _actAudioMs.toFixed(0) : 'n/a') +
+      ' finalDurationDifferenceMs=' + (_diffMs !== null ? _diffMs.toFixed(0) : 'n/a') +
+      (_diffMs !== null ? (Math.abs(_diffMs) > 100 ? ' ❌ FUERA DE TOLERANCIA (archivo exportado)' : ' ✅') : ''));
+  } catch(eExp) { console.warn('[NIVA][EXPORT VALIDATE] no se pudo medir:', eExp); }
+}
+
 // ── FINALIZACIÓN SEGURA DEL RECORDING ──
 // preBuiltBlob: si viene un blob ya armado (p.ej. el MP4 unido por combineIOSVideoAudio en
 // el modo dual-recorder de iOS), se usa directo y se salta la construcción desde
@@ -5420,6 +5808,7 @@ async function finalizeRecording(mimeType, preBuiltBlob) {
 
   const durLabel = v.duration > 0 ? v.duration.toFixed(1) + 's' : (videoDurationSeconds || '?') + 's';
   console.log('[NIVA][FINALIZE] ✅ OK | dur:', durLabel, '| dims:', v.width + 'x' + v.height);
+
   // Auto-generar portada cuando el video esté listo
   try {
     if (vidImages && vidImages.length > 0) {
@@ -5430,26 +5819,87 @@ async function finalizeRecording(mimeType, preBuiltBlob) {
     }
   } catch(e) {}
 
-  // ── GRABACIÓN MP4 NATIVA (Safari) — sin conversión ──
-  // Si el navegador grabó directamente MP4 (Safari no soporta WebM), el blob YA es el
-  // formato de entrega: no hay nada que convertir. Se marca listo de inmediato.
+  // ── GRABACIÓN MP4 NATIVA (Safari) — REMUX POR BYTES (2026-09-12) ──
+  // Diagnóstico confirmado con prueba A/B real en el dispositivo de Ricardo: el MP4
+  // fragmentado que MediaRecorder entrega nativamente en Safari (brand "iso5", un solo
+  // moof con decenas de cajas trun apiladas en un único traf — subproducto de que
+  // Safari nunca recibe timeslice y entrega todo en un solo dataavailable) hace que
+  // Safari/HTMLVideoElement lo interprete con ~2x la duración real. La normalización
+  // basada en WebCodecs (VideoEncoder/AudioEncoder) que se intentó primero NUNCA se
+  // ejecuta en el dispositivo real de Ricardo porque su Safari no tiene AudioEncoder
+  // — por eso el problema seguía presente. Esta versión NO depende de WebCodecs en
+  // absoluto: usa _nivaRemuxFragmentedMp4(), que lee directamente moov/moof/trun/mdat
+  // y reutiliza los bytes YA codificados (H.264/AAC) sin decodificar ni recomprimir
+  // nada — funciona igual en cualquier navegador.
   if (/^video\/mp4/i.test(realMime)) {
-    _nivaMp4Blob = blob;
-    _nivaWebmBlob = null;
-    _nivaMostrarPreviewVideo(blob);
-    updateDiagStep('validacion', 'ok');
-    updateDiagStep('mp4', 'ok');
-    updateDiagStep('done', 'ok');
-    vidStatus('✅ VIDEO LISTO · ' + durLabel + ' · ' + v.width + '×' + v.height + ' · ' + sizeMB + ' MB MP4 (grabación nativa) · Presiona "Descargar MP4 HD"', 'ok');
-    document.getElementById('btn-dl-video').style.display = 'flex';
-    document.getElementById('btn-retry-mp4').style.display = 'none';
-    document.getElementById('btn-dl-webm-fallback').style.display = 'none';
-    return true;
+    console.log('[NIVA][SAFARI REMUX][1] entered finalizeRecording — build=' + NIVA_REMUX_BUILD_TAG);
+    console.log('[NIVA][SAFARI REMUX][2] source blob type=' + blob.type);
+    console.log('[NIVA][SAFARI REMUX][3] source size=' + blob.size + ' bytes');
+    try {
+      vidStatus('🔧 Reestructurando MP4 nativo (Safari) — corrigiendo el contenedor…', 'loading');
+      updateDiagStep('mp4', 'pending');
+      console.log('[NIVA][SAFARI REMUX][4] remux started');
+      const remuxResult = await _nivaRemuxFragmentedMp4(blob);
+      const normBlob = remuxResult.blob;
+      console.log('[NIVA][SAFARI REMUX][5] remux completed');
+      console.log('[NIVA][SAFARI REMUX][6] output size=' + normBlob.size + ' bytes (type=' + normBlob.type + ')');
+      console.log('[NIVA][SAFARI REMUX][7] output fragmented=' + (remuxResult.structCheck.moofCount > 0) + ' (moofCount=' + remuxResult.structCheck.moofCount + ')');
+      // ── Re-verificación estructural EXPLÍCITA del blob resultante, en el sitio de
+      // asignación — no solo dentro de _nivaRemuxFragmentedMp4(). Si por cualquier
+      // razón el blob no cumple (moof=0, moov=1, tablas clásicas presentes), se
+      // ABORTA aquí mismo y NUNCA se asigna a _nivaMp4Blob.
+      const outArrBuf = await normBlob.arrayBuffer();
+      const finalStructCheck = _nivaMp4ValidateNonFragmented(outArrBuf);
+      if (!finalStructCheck.ok) {
+        throw new Error('re-verificación estructural del blob remuxado falló antes de asignarlo: ' + finalStructCheck.reason);
+      }
+      const normValidation = await validateMp4Blob(normBlob);
+      if (!normValidation.ok) throw new Error('validación del MP4 remuxado falló: ' + normValidation.reason);
+      console.log('[NIVA][SAFARI REMUX]' +
+        ' sourceDuration=' + (v.duration > 0 ? v.duration.toFixed(3) : '?') +
+        ' outputDuration=' + (remuxResult.outputVideoDurationSec != null ? remuxResult.outputVideoDurationSec.toFixed(3) : '?') +
+        ' outputAudioDuration=' + (remuxResult.outputAudioDurationSec != null ? remuxResult.outputAudioDurationSec.toFixed(3) : 'n/a') +
+        ' videoSamples=' + remuxResult.videoSamples +
+        ' audioSamples=' + remuxResult.audioSamples +
+        ' fragmentedSource=true fragmentedOutput=false' +
+        ' success=true');
+      _nivaMp4Blob = normBlob;
+      _nivaWebmBlob = null;
+      console.log('[NIVA][SAFARI REMUX][8] final blob assigned — _nivaMp4Blob.size=' + _nivaMp4Blob.size + ' (=== normBlob: ' + (_nivaMp4Blob === normBlob) + ')');
+      // [NIVA][EXPORT VALIDATE] debe medir el archivo FINAL entregado (normBlob), no
+      // el Blob nativo intermedio de MediaRecorder.
+      await _nivaExportValidate(normBlob);
+      _nivaMostrarPreviewVideo(normBlob);
+      updateDiagStep('validacion', 'ok');
+      updateDiagStep('mp4', 'ok');
+      updateDiagStep('done', 'ok');
+      const _normSizeMB = (normBlob.size / 1024 / 1024).toFixed(2);
+      const _durLabel2 = normValidation.duration ? normValidation.duration.toFixed(0) : durLabel;
+      vidStatus('✅ VIDEO LISTO · ' + _durLabel2 + 's · ' + v.width + '×' + v.height + ' · ' + _normSizeMB + ' MB MP4 · Presiona "Descargar MP4 HD"', 'ok');
+      document.getElementById('btn-dl-video').style.display = 'flex';
+      document.getElementById('btn-retry-mp4').style.display = 'none';
+      document.getElementById('btn-dl-webm-fallback').style.display = 'none';
+      return true;
+    } catch (eRemux) {
+      // MUY IMPORTANTE: NUNCA entregar el MP4 fragmentado original como fallback —
+      // ese es precisamente el archivo que Safari malinterpreta con el doble de
+      // duración. Si el remux falla, se reporta el error con claridad y se detiene
+      // la entrega, en vez de disimularlo con un archivo conocido como defectuoso.
+      console.error('[NIVA][SAFARI REMUX][ERROR]', eRemux && eRemux.stack || eRemux);
+      vidStatus('❌ No se pudo generar un MP4 reproducible correctamente en este navegador (falló el remux: ' + (eRemux && eRemux.message || eRemux) + '). No se entrega el archivo con la estructura defectuosa conocida — intenta de nuevo o prueba desde otro navegador.', 'err');
+      updateDiagStep('validacion', 'err');
+      updateDiagStep('mp4', 'err');
+      updateDiagStep('done', 'err');
+      document.getElementById('btn-dl-video').style.display = 'none';
+      document.getElementById('btn-retry-mp4').style.display = 'flex';
+      return false;
+    }
   }
 
   // WebM validado — queda en memoria como fuente única. NO se vuelve a renderizar
   // (fotos/voz/música/render) aunque la conversión a MP4 falle o se reintente.
   _nivaWebmBlob = blob;
+  await _nivaExportValidate(blob);
   vidStatus('✅ WebM listo · ' + durLabel + ' · ' + v.width + '×' + v.height + ' · ' + sizeMB + ' MB · Convirtiendo a MP4…', 'ok');
   updateDiagStep('validacion', 'ok');
   // Disparar conversión a MP4 (formato de ENTREGA). El botón de descarga solo se
@@ -5569,7 +6019,10 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
   let videoCodec = null;
   for (const c of videoCodecCandidates) {
     try {
-      const sup = await VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: vBitrate, framerate: 30 });
+      // latencyMode:'realtime' — CRÍTICO para timestamps monotónicos (ver nota junto a
+      // videoEncoder.configure más abajo). Se prueba soporte con la MISMA config que se
+      // usará para codificar de verdad, para no aceptar un perfil que luego falle.
+      const sup = await VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: vBitrate, framerate: 30, latencyMode: 'realtime' });
       if (sup.supported) { videoCodec = c; break; }
     } catch(e) {}
   }
@@ -5599,16 +6052,45 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
   if (hasAudio) muxerConfig.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 };
   const muxer = new Muxer(muxerConfig);
 
+  // ── VALIDACIÓN EN VIVO DE MONOTONICIDAD (requisito #9) ──
+  // Cada chunk que este encoder entrega al muxer se revisa AQUÍ, en el punto exacto de
+  // generación — antes de que termine de armarse el archivo — en vez de solo inspeccionar
+  // el MP4 ya terminado. Si algún timestamp llega igual o menor al anterior, se registra
+  // como ERROR real de inmediato (nunca debería pasar con latencyMode:'realtime', pero
+  // así queda detectado en el momento y no como una sorpresa de WhatsApp/ffmpeg después).
+  let _vidChunkCount = 0, _lastVideoChunkTs = -1, _videoTsErrors = 0, _maxVideoGapUs = 0;
   let encodeErr = null;
   const videoEncoder = new VideoEncoder({
-    output: (chunk, meta) => { try { muxer.addVideoChunk(chunk, meta); } catch(e) { encodeErr = encodeErr || e; } },
+    output: (chunk, meta) => {
+      try {
+        if (chunk.timestamp <= _lastVideoChunkTs) {
+          _videoTsErrors++;
+          console.error('[NIVA][MP4 VALIDATE][DTS] Timestamp de video NO monotónico: ' +
+            chunk.timestamp + 'us <= anterior ' + _lastVideoChunkTs + 'us (chunk #' + _vidChunkCount + ')');
+        } else if (_lastVideoChunkTs >= 0) {
+          _maxVideoGapUs = Math.max(_maxVideoGapUs, chunk.timestamp - _lastVideoChunkTs);
+        }
+        _lastVideoChunkTs = chunk.timestamp;
+        _vidChunkCount++;
+        muxer.addVideoChunk(chunk, meta);
+      } catch(e) { encodeErr = encodeErr || e; }
+    },
     error: (e) => { encodeErr = e; }
   });
-  videoEncoder.configure({ codec: videoCodec, width: W, height: H, bitrate: vBitrate, framerate: 30 });
+  // latencyMode:'realtime' — ESTA es la causa raíz corregida aquí: sin esta opción, el
+  // encoder de hardware puede reordenar frames (B-frames) para comprimir mejor, y el
+  // callback `output` entonces entrega los chunks en un orden cuyo PTS NO es monotónico
+  // frame-a-frame (aunque la duración total sea correcta) — exactamente el error externo
+  // "Application provided invalid, non monotonically increasing dts" que reportaste, y la
+  // causa más probable también del "freeze" perceptible (un frame con timestamp fuera de
+  // orden puede hacer que el reproductor muestre el cuadro equivocado por un instante).
+  // 'realtime' fuerza codificación solo hacia adelante (sin B-frames, solo I/P), así el
+  // orden de entrega == orden de presentación == orden de decodificación, siempre.
+  videoEncoder.configure({ codec: videoCodec, width: W, height: H, bitrate: vBitrate, framerate: 30, latencyMode: 'realtime' });
 
   const canvas = (typeof OffscreenCanvas !== 'undefined') ? new OffscreenCanvas(W, H) : Object.assign(document.createElement('canvas'), {width: W, height: H});
   const cctx = canvas.getContext('2d');
-  let frameCount = 0;
+  let frameCount = 0, expectedFrames = 0;
   const frameDurationUs = Math.round(1e6 / 30);
 
   // Recorremos el video con currentTime + evento 'seeked' en vez de reproducirlo con
@@ -5620,8 +6102,19 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
     let settled = false;
     const finish = () => { if (!settled) { settled = true; resolve(); } };
     const fail = (e) => { if (!settled) { settled = true; reject(e); } };
-    const vidDur = (video.duration && isFinite(video.duration)) ? video.duration : dur;
-    const totalFrames = Math.max(1, Math.round(vidDur * 30));
+    // B1 (2026-09-11): 'dur' (durationSeconds, nuestro total autoritativo por suma de
+    // escenas) tiene SIEMPRE prioridad sobre video.duration. video.duration, leído justo
+    // después de onloadedmetadata sobre un Blob de MediaRecorder recién creado, puede
+    // venir SUBESTIMADO (no es el mismo caso, ya cubierto, de Infinity/NaN): Chrome no
+    // conoce la duración real al grabar y la estima con un índice parcial del archivo,
+    // que puede resultar más corto que el contenido real. Si se usara video.duration ahí
+    // se calculaban menos frames de los que en realidad hay que muestrear (evidencia real:
+    // 746 frames calculados para un video de ~30.2s, cuando a 30fps corresponden ~906) —
+    // el video igual se "recortaba" silenciosamente sin ningún error visible. Solo caemos
+    // a video.duration si 'dur' no llegó como un número válido.
+    const vidDur = (dur && isFinite(dur) && dur > 0) ? dur : ((video.duration && isFinite(video.duration)) ? video.duration : 30);
+    expectedFrames = Math.round(vidDur * 30);
+    const totalFrames = Math.max(1, expectedFrames);
     let frameIdx = 0;
     const seekNext = () => {
       if (settled) return;
@@ -5654,9 +6147,37 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
   if (encodeErr) throw encodeErr;
   if (frameCount === 0) throw new Error('No se extrajo ningún frame del WebM');
 
+  // ── Reporte de validación de VIDEO (requisito #9) ──
+  // maxGapUs se compara contra frameDurationUs (33333us a 30fps): si el hueco máximo
+  // entre timestamps consecutivos es mayor a ~1.5 frames, algo produjo un salto anormal
+  // (aunque con esta reconstrucción a tasa constante NO debería pasar nunca — cada frame
+  // se etiqueta con frameIdx*frameDurationUs por construcción).
+  // ADVERTENCIA (2026-09-11): este check SOLO valida el timestamp (PTS), que aquí es
+  // sintético y por construcción uniforme. NO puede detectar un freeze visual — si el
+  // WebM fuente tenía el mismo cuadro repetido en varias posiciones consecutivas (por
+  // un stall real durante la grabación), este validador reportará ✅ OK aunque el
+  // contenido visual esté congelado. Ese problema se diagnostica con los logs
+  // [NIVA][CAPTURE] (maxRenderGap/stalls), no con este.
+  const _maxGapFrames = _maxVideoGapUs / frameDurationUs;
+  console.log('[NIVA][MP4 VALIDATE][VIDEO] frames=' + frameCount + ' expected=' + expectedFrames +
+    ' errores_dts=' + _videoTsErrors +
+    ' maxGap=' + (_maxVideoGapUs/1000).toFixed(1) + 'ms (' + _maxGapFrames.toFixed(2) + 'x frame) ' +
+    (_videoTsErrors > 0 || _maxGapFrames > 1.5 || Math.abs(frameCount - expectedFrames) > 1 ? '❌ ANOMALÍA DETECTADA' : '✅ OK'));
+
   if (hasAudio) {
+    let _lastAudioChunkTs = -1, _audioTsErrors = 0;
     const audioEncoder = new AudioEncoder({
-      output: (chunk, meta) => { try { muxer.addAudioChunk(chunk, meta); } catch(e) { encodeErr = encodeErr || e; } },
+      output: (chunk, meta) => {
+        try {
+          if (chunk.timestamp <= _lastAudioChunkTs) {
+            _audioTsErrors++;
+            console.error('[NIVA][MP4 VALIDATE][DTS-AUDIO] Timestamp de audio NO monotónico: ' +
+              chunk.timestamp + 'us <= anterior ' + _lastAudioChunkTs + 'us');
+          }
+          _lastAudioChunkTs = chunk.timestamp;
+          muxer.addAudioChunk(chunk, meta);
+        } catch(e) { encodeErr = encodeErr || e; }
+      },
       error: (e) => { encodeErr = e; }
     });
     audioEncoder.configure({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 224_000 });
@@ -5685,7 +6206,13 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
     await audioEncoder.flush();
     audioEncoder.close();
     if (encodeErr) throw encodeErr;
+    console.log('[NIVA][MP4 VALIDATE][AUDIO] errores_dts=' + _audioTsErrors + (_audioTsErrors > 0 ? ' ❌ ANOMALÍA DETECTADA' : ' ✅ OK'));
+    if (_audioTsErrors > 0) throw new Error('Timestamps de audio no monotónicos detectados (' + _audioTsErrors + ') — abortando para no entregar un MP4 defectuoso.');
   }
+  // Un MP4 con DTS de video no monotónico es exactamente el defecto reportado por
+  // WhatsApp/ffmpeg — mejor abortar aquí (con mensaje claro) que entregar un archivo
+  // que se vea "listo" en NIVA pero falle al compartirse.
+  if (_videoTsErrors > 0) throw new Error('Timestamps de video no monotónicos detectados (' + _videoTsErrors + ') — abortando para no entregar un MP4 defectuoso. Intenta de nuevo; si persiste, es un problema del navegador/GPU con H.264 realtime.');
 
   muxer.finalize();
   const { buffer } = muxer.target;
@@ -5737,7 +6264,8 @@ async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
   let videoCodec = null;
   for (const c of videoCodecCandidates) {
     try {
-      const sup = await VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: vBitrate, framerate: 30 });
+      // latencyMode:'realtime' — ver nota junto a videoEncoder.configure más abajo.
+      const sup = await VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: vBitrate, framerate: 30, latencyMode: 'realtime' });
       if (sup.supported) { videoCodec = c; break; }
     } catch(e) {}
   }
@@ -5787,16 +6315,33 @@ async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
   if (hasAudio) muxerConfig.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 };
   const muxer = new Muxer(muxerConfig);
 
+  // ── VALIDACIÓN EN VIVO DE MONOTONICIDAD (requisito #9) — igual que en convertWebmToMp4 ──
+  let _vidChunkCount = 0, _lastVideoChunkTs = -1, _videoTsErrors = 0, _maxVideoGapUs = 0;
   let encodeErr = null;
   const videoEncoder = new VideoEncoder({
-    output: (chunk, meta) => { try { muxer.addVideoChunk(chunk, meta); } catch(e) { encodeErr = encodeErr || e; } },
+    output: (chunk, meta) => {
+      try {
+        if (chunk.timestamp <= _lastVideoChunkTs) {
+          _videoTsErrors++;
+          console.error('[NIVA][IOS-MUX VALIDATE][DTS] Timestamp de video NO monotónico: ' +
+            chunk.timestamp + 'us <= anterior ' + _lastVideoChunkTs + 'us (chunk #' + _vidChunkCount + ')');
+        } else if (_lastVideoChunkTs >= 0) {
+          _maxVideoGapUs = Math.max(_maxVideoGapUs, chunk.timestamp - _lastVideoChunkTs);
+        }
+        _lastVideoChunkTs = chunk.timestamp;
+        _vidChunkCount++;
+        muxer.addVideoChunk(chunk, meta);
+      } catch(e) { encodeErr = encodeErr || e; }
+    },
     error: (e) => { encodeErr = e; }
   });
-  videoEncoder.configure({ codec: videoCodec, width: W, height: H, bitrate: vBitrate, framerate: 30 });
+  // latencyMode:'realtime' — misma causa raíz/corrección que en convertWebmToMp4: fuerza
+  // codificación solo I/P (sin reordenar B-frames), garantizando PTS/DTS monotónicos.
+  videoEncoder.configure({ codec: videoCodec, width: W, height: H, bitrate: vBitrate, framerate: 30, latencyMode: 'realtime' });
 
   const canvas = (typeof OffscreenCanvas !== 'undefined') ? new OffscreenCanvas(W, H) : Object.assign(document.createElement('canvas'), {width: W, height: H});
   const cctx = canvas.getContext('2d');
-  let frameCount = 0;
+  let frameCount = 0, expectedFrames = 0;
   const frameDurationUs = Math.round(1e6 / 30);
 
   // Recorremos el video con currentTime + evento 'seeked' en vez de reproducirlo con
@@ -5808,8 +6353,19 @@ async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
     let settled = false;
     const finish = () => { if (!settled) { settled = true; resolve(); } };
     const fail = (e) => { if (!settled) { settled = true; reject(e); } };
-    const vidDur = (video.duration && isFinite(video.duration)) ? video.duration : dur;
-    const totalFrames = Math.max(1, Math.round(vidDur * 30));
+    // B1 (2026-09-11): 'dur' (durationSeconds, nuestro total autoritativo por suma de
+    // escenas) tiene SIEMPRE prioridad sobre video.duration. video.duration, leído justo
+    // después de onloadedmetadata sobre un Blob de MediaRecorder recién creado, puede
+    // venir SUBESTIMADO (no es el mismo caso, ya cubierto, de Infinity/NaN): Chrome no
+    // conoce la duración real al grabar y la estima con un índice parcial del archivo,
+    // que puede resultar más corto que el contenido real. Si se usara video.duration ahí
+    // se calculaban menos frames de los que en realidad hay que muestrear (evidencia real:
+    // 746 frames calculados para un video de ~30.2s, cuando a 30fps corresponden ~906) —
+    // el video igual se "recortaba" silenciosamente sin ningún error visible. Solo caemos
+    // a video.duration si 'dur' no llegó como un número válido.
+    const vidDur = (dur && isFinite(dur) && dur > 0) ? dur : ((video.duration && isFinite(video.duration)) ? video.duration : 30);
+    expectedFrames = Math.round(vidDur * 30);
+    const totalFrames = Math.max(1, expectedFrames);
     let frameIdx = 0;
     const seekNext = () => {
       if (settled) return;
@@ -5842,7 +6398,13 @@ async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
   if (encodeErr) throw encodeErr;
   if (frameCount === 0) throw new Error('No se extrajo ningún frame del video grabado');
 
+  const _maxGapFrames = _maxVideoGapUs / frameDurationUs;
+  console.log('[NIVA][IOS-MUX VALIDATE][VIDEO] frames=' + frameCount + ' expected=' + expectedFrames + ' errores_dts=' + _videoTsErrors +
+    ' maxGap=' + (_maxVideoGapUs/1000).toFixed(1) + 'ms (' + _maxGapFrames.toFixed(2) + 'x frame) ' +
+    (_videoTsErrors > 0 || _maxGapFrames > 1.5 || Math.abs(frameCount - expectedFrames) > 1 ? '❌ ANOMALÍA DETECTADA' : '✅ OK'));
+
   if (hasAudio) {
+    let _lastAudioChunkTs = -1, _audioTsErrors = 0;
     // Bug conocido de WebKit/Safari: el AudioEncoder de WebCodecs no siempre entrega
     // meta.decoderConfig.description (los bytes AudioSpecificConfig de AAC) en el callback
     // de salida. Sin esos bytes, mp4-muxer escribe un esds vacío/ceros y el MP4 resultante
@@ -5863,6 +6425,12 @@ async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
     const audioEncoder = new AudioEncoder({
       output: (chunk, meta) => {
         try {
+          if (chunk.timestamp <= _lastAudioChunkTs) {
+            _audioTsErrors++;
+            console.error('[NIVA][IOS-MUX VALIDATE][DTS-AUDIO] Timestamp de audio NO monotónico: ' +
+              chunk.timestamp + 'us <= anterior ' + _lastAudioChunkTs + 'us');
+          }
+          _lastAudioChunkTs = chunk.timestamp;
           const hasDesc = !!(meta && meta.decoderConfig && meta.decoderConfig.description && meta.decoderConfig.description.byteLength > 0);
           if (!hasDesc) {
             if (!_aacDescLogged) { _aacDescLogged = true; console.warn('[NIVA][IOS-MUX] El navegador no entregó AudioSpecificConfig (decoderConfig.description) para AAC — inyectando uno construido manualmente (AAC-LC, 48000Hz, 2ch).'); }
@@ -5895,7 +6463,10 @@ async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
     await audioEncoder.flush();
     audioEncoder.close();
     if (encodeErr) throw encodeErr;
+    console.log('[NIVA][IOS-MUX VALIDATE][AUDIO] errores_dts=' + _audioTsErrors + (_audioTsErrors > 0 ? ' ❌ ANOMALÍA DETECTADA' : ' ✅ OK'));
+    if (_audioTsErrors > 0) throw new Error('Timestamps de audio no monotónicos detectados (' + _audioTsErrors + ') — abortando para no entregar un MP4 defectuoso.');
   }
+  if (_videoTsErrors > 0) throw new Error('Timestamps de video no monotónicos detectados (' + _videoTsErrors + ') — abortando para no entregar un MP4 defectuoso.');
 
   muxer.finalize();
   const { buffer: outBuffer } = muxer.target;
@@ -6175,12 +6746,13 @@ const CAMERA_PRESETS = {
   // ── Zoom cinematográfico ──
   // dollyIn: empuja hacia adentro con S-curve — presión continua
   dollyIn:        { startScale:1.00, midScale:1.16, endScale:1.35, startX:0.50, midX:0.50, endX:0.50, startY:0.50, midY:0.50, endY:0.50, easing:'easeInOut',    velocity:'SLOW_FAST_SLOW' },
-  // dollyOut: se aleja con dignidad, frena suave
-  dollyOut:       { startScale:1.38, midScale:1.18, endScale:1.02, startX:0.50, midX:0.50, endX:0.50, startY:0.50, midY:0.50, endY:0.50, easing:'easeOut',      velocity:'NATURAL'        },
+  // dollyOut: se aleja con dignidad, frena suave — termina en encuadre completo
+  dollyOut:       { startScale:1.32, midScale:1.15, endScale:1.00, startX:0.50, midX:0.50, endX:0.50, startY:0.50, midY:0.50, endY:0.50, easing:'easeOut',      velocity:'NATURAL'        },
   // pushIn: MUY LENTO, cinematic push — presión hypnótica
   pushIn:         { startScale:1.00, midScale:1.18, endScale:1.45, startX:0.50, midX:0.50, endX:0.50, startY:0.50, midY:0.48, endY:0.47, easing:'easeIn',       velocity:'CINEMATIC_PUSH' },
-  // pullOut: RÁPIDO al inicio, desacelera con impacto — fast reveal
-  pullOut:        { startScale:1.52, midScale:1.25, endScale:1.04, startX:0.50, midX:0.50, endX:0.50, startY:0.50, midY:0.50, endY:0.50, easing:'easeOut',      velocity:'QUICK_REVEAL'   },
+  // pullOut: RÁPIDO al inicio, desacelera con impacto — fast reveal — SIEMPRE termina
+  // en encuadre completo (endScale 1.00) para no dejar la foto "todavía ampliada".
+  pullOut:        { startScale:1.35, midScale:1.14, endScale:1.00, startX:0.50, midX:0.50, endX:0.50, startY:0.50, midY:0.50, endY:0.50, easing:'easeOut',      velocity:'QUICK_REVEAL'   },
   // luxurySlow: lo más lento posible — casi estático, puro lujo
   luxurySlow:     { startScale:1.00, midScale:1.07, endScale:1.15, startX:0.50, midX:0.50, endX:0.50, startY:0.50, midY:0.50, endY:0.50, easing:'linear',       velocity:'CINEMATIC_SLOW' },
 
@@ -9655,6 +10227,18 @@ async function playVideoEL() {
         // Sin soporte de captura manual (ej. algunos Safari) — modo automático de siempre.
         canvasStream = cv.captureStream(30);
       }
+      // [NIVA][CAPTURE MODE] (2026-09-12) — diagnóstico explícito de cuál ruta se está
+      // usando. En modo automático (manual=false), el navegador muestrea el canvas por
+      // su cuenta cada ~33ms con un timer interno — NO hay ningún hook de JS que se
+      // ejecute en ese instante, así que [NIVA][CAPTURE] (frames/repeatedFrames/stalls)
+      // NUNCA se llena en ese modo: no es un bug de nuestra instrumentación, es que la
+      // API de ese navegador no expone ese punto. En ese caso, [NIVA][RENDER STALL] (ver
+      // draw()) es la única medición real disponible — mide el hilo principal, no la
+      // captura en sí, pero un hilo bloqueado es la única causa que SÍ podemos corregir.
+      console.log('[NIVA][CAPTURE MODE] manual=' + _nivaManualCapture +
+        (_nivaManualCapture
+          ? ' (requestFrame() por cuadro pintado — [NIVA][CAPTURE] mide la captura real)'
+          : ' (captureStream(30) automático del navegador — [NIVA][CAPTURE] no puede medir nada aquí; usar [NIVA][RENDER STALL])'));
 
       // ── Diagnóstico de tracks ──
       const vTracks = canvasStream.getVideoTracks();
@@ -9811,6 +10395,15 @@ async function playVideoEL() {
           clearTimeout(_nivaHardFailsafeTimer);
           clearInterval(_nivaTicker);
           console.log('[NIVA][RECORDER] onstop | chunks:', chunkCount, '| bytes:', totalChunkBytes, '| mime:', _recordedMimeType);
+          if (_nivaTimelineAborted) {
+            // El abort de [NIVA][DURATION GATE] ya mostró el mensaje específico —
+            // no lo pisamos con el flujo normal de finalizeRecording (que asumiría
+            // "0 chunks" como un fallo genérico de grabación, no de duración). El
+            // clearTimeout/clearInterval de arriba ya corrió.
+            try { URL.revokeObjectURL(audioUrl); } catch(e) {}
+            try { audioCtx.close(); } catch(e) {}
+            return;
+          }
           const finalMime = mediaRecorder.mimeType || _recordedMimeType;
           _recordedMimeType = finalMime;
           updateDiagStep('validacion', 'pending');
@@ -9833,6 +10426,9 @@ async function playVideoEL() {
       vidStatus('🎬 Grabando [' + (_nivaDualIOS ? 'iOS dual' : String(_recordedMimeType || '').split(';')[0]) + '] con voz ' + provLabel + '… no cierres esta ventana', 'loading');
       updateDiagStep('render', 'pending');
       _nivaDrawFrameCount = 0;
+      _nivaCapLastReqT = null; _nivaCapFrames = 0; _nivaCapRepeated = 0; _nivaCapStalls = 0; _nivaCapMaxGapMs = 0;
+      _nivaRenderLastT = null; _nivaRenderStalls = 0; _nivaRenderMaxGapMs = 0;
+      _nivaTimelineAborted = false;
       window.__nivaRecDiag = {
         startTs: performance.now(),
         renderTrigger: null,
@@ -9898,6 +10494,37 @@ async function playVideoEL() {
           if (_nivaRealTotalMs && isFinite(_nivaRealTotalMs) && _nivaRealTotalMs > 0) {
             videoDurationSeconds = _nivaRealTotalMs / 1000;
           }
+          // ── [NIVA][DURATION GATE] — validación OBLIGATORIA antes de grabar (2026-09-12) ──
+          // Ya no es una advertencia: startVideoAnimation() (arriba) ya intentó ajustar
+          // las escenas al total solicitado (ver [NIVA][TIMELINE FIT] dentro de esa
+          // función). Aquí solo se verifica el resultado de ese ajuste. Si NO se pudo
+          // cumplir la duración solicitada dentro de ±100ms — típicamente porque incluso
+          // reduciendo todas las escenas a su piso técnico (MIN_SCENE_MS/MIN_ALIGNED_
+          // SCENE_MS) la suma sigue superando lo pedido — se ABORTA la grabación en vez
+          // de entregar un video fuera de tolerancia. No se improvisa ninguna reducción
+          // adicional de piso aquí (eso arriesgaría cámara/Safe Frame o sincronización
+          // de voz, fuera de alcance de este cambio).
+          if (_nivaTimelineFitInfo) {
+            const fit = _nivaTimelineFitInfo;
+            const outOfTolerance = fit.impossible || (fit.differenceMs !== null && Math.abs(fit.differenceMs) > 100);
+            console.log('[NIVA][DURATION GATE] requestedDurationMs=' + fit.requestedDurationMs +
+              ' computedTimelineDurationMs=' + fit.computedTimelineDurationMs.toFixed(0) +
+              ' differenceMs=' + (fit.differenceMs !== null ? fit.differenceMs.toFixed(0) : 'n/a') +
+              (outOfTolerance ? ' ❌ FUERA DE TOLERANCIA — grabación abortada' : ' ✅ dentro de ±100ms'));
+            if (outOfTolerance) {
+              _nivaTimelineAborted = true;
+              if (videoAnim) { cancelAnimationFrame(videoAnim); videoAnim = null; vidStartT = null; }
+              try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch(eStop) {}
+              const reqS = fit.requestedDurationMs ? (fit.requestedDurationMs/1000).toFixed(1) : '?';
+              const floorS = (fit.floorSumMs/1000).toFixed(1);
+              const msg = fit.impossible
+                ? ('❌ No se puede generar el video en ' + reqS + 's: el guion/escenas actuales necesitan al menos ' + floorS + 's aunque cada escena use su mínimo técnico. Elige una duración mayor o reduce el número de escenas.')
+                : ('❌ No se pudo ajustar el video exactamente a ' + reqS + 's. Intenta de nuevo.');
+              vidStatus(msg, 'err');
+              document.getElementById('btn-dl-video').style.display = 'none';
+              return;
+            }
+          }
           if (musicSource) {
             activeMusicSource = musicSource;
             try { musicSource.start(0); } catch(eStart) { console.warn('[NIVA][RENDER] musicSource.start() falló (probablemente reutilizado de un intento previo) — se continúa sin música:', eStart); activeMusicSource = null; }
@@ -9928,16 +10555,21 @@ async function playVideoEL() {
             }
           }
           // El video SIEMPRE dura exactamente el tiempo REAL de la animación/voz.
-          // Este vigilante externo es solo una red de seguridad — NUNCA debe disparar
-          // stopVideo() antes de que termine la duración real calculada dentro de
-          // startVideoAnimation (alineación real de la voz con ElevenLabs). Antes se
-          // basaba solo en finalDurMs (una estimación heurística por foto+longitud de
-          // texto); si esa estimación se quedaba corta frente a la duración real de la
-          // narración (p.ej. tras aplicar cambios de la IA a la duración de una escena),
-          // este timer cortaba la grabación a la mitad de una frase — audio, subtítulos
-          // y escena quedaban "desfasados". Ahora se usa el máximo entre la estimación y
-          // la duración real + margen de seguridad, para que jamás corte antes de tiempo.
-          const _nivaSafeStopMs = Math.max(finalDurMs, (_nivaRealTotalMs || 0) + 900);
+          // Este vigilante externo es SOLO una red de seguridad para el caso de que el
+          // propio bucle de dibujo (startVideoAnimation → draw()) no logre llamar a
+          // stopVideo() por sí mismo (excepción no capturada, tab en segundo plano, etc).
+          // FIX DE RAÍZ (2026-09-11): antes se usaba Math.max(finalDurMs, real+900) —
+          // eso convertía la "estimación" (la duración ELEGIDA por Ricardo, p.ej. 45s)
+          // en un PISO mínimo de grabación, incluso cuando el contenido real (voz +
+          // escenas) duraba mucho menos (p.ej. 22s). Si por cualquier motivo el stop
+          // interno del draw() no se disparaba a tiempo, este vigilante esperaba hasta
+          // los 45s completos, grabando ~23s de cuadro congelado al final — exactamente
+          // el bug reportado (contenido=22s, MP4 exportado=45s). Ahora el vigilante usa
+          // ÚNICAMENTE la duración REAL calculada (con margen de seguridad), y solo cae
+          // a finalDurMs cuando esa duración real no se pudo calcular en absoluto.
+          const _nivaSafeStopMs = (_nivaRealTotalMs && isFinite(_nivaRealTotalMs) && _nivaRealTotalMs > 0)
+            ? (_nivaRealTotalMs + 900)
+            : finalDurMs;
           setTimeout(() => {
             if (activeMusicSource) { try { activeMusicSource.stop(); activeMusicSource = null; } catch(e){} }
             setTimeout(() => stopVideo(), 500);
@@ -10072,6 +10704,14 @@ function _nivaAlignmentDurations(scenes, ttsScript) {
     i = j;
   }
 
+  // Absolute safety floor only (300ms).
+  // This is NOT the visual/working scene-duration floor.
+  // It exists only to protect against invalid/zero/negative durations coming out of
+  // the alignment math above (p.ej. timestamps idénticos o desfasados) antes de que el
+  // valor salga de esta función — nunca se pensó como "duración mínima aceptable para
+  // ver una escena". El piso real de trabajo (1800ms para escenas con voz alineada) se
+  // aplica DESPUÉS, en startVideoAnimation(), sobre el resultado que esta función
+  // devuelve — ese es el que de verdad protege el movimiento de cámara.
   return durSec.map(s => Math.max(300, s * 1000));
 }
 
@@ -10089,40 +10729,148 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
   const ctx = cv.getContext('2d', { alpha: false }); // alpha:false → compositing más rápido
 
   let scenes = vidScenes.length > 0 ? vidScenes : buildDefaultScenes(vidV, photoList.length);
-  // A petición de Ricardo: sincronizar la foto que se ve con lo que REALMENTE dice la
-  // voz en ese instante, en vez de repartir proporcionalmente duracion_seg (que podía
-  // desincronizarse — p.ej. la foto de "Cocina" aparecía antes o después de que la voz
-  // dijera "Cocina para Chef"). Si hay alignment real de ElevenLabs para este guion, se
-  // usa; si no, se cae al reparto proporcional de siempre.
+  // ══ MODELO DE DURACIÓN (corrección 2026-09-11, a petición de Ricardo) ══
+  // El video YA NO se ajusta a una duración global (30/45/60s) ni a la duración total
+  // del audio de voz. Cada ESCENA tiene su propia duración, y la duración final del
+  // video es simplemente la SUMA de las duraciones de todas las escenas — nunca al
+  // revés (nunca se comprimen/estiran las escenas para "caber" en un número externo).
+  // "totalMs" (el estimado del selector de duración) YA NO se usa aquí para escalar
+  // nada — se conserva solo como parámetro por compatibilidad con quien llama a esta
+  // función, pero no participa en el cálculo de TOTAL.
+  //
+  // Sincronizar la foto que se ve con lo que REALMENTE dice la voz en ese instante
+  // (en vez de repartir proporcionalmente duracion_seg, que podía desincronizarse —
+  // p.ej. la foto de "Cocina" aparecía antes o después de que la voz dijera "Cocina
+  // para Chef"). Si hay alignment real de ElevenLabs para este guion, se usa: ese
+  // alignment YA calcula, por escena, el tiempo real que le toma a la voz decir su
+  // fragmento (ver _nivaAlignmentDurations) — eso es exactamente "SCENE_DURATION
+  // determinada por su propio segmento de audio", no una duración global.
   const alignedDurMs = _nivaAlignmentDurations(scenes, ttsScript);
   let scaledScenes;
   if (alignedDurMs) {
     scaledScenes = scenes.map((s, i) => ({...s, durMs: alignedDurMs[i]}));
   } else {
-    const totalSceneDur = scenes.reduce((a,s) => a+(s.duracion_seg||5), 0) * 1000;
-    // FIX DE RAÍZ: cuando el alineado real de ElevenLabs falla (texto no encontrado,
-    // sin narración, etc.), este fallback antes estiraba las escenas hasta "totalMs"
-    // — el ESTIMADO elegido antes de generar la voz (p.ej. 40s) — sin importar cuánto
-    // durara realmente el audio grabado. Resultado: la voz terminaba a los 23s pero el
-    // video (canvas + grabación) seguía animando fotos en silencio hasta los 40s, y eso
-    // es lo que se descargaba. Ahora, si ya conocemos la duración REAL del audio de voz
-    // (_voiceAudioDuration, capturada justo antes de esta llamada), se escala a esa
-    // duración real en vez de al estimado — el video nunca dura más que la voz.
-    const targetMs = (typeof _voiceAudioDuration === 'number' && _voiceAudioDuration > 0)
-      ? _voiceAudioDuration * 1000
-      : totalMs;
-    const scaleTime = targetMs > 0 ? targetMs / totalSceneDur : 1;
-    scaledScenes = scenes.map(s => ({...s, durMs: (s.duracion_seg||5)*1000*scaleTime}));
+    // Sin alignment real disponible (proveedor "Audio propio", o el texto no se pudo
+    // ubicar en la respuesta de ElevenLabs): cada escena usa DIRECTAMENTE su propia
+    // duracion_seg (la asignada automáticamente por la plantilla, o la que Ricardo haya
+    // editado a mano) — YA NO se re-escala para forzar un total externo. El límite
+    // técnico mínimo (ver MIN_SCENE_MS más abajo) es lo único que puede alargarla.
+    scaledScenes = scenes.map(s => ({...s, durMs: (s.duracion_seg||3) * 1000}));
   }
+
+  // ── MÍNIMO TÉCNICO POR ESCENA (Safe Frame temporal) ──
+  // Una escena de <1.5s no le da tiempo suficiente a un movimiento de cámara
+  // (push/pull/pan/tilt) para completarse con ease-in/ease-out sin verse cortado o
+  // acelerado. Se establecen dos pisos distintos según el origen de la duración:
+  // - MIN_SCENE_MS (2500ms): para escenas SIN anclaje real de voz (fallback de arriba,
+  //   o escenas mudas) — aquí no hay ningún timing real que proteger, así que se puede
+  //   alargar libremente hasta el mínimo recomendado.
+  // - MIN_ALIGNED_SCENE_MS (1800ms): para escenas CON voz alineada — la prioridad #1
+  //   es la sincronización voz/foto (así lo pidió Ricardo), así que el piso es más bajo
+  //   para no separar demasiado la foto de lo que la voz está diciendo en ese momento;
+  //   1.8s sigue siendo suficiente para un movimiento sutil (pan/dolly corto) sin verse
+  //   roto, y reemplaza el piso anterior de 300ms (la causa real de escenas de 0.9-1.2s
+  //   con movimiento de cámara completo comprimido en ese tiempo).
+  const MIN_SCENE_MS = 2500;
+  const MIN_ALIGNED_SCENE_MS = 1800;
+  scaledScenes = scaledScenes.map((s) => {
+    const floor = alignedDurMs ? MIN_ALIGNED_SCENE_MS : MIN_SCENE_MS;
+    const durMs = s.durMs < floor ? floor : s.durMs;
+    // _floorMs: piso técnico REAL de esta escena — nunca se reduce por debajo de esto
+    // en el ajuste de presupuesto de abajo. Es la misma regla que ya existía, solo
+    // guardada por escena para poder usarla en el ajuste al total solicitado.
+    return { ...s, durMs, _floorMs: floor };
+  });
+
   // ── Garantizar duración mínima de la escena de cierre ──
   // El nuevo drawOutroScene necesita al menos 2.8s para mostrar los 3 elementos con jerarquía.
   if (NIVA_FLAGS.newOutro && scaledScenes.length > 0) {
     const MIN_OUTRO_MS = 2800;
     const last = scaledScenes[scaledScenes.length - 1];
     if (last.durMs < MIN_OUTRO_MS) last.durMs = MIN_OUTRO_MS;
+    if (last._floorMs < MIN_OUTRO_MS) last._floorMs = MIN_OUTRO_MS;
   }
+
+  // ══ AJUSTE AL PRESUPUESTO SOLICITADO (2026-09-12, a petición de Ricardo) ══
+  // Regla del generador: "si el usuario selecciona X segundos, el video final debe
+  // tener X segundos" (±100ms de tolerancia técnica). 'totalMs' (parámetro de esta
+  // función) ES esa X — viene directo del selector de duración de la UI. Antes, la
+  // suma de escenas (después de aplicarles su piso técnico) se aceptaba tal cual,
+  // sin comparar contra 'totalMs' — así es como una escena floja (piso 2.5s/1.8s)
+  // multiplicada por muchas escenas terminaba sumando más de lo que el usuario pidió.
+  // Ahora el total solicitado es una RESTRICCIÓN SUPERIOR real, no una sugerencia:
+  // los pisos técnicos (_floorMs) siguen siendo el límite INFERIOR de cada escena
+  // (protegen que la cámara/Safe Frame tengan tiempo de completarse — eso no cambia),
+  // pero el "exceso" de cada escena por encima de su propio piso SÍ se puede repartir
+  // o reducir para que la suma final coincida con lo solicitado. Esto no toca guion,
+  // fotos, texto, cámara, Safe Frame, transiciones ni voz — solo cuánto tiempo de
+  // pantalla recibe cada escena ya elegida.
+  let _nivaPreFitTotalMs = scaledScenes.reduce((a, s) => a + s.durMs, 0);
+  _nivaTimelineFitInfo = {
+    requestedDurationMs: (totalMs && isFinite(totalMs) && totalMs > 0) ? totalMs : null,
+    preFitTotalMs: _nivaPreFitTotalMs,
+    floorSumMs: scaledScenes.reduce((a, s) => a + s._floorMs, 0),
+    computedTimelineDurationMs: _nivaPreFitTotalMs, // se actualiza abajo si se ajusta
+    differenceMs: null,
+    impossible: false,
+    hasAlignment: !!alignedDurMs,
+  };
+  if (_nivaTimelineFitInfo.requestedDurationMs) {
+    const targetMs = _nivaTimelineFitInfo.requestedDurationMs;
+    const TOL_MS = 100;
+    const diff0 = _nivaPreFitTotalMs - targetMs;
+    if (Math.abs(diff0) > TOL_MS) {
+      if (diff0 > 0) {
+        // Sobra tiempo (el caso reportado: la suma excede lo solicitado) — reducir,
+        // pero NUNCA por debajo del piso técnico (_floorMs) de cada escena.
+        const floorSum = _nivaTimelineFitInfo.floorSumMs;
+        if (floorSum > targetMs) {
+          // IMPOSIBLE: incluso con todas las escenas en su piso mínimo, la suma sigue
+          // superando lo solicitado — no hay forma determinista de cumplir el target
+          // sin violar un piso técnico (y por lo tanto, sin arriesgar cámara/Safe
+          // Frame o sincronización de voz). NO se improvisa: se marca 'impossible' y
+          // el llamador (beginRenderOnce) debe abortar la grabación en vez de producir
+          // un video fuera de tolerancia.
+          _nivaTimelineFitInfo.impossible = true;
+        } else {
+          const totalExcess = scaledScenes.reduce((a, s) => a + Math.max(0, s.durMs - s._floorMs), 0);
+          const needReduction = diff0;
+          if (totalExcess > 0) {
+            scaledScenes = scaledScenes.map(s => {
+              const excess = Math.max(0, s.durMs - s._floorMs);
+              if (excess <= 0) return s;
+              const reduceBy = (excess / totalExcess) * needReduction;
+              const newDur = Math.max(s._floorMs, s.durMs - reduceBy);
+              return { ...s, durMs: newDur };
+            });
+          }
+        }
+      } else {
+        // Falta tiempo (la suma queda corta del target) — repartir el sobrante
+        // proporcionalmente entre todas las escenas (crecer nunca rompe un piso).
+        const needGrowth = -diff0;
+        const sumDur = scaledScenes.reduce((a, s) => a + s.durMs, 0);
+        if (sumDur > 0) {
+          scaledScenes = scaledScenes.map(s => ({ ...s, durMs: s.durMs + (s.durMs / sumDur) * needGrowth }));
+        }
+      }
+    }
+  }
+  _nivaTimelineFitInfo.computedTimelineDurationMs = scaledScenes.reduce((a, s) => a + s.durMs, 0);
+  _nivaTimelineFitInfo.differenceMs = _nivaTimelineFitInfo.requestedDurationMs
+    ? (_nivaTimelineFitInfo.computedTimelineDurationMs - _nivaTimelineFitInfo.requestedDurationMs)
+    : null;
+  console.log('[NIVA][TIMELINE FIT] requestedDurationMs=' + _nivaTimelineFitInfo.requestedDurationMs +
+    ' preFitTotalMs=' + _nivaPreFitTotalMs.toFixed(0) +
+    ' floorSumMs=' + _nivaTimelineFitInfo.floorSumMs.toFixed(0) +
+    ' computedTimelineDurationMs=' + _nivaTimelineFitInfo.computedTimelineDurationMs.toFixed(0) +
+    ' differenceMs=' + (_nivaTimelineFitInfo.differenceMs !== null ? _nivaTimelineFitInfo.differenceMs.toFixed(0) : 'n/a') +
+    (_nivaTimelineFitInfo.impossible ? ' ❌ IMPOSIBLE dentro de los pisos técnicos' : ' ✅'));
+
   let t = 0;
   scaledScenes.forEach(s => { s.startMs = t; t += s.durMs; });
+  // TOTAL = suma de las duraciones ya resueltas por escena (ya ajustadas al
+  // presupuesto solicitado arriba) — nunca un valor externo impuesto después.
   const TOTAL = t;
 
   sceneKenBurnsVariants = scaledScenes.map((s, i) =>
@@ -10132,10 +10880,14 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
   );
 
   // ── Gradiente de vignette — creado UNA VEZ, reutilizado cada frame ──
+  // Suavizado (2026-09-11): el degradado inferior tapaba demasiado la fotografía en
+  // interiores ya oscuros. Ahora solo oscurece lo necesario para que el texto/subtítulos
+  // sigan siendo legibles, y arranca más abajo (0.55 en vez de 0.35) para no comerse la
+  // mitad de la foto.
   const vignette = ctx.createLinearGradient(0, 0, 0, H);
-  vignette.addColorStop(0,    'rgba(10,18,34,.45)');
-  vignette.addColorStop(0.35, 'rgba(10,18,34,.15)');
-  vignette.addColorStop(1,    'rgba(10,18,34,.95)');
+  vignette.addColorStop(0,    'rgba(10,18,34,.28)');
+  vignette.addColorStop(0.55, 'rgba(10,18,34,.10)');
+  vignette.addColorStop(1,    'rgba(10,18,34,.68)');
 
   // ── Métricas de rendimiento (perfOverlay) ──
   let _perf = null;
@@ -10147,6 +10899,11 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
   const drawFn = NIVA_FLAGS.advancedCameraMotion ? drawCameraMotion : drawPhotoWithKenBurns;
 
   function draw(ts) {
+    // [NIVA][PERF] instrumentación temporal NO INVASIVA (2026-09-11, solo diagnóstico,
+    // no cambia ningún render/cálculo) — mide con performance.now(), y solo imprime si
+    // supera un umbral, para no meter carga extra en consola por cada frame.
+    const _perfDrawT0 = performance.now();
+    let _perfImgMs = 0, _perfIsTransition = false;
     _nivaDrawFrameCount++;
     // ── Frame pacing: siempre basado en tiempo real (no frame counter) ──
     if (!vidStartT) { vidStartT = ts; }
@@ -10202,7 +10959,9 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
       ? (prevScene.transitionOut.type || prevScene.transicion_salida || 'crossfade')
       : 'crossfade';
 
+    const _perfImgT0 = performance.now();
     if (xfadeProgress < 1 && prevSceneImg) {
+      _perfIsTransition = true;
       if (txType === 'push' || txType === 'slide') {
         const dir = prevScene?.transitionOut?.direction;
         const offset = 1 - xfadeProgress;
@@ -10242,6 +11001,7 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
     } else {
       ctx.fillStyle = NAVY; ctx.fillRect(0, 0, W, H);
     }
+    _perfImgMs = performance.now() - _perfImgT0;
 
     // ── Vignette — gradiente pre-creado, sin new allocation ──
     ctx.globalAlpha = 1;
@@ -10382,18 +11142,99 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
       ctx.restore();
     }
 
+    // [NIVA][PERF] — cierre de la medición de este draw(). Solo se imprime si el frame
+    // completo tardó más de 40ms (>1.2 frames a 30fps); umbrales más altos (100/250ms)
+    // se marcan aparte para distinguir un frame "lento" de un stall real. Puramente
+    // diagnóstico — no cambia nada de lo ya dibujado arriba.
+    const _perfDrawMs = performance.now() - _perfDrawT0;
+    if (_perfDrawMs > 40) {
+      const _sev = _perfDrawMs > 250 ? '🔴' : (_perfDrawMs > 100 ? '🟠' : '🟡');
+      console.warn('[NIVA][PERF] ' + _sev + ' draw=' + _perfDrawMs.toFixed(1) + 'ms' +
+        ' scene=' + sceneNum + (_perfIsTransition ? ' (transición ' + txType + ')' : '') +
+        ' image=' + _perfImgMs.toFixed(1) + 'ms' +
+        ' sceneT=' + sceneT.toFixed(2) + ' elapsed=' + elapsed.toFixed(0) + 'ms');
+    }
+
+    // [NIVA][RENDER STALL] (2026-09-12) — SIEMPRE activo, sin importar el modo de
+    // captura (manual o automático). Mide el hueco real entre esta llamada a draw() y
+    // la anterior usando el mismo 'ts' de rAF que ya se usa para 'elapsed' arriba — así
+    // se puede correlacionar directo con [NIVA][PERF] (mismo ts, mismo frame). Esto es
+    // RENDER STALL puro: el hilo principal tardó en volver a ejecutar draw(). En Safari
+    // con captureStream(30) automático, esta es la ÚNICA medición real disponible — ver
+    // [NIVA][CAPTURE MODE] en la configuración de la grabación.
+    if (_nivaRenderLastT === null) {
+      _nivaRenderLastT = ts;
+    } else {
+      const _renderGapMs = ts - _nivaRenderLastT;
+      if (_renderGapMs > (1000 / 30) * 1.5) {
+        _nivaRenderStalls++;
+        if (_renderGapMs > _nivaRenderMaxGapMs) _nivaRenderMaxGapMs = _renderGapMs;
+        console.warn('[NIVA][RENDER STALL] ' + _renderGapMs.toFixed(1) + 'ms sin ejecutar draw() ' +
+          '(hilo principal bloqueado) en elapsed=' + elapsed.toFixed(0) + 'ms — manualCapture=' + _nivaManualCapture);
+      }
+      _nivaRenderLastT = ts;
+    }
+
     // ── Entregar este cuadro ya completo al grabador (si estamos en modo manual) ──
     // Debe ir DESPUÉS de todo el dibujo de arriba (foto+transición+texto+barra) y
     // ANTES de decidir si seguimos o paramos, para que se capture cada cuadro pintado,
     // incluyendo el último.
+    // B3 — DIAGNÓSTICO, no solución (2026-09-11, corregido a petición de Ricardo).
+    // Si desde el último requestFrame() pasó más de ~1.5 periodos de frame (33.33ms) de
+    // tiempo REAL, el hilo principal dejó de ejecutar draw() durante ese hueco: es un
+    // STALL DE RENDER. Esto es SOLO una medición/registro (console.warn + contadores) —
+    // NO se afirma que las llamadas extra de requestFrame() de abajo reconstruyan una
+    // cadencia real de 33.33ms: son solicitudes consecutivas emitidas ya DESPUÉS de que
+    // el hilo se desbloqueó, en el mismo turno del event loop, así que el navegador es
+    // libre de sellarlas con el timestamp real que tenga en ese instante — no hay forma
+    // de "regresar en el tiempo" y producir frames intermedios reales durante un bloqueo
+    // síncrono del hilo principal con la API CanvasCaptureMediaStreamTrack.requestFrame().
+    // Esto NO cambia cómo se dibujó este cuadro (drawCameraMotion ya usó 'elapsed' real,
+    // el movimiento sigue siendo 100% fiel al progreso lógico de la escena).
+    // _nivaCapRepeated cuenta un intento de mitigación best-effort (más muestras cerca
+    // del stall), NO una garantía de que el freeze visual haya desaparecido del WebM
+    // fuente — el freeze visual (contenido de canvas igual durante X ms) y el stall de
+    // render (hilo bloqueado X ms) son dos cosas distintas y esto solo mide/mitiga la
+    // segunda, no elimina la primera.
     if (_nivaManualCapture && _nivaCaptureTrack) {
-      try { _nivaCaptureTrack.requestFrame(); } catch(e) {}
+      const FRAME_MS = 1000 / 30;
+      if (_nivaCapLastReqT === null) {
+        try { _nivaCaptureTrack.requestFrame(); _nivaCapFrames++; } catch(e) {}
+        _nivaCapLastReqT = ts;
+      } else {
+        const gapMs = ts - _nivaCapLastReqT;
+        if (gapMs > FRAME_MS * 1.5) {
+          const missing = Math.floor(gapMs / FRAME_MS) - 1;
+          _nivaCapStalls++;
+          if (gapMs > _nivaCapMaxGapMs) _nivaCapMaxGapMs = gapMs;
+          console.warn('[NIVA][CAPTURE] stall de render detectado: ' + gapMs.toFixed(1) +
+            'ms sin ejecutar draw() (hilo principal bloqueado) en elapsed=' + elapsed.toFixed(0) +
+            'ms — el contenido del canvas probablemente quedó congelado ese tiempo real; ' +
+            'las ' + missing + ' solicitud(es) de relleno que siguen NO reconstruyen esa ' +
+            'cadencia, solo aportan muestras adicionales best-effort.');
+          for (let i = 0; i < missing; i++) {
+            try { _nivaCaptureTrack.requestFrame(); _nivaCapFrames++; _nivaCapRepeated++; } catch(e) {}
+          }
+        }
+        try { _nivaCaptureTrack.requestFrame(); _nivaCapFrames++; } catch(e) {}
+        _nivaCapLastReqT = ts;
+      }
     }
 
     if (elapsed < TOTAL) {
       videoAnim = requestAnimationFrame(draw);
     } else {
       ctx.globalAlpha = 1;
+      // B3: resumen de cadencia de captura al terminar de dibujar — se compara contra
+      // el mismo objetivo (TOTAL/1000*30) que luego valida convertWebmToMp4/B1.
+      const _capExpected = Math.round(TOTAL / 1000 * 30);
+      console.log('[NIVA][CAPTURE] frames=' + _nivaCapFrames + ' expected=' + _capExpected +
+        (_nivaManualCapture ? '' : ' (n/a — modo automático, ver [NIVA][RENDER STALL])'));
+      console.log('[NIVA][CAPTURE] maxRenderGap=' + _nivaCapMaxGapMs.toFixed(1) + 'ms');
+      console.log('[NIVA][CAPTURE] repeatedFrames=' + _nivaCapRepeated);
+      console.log('[NIVA][CAPTURE] stalls=' + _nivaCapStalls);
+      // [NIVA][RENDER STALL] — funciona igual en manual o automático (Safari incluido).
+      console.log('[NIVA][RENDER STALL] stalls=' + _nivaRenderStalls + ' maxGap=' + _nivaRenderMaxGapMs.toFixed(1) + 'ms');
       setTimeout(() => stopVideo(), 600);
     }
   }
@@ -10694,6 +11535,41 @@ function getKenBurnsVariant(sceneIndex, photoIndex) {
   return variants[(sceneIndex + photoIndex) % variants.length];
 }
 
+// ── Cache del "realce" de foto (2026-09-12, a petición de Ricardo — RENDER STALL) ──
+// ctx.filter aplicado directo en el drawImage() de cada frame (~30/seg, y DUPLICADO
+// durante crossfade: dos drawImage con filter en el mismo frame) es un candidato real
+// de costo por frame — filtros CSS sobre drawImage pueden forzar rasterizado más
+// lento en varios navegadores/GPUs. El string del filtro es SIEMPRE el mismo
+// ('contrast(1.10) saturate(1.15) brightness(1.02)') y la imagen fuente (cada entrada
+// de vidScaledImages) es la MISMA canvas pre-escalada durante todo el video — el
+// resultado filtrado es idéntico en cada frame, solo cambia dónde/qué tan grande se
+// dibuja después (eso lo sigue resolviendo drawImage() al escalar a drawW/drawH,
+// exactamente igual que antes). Se cachea UNA sola vez por imagen (WeakMap — se
+// invalida solo si cambia la referencia, es decir, foto nueva o nuevo pre-escalado;
+// nunca por el zoom/movimiento de cámara, que no cambia la imagen fuente) y se
+// reutiliza en todos los frames de esa foto. Resultado visual IDÉNTICO: mismo filtro,
+// mismo drawImage, mismo encuadre — solo deja de recalcularse en cada cuadro.
+const _nivaEnhancedCache = new WeakMap();
+function _nivaGetEnhancedSource(img) {
+  if (!NIVA_FLAGS.photoEnhance || !img) return img;
+  const cached = _nivaEnhancedCache.get(img);
+  if (cached) return cached;
+  try {
+    const iw = img.width, ih = img.height;
+    if (!iw || !ih) return img;
+    const oc = (typeof OffscreenCanvas !== 'undefined')
+      ? new OffscreenCanvas(iw, ih)
+      : Object.assign(document.createElement('canvas'), { width: iw, height: ih });
+    const octx = oc.getContext('2d');
+    octx.filter = 'contrast(1.10) saturate(1.15) brightness(1.02)';
+    octx.drawImage(img, 0, 0, iw, ih);
+    _nivaEnhancedCache.set(img, oc);
+    return oc;
+  } catch (e) {
+    return img; // fallback silencioso — mismo criterio que preScaleImage()
+  }
+}
+
 // ── Legacy Ken Burns (fallback siempre disponible) ──
 function drawPhotoWithKenBurns(ctx, img, progress, variant, W, H) {
   if (!img) return;
@@ -10710,10 +11586,9 @@ function drawPhotoWithKenBurns(ctx, img, progress, variant, W, H) {
   const drawX = anchorX * W - anchorX * drawW;
   const drawY = anchorY * H - anchorY * drawH;
   ctx.save();
-  if (NIVA_FLAGS.photoEnhance) {
-    ctx.filter = 'contrast(1.10) saturate(1.15) brightness(1.02)';
-  }
-  ctx.drawImage(img, drawX, drawY, drawW, drawH);
+  // Realce cacheado (ver _nivaGetEnhancedSource arriba) — mismo filtro, mismo
+  // resultado visual, ya no se recalcula por frame.
+  ctx.drawImage(_nivaGetEnhancedSource(img), drawX, drawY, drawW, drawH);
   ctx.restore();
 }
 
@@ -10817,19 +11692,38 @@ function drawCameraMotion(ctx, img, rawProgress, presetNameOrObj, W, H, shake) {
   // Calcular zoom máximo seguro para ESTA foto (evita upscaling que produce blur)
   const maxSafeZoom = calcMaxSafeZoom(img, W, H);
 
+  // ── SAFE FRAME: si el preset pide más zoom del que esta foto soporta, se re-escala
+  // TODA la trayectoria (start/mid/end) proporcionalmente ANTES de interpolar, en vez
+  // de recortar el valor por-frame con Math.min(). Recortar por-frame producía un
+  // "hold" (la cámara se quedaba pegada en maxSafeZoom mientras la curva original
+  // seguía por encima de ese límite) y además podía dejar el final del movimiento en
+  // un encuadre distinto al que el preset diseñó. Re-escalar la curva completa
+  // preserva la FORMA del movimiento (mismo timing/aceleración) y garantiza que un
+  // preset que termina en 1.00 (pullOut/dollyOut) SIEMPRE termine en 1.00 exacto,
+  // sin importar cuánto haya que reducir el pico de zoom.
+  const _curveMax = Math.max(preset.startScale, preset.midScale ?? preset.startScale, preset.endScale);
+  const _safeRatio = (_curveMax > maxSafeZoom && _curveMax > 1)
+    ? (maxSafeZoom - 1) / (_curveMax - 1)
+    : 1;
+  const _rescale = (s) => 1 + (s - 1) * _safeRatio;
+  const startScaleSafe = _rescale(preset.startScale);
+  const midScaleSafe   = preset.midScale !== undefined ? _rescale(preset.midScale) : undefined;
+  const endScaleSafe   = _rescale(preset.endScale);
+
   // Interpolar escala y punto de anclaje — bezier si existe midScale, lineal si no
   let scale, anchorX, anchorY;
   if (preset.midScale !== undefined) {
-    scale   = bezierQ(preset.startScale, preset.midScale, preset.endScale, p);
+    scale   = bezierQ(startScaleSafe, midScaleSafe, endScaleSafe, p);
     anchorX = bezierQ(preset.startX,     preset.midX,     preset.endX,     p);
     anchorY = bezierQ(preset.startY,     preset.midY,     preset.endY,     p);
   } else {
-    scale   = preset.startScale + (preset.endScale - preset.startScale) * p;
+    scale   = startScaleSafe + (endScaleSafe - startScaleSafe) * p;
     anchorX = preset.startX     + (preset.endX     - preset.startX)     * p;
     anchorY = preset.startY     + (preset.endY     - preset.startY)     * p;
   }
 
-  // Aplicar límite de zoom — CALIDAD > MOVIMIENTO
+  // Red de seguridad final (redondeos de punto flotante) — nunca debe disparar en la
+  // práctica ya que la curva ya fue re-escalada arriba.
   scale = Math.min(scale, maxSafeZoom);
 
   const drawW = baseW * scale;
@@ -10845,16 +11739,14 @@ function drawCameraMotion(ctx, img, rawProgress, presetNameOrObj, W, H, shake) {
   }
 
   ctx.save();
-  // ── Realce sutil de luz/color ──
+  // ── Realce sutil de luz/color (2026-09-12: cacheado, ver _nivaGetEnhancedSource) ──
   // Muchas fotos de celular salen algo planas/apagadas (poca luz del cuarto, cámara
   // automática). Este ajuste (contraste+saturación+brillo, ya probado en la portada
-  // vía drawImg/enhance) les da un poco más de vida sin verse artificial. Se aplica
-  // directo sobre ctx.filter antes de dibujar — NO crea un canvas temporal por cuadro
-  // (eso sí sería costoso a 30-60fps) — así que el costo extra es mínimo.
-  if (NIVA_FLAGS.photoEnhance) {
-    ctx.filter = 'contrast(1.10) saturate(1.15) brightness(1.02)';
-  }
-  ctx.drawImage(img, drawX, drawY, drawW, drawH);
+  // vía drawImg/enhance) les da un poco más de vida sin verse artificial. Antes se
+  // aplicaba con ctx.filter directo en CADA frame (y duplicado durante crossfade);
+  // ahora la versión ya realzada de esta imagen se calcula una sola vez y se
+  // reutiliza — mismo filtro, mismo resultado visual, sin recalcular por cuadro.
+  ctx.drawImage(_nivaGetEnhancedSource(img), drawX, drawY, drawW, drawH);
   // NOTA: El parallax de "imagen duplicada" fue eliminado porque causaba ghosting/blur.
   // El efecto de profundidad ahora viene únicamente del movimiento de escala y anchor (bezier).
   ctx.restore();
