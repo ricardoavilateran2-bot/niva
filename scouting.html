@@ -442,6 +442,15 @@ header { display: flex; align-items: center; justify-content: space-between; pad
         });
         danger.appendChild(btnAgencia);
 
+        const btnNoDisp = document.createElement("button");
+        btnNoDisp.type = "button"; btnNoDisp.className = "btn-outline sm";
+        btnNoDisp.textContent = "🚫 Ya no está disponible";
+        btnNoDisp.addEventListener("click", () => {
+          if (!confirm("¿Confirmas que esta propiedad ya no está disponible (ej. ya se rentó/vendió)? Se quitará de la lista.")) return;
+          saveLead(l, { estatus: "descartado" }, el);
+        });
+        danger.appendChild(btnNoDisp);
+
         // "Solicitar liberación" solo aparece para el asesor que captó el lead.
         if (l.captado_por && window.__nivaAdvisorId && l.captado_por === window.__nivaAdvisorId){
           const btnLib = document.createElement("button");
@@ -508,7 +517,14 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   }
 
   function currentAdvisorId(){
-    return window.__nivaAdvisorId || window.__nivaUser || null;
+    // OJO: __nivaAdvisorId es un uuid real de la tabla advisors; __nivaUser es
+    // solo el prefijo del correo (texto plano, ej. "ricardo") para mostrarlo en
+    // pantalla. NUNCA usarlo como fallback aqui: los RPC de scouting esperan un
+    // uuid o null, y mandar el texto "ricardo" revienta con
+    // "invalid input syntax for type uuid" (bug real, 2026-09-17). Si el usuario
+    // (ej. Ricardo como admin) no tiene fila en advisors, mandamos null: los RPC
+    // ya aceptan null en el campo de "quien lo hizo".
+    return window.__nivaAdvisorId || null;
   }
 
   function quitarDeLista(id){
