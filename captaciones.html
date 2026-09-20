@@ -665,7 +665,7 @@ async function guardarCaptacion(){
     err.textContent='La colonia "'+colonia+'" no está en el catálogo oficial de EasyBroker para '+mpio+'. Escríbela de nuevo y elígela de la lista que aparece al teclear.';
     return;
   }
-  const zona=colonia+', '+mpio+', Nuevo León';
+  const zona=colonia;
   if(desc.length<10){err.textContent='Escribe una descripción (mínimo 10 caracteres).';return}
   err.textContent='';btn.disabled=true;btn.textContent='Subiendo fotos...';
   try{
