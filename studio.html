@@ -1296,7 +1296,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-22.79';
+const NIVA_BUILD_VERSION = '2026-09-22.80';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -5834,8 +5834,9 @@ async function _nivaRemuxFragmentedMp4(blob) {
 // ANTES de grabar (arriba), no reescribiendo el MP4 después.
 async function _nivaExportValidate(finalBlob) {
   try {
-    const _reqMs = _nivaTimelineFitInfo && _nivaTimelineFitInfo.requestedDurationMs
-      ? _nivaTimelineFitInfo.requestedDurationMs : (videoDurationSeconds ? videoDurationSeconds * 1000 : null);
+    // Referencia = duración real de la línea de tiempo (voz + escenas), no el selector.
+    const _reqMs = (_nivaMasterTimeline && _nivaMasterTimeline.totalMs) ? _nivaMasterTimeline.totalMs
+      : (videoDurationSeconds ? videoDurationSeconds * 1000 : null);
     let _actVideoMs = null;
     try {
       const _valV = await validateMp4Blob(finalBlob);
@@ -8694,7 +8695,7 @@ function _updateScenesTotalUI() {
   const el = document.getElementById('vid-scenes-total');
   if (!el) return;
   const total = vidScenes.reduce((a, s) => a + (parseFloat(s.duracion_seg) || 0), 0);
-  el.textContent = `⏱️ ${vidScenes.length} escenas · ${total.toFixed(1)}s (peso relativo — el video real se ajusta a la duración de tu narración de voz)`;
+  el.textContent = `⏱️ ${vidScenes.length} escenas · ${total.toFixed(1)}s mínimo — cada escena dura lo que pongas aquí, y si la voz de esa escena tarda más, la escena se alarga sola hasta que termine de hablar. Voz y subtítulos entran con su escena.`;
 }
 
 function renderScenes() {
@@ -9445,25 +9446,18 @@ function _rebuildSubtitleSegments() {
 
   // ── TIMESTAMPS REALES DE ELEVENLABS ──
   // Si tenemos alignment real del endpoint with-timestamps, usarlo (máxima precisión)
-  if (_lastElevenLabsAlignment &&
+  if (provider !== 'upload' && _lastElevenLabsAlignment &&
       _lastElevenLabsAlignment.characters &&
       _lastElevenLabsAlignment.character_start_times_seconds &&
       _lastElevenLabsAlignment.character_end_times_seconds) {
-    // v.47: usar la MISMA duración total real que usará el motor de animación
-    // (startVideoAnimation → _nivaAlignmentDurations), NO una estimación previa
-    // (videoDurationSeconds), para que el guion en pantalla avance exactamente al
-    // mismo ritmo que las escenas y no termine de mostrarse antes de tiempo.
-    let totalDurSec = null;
     if (typeof vidScenes !== 'undefined' && vidScenes.length > 0) {
-      const alignedDurMsPreview = _nivaAlignmentDurations(vidScenes, script);
-      if (alignedDurMsPreview) totalDurSec = alignedDurMsPreview.reduce((a, b) => a + b, 0) / 1000;
+      // Misma tabla que usará el render (escena → voz → subtítulos), en milisegundos.
+      const tl = _nivaBuildMasterTimeline(vidScenes, _lastElevenLabsAlignment, _voiceAudioDuration);
+      if (tl.hasAlignment) { vidSubtitleSegments = tl.captions; return; }
     }
-    if (!totalDurSec) {
-      totalDurSec = (_voiceAudioDuration && _voiceAudioDuration > 0)
-        ? _voiceAudioDuration
-        : (_lastElevenLabsAlignment.character_end_times_seconds[_lastElevenLabsAlignment.character_end_times_seconds.length - 1] + 0.5);
-    }
-    vidSubtitleSegments = buildCaptionsFromAlignment(_lastElevenLabsAlignment, totalDurSec);
+    // Sin escenas (o fragmentos no ubicados): subtítulos directos de los timestamps, en ms.
+    vidSubtitleSegments = _nivaChunkCaptionWords(_nivaAlignmentWords(_lastElevenLabsAlignment))
+      .map(c => ({ text: c.text, startMs: c.start * 1000, endMs: c.end * 1000 + 140 }));
     return;
   }
 
@@ -10231,7 +10225,10 @@ async function playVideoEL() {
       // decodificamos la voz a un AudioBuffer y la reproducimos con un
       // AudioBufferSourceNode, que sí alimenta el grafo de forma confiable.
       let _nivaVoiceBuffer = null;
-      if (_nivaIsIOS()) {
+      // Se decodifica SIEMPRE (no solo en iOS): la voz se reproduce por segmentos, escena por
+      // escena, con AudioBufferSourceNode programados en el reloj del AudioContext (ver
+      // _nivaScheduleVoice) — así cada frase suena exactamente cuando entra su escena.
+      {
         try {
           const _voiceArrBuf = await audioBlob.arrayBuffer();
           try {
@@ -10248,15 +10245,11 @@ async function playVideoEL() {
         }
       }
       const source = audioCtx.createMediaElementSource(audio);
-      let voiceBufferSource = null;
-      if (audioMode !== 'music') {
-        if (_nivaVoiceBuffer) {
-          voiceBufferSource = audioCtx.createBufferSource();
-          voiceBufferSource.buffer = _nivaVoiceBuffer;
-          voiceBufferSource.connect(masterGain);
-        } else {
-          source.connect(masterGain);
-        }
+      const voiceBus = audioCtx.createGain(); // todo lo que sea voz pasa por aquí (ducking + mezcla)
+      voiceBus.connect(masterGain);
+      let voiceBufferSource = null; // (legado) — la voz decodificada se programa por escena en beginRenderOnce
+      if (audioMode !== 'music' && !_nivaVoiceBuffer) {
+        source.connect(voiceBus);
       }
       const musicHandle = getMusicHandle();
       let musicSource = null;
@@ -10309,7 +10302,7 @@ async function playVideoEL() {
         musicSource = {
           _mediaEl: musicEl,
           start(t) {
-            if (musicBufferSource) { try { musicBufferSource.start(0); } catch(e) {} }
+            if (musicBufferSource) { try { musicBufferSource.start(t || 0); } catch(e) {} }
             else { musicEl.play().catch(()=>{}); }
           },
           stop() {
@@ -10323,7 +10316,7 @@ async function playVideoEL() {
           // Create voice analyzer to detect when voice is playing
           const voiceAnalyser = audioCtx.createAnalyser();
           voiceAnalyser.fftSize = 256;
-          (voiceBufferSource || source).connect(voiceAnalyser);
+          voiceBus.connect(voiceAnalyser);
 
           const duckDataArr = new Uint8Array(voiceAnalyser.frequencyBinCount);
           let duckActive = false;
@@ -10632,6 +10625,10 @@ async function playVideoEL() {
           // Debug info
           console.log('[VIDEO_DURATION] finalDuration=' + finalDuration + 's | audioDuration=' + (audio.duration||0).toFixed(1) + 's | audioMode=' + audioMode + ' | photos=' + photoList.length + ' | scriptLen=' + scriptLen);
 
+          // Reloj maestro: el video "arranca" en t0 del AudioContext; la voz de cada escena
+          // y la música se programan contra ese mismo instante, y draw() lee ese reloj.
+          const _nivaT0 = audioCtx.currentTime + 0.12;
+          _nivaAudioClock = { ctx: audioCtx, t0: _nivaT0 };
           const _nivaRealTotalMs = startVideoAnimation(photoList, finalDurMs, scriptTxt);
           // FIX: usar la duración REAL calculada por el render (alineada a la voz real),
           // no solo la estimación previa (finalDuration), para que todo lo que dependa
@@ -10673,7 +10670,7 @@ async function playVideoEL() {
           }
           if (musicSource) {
             activeMusicSource = musicSource;
-            try { musicSource.start(0); } catch(eStart) { console.warn('[NIVA][RENDER] musicSource.start() falló (probablemente reutilizado de un intento previo) — se continúa sin música:', eStart); activeMusicSource = null; }
+            try { musicSource.start(_nivaT0); } catch(eStart) { console.warn('[NIVA][RENDER] musicSource.start() falló (probablemente reutilizado de un intento previo) — se continúa sin música:', eStart); activeMusicSource = null; }
             // Loop música y fade out al final
             const musicEl = musicSource._mediaEl;
             if (musicEl) musicEl.loop = true;
@@ -10692,12 +10689,14 @@ async function playVideoEL() {
           }
           // En modo "Solo música", el audio de voz no debe controlar duración
           if (audioMode !== 'music') {
-            audio.play().catch(err => {
-              console.error('[NIVA][RENDER] audio.play() rechazado:', err && err.message);
-              window.__nivaRecDiag.playError = (err && err.name) + ':' + (err && err.message);
-            });
-            if (voiceBufferSource) {
-              try { voiceBufferSource.start(0); } catch (eStartVB) { console.warn('[NIVA][AUDIO] voiceBufferSource.start() falló:', eStartVB && eStartVB.message); }
+            if (_nivaVoiceBuffer && _nivaMasterTimeline) {
+              _nivaScheduleVoice(audioCtx, _nivaVoiceBuffer, voiceBus, _nivaMasterTimeline, _nivaT0);
+            } else {
+              // Respaldo (no se pudo decodificar): audio continuo desde el inicio
+              audio.play().catch(err => {
+                console.error('[NIVA][RENDER] audio.play() rechazado:', err && err.message);
+                window.__nivaRecDiag.playError = (err && err.name) + ':' + (err && err.message);
+              });
             }
           }
           // El video SIEMPRE dura exactamente el tiempo REAL de la animación/voz.
@@ -10714,7 +10713,7 @@ async function playVideoEL() {
           // ÚNICAMENTE la duración REAL calculada (con margen de seguridad), y solo cae
           // a finalDurMs cuando esa duración real no se pudo calcular en absoluto.
           const _nivaSafeStopMs = (_nivaRealTotalMs && isFinite(_nivaRealTotalMs) && _nivaRealTotalMs > 0)
-            ? (_nivaRealTotalMs + 900)
+            ? (_nivaRealTotalMs + 1100)
             : finalDurMs;
           setTimeout(() => {
             if (activeMusicSource) { try { activeMusicSource.stop(); activeMusicSource = null; } catch(e){} }
@@ -10861,6 +10860,182 @@ function _nivaAlignmentDurations(scenes, ttsScript) {
   return durSec.map(s => Math.max(300, s * 1000));
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  LÍNEA DE TIEMPO MAESTRA (22-sep-2026, a petición de Ricardo: "voz, subtítulos y
+//  escenas 100% sincronizados, respetando la duración que yo edito en cada escena")
+//
+//  Antes había TRES relojes distintos que nunca coincidían:
+//   1. las escenas se calculaban con los tiempos de la voz, pero luego se
+//      estiraban/comprimían para "caber" en 30/40s (pisos técnicos, outro, ajuste);
+//   2. los subtítulos se guardaban como FRACCIÓN del total calculado ANTES de ese
+//      ajuste y se dibujaban contra el total DESPUÉS → se iban corriendo poco a poco;
+//   3. la voz arrancaba con audio.play() en su propio momento, sin relación exacta
+//      con el primer cuadro dibujado.
+//  Ahora hay UN solo reloj (el del AudioContext) y UNA sola tabla:
+//   · cada escena dura MAX(lo que Ricardo puso, lo que tarda la voz en decir su
+//     fragmento + un respiro). La voz de esa escena se reproduce exactamente cuando
+//     entra la escena (recortada del audio completo con sus timestamps reales);
+//   · cada subtítulo se coloca en milisegundos absolutos a partir de esos mismos
+//     timestamps (palabra por palabra), nunca como fracción;
+//   · el total del video es la suma; el selector de 20/30/40s solo guía cuánto guion
+//     se escribe (como ya decía la UI), no recorta ni estira nada.
+// ══════════════════════════════════════════════════════════════════════════════
+let _nivaMasterTimeline = null;   // {scenes:[{...durMs,startMs,voice:{offset,len,at}}], captions:[{text,startMs,endMs}], totalMs, hasAlignment}
+let _nivaAudioClock = null;       // {ctx, t0}: reloj maestro durante la grabación
+let _nivaVoiceSources = [];       // AudioBufferSourceNode programados (para poder detenerlos)
+const NIVA_TL = { LEAD_MS: 120, PRE_MS: 60, POST_MS: 260, BREATH_MS: 180, MIN_CAM_MS: 1800, MIN_SILENT_MS: 2500, MIN_OUTRO_MS: 2800 };
+
+function _nivaChunkCaptionWords(words) {
+  // Agrupa palabras en renglones cortos y equilibrados (máx 4 palabras / ~26 letras),
+  // cortando en puntuación fuerte y sin dejar palabras huérfanas ("PEDRO" solo).
+  const out = [];
+  let sentence = [];
+  const flush = () => {
+    if (!sentence.length) return;
+    const MAXW = 4, MAXC = 26;
+    let nChunks = Math.max(1, Math.ceil(sentence.length / MAXW));
+    const totalChars = sentence.reduce((a, w) => a + w.text.length + 1, 0);
+    nChunks = Math.max(nChunks, Math.ceil(totalChars / MAXC));
+    const size = Math.ceil(sentence.length / nChunks);
+    for (let i = 0; i < sentence.length; i += size) {
+      let grp = sentence.slice(i, i + size);
+      if (grp.length === 1 && out.length && out[out.length - 1]._sent === sentence) {
+        // una sola palabra sobrante: se une al renglón anterior
+        const prev = out[out.length - 1];
+        prev.text += ' ' + grp[0].text; prev.end = grp[0].end; continue;
+      }
+      out.push({ text: grp.map(w => w.text).join(' '), start: grp[0].start, end: grp[grp.length - 1].end, _sent: sentence });
+    }
+    sentence = [];
+  };
+  words.forEach(w => { sentence.push(w); if (/[.!?…]$/.test(w.text)) flush(); });
+  flush();
+  return out.map(c => ({ text: c.text.replace(/[,;:.…]+$/, '').trim(), start: c.start, end: c.end }));
+}
+
+function _nivaAlignmentWords(al) {
+  const chars = al.characters, st = al.character_start_times_seconds, en = al.character_end_times_seconds;
+  const words = []; let cur = '', ws = -1, we = -1, ci = -1;
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    if (ch === ' ' || ch === '\n') { if (cur) { words.push({ text: cur, start: ws, end: we, ci }); cur = ''; ws = -1; } }
+    else { if (ws < 0) { ws = st[i]; ci = i; } cur += ch; we = en[i]; }
+  }
+  if (cur) words.push({ text: cur, start: ws, end: we, ci });
+  return words;
+}
+
+function _nivaBuildMasterTimeline(scenes, al, voiceDurSec) {
+  const T = NIVA_TL;
+  const n = scenes.length;
+  const hasAl = !!(al && al.characters && al.character_start_times_seconds && al.character_end_times_seconds && al.characters.length);
+  const alignedText = hasAl ? al.characters.join('') : '';
+  const words = hasAl ? _nivaAlignmentWords(al) : [];
+  const voiceEnd = (voiceDurSec && voiceDurSec > 0) ? voiceDurSec
+                 : (hasAl ? al.character_end_times_seconds[al.character_end_times_seconds.length - 1] + 0.3 : 0);
+  // 1) Ubicar el fragmento de voz de cada escena (timestamps reales)
+  const vs = new Array(n).fill(null), ve = new Array(n).fill(null), ci0 = new Array(n).fill(-1), ci1 = new Array(n).fill(-1);
+  let searchFrom = 0, anyFound = false, anyNarr = false;
+  for (let i = 0; i < n; i++) {
+    const frag = (scenes[i].narracion_frag || '').trim();
+    if (!frag) continue;
+    anyNarr = true;
+    if (!hasAl) continue;
+    let idx = alignedText.indexOf(frag, searchFrom);
+    if (idx === -1) { // tolerancia: buscar sin espacios dobles / desde el inicio
+      idx = alignedText.indexOf(frag);
+    }
+    if (idx === -1) continue;
+    searchFrom = idx + frag.length;
+    vs[i] = al.character_start_times_seconds[idx];
+    ve[i] = al.character_end_times_seconds[Math.min(idx + frag.length - 1, alignedText.length - 1)];
+    ci0[i] = idx; ci1[i] = idx + frag.length - 1;
+    anyFound = true;
+  }
+  const useAlign = hasAl && anyFound;
+  // 2) Duración de cada escena + segmento de audio + subtítulos
+  const out = []; const captions = [];
+  let t = 0, prevSegEnd = 0;
+  const narrIdx = [];
+  for (let i = 0; i < n; i++) if (vs[i] !== null) narrIdx.push(i);
+  for (let i = 0; i < n; i++) {
+    const sc = scenes[i];
+    const userMs = Math.max(300, (parseFloat(sc.duracion_seg) || 2) * 1000);
+    const isLast = i === n - 1;
+    let durMs, voice = null;
+    if (useAlign && vs[i] !== null) {
+      const k = narrIdx.indexOf(i);
+      const nextVs = (k >= 0 && k + 1 < narrIdx.length) ? vs[narrIdx[k + 1]] : null;
+      let segStart = Math.max(prevSegEnd, vs[i] - T.PRE_MS / 1000);
+      let segEnd = ve[i] + T.POST_MS / 1000;
+      if (nextVs !== null) segEnd = Math.min(segEnd, Math.max(ve[i], nextVs - T.PRE_MS / 1000));
+      if (voiceEnd > 0) segEnd = Math.min(segEnd, voiceEnd);
+      segEnd = Math.max(segEnd, segStart + 0.05);
+      prevSegEnd = segEnd;
+      const segLen = segEnd - segStart;
+      durMs = Math.max(userMs, T.LEAD_MS + segLen * 1000 + T.BREATH_MS, T.MIN_CAM_MS);
+      voice = { offset: segStart, len: segLen, at: T.LEAD_MS };
+      // subtítulos de ESTA escena, colocados con el mismo desplazamiento que su audio
+      const wIn = words.filter(w => w.ci >= ci0[i] && w.ci <= ci1[i]);
+      _nivaChunkCaptionWords(wIn).forEach(c => {
+        const a = t + T.LEAD_MS + (c.start - segStart) * 1000;
+        const b = t + T.LEAD_MS + (c.end - segStart) * 1000 + 140; // 140ms de cola para que no parpadee
+        captions.push({ text: c.text, startMs: Math.max(t, a), endMs: Math.min(t + durMs, Math.max(a + 350, b)) });
+      });
+    } else {
+      durMs = Math.max(userMs, T.MIN_SILENT_MS);
+    }
+    if (isLast && NIVA_FLAGS.newOutro) durMs = Math.max(durMs, T.MIN_OUTRO_MS);
+    out.push({ ...sc, durMs, startMs: t, voice, _floorMs: durMs });
+    t += durMs;
+  }
+  // 3) Sin alignment utilizable pero con voz (audio propio / fragmento no ubicado):
+  //    la voz corre completa desde el inicio y las escenas se estiran, si hace falta,
+  //    para que la voz no quede cortada.
+  if (!useAlign && voiceEnd > 0 && out.length) {
+    out[0].voice = { offset: 0, len: voiceEnd, at: 0 };
+    const need = voiceEnd * 1000 + 600;
+    if (t < need) {
+      const scale = need / t; let acc = 0;
+      out.forEach(o => { o.durMs = o.durMs * scale; o.startMs = acc; acc += o.durMs; });
+      t = acc;
+    }
+  }
+  // Un subtítulo nunca pisa al siguiente: termina 30ms antes de que entre el próximo.
+  captions.sort((x, y) => x.startMs - y.startMs);
+  for (let i = 0; i + 1 < captions.length; i++) {
+    if (captions[i].endMs > captions[i + 1].startMs - 30) captions[i].endMs = Math.max(captions[i].startMs + 200, captions[i + 1].startMs - 30);
+  }
+  return { scenes: out, captions, totalMs: t, hasAlignment: useAlign };
+}
+
+// Programa la voz escena por escena en el reloj del AudioContext (t0 = instante en el
+// que el video arranca). Cada segmento se recorta del audio completo con sus timestamps.
+function _nivaScheduleVoice(audioCtx, buffer, destNode, timeline, t0) {
+  _nivaVoiceSources.forEach(sn => { try { sn.stop(); } catch (e) {} });
+  _nivaVoiceSources = [];
+  if (!timeline || !buffer) return 0;
+  let count = 0;
+  const FADE = 0.012;
+  timeline.scenes.forEach(sc => {
+    if (!sc.voice || sc.voice.len <= 0) return;
+    const when = t0 + (sc.startMs + sc.voice.at) / 1000;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(1, when + FADE);
+    g.gain.setValueAtTime(1, when + sc.voice.len - FADE);
+    g.gain.linearRampToValueAtTime(0, when + sc.voice.len);
+    g.connect(destNode);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(g);
+    try { src.start(when, Math.max(0, sc.voice.offset), sc.voice.len); count++; } catch (e) { console.warn('[NIVA][VOZ] no se pudo programar segmento', e && e.message); }
+    _nivaVoiceSources.push(src);
+  });
+  console.log('[NIVA][TIMELINE] voz programada en ' + count + ' segmentos · total video ' + (timeline.totalMs / 1000).toFixed(2) + 's · alignment=' + timeline.hasAlignment);
+  return count;
+}
+
 // ── ANIMACIÓN ── (motor cinematográfico — time-based, no frame-based)
 function startVideoAnimation(photoList, totalMs, ttsScript) {
   vidFrame = 0; vidStartT = null;
@@ -10891,133 +11066,27 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
   // alignment YA calcula, por escena, el tiempo real que le toma a la voz decir su
   // fragmento (ver _nivaAlignmentDurations) — eso es exactamente "SCENE_DURATION
   // determinada por su propio segmento de audio", no una duración global.
-  const alignedDurMs = _nivaAlignmentDurations(scenes, ttsScript);
-  let scaledScenes;
-  if (alignedDurMs) {
-    scaledScenes = scenes.map((s, i) => ({...s, durMs: alignedDurMs[i]}));
-  } else {
-    // Sin alignment real disponible (proveedor "Audio propio", o el texto no se pudo
-    // ubicar en la respuesta de ElevenLabs): cada escena usa DIRECTAMENTE su propia
-    // duracion_seg (la asignada automáticamente por la plantilla, o la que Ricardo haya
-    // editado a mano) — YA NO se re-escala para forzar un total externo. El límite
-    // técnico mínimo (ver MIN_SCENE_MS más abajo) es lo único que puede alargarla.
-    scaledScenes = scenes.map(s => ({...s, durMs: (s.duracion_seg||3) * 1000}));
-  }
-
-  // ── MÍNIMO TÉCNICO POR ESCENA (Safe Frame temporal) ──
-  // Una escena de <1.5s no le da tiempo suficiente a un movimiento de cámara
-  // (push/pull/pan/tilt) para completarse con ease-in/ease-out sin verse cortado o
-  // acelerado. Se establecen dos pisos distintos según el origen de la duración:
-  // - MIN_SCENE_MS (2500ms): para escenas SIN anclaje real de voz (fallback de arriba,
-  //   o escenas mudas) — aquí no hay ningún timing real que proteger, así que se puede
-  //   alargar libremente hasta el mínimo recomendado.
-  // - MIN_ALIGNED_SCENE_MS (1800ms): para escenas CON voz alineada — la prioridad #1
-  //   es la sincronización voz/foto (así lo pidió Ricardo), así que el piso es más bajo
-  //   para no separar demasiado la foto de lo que la voz está diciendo en ese momento;
-  //   1.8s sigue siendo suficiente para un movimiento sutil (pan/dolly corto) sin verse
-  //   roto, y reemplaza el piso anterior de 300ms (la causa real de escenas de 0.9-1.2s
-  //   con movimiento de cámara completo comprimido en ese tiempo).
-  const MIN_SCENE_MS = 2500;
-  const MIN_ALIGNED_SCENE_MS = 1800;
-  scaledScenes = scaledScenes.map((s) => {
-    const floor = alignedDurMs ? MIN_ALIGNED_SCENE_MS : MIN_SCENE_MS;
-    const durMs = s.durMs < floor ? floor : s.durMs;
-    // _floorMs: piso técnico REAL de esta escena — nunca se reduce por debajo de esto
-    // en el ajuste de presupuesto de abajo. Es la misma regla que ya existía, solo
-    // guardada por escena para poder usarla en el ajuste al total solicitado.
-    return { ...s, durMs, _floorMs: floor };
-  });
-
-  // ── Garantizar duración mínima de la escena de cierre ──
-  // El nuevo drawOutroScene necesita al menos 2.8s para mostrar los 3 elementos con jerarquía.
-  if (NIVA_FLAGS.newOutro && scaledScenes.length > 0) {
-    const MIN_OUTRO_MS = 2800;
-    const last = scaledScenes[scaledScenes.length - 1];
-    if (last.durMs < MIN_OUTRO_MS) last.durMs = MIN_OUTRO_MS;
-    if (last._floorMs < MIN_OUTRO_MS) last._floorMs = MIN_OUTRO_MS;
-  }
-
-  // ══ AJUSTE AL PRESUPUESTO SOLICITADO (2026-09-12, a petición de Ricardo) ══
-  // Regla del generador: "si el usuario selecciona X segundos, el video final debe
-  // tener X segundos" (±100ms de tolerancia técnica). 'totalMs' (parámetro de esta
-  // función) ES esa X — viene directo del selector de duración de la UI. Antes, la
-  // suma de escenas (después de aplicarles su piso técnico) se aceptaba tal cual,
-  // sin comparar contra 'totalMs' — así es como una escena floja (piso 2.5s/1.8s)
-  // multiplicada por muchas escenas terminaba sumando más de lo que el usuario pidió.
-  // Ahora el total solicitado es una RESTRICCIÓN SUPERIOR real, no una sugerencia:
-  // los pisos técnicos (_floorMs) siguen siendo el límite INFERIOR de cada escena
-  // (protegen que la cámara/Safe Frame tengan tiempo de completarse — eso no cambia),
-  // pero el "exceso" de cada escena por encima de su propio piso SÍ se puede repartir
-  // o reducir para que la suma final coincida con lo solicitado. Esto no toca guion,
-  // fotos, texto, cámara, Safe Frame, transiciones ni voz — solo cuánto tiempo de
-  // pantalla recibe cada escena ya elegida.
-  let _nivaPreFitTotalMs = scaledScenes.reduce((a, s) => a + s.durMs, 0);
+  // ══ LÍNEA DE TIEMPO MAESTRA (ver _nivaBuildMasterTimeline) ══
+  const _al = (getActiveVoiceProvider && getActiveVoiceProvider() === 'upload') ? null : _lastElevenLabsAlignment;
+  const _tl = _nivaBuildMasterTimeline(scenes, _al, _voiceAudioDuration);
+  _nivaMasterTimeline = _tl;
+  let scaledScenes = _tl.scenes;
+  if (vidSubtitlesEnabled) {
+    if (_tl.hasAlignment) vidSubtitleSegments = _tl.captions;
+    else if (vidSubtitleSegments.length && vidSubtitleSegments[0].startFrac !== undefined) {
+      // captions estimadas por caracteres (audio propio): pasar de fracción a ms reales
+      const base = (_voiceAudioDuration > 0 ? _voiceAudioDuration * 1000 : _tl.totalMs);
+      vidSubtitleSegments = vidSubtitleSegments.map(c => ({ text: c.text, startMs: c.startFrac * base, endMs: c.endFrac * base }));
+    }
+  } else vidSubtitleSegments = [];
+  const TOTAL = _tl.totalMs;
   _nivaTimelineFitInfo = {
     requestedDurationMs: (totalMs && isFinite(totalMs) && totalMs > 0) ? totalMs : null,
-    preFitTotalMs: _nivaPreFitTotalMs,
-    floorSumMs: scaledScenes.reduce((a, s) => a + s._floorMs, 0),
-    computedTimelineDurationMs: _nivaPreFitTotalMs, // se actualiza abajo si se ajusta
-    differenceMs: null,
-    impossible: false,
-    hasAlignment: !!alignedDurMs,
+    preFitTotalMs: TOTAL, floorSumMs: TOTAL, computedTimelineDurationMs: TOTAL,
+    differenceMs: null, // el selector de duración ya no recorta ni estira: solo guía el guion
+    impossible: false, hasAlignment: _tl.hasAlignment,
   };
-  if (_nivaTimelineFitInfo.requestedDurationMs) {
-    const targetMs = _nivaTimelineFitInfo.requestedDurationMs;
-    const TOL_MS = 100;
-    const diff0 = _nivaPreFitTotalMs - targetMs;
-    if (Math.abs(diff0) > TOL_MS) {
-      if (diff0 > 0) {
-        // Sobra tiempo (el caso reportado: la suma excede lo solicitado) — reducir,
-        // pero NUNCA por debajo del piso técnico (_floorMs) de cada escena.
-        const floorSum = _nivaTimelineFitInfo.floorSumMs;
-        if (floorSum > targetMs) {
-          // IMPOSIBLE: incluso con todas las escenas en su piso mínimo, la suma sigue
-          // superando lo solicitado — no hay forma determinista de cumplir el target
-          // sin violar un piso técnico (y por lo tanto, sin arriesgar cámara/Safe
-          // Frame o sincronización de voz). NO se improvisa: se marca 'impossible' y
-          // el llamador (beginRenderOnce) debe abortar la grabación en vez de producir
-          // un video fuera de tolerancia.
-          _nivaTimelineFitInfo.impossible = true;
-        } else {
-          const totalExcess = scaledScenes.reduce((a, s) => a + Math.max(0, s.durMs - s._floorMs), 0);
-          const needReduction = diff0;
-          if (totalExcess > 0) {
-            scaledScenes = scaledScenes.map(s => {
-              const excess = Math.max(0, s.durMs - s._floorMs);
-              if (excess <= 0) return s;
-              const reduceBy = (excess / totalExcess) * needReduction;
-              const newDur = Math.max(s._floorMs, s.durMs - reduceBy);
-              return { ...s, durMs: newDur };
-            });
-          }
-        }
-      } else {
-        // Falta tiempo (la suma queda corta del target) — repartir el sobrante
-        // proporcionalmente entre todas las escenas (crecer nunca rompe un piso).
-        const needGrowth = -diff0;
-        const sumDur = scaledScenes.reduce((a, s) => a + s.durMs, 0);
-        if (sumDur > 0) {
-          scaledScenes = scaledScenes.map(s => ({ ...s, durMs: s.durMs + (s.durMs / sumDur) * needGrowth }));
-        }
-      }
-    }
-  }
-  _nivaTimelineFitInfo.computedTimelineDurationMs = scaledScenes.reduce((a, s) => a + s.durMs, 0);
-  _nivaTimelineFitInfo.differenceMs = _nivaTimelineFitInfo.requestedDurationMs
-    ? (_nivaTimelineFitInfo.computedTimelineDurationMs - _nivaTimelineFitInfo.requestedDurationMs)
-    : null;
-  console.log('[NIVA][TIMELINE FIT] requestedDurationMs=' + _nivaTimelineFitInfo.requestedDurationMs +
-    ' preFitTotalMs=' + _nivaPreFitTotalMs.toFixed(0) +
-    ' floorSumMs=' + _nivaTimelineFitInfo.floorSumMs.toFixed(0) +
-    ' computedTimelineDurationMs=' + _nivaTimelineFitInfo.computedTimelineDurationMs.toFixed(0) +
-    ' differenceMs=' + (_nivaTimelineFitInfo.differenceMs !== null ? _nivaTimelineFitInfo.differenceMs.toFixed(0) : 'n/a') +
-    (_nivaTimelineFitInfo.impossible ? ' ❌ IMPOSIBLE dentro de los pisos técnicos' : ' ✅'));
-
-  let t = 0;
-  scaledScenes.forEach(s => { s.startMs = t; t += s.durMs; });
-  // TOTAL = suma de las duraciones ya resueltas por escena (ya ajustadas al
-  // presupuesto solicitado arriba) — nunca un valor externo impuesto después.
-  const TOTAL = t;
+  console.log('[NIVA][TIMELINE] ' + scaledScenes.map((s, i) => '#' + (i + 1) + ':' + (s.startMs / 1000).toFixed(2) + 's+' + (s.durMs / 1000).toFixed(2) + 's' + (s.voice ? ' voz@' + s.voice.offset.toFixed(2) + 's/' + s.voice.len.toFixed(2) + 's' : ' muda')).join(' · ') + ' | captions=' + vidSubtitleSegments.length + ' | total=' + (TOTAL / 1000).toFixed(2) + 's (selector=' + (totalMs / 1000) + 's)');
 
   sceneKenBurnsVariants = scaledScenes.map((s, i) =>
     NIVA_FLAGS.advancedCameraMotion
@@ -11053,7 +11122,13 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
     _nivaDrawFrameCount++;
     // ── Frame pacing: siempre basado en tiempo real (no frame counter) ──
     if (!vidStartT) { vidStartT = ts; }
-    const elapsed = ts - vidStartT;
+    let elapsed = ts - vidStartT;
+    // Reloj maestro: el del AudioContext (mismo que usa la voz programada) — así el cuadro
+    // que se dibuja y la voz que suena están en el MISMO instante, sin depender de rAF.
+    if (_nivaAudioClock && _nivaAudioClock.ctx && _nivaAudioClock.ctx.state === 'running') {
+      const a = (_nivaAudioClock.ctx.currentTime - _nivaAudioClock.t0) * 1000;
+      elapsed = a < 0 ? 0 : a;
+    }
 
     // ── Métricas ──
     if (_perf) {
@@ -11260,8 +11335,7 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
     // un texto fantasma encimado sobre el título/precio de la portada (ilegible, "feo").
     if (!portadaIntroActive && vidSubtitleSegments.length > 0) {
       ctx.globalAlpha = 1;
-      const globalFrac = Math.min(elapsed / TOTAL, 1);
-      drawSubtitleText(ctx, globalFrac, W, H);
+      drawSubtitleText(ctx, elapsed, W, H);
     }
 
     // ── Barra de progreso ──
@@ -11517,14 +11591,12 @@ function drawPropertyTitleCard(ctx, v, alpha, W, H) {
 // Regla estricta: UN SOLO caption activo en pantalla en cualquier momento.
 // Transición: fade-out completo del anterior → gap 40ms → fade-in del siguiente.
 // ══════════════════════════════════════════════════════════════════
-function drawSubtitleText(ctx, globalFrac, W, H) {
+function drawSubtitleText(ctx, elapsedMs, W, H) {
   if (!vidSubtitleSegments.length) return;
 
-  // ── Encontrar el único segmento activo ──
-  // Usar find() garantiza que solo uno puede estar activo a la vez.
-  // Los segmentos tienen gaps de 40ms entre sí, eliminando solapamientos.
+  // ── Encontrar el único segmento activo (tiempos ABSOLUTOS en ms, mismo reloj que la voz) ──
   const active = vidSubtitleSegments.find(s =>
-    globalFrac >= s.startFrac && globalFrac < s.endFrac
+    s.startMs !== undefined && elapsedMs >= s.startMs && elapsedMs < s.endMs
   );
   if (!active) return;
 
@@ -11532,7 +11604,7 @@ function drawSubtitleText(ctx, globalFrac, W, H) {
   if (!rawText) return;
 
   // Progreso local dentro de este segmento [0, 1]
-  const localT = (globalFrac - active.startFrac) / Math.max(0.001, active.endFrac - active.startFrac);
+  const localT = (elapsedMs - active.startMs) / Math.max(1, active.endMs - active.startMs);
 
   // ── Determinar estilo según objetivo ──
   const obj     = vidVideoObjective || 'IMPACTO';
@@ -12281,7 +12353,14 @@ function drawOutroScene(ctx, v, sceneT, W, H, scene) {
   // Si hay subtítulos activos, esperamos a que el último caption desaparezca completamente.
   let ctaDelay = 0.20; // fracción de la escena-outro antes de mostrar el primer elemento
 
-  if (vidSubtitleSegments && vidSubtitleSegments.length > 0) {
+  if (vidSubtitleSegments && vidSubtitleSegments.length > 0 && scene && scene.durMs && vidSubtitleSegments[vidSubtitleSegments.length - 1].endMs !== undefined) {
+    // Tiempos reales (ms) de la línea de tiempo maestra — sin fracciones estimadas.
+    const lastSeg = vidSubtitleSegments[vidSubtitleSegments.length - 1];
+    const nowMs = scene.startMs + sceneT * scene.durMs;
+    const ctaStartMs = lastSeg.endMs + 300;
+    if (nowMs < ctaStartMs) return; // el último subtítulo sigue visible
+    ctaDelay = Math.min(Math.max(0, (ctaStartMs - scene.startMs) / scene.durMs), 0.80);
+  } else if (vidSubtitleSegments && vidSubtitleSegments.length > 0 && vidSubtitleSegments[vidSubtitleSegments.length - 1].endFrac !== undefined) {
     const lastSeg = vidSubtitleSegments[vidSubtitleSegments.length - 1];
     let totalVideoSec = 30;
     if (typeof vidScenes !== 'undefined' && vidScenes.length > 0) {
@@ -13350,6 +13429,8 @@ function buildDefaultScenes(v, nPhotos) {
 
 function stopVideo() {
   if (videoAnim) { cancelAnimationFrame(videoAnim); videoAnim = null; vidStartT = null; }
+  _nivaVoiceSources.forEach(sn => { try { sn.stop(); } catch(e) {} }); _nivaVoiceSources = [];
+  _nivaAudioClock = null;
   _nivaCaptureTrack = null; _nivaManualCapture = false;
   if (activeMusicSource) { try { activeMusicSource.stop(); activeMusicSource = null; } catch(e){} }
   // videoSynth removido — browser TTS eliminado
