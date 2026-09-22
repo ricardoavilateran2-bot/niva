@@ -1296,7 +1296,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-22.80';
+const NIVA_BUILD_VERSION = '2026-09-22.81';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -9457,7 +9457,7 @@ function _rebuildSubtitleSegments() {
     }
     // Sin escenas (o fragmentos no ubicados): subtítulos directos de los timestamps, en ms.
     vidSubtitleSegments = _nivaChunkCaptionWords(_nivaAlignmentWords(_lastElevenLabsAlignment))
-      .map(c => ({ text: c.text, startMs: c.start * 1000, endMs: c.end * 1000 + 140 }));
+      .map(c => ({ text: c.text, startMs: c.start * 1000, endMs: c.end * 1000 + 140, words: (c.words || []).map(w => ({ text: w.text, startMs: w.start * 1000 })) }));
     return;
   }
 
@@ -10057,6 +10057,10 @@ async function playVideoEL() {
     (_nivaNeededIdx && !_nivaNeededIdx.has(_nivaSi)) ? null : preScaleImage(img, 1080, 1920, KB_MAX)
   );
   _warmVelocityLUTs();
+  // El realce de color de cada foto se calculaba en el PRIMER cuadro de su escena (canvas
+  // grande con filtro) → 0.25–0.5 s de imagen congelada justo en cada cambio de escena
+  // (medido en el video del 22-sep: rachas de 7–15 cuadros repetidos). Se precalcula aquí.
+  try { vidScaledImages.forEach(im => { if (im) _nivaGetEnhancedSource(im); }); } catch (e) {}
 
   // Clasificar fotos con GPT-4o Vision (Fase 3) — solo si hay fotos reales
   if (NIVA_FLAGS.photoClassifier && photos.length > 0) {
@@ -10523,12 +10527,13 @@ async function playVideoEL() {
           }
         }, NIVA_HARD_FAILSAFE_MS);
         let _nivaElapsedSec = 0;
+        // Cada 3 s (antes cada 1 s): el video grabado mostraba un micro-tirón de ~100 ms una
+        // vez por segundo, coincidiendo con esta escritura al DOM durante la grabación.
         _nivaTicker = setInterval(() => {
-          _nivaElapsedSec++;
+          _nivaElapsedSec += 3;
           const st = (mediaRecorder && mediaRecorder.state) || '?';
-          const vis = document.visibilityState;
-          vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + ']… ' + _nivaElapsedSec + 's · rec:' + st + ' · pantalla:' + vis + ' · frames:' + _nivaDrawFrameCount + ' · no cierres esta ventana', 'loading');
-        }, 1000);
+          vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + ']… ' + _nivaElapsedSec + 's · rec:' + st + ' · no cierres esta ventana', 'loading');
+        }, 3000);
         mediaRecorder.onstop = async () => {
           window.__nivaOnstopRan = true;
           clearTimeout(_nivaHardFailsafeTimer);
@@ -10880,6 +10885,7 @@ function _nivaAlignmentDurations(scenes, ttsScript) {
 //   · el total del video es la suma; el selector de 20/30/40s solo guía cuánto guion
 //     se escribe (como ya decía la UI), no recorta ni estira nada.
 // ══════════════════════════════════════════════════════════════════════════════
+let _nivaCurSceneDurMs = 0;       // duración de la escena que se está dibujando (para la curva de cámara)
 let _nivaMasterTimeline = null;   // {scenes:[{...durMs,startMs,voice:{offset,len,at}}], captions:[{text,startMs,endMs}], totalMs, hasAlignment}
 let _nivaAudioClock = null;       // {ctx, t0}: reloj maestro durante la grabación
 let _nivaVoiceSources = [];       // AudioBufferSourceNode programados (para poder detenerlos)
@@ -10888,29 +10894,58 @@ const NIVA_TL = { LEAD_MS: 120, PRE_MS: 60, POST_MS: 260, BREATH_MS: 180, MIN_CA
 function _nivaChunkCaptionWords(words) {
   // Agrupa palabras en renglones cortos y equilibrados (máx 4 palabras / ~26 letras),
   // cortando en puntuación fuerte y sin dejar palabras huérfanas ("PEDRO" solo).
+  // Reglas de "no separar": nombres propios (San Pedro Garza García, Valle Oriente),
+  // número + unidad (39 mil, 120 m², 2 recámaras) y artículo/preposición + siguiente palabra.
+  const UNIT = /^(mil|millones|millón|m²|m2|metros|pesos|recámaras?|baños?|cajones?|niveles?|pisos?|años?)[,.;:!?]*$/i;
+  const GLUE = /^(de|del|en|con|por|para|a|al|la|el|los|las|un|una|y|sin|sobre|tu|su|mi)$/i;
+  const isCap = t => /^[¿¡"']?[A-ZÁÉÍÓÚÑ]/.test(t);
+  const isNum = t => /^\$?[\d.,]+$/.test(t.replace(/[,.;:!?]+$/, ''));
   const out = [];
   let sentence = [];
   const flush = () => {
     if (!sentence.length) return;
-    const MAXW = 4, MAXC = 26;
-    let nChunks = Math.max(1, Math.ceil(sentence.length / MAXW));
-    const totalChars = sentence.reduce((a, w) => a + w.text.length + 1, 0);
-    nChunks = Math.max(nChunks, Math.ceil(totalChars / MAXC));
-    const size = Math.ceil(sentence.length / nChunks);
-    for (let i = 0; i < sentence.length; i += size) {
-      let grp = sentence.slice(i, i + size);
-      if (grp.length === 1 && out.length && out[out.length - 1]._sent === sentence) {
-        // una sola palabra sobrante: se une al renglón anterior
-        const prev = out[out.length - 1];
-        prev.text += ' ' + grp[0].text; prev.end = grp[0].end; continue;
+    // 1) tokens = grupos de palabras que no se separan
+    const tokens = [];
+    for (let i = 0; i < sentence.length; i++) {
+      const grp = [sentence[i]];
+      while (i + 1 < sentence.length) {
+        const cur = sentence[i].text, nxt = sentence[i + 1].text;
+        const stuck = (isNum(cur) && UNIT.test(nxt))
+          || (isCap(nxt) && isCap(cur) && (i > 0 || tokens.length > 0 || grp.length > 1) && !/[,.;:!?]$/.test(cur))
+          || (GLUE.test(cur.replace(/[,.;:!?]+$/, '')) && !/[,.;:!?]$/.test(cur));
+        if (!stuck || grp.length >= 4) break;
+        grp.push(sentence[++i]);
       }
-      out.push({ text: grp.map(w => w.text).join(' '), start: grp[0].start, end: grp[grp.length - 1].end, _sent: sentence });
+      tokens.push(grp);
+    }
+    // 2) repartir tokens en renglones de ≤4 palabras / ~26 letras, equilibrados
+    const MAXW = 4, MAXC = 26;
+    const nWords = sentence.length;
+    const totalChars = sentence.reduce((a, w) => a + w.text.length + 1, 0);
+    const nChunks = Math.max(1, Math.ceil(nWords / MAXW), Math.ceil(totalChars / MAXC));
+    const target = nWords / nChunks;
+    let cur = [], curN = 0;
+    const push = () => { if (cur.length) { out.push({ words: cur, _sent: sentence }); cur = []; curN = 0; } };
+    tokens.forEach((tok, ti) => {
+      if (cur.length && curN + tok.length > Math.max(target + 0.5, tok.length) && curN >= 2) push();
+      cur = cur.concat(tok); curN += tok.length;
+    });
+    push();
+    // 3) sin huérfanas: un renglón de 1 palabra se une al anterior
+    for (let i = out.length - 1; i > 0; i--) {
+      if (out[i]._sent === sentence && out[i].words.length === 1 && out[i - 1]._sent === sentence && out[i - 1].words.length < 5) {
+        out[i - 1].words = out[i - 1].words.concat(out[i].words); out.splice(i, 1);
+      }
     }
     sentence = [];
   };
   words.forEach(w => { sentence.push(w); if (/[.!?…]$/.test(w.text)) flush(); });
   flush();
-  return out.map(c => ({ text: c.text.replace(/[,;:.…]+$/, '').trim(), start: c.start, end: c.end }));
+  return out.map(c => ({
+    text: c.words.map(w => w.text).join(' ').replace(/[,;:.…]+$/, '').trim(),
+    start: c.words[0].start, end: c.words[c.words.length - 1].end,
+    words: c.words.map(w => ({ text: w.text.replace(/[,;:.…]+$/, ''), start: w.start, end: w.end })),
+  }));
 }
 
 function _nivaAlignmentWords(al) {
@@ -10980,7 +11015,8 @@ function _nivaBuildMasterTimeline(scenes, al, voiceDurSec) {
       _nivaChunkCaptionWords(wIn).forEach(c => {
         const a = t + T.LEAD_MS + (c.start - segStart) * 1000;
         const b = t + T.LEAD_MS + (c.end - segStart) * 1000 + 140; // 140ms de cola para que no parpadee
-        captions.push({ text: c.text, startMs: Math.max(t, a), endMs: Math.min(t + durMs, Math.max(a + 350, b)) });
+        captions.push({ text: c.text, startMs: Math.max(t, a), endMs: Math.min(t + durMs, Math.max(a + 350, b)),
+          words: (c.words || []).map(w => ({ text: w.text, startMs: t + T.LEAD_MS + (w.start - segStart) * 1000 })) });
       });
     } else {
       durMs = Math.max(userMs, T.MIN_SILENT_MS);
@@ -11170,6 +11206,7 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
 
     const photoIdx  = Math.min(Math.max(scene.foto_idx||0, 0), vidScaledImages.length-1);
     const img       = vidScaledImages[photoIdx] || null;
+    _nivaCurSceneDurMs = scene.durMs || 0;
     const variant   = sceneKenBurnsVariants[sceneNum];
     // Usar variant cacheado para escena anterior — NUNCA llamar resolveCameraPreset por frame
     const prevVariant = prevKenBurnsVariant || sceneKenBurnsVariants[Math.max(0, sceneNum-1)];
@@ -11687,30 +11724,44 @@ function drawSubtitleText(ctx, elapsedMs, W, H) {
     ctx.strokeStyle = grd; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(W/2 - lw/2, ly); ctx.lineTo(W/2 + lw/2, ly); ctx.stroke();
 
-  } else if (style === 'DYNAMIC') {
-    // Blanco puro + sombra pronunciada
-    ctx.font          = font;
-    ctx.shadowColor   = 'rgba(0,0,0,0.96)';
-    ctx.shadowBlur    = 24;
-    ctx.shadowOffsetY = 3;
-    ctx.fillStyle     = 'rgba(255,255,255,0.98)';
-    lines.forEach((l, i) => ctx.fillText(l, W / 2, baseY + i * lineH));
-
   } else {
-    // CLEAN — blanco moderno, sombra sutil en capas, sin fondo
+    // DYNAMIC (IMPACTO) y CLEAN — blanco + sombra; DYNAMIC con sombra más marcada.
+    // CLEAN — blanco moderno, sombra sutil en capas, sin fondo.
+    // Con tiempos por palabra (ElevenLabs), la palabra que se está diciendo se pinta en
+    // dorado — el texto "camina" con la voz (estilo Reels/TikTok) en vez de aparecer en bloque.
     ctx.font = font;
+    const wt = (active.words && active.words.length === words.length) ? active.words : null;
+    let curW = -1;
+    if (wt) { for (let i = 0; i < wt.length; i++) if (elapsedMs >= wt[i].startMs - 40) curW = i; }
+    const drawLines = (fill, hi) => {
+      let wi = 0;
+      lines.forEach((l, i) => {
+        const y = baseY + i * lineH;
+        if (!wt) { ctx.fillStyle = fill; ctx.fillText(l, W / 2, y); return; }
+        const lw = l.split(' ');
+        const total = ctx.measureText(l).width;
+        const sp = ctx.measureText(' ').width;
+        let x = W / 2 - total / 2;
+        ctx.textAlign = 'left';
+        lw.forEach(wd => {
+          const ww = ctx.measureText(wd).width;
+          ctx.fillStyle = (hi && wi === curW) ? hi : fill;
+          ctx.fillText(wd, x, y);
+          x += ww + sp; wi++;
+        });
+        ctx.textAlign = 'center';
+      });
+    };
     // Capa 1: sombra dura para contraste en fondos claros
-    ctx.shadowColor   = 'rgba(0,0,0,0.92)';
-    ctx.shadowBlur    = 22;
+    ctx.shadowColor   = style === 'DYNAMIC' ? 'rgba(0,0,0,0.96)' : 'rgba(0,0,0,0.92)';
+    ctx.shadowBlur    = style === 'DYNAMIC' ? 24 : 22;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-    ctx.fillStyle     = 'rgba(255,255,255,0.99)';
-    lines.forEach((l, i) => ctx.fillText(l, W / 2, baseY + i * lineH));
+    ctx.shadowOffsetY = style === 'DYNAMIC' ? 3 : 2;
+    drawLines('rgba(255,255,255,0.99)', '#E8C96A');
     // Capa 2: segunda pasada con sombra más difusa para máximo contraste
     ctx.shadowBlur    = 40;
     ctx.shadowOffsetY = 0;
-    ctx.fillStyle     = 'rgba(255,255,255,0.3)';
-    lines.forEach((l, i) => ctx.fillText(l, W / 2, baseY + i * lineH));
+    drawLines('rgba(255,255,255,0.3)', 'rgba(232,201,106,0.35)');
   }
 
   ctx.restore();
@@ -11896,7 +11947,14 @@ function drawCameraMotion(ctx, img, rawProgress, presetNameOrObj, W, H, shake) {
   const velCurve = preset.velocity || null;
   const easingFn = EASE[preset.easing] || EASE.easeInOut;
   const tAfterVel = applyVelocityCurve(rawProgress, velCurve);
-  const p = Math.max(0, Math.min(1, NIVA_FLAGS.speedRamps ? easingFn(tAfterVel) : rawProgress));
+  let p = Math.max(0, Math.min(1, NIVA_FLAGS.speedRamps ? easingFn(tAfterVel) : rawProgress));
+  // Escenas largas (>3 s): las curvas con arranque/frenado suave dejaban la foto casi quieta
+  // 1–2 s al inicio y al final (medido: 6 s de escena con ~3 s sin movimiento perceptible).
+  // Se mezcla la curva hacia velocidad constante según la duración — la foto nunca "se para".
+  if (_nivaCurSceneDurMs > 3000) {
+    const k = Math.min(0.85, (_nivaCurSceneDurMs - 3000) / 3500);
+    p = p * (1 - k) + rawProgress * k;
+  }
 
   // Dimensiones cover — usar proporciones originales (_origWidth/_origHeight si es canvas pre-escalado)
   const origW = img._origWidth  || img.width;
