@@ -1286,6 +1286,12 @@ async function resolveAdvisorDisplayName(uname){
   try{
     const sbClient = window.__nivaSb;
     if (!sbClient) throw new Error('sin cliente supabase');
+    // Identidad real primero (my_advisor_id: auth.uid → app_users → advisors); nombre solo como respaldo.
+    const me=await sbClient.rpc('my_advisor_id');
+    if(me.data){
+      const {data:row}=await sbClient.from('advisors').select('first_name,last_name,phone').eq('id',me.data).maybeSingle();
+      if(row){ window.__nivaAdvisorPhone = row.phone || ''; return ((row.first_name||'')+' '+(row.last_name||'')).trim(); }
+    }
     const {data}=await sbClient.from('advisors').select('first_name,last_name,phone');
     const rows=data||[];
     const norm=s=>(s||'').trim().toLowerCase();
@@ -2476,7 +2482,7 @@ function applyMusicSelection(scored, analysis, fromAuto) {
     badge.style.background = '#f0fdf4';
     badge.style.borderColor = '#bbf7d0';
     const moodText = analysis?.moods?.slice(0,3).join(' · ') || best.mood.slice(0,3).join(' · ');
-    if (moodEl) moodEl.innerHTML = `<strong>Mood: ${moodText}</strong>${analysis?.razon ? ' — ' + analysis.razon : ''}`;
+    if (moodEl) moodEl.innerHTML = `<strong>Mood: ${_escVidHtml(moodText)}</strong>${analysis?.razon ? ' — ' + _escVidHtml(analysis.razon) : ''}`;
   }
 
   // Show recommendations
@@ -4440,16 +4446,16 @@ function genFicha(v) {
   specs.push(['Tipo de propiedad', v.tipo]);
   specs.push(['Tipo de operación', v.op]);
   document.getElementById('fic-specs').innerHTML = specs.map(([k,val]) =>
-    `<div class="ficha-spec"><span class="fs-key">${k}</span><span class="fs-val2">${val}</span></div>`).join('');
+    `<div class="ficha-spec"><span class="fs-key">${_escVidHtml(k)}</span><span class="fs-val2">${_escVidHtml(val)}</span></div>`).join('');
   // Etiqueta de amenidades/equipamiento dinámica
   const ficAmLabel = document.getElementById('fic-am-label');
   if (ficAmLabel) ficAmLabel.textContent = amLabel(v.tipo);
   // Tags
-  document.getElementById('fic-tags').innerHTML = v.ams.map(a => `<span class="ftag">${a}</span>`).join('') || '<span style="color:#94a3b8;font-size:12px">Sin ' + amLabel(v.tipo).toLowerCase() + ' seleccionado</span>';
+  document.getElementById('fic-tags').innerHTML = v.ams.map(a => `<span class="ftag">${_escVidHtml(a)}</span>`).join('') || '<span style="color:#94a3b8;font-size:12px">Sin ' + amLabel(v.tipo).toLowerCase() + ' seleccionado</span>';
   // Gallery pequeña en el cuerpo (primeras 5 fotos)
   const gal = document.getElementById('fic-gallery');
   if (photos.length > 0) {
-    gal.innerHTML = photos.slice(1, 6).map(u => `<img src="${u}">`).join('');
+    gal.innerHTML = photos.slice(1, 6).map(u => `<img src="${_escVidHtml(u)}">`).join('');
   } else {
     gal.innerHTML = '<div style="grid-column:1/-1;height:170px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:13px;border-radius:4px">Sin fotos</div>';
   }
@@ -4459,7 +4465,7 @@ function genFicha(v) {
   const allPhotosEl = document.getElementById('fic-all-photos');
   if (photos.length > 0) {
     allPhotosEl.innerHTML = photos.map((u, i) =>
-      `<div class="ficha-gal-item" style="background-image:url('${u}')"></div>`
+      `<div class="ficha-gal-item" style="background-image:url('${_escVidHtml(String(u).replace(/['"()]/g,''))}')"></div>`
     ).join('');
     fullGalWrap.style.display = 'block';
   } else {
@@ -6560,9 +6566,12 @@ function downloadWebmFallback() {
 // Sobrevive re-evaluaciones del script porque vive en window (no en closure).
 // Usar SIEMPRE getElevenLabsApiKey() para leer, setElevenLabsApiKey(v) para escribir.
 (function _initELKey() {
-  // API key fija — no requiere entrada manual del usuario
-  window.NIVA_ELEVENLABS_API_KEY = 'sk_3658e4ea1c9070f9d57bee7d92d326e3420f069742758e69';
-  try { localStorage.setItem('niva_el_key', window.NIVA_ELEVENLABS_API_KEY); } catch(e) {}
+  // La API key de ElevenLabs YA NO vive en este archivo (el repo es público y la llave quedó
+  // expuesta — hay que rotarla en elevenlabs.io). Ahora las llamadas a api.elevenlabs.io salen
+  // con el sentinel NIVA_EL_PROXY y el interceptor de abajo las manda a la Edge Function
+  // niva-openai-proxy, que guarda la llave real como secret ELEVENLABS_API_KEY.
+  window.NIVA_ELEVENLABS_API_KEY = 'NIVA-EL-PROXY-EMPRESA-000000';
+  try { localStorage.removeItem('niva_el_key'); } catch(e) {}
   // Estado de validación — true solo después de llamada real a la API
   if (typeof window._elValidated === 'undefined') window._elValidated = false;
   if (typeof window._elValidatedAt === 'undefined') window._elValidatedAt = null;
@@ -6619,6 +6628,20 @@ const NIVA_PROXY_SENTINEL = 'NIVA-PROXY-EMPRESA-KEY-000000';
   const _f = window.fetch.bind(window);
   window.fetch = async function(url, opts){
     try {
+      if (typeof url === 'string' && url.startsWith('https://api.elevenlabs.io/') && opts && opts.headers) {
+        const xk = opts.headers['xi-api-key'] || opts.headers['XI-API-KEY'] || '';
+        if (String(xk).includes('NIVA-EL-PROXY-EMPRESA')) {
+          const cfg = window.__nivaCfg || (window.__nivaCfg = await (await _f('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json());
+          let token = cfg.anon;
+          try {
+            if (window.__nivaSb) { const s = await window.__nivaSb.auth.getSession(); if (s && s.data && s.data.session) token = s.data.session.access_token; }
+            else if (window.__nivaSession) token = window.__nivaSession.access_token;
+          } catch(e){}
+          // El proxy recibe la ruta de ElevenLabs y el cuerpo tal cual; responde el audio/JSON sin tocarlo.
+          return _f(cfg.url + '/functions/v1/niva-openai-proxy?provider=elevenlabs&path=' + encodeURIComponent(url.replace('https://api.elevenlabs.io','')),
+                    { method: opts.method || 'POST', headers:{'Authorization':'Bearer '+token, 'apikey':cfg.anon, 'Content-Type':'application/json'}, body: opts.body });
+        }
+      }
       if (typeof url === 'string' && url.startsWith('https://api.openai.com/') && opts && opts.headers) {
         const h = opts.headers;
         const auth = h['Authorization'] || h['authorization'] || '';
@@ -7562,16 +7585,16 @@ function renderConceptSelector(conceptos) {
     const sc = c.score || 75;
     const scoreColor = sc >= 85 ? '#16a34a' : sc >= 70 ? '#C9A84C' : '#64748b';
     const must = (c.must_show || []).map(x =>
-      `<span style="font-size:9px;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:3px;font-weight:600">${x}</span>`).join('');
+      `<span style="font-size:9px;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:3px;font-weight:600">${_escVidHtml(x)}</span>`).join('');
     return `<div id="niva-concept-${i}" onclick="selectConcepto(${i})" style="padding:12px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;cursor:pointer;transition:all .2s">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <span style="font-size:11px;font-weight:800;color:#1B2A4A;text-transform:uppercase;letter-spacing:.05em">${icon} Concepto ${c.id}</span>
         <span style="font-size:13px;font-weight:900;color:${scoreColor}">${sc}/100</span>
       </div>
-      <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:4px">"${c.titulo}"</div>
-      <div style="font-size:11px;color:#475569;font-style:italic;margin-bottom:5px">"${c.hook_maestro}"</div>
-      <div style="font-size:10px;color:#64748b;margin-bottom:6px">${c.razon_funcionar}</div>
-      ${c.elemento_wow ? `<div style="font-size:10px;background:#fef9ee;color:#92400e;padding:4px 8px;border-radius:5px;font-weight:700;margin-bottom:5px">⭐ WOW: ${c.elemento_wow}</div>` : ''}
+      <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:4px">"${_escVidHtml(c.titulo)}"</div>
+      <div style="font-size:11px;color:#475569;font-style:italic;margin-bottom:5px">"${_escVidHtml(c.hook_maestro)}"</div>
+      <div style="font-size:10px;color:#64748b;margin-bottom:6px">${_escVidHtml(c.razon_funcionar)}</div>
+      ${c.elemento_wow ? `<div style="font-size:10px;background:#fef9ee;color:#92400e;padding:4px 8px;border-radius:5px;font-weight:700;margin-bottom:5px">⭐ WOW: ${_escVidHtml(c.elemento_wow)}</div>` : ''}
       <div style="display:flex;gap:4px;flex-wrap:wrap">${must}</div>
     </div>`;
   }).join('');
@@ -7681,7 +7704,7 @@ function renderHooks() {
   vidHooks.forEach((h, i) => {
     const div = document.createElement('div');
     div.className = 'vid-hook-item';
-    div.innerHTML = `<div class="vid-hook-cat">${h.emoji} ${h.categoria}</div><div class="vid-hook-text">"${h.texto}"</div>`;
+    div.innerHTML = `<div class="vid-hook-cat">${_escVidHtml(h.emoji)} ${_escVidHtml(h.categoria)}</div><div class="vid-hook-text">"${_escVidHtml(h.texto)}"</div>`;
     div.onclick = () => seleccionarHook(i);
     listEl.appendChild(div);
   });
@@ -8400,7 +8423,7 @@ function _escVidAttr(s) {
 }
 // Escapa texto para insertarlo como contenido de un elemento (ej. dentro de <textarea>...</textarea>).
 function _escVidHtml(s) {
-  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // Edición del guión ESCENA POR ESCENA — la IA sigue generando el guión inicial completo;

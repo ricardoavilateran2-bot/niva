@@ -326,6 +326,25 @@ async function ebToggle(propertyId, action, motivo){
   if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
   return { data: j };
 }
+// Nombre y teléfono viven en `contacts` (la vista my_leads no expone contact_id). Antes el CRM
+// intentaba escribir columnas inexistentes en `leads` y el guardado fallaba para todos.
+// Ahora: RPC actualizar_contacto_lead (valida permisos y duplicados); si la RPC aún no existe
+// en la base, el admin puede actualizar el contacto directo (los asesores reciben un aviso claro).
+async function actualizarContacto(l, cambios){
+  const r=await sb.rpc('actualizar_contacto_lead',{p_lead_id:l.id, p_nombre:cambios.nombre??null, p_telefono:cambios.telefono??null});
+  if(!r.error) return r.data;
+  const noExiste=/could not find the function|does not exist|PGRST202/i.test(r.error.message||'')||r.error.code==='PGRST202'||r.error.code==='42883';
+  if(!noExiste) throw r.error;
+  const lk=await sb.from('leads').select('contact_id').eq('id',l.id).maybeSingle();
+  if(lk.error||!lk.data) throw new Error('No se encontró el contacto del lead');
+  const upd={};
+  if(cambios.nombre!=null) upd.full_name=cambios.nombre;
+  if(cambios.telefono!=null) upd.phone_normalized='+52'+String(cambios.telefono).slice(-10);
+  const u=await sb.from('contacts').update(upd).eq('id',lk.data.contact_id).select('id');
+  if(u.error) throw u.error;
+  if(!u.data||!u.data.length) throw new Error('Tu usuario no tiene permiso para editar contactos; pide al administrador que aplique la actualización de la base de datos.');
+  return {ok:true};
+}
 let LEADS=[], PROPS=[], ASESORES=[], DUENOS={}, TAB='clientes', FIL='todos', Q='', ESADMIN=false, USUARIO='', ADVISOR_DISPLAY_NAME='';
 let RANGO=null; // null | 'hoy' | 'semana' — filtro de fecha activado por deep-link desde admin.html
 // Deep-link desde el panel de administrador: crm.html?tab=todos&fil=new  ó  ?tab=todos&rango=hoy|semana
@@ -341,6 +360,13 @@ let RANGO=null; // null | 'hoy' | 'semana' — filtro de fecha activado por deep
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
   try{
+    // Primero por identidad real (my_advisor_id resuelve auth.uid → app_users → advisors);
+    // el nombre de pila solo como respaldo (dos asesores pueden llamarse igual).
+    const me=await sb.rpc('my_advisor_id');
+    if(me.data){
+      const {data:row}=await sb.from('advisors').select('first_name,last_name').eq('id',me.data).maybeSingle();
+      if(row) return ((row.first_name||'')+' '+(row.last_name||'')).trim();
+    }
     const {data}=await sb.from('advisors').select('first_name,last_name');
     const rows=data||[];
     const norm=s=>(s||'').trim().toLowerCase();
@@ -356,7 +382,8 @@ const tipoLead=(l)=>l.contact_type||'unidentified';
 const esArchivado=(l)=>!!l.archived_at;
 let VISTA='tablero'; // tablero | lista
 const EST={new:'NUEVO',contacted:'ACTIVO',attended:'TIBIO',cancelled:'CERRADO'};
-const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa',facebook_messenger:'Messenger'};
+const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa',facebook_messenger:'Messenger',whatsapp_meta:'WhatsApp Meta',meta_lead_form:'Formulario Meta',web:'Sitio web'};
+const srcLabel=(s)=>ESRC[s]||s||'';
 const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
 const ftel=(t)=>t?t.replace('+52',''):'';
 // P0: escape de HTML para todo dato dinámico (anti-XSS)
@@ -366,6 +393,8 @@ function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');se
 
 // ===== Modo sin conexión: caché local + cola de cambios pendientes =====
 const CACHE_KEY='niva_cache_v1', QUEUE_KEY='niva_queue_v1';
+// Errores que NO se arreglan reintentando (permisos, violación de reglas, valor inválido)
+const esErrorPermanente=(e)=>!!e && (['42501','23514','23505','22P02','PGRST301','PGRST116'].includes(e.code) || /permission|policy|row-level|invalid input|violates/i.test(e.message||''));
 function guardarCache(){
   try{localStorage.setItem(CACHE_KEY, JSON.stringify({LEADS,PROPS,ts:Date.now()}));}catch(e){}
 }
@@ -419,6 +448,7 @@ async function sincronizar(){
       try{
         if(op.tipo==='status_change'){
           const {error}=await sb.from('leads').update({status:op.nuevo}).eq('id',op.leadId);
+          if(error && esErrorPermanente(error)){ exitosos.add(op.id); continue; } // no reintentar lo que la base rechaza siempre
           if(error)throw error;
                     sb.from('lead_interactions').insert({lead_id:op.leadId,type:'status_change',actor:'advisor',payload:{de:op.prev,a:op.nuevo}}).then(()=>{});
         }
@@ -617,7 +647,7 @@ function pintar(){
   else if(TAB==='asesores')arr=arr.filter(l=>tipoLead(l)==='agent');
   else if(TAB==='sinid')arr=arr.filter(l=>tipoLead(l)==='unidentified');
   if(FIL!=='todos')arr=arr.filter(x=>x.status===FIL);
-  if(Q){const q=Q.toLowerCase();arr=arr.filter(x=>[x.full_name,x.phone_normalized,x.property_title,x.eb_public_id,ESRC[x.source]].join(' ').toLowerCase().includes(q))}
+  if(Q){const q=Q.toLowerCase();arr=arr.filter(x=>[x.full_name,x.phone_normalized,x.property_title,x.eb_public_id,srcLabel(x.source)].join(' ').toLowerCase().includes(q))}
   if(RANGO){
     const ahora=new Date(), hoy0=new Date(ahora);hoy0.setHours(0,0,0,0);
     const desde=(RANGO==='hoy')?hoy0:(()=>{const d=new Date(hoy0);d.setDate(d.getDate()-6);return d})();
@@ -782,7 +812,7 @@ function renderSinAsignar(host){
     sinProp.forEach(l=>{
       host.appendChild(grupoSinAsignar(l.id,
         esc((l.full_name&&l.full_name.trim().length>2)?l.full_name:'Sin nombre'),
-        [ESRC[l.source],l.phone_normalized?ftel(l.phone_normalized):null,
+        [srcLabel(l.source),l.phone_normalized?ftel(l.phone_normalized):null,
          l.happened_at?new Date(l.happened_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}):null
         ].filter(Boolean).map(esc).join(' · '),
         [l],false));
@@ -893,8 +923,14 @@ async function moverEtapa(id,nuevo){
     toast('Movido a '+EST[nuevo]+' (sin conexión, se sincronizará)');
     return;
   }
-  const {error}=await sb.from('leads').update({status:nuevo}).eq('id',id);
-  if(error){
+  const {error,data}=await sb.from('leads').update({status:nuevo}).eq('id',id).select('id');
+  if(error||!data||!data.length){
+    if(error && esErrorPermanente(error) || (!error && (!data||!data.length))){
+      // rechazo definitivo (permisos / lead ya no es tuyo): revertimos y avisamos, no lo dejamos en cola infinita
+      l.status=prev;pintar();cargarContadores();guardarCache();
+      toast('No se pudo mover: '+(error?.message||'el lead ya no está asignado a ti'));
+      return;
+    }
     // pudo ser un corte de red en el momento del envío: no revertimos, lo encolamos
     encolar({tipo:'status_change',leadId:id,prev,nuevo});
     toast('Movido a '+EST[nuevo]+' (pendiente de sincronizar)');
@@ -969,7 +1005,7 @@ function cardLead(l){
     ?'<img class="cimg" loading="lazy" src="'+esc(l.title_image_url)+'" onerror="this.outerHTML=\'<div class=cimg-ph>'+inicial+'</div>\'">'
     :'<div class="cimg-ph">'+inicial+'</div>';
   const metaSpecs=[l.bedrooms?l.bedrooms+' rec':null,l.bathrooms?l.bathrooms+' baños':null,m2ok(l.construction_size)?l.construction_size+' m²':null].filter(Boolean).join(' · ');
-  const metaSrc=[ESRC[l.source],l.eb_public_id?esc(l.eb_public_id):null,ESADMIN?(l.advisor_name?'👔 '+esc(l.advisor_name):'⚠️ Sin asesor'):null].filter(Boolean).join(' · ');
+  const metaSrc=[esc(srcLabel(l.source)),l.eb_public_id?esc(l.eb_public_id):null,ESADMIN?(l.advisor_name?'👔 '+esc(l.advisor_name):'⚠️ Sin asesor'):null].filter(Boolean).join(' · ');
   const telVisible='<div class="cmeta telrow">'+telRowHTML(l)+'</div>';
   const fechaVisible=fecha?('<div class="cmeta">🕐 Se comunicó: <strong style="color:var(--txt)">'+fecha+'</strong></div>'):'';
   d.innerHTML='<div class="crow">'
@@ -1033,14 +1069,9 @@ function cardLead(l){
     if(nuevo.length<2){toast('Escribe un nombre válido');return}
     btnGuardarNombre.disabled=true;btnGuardarNombre.textContent='...';
     try{
-      if(l.contact_id){
-        const {error}=await sb.from('contacts').update({full_name:nuevo}).eq('id',l.contact_id);
-        if(error)throw error;
-      }else{
-        const {error}=await sb.from('leads').update({full_name:nuevo}).eq('id',l.id);
-        if(error)throw error;
-      }
+      await actualizarContacto(l,{nombre:nuevo});
       l.full_name=nuevo;
+      LEADS.forEach(x=>{ if(x.id!==l.id && l.phone_normalized && x.phone_normalized===l.phone_normalized) x.full_name=nuevo; });
       d.querySelector('.cnametxt').textContent=nuevo;
       nbox.classList.add('hidden');
       guardarCache();
@@ -1062,18 +1093,12 @@ function cardLead(l){
   if(btnCancelTel)btnCancelTel.onclick=()=>tbox.classList.add('hidden');
   const btnGuardarTel=d.querySelector('.tguardar');
   if(btnGuardarTel)btnGuardarTel.onclick=async()=>{
-    const digitos=tbox.querySelector('.tinput').value.replace(/D/g,'');
+    const digitos=tbox.querySelector('.tinput').value.replace(/\D/g,'').replace(/^52(?=\d{10}$)/,'');
     if(digitos.length!==10){toast('El teléfono debe tener 10 dígitos');return}
     const nuevoTel='+52'+digitos;
     btnGuardarTel.disabled=true;btnGuardarTel.textContent='...';
     try{
-      if(l.contact_id){
-        const {error}=await sb.from('contacts').update({phone_normalized:nuevoTel}).eq('id',l.contact_id);
-        if(error)throw error;
-      }else{
-        const {error}=await sb.from('leads').update({phone_normalized:nuevoTel}).eq('id',l.id);
-        if(error)throw error;
-      }
+      await actualizarContacto(l,{telefono:digitos});
       l.phone_normalized=nuevoTel;
       guardarCache();
       toast('Teléfono actualizado ✅');
@@ -1110,8 +1135,11 @@ function cardLead(l){
       toast('Estado: '+EST[nv]+' (sin conexión, se sincronizará)');pintar();cargarContadores();
       return;
     }
-    const {error}=await sb.from('leads').update({status:nv}).eq('id',l.id);
-    if(error){
+    const {error,data}=await sb.from('leads').update({status:nv}).eq('id',l.id).select('id');
+    if(error||!data||!data.length){
+      if((error&&esErrorPermanente(error))||(!error&&(!data||!data.length))){
+        e.target.value=prev;toast('No se pudo cambiar el estado: '+(error?.message||'el lead ya no está asignado a ti'));return;
+      }
       l.status=nv;guardarCache();encolar({tipo:'status_change',leadId:l.id,prev,nuevo:nv});
       toast('Estado: '+EST[nv]+' (pendiente de sincronizar)');pintar();cargarContadores();
       return;

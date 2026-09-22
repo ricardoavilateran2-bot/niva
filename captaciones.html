@@ -426,7 +426,8 @@ async function guardarEdicion(){
   await cargar();
 }
 
-let PROPS=[], PROPSC=[], ESADMIN=false, CAP_FOTOS=[];
+let PROPS=[], PROPSC=[], ESADMIN=false, CAP_FOTOS=[], MI_ADVISOR_ID=null;
+try{ const {data:advId}=await sb.rpc('my_advisor_id'); MI_ADVISOR_ID=advId||null; }catch(_e){}
 let PT='todas', PO='todo', PS='pmin', PQ='', PE='activas';
 
 function tipoDe(p){
@@ -456,6 +457,12 @@ async function cargar(){
   ]);
   PROPS = p.error? [] : (p.data||[]);
   PROPSC = pc.error? [] : (pc.data||[]);
+  // Antes un error (sesión vencida, RLS, red) se veía igual que "no tienes propiedades".
+  if(p.error||pc.error){
+    const m=(p.error||pc.error).message||'';
+    if(/jwt|token|expired/i.test(m)){ toast('Tu sesión expiró — vuelve a iniciar sesión'); setTimeout(()=>window.location.replace('./index.html'),1500); return; }
+    toast('No se pudieron cargar las propiedades: '+m);
+  }
   pintarColonias();
   renderHistorial();
   renderProps();
@@ -529,7 +536,7 @@ function renderProps(){
 
 function renderHistorial(){
   const host=$('#cap-historial');
-  const mias=PROPS.filter(p=>p.captured_by_advisor_id).slice()
+  const mias=PROPS.filter(p=>p.captured_by_advisor_id && (ESADMIN || !MI_ADVISOR_ID || p.captured_by_advisor_id===MI_ADVISOR_ID || p.advisor_id===MI_ADVISOR_ID)).slice()
     .sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   if(!mias.length){host.innerHTML=vacioHTML(ESADMIN?'Todavía no hay captaciones de ningún asesor.':'Todavía no has capturado ninguna propiedad. Usa el formulario de arriba para dar de alta la primera.','📸');return}
   const wrap=document.createElement('div');wrap.className='captabla';
@@ -698,7 +705,11 @@ async function guardarCaptacion(){
     }
     await Promise.all(Array.from({length:Math.min(3,CAP_FOTOS.length)},trabajadorFotos));
     btn.textContent='Publicando en EasyBroker...';
-    const body={
+    // request_id estable por intento de formulario: si se corta la red y el asesor vuelve a dar
+    // "Publicar", la Edge Function reconoce el mismo id y no crea la propiedad dos veces.
+    let reqId=null; try{ reqId=sessionStorage.getItem('niva_cap_req'); }catch(_e){}
+    if(!reqId){ reqId=Math.random().toString(36).slice(2,12); try{ sessionStorage.setItem('niva_cap_req',reqId); }catch(_e){} }
+    const body={ request_id:reqId,
       property_type:tipo,operation_type:op,price_amount:precio,description:desc,location_name:zona,municipio:mpio,
       title:$('#cap-titulo').value.trim()||undefined,
       bedrooms:$('#cap-rec').value||undefined,bathrooms:$('#cap-bano').value||undefined,
@@ -747,7 +758,8 @@ async function guardarCaptacion(){
         console.log('[NIVA] Rotación: '+podar.length+' fotos antiguas liberadas');
       }
     }catch(_eCS){ console.warn('[NIVA] captacion_fotos (no crítico):',_eCS); }
-    toast('Captación publicada ✅');
+    try{ sessionStorage.removeItem('niva_cap_req'); }catch(_e){}
+    toast(out.duplicate?'Esta captación ya se había publicado ✅':'Captación publicada ✅');
     $('#cap-tipo').value='Casa';$('#cap-op').value='rental';$('#cap-precio').value='';
     $('#cap-titulo').value='';$('#cap-desc').value='';
     $('#cap-rec').value='';$('#cap-bano').value='';$('#cap-mbano').value='';$('#cap-est').value='';$('#cap-m2c').value='';$('#cap-m2t').value='';
@@ -789,8 +801,18 @@ let _dpq=null;
 $('#pbuscar').oninput=(e)=>{clearTimeout(_dpq);_dpq=setTimeout(()=>{PQ=e.target.value;renderProps()},180)};
 $('#cap-mpio').onchange=pintarColonias;
 $('#cap-fotos').onchange=(e)=>{
-  const files=Array.from(e.target.files||[]).slice(0,20);
-  CAP_FOTOS=files.map(file=>({file,previewUrl:URL.createObjectURL(file)}));
+  // Se AGREGAN a las ya elegidas (antes cada selección borraba las anteriores y en celular,
+  // donde solo se pueden elegir de una carpeta a la vez, era imposible juntar fotos).
+  const MAX=30;
+  const nuevas=Array.from(e.target.files||[]).filter(f=>f.type.startsWith('image/'));
+  const yaHay=new Set(CAP_FOTOS.map(x=>x.file.name+'|'+x.file.size));
+  for(const file of nuevas){
+    const k=file.name+'|'+file.size;
+    if(yaHay.has(k))continue;
+    if(CAP_FOTOS.length>=MAX){toast('Máximo '+MAX+' fotos por captación');break;}
+    CAP_FOTOS.push({file,previewUrl:URL.createObjectURL(file)});yaHay.add(k);
+  }
+  e.target.value='';
   pintarFotosCap();
 };
 $('#cap-save').onclick=guardarCaptacion;

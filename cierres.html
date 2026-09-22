@@ -327,9 +327,11 @@ async function cargar(){
   // Identidad del asesor en sesión: se resuelve por user_id (estable, único) contra
   // auth.uid(), NUNCA solo por el primer nombre — con 12 asesores es fácil que dos
   // compartan nombre de pila y antes eso mezclaba sus comisiones.
-  const miUid = session.user?.id || null;
-  MI_ASESOR = (miUid ? ASESORES.find(a=>a.uid===miUid) : null)
-    || ASESORES.find(a=>a.fn===uname.toLowerCase()) // respaldo solo si el asesor aún no tiene user_id vinculado
+  // advisors.user_id referencia app_users.id (no auth.uid), por eso la comparación directa con el
+  // uid nunca coincidía y siempre caía al respaldo por nombre. my_advisor_id() resuelve la cadena real.
+  let miAdvId=null; try{ const r=await sb.rpc('my_advisor_id'); miAdvId=r.data||null; }catch(_e){}
+  MI_ASESOR = (miAdvId ? ASESORES.find(a=>a.id===miAdvId) : null)
+    || ASESORES.find(a=>a.fn===uname.toLowerCase()) // respaldo solo si el asesor aún no tiene usuario vinculado
     || null;
   CIERRES = ci.error?[]:(ci.data||[]);
   CIERRES.sort((a,b)=>new Date(a.fecha_cierre||a.created_at)-new Date(b.fecha_cierre||b.created_at));

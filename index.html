@@ -488,6 +488,13 @@ const sb = createClient(cfg.url, cfg.anon);
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin hardcodear).
 async function resolveAdvisorDisplayName(uname){
   try{
+    // Primero por identidad real (my_advisor_id resuelve auth.uid → app_users → advisors);
+    // el nombre de pila solo como respaldo (dos asesores pueden llamarse igual).
+    const me=await sb.rpc('my_advisor_id');
+    if(me.data){
+      const {data:row}=await sb.from('advisors').select('first_name,last_name').eq('id',me.data).maybeSingle();
+      if(row) return ((row.first_name||'')+' '+(row.last_name||'')).trim();
+    }
     const {data}=await sb.from('advisors').select('first_name,last_name');
     const rows=data||[];
     const norm=s=>(s||'').trim().toLowerCase();

@@ -14,7 +14,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     window.__nivaCfg = cfg;
     window.__nivaUser = (session.user?.email||'').split('@')[0];
     try {
-      const { data: advRow } = await sb.from('advisors').select('id, first_name, last_name').eq('user_id', session.user.id).maybeSingle();
+      // advisors.user_id apunta a app_users.id (NO al uid de auth): antes esta búsqueda nunca
+      // encontraba al asesor y "Solicitar liberación" jamás aparecía. my_advisor_id() ya resuelve la cadena.
+      const { data: advId } = await sb.rpc('my_advisor_id');
+      const { data: advRow } = advId ? await sb.from('advisors').select('id, first_name, last_name').eq('id', advId).maybeSingle() : { data: null };
       window.__nivaAdvisorId = advRow ? advRow.id : null;
       window.__nivaAdvisorName = advRow ? (advRow.first_name + ' ' + advRow.last_name) : null;
       const { data: advList } = await sb.from('advisors').select('id, first_name, last_name').order('first_name');

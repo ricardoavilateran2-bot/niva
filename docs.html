@@ -324,7 +324,7 @@ a{color:#c9a84c;text-decoration:none}
 <!-- LEFT: DOCUMENT PREVIEW -->
 <div class="preview-col">
   <div class="preview-actions">
-    <button class="btn-pdf" onclick="downloadPDF()">⬇ PDF</button>
+    <button class="btn-pdf" onclick="downloadPDF(this)">⬇ PDF</button>
     <button class="btn-word" onclick="nivaDownloadWord()">📝 Word</button>
     <button class="btn-edit" id="btn-edit-doc" onclick="nivaToggleEdit()">✏️ Editar texto</button>
     <button class="btn-print" onclick="imprimirNiva(this)">🖨 Imprimir</button>
@@ -762,7 +762,7 @@ a{color:#c9a84c;text-decoration:none}
 
   <!-- STICKY BOTTOM ACTIONS -->
   <div class="form-actions-bottom">
-    <button class="btn-gen" onclick="downloadPDF()">⬇ PDF</button>
+    <button class="btn-gen" onclick="downloadPDF(this)">⬇ PDF</button>
     <button class="btn-clr" onclick="clearForm()">🗑 Limpiar</button>
     <button class="btn-gen" onclick="imprimirNiva(this)" style="background:#1e3a5f;color:#fff">🖨</button>
   </div>
@@ -2336,15 +2336,16 @@ function genReciboDeposito() {
 // producía páginas sin encabezado, texto pegado al borde superior y renglones
 // partidos a la mitad. Ahora cada hoja del paginador es exactamente una página
 // del PDF, así que el resultado impreso y el PDF son idénticos.
-async function downloadPDF() {
-  var btn = event ? event.target : null;
+async function downloadPDF(btnEl) {
+  var btn = (btnEl && btnEl.tagName) ? btnEl : ((typeof event !== 'undefined' && event && event.target && event.target.tagName === 'BUTTON') ? event.target : document.querySelector('[onclick*="downloadPDF"]'));
+  var btnLabel = btn ? btn.textContent : '⬇ PDF';
   if (btn) { btn.textContent = '⏳ Generando...'; btn.disabled = true; }
 
   var built = false;
   try {
     if (!window.__nivaBuildPrintPages || !window.__nivaBuildPrintPages()){
       alert('Selecciona y genera un documento primero.');
-      if (btn) { btn.textContent = '⬇ Descargar PDF'; btn.disabled = false; }
+      if (btn) { btn.textContent = btnLabel; btn.disabled = false; }
       return;
     }
     built = true;
@@ -2354,7 +2355,7 @@ async function downloadPDF() {
     if (!pages.length){
       alert('No hay contenido para generar el PDF.');
       if (window.__nivaClearPrintPages) window.__nivaClearPrintPages();
-      if (btn) { btn.textContent = '⬇ Descargar PDF'; btn.disabled = false; }
+      if (btn) { btn.textContent = btnLabel; btn.disabled = false; }
       return;
     }
 
@@ -2389,7 +2390,7 @@ async function downloadPDF() {
     if (built && window.__nivaClearPrintPages) { try { window.__nivaClearPrintPages(); } catch(e){} }
   }
 
-  if (btn) { btn.textContent = '⬇ Descargar PDF'; btn.disabled = false; }
+  if (btn) { btn.textContent = btnLabel; btn.disabled = false; }
 }
 
 // ===================== CLEAR FORM =====================
@@ -2907,7 +2908,13 @@ async function extractINE(input, party) {
   window.nivaFolioActual = null;
 
   function leerRegistro(){
-    try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch(e){ return []; }
+    try {
+      var r = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+      // Purga de versiones anteriores que guardaban el formulario completo (datos personales).
+      var limpio = false; r.forEach(function(x){ if (x && x.form) { delete x.form; limpio = true; } });
+      if (limpio) guardarRegistro(r);
+      return r;
+    } catch(e){ return []; }
   }
   function guardarRegistro(r){
     try { localStorage.setItem(LS_KEY, JSON.stringify(r.slice(0,200))); } catch(e){}
@@ -2983,17 +2990,27 @@ async function extractINE(input, party) {
     var d = (document.getElementById('prop-dir')||{}).value || '';
     return [a,b,d].filter(Boolean).join(' · ').slice(0,90);
   }
+  var _folioEnCurso = null;
   window.nivaAsignarFolio = async function(){
     if (window.nivaFolioActual) return window.nivaFolioActual;
-    var tipo = (typeof currentDoc !== 'undefined') ? currentDoc : 'doc';
-    var folio = await generarFolio(tipo);
-    window.nivaFolioActual = folio;
-    var reg = leerRegistro();
-    reg.unshift({ folio: folio, tipo: tipo, tipoNombre: TIPO_NOMBRE[tipo]||tipo, fecha: new Date().toISOString(), resumen: resumenPartes(), form: snapshotForm() });
-    guardarRegistro(reg);
-    inyectarFolioEnPreview();
-    actualizarBadgeFolio();
-    return folio;
+    // Doble clic / dos descargas seguidas: se reutiliza la misma promesa en vez de reservar
+    // dos folios en el servidor para el mismo documento.
+    if (_folioEnCurso) return _folioEnCurso;
+    _folioEnCurso = (async function(){
+      var tipo = (typeof currentDoc !== 'undefined') ? currentDoc : 'doc';
+      var folio = await generarFolio(tipo);
+      window.nivaFolioActual = folio;
+      var reg = leerRegistro();
+      // Solo datos de control (folio/tipo/fecha/resumen). Antes se guardaba una copia completa del
+      // formulario (nombres, INE, domicilios, montos) en localStorage sin cifrar y nadie la leía.
+      reg.unshift({ folio: folio, tipo: tipo, tipoNombre: TIPO_NOMBRE[tipo]||tipo, fecha: new Date().toISOString(), resumen: resumenPartes() });
+      guardarRegistro(reg);
+      if (/-LOCAL$/.test(folio)) { try { alert('Aviso: el folio ' + folio + ' NO quedó registrado en el servidor (sin conexión o sin permiso). Guárdalo y avísale al administrador.'); } catch(e){} }
+      inyectarFolioEnPreview();
+      actualizarBadgeFolio();
+      return folio;
+    })();
+    try { return await _folioEnCurso; } finally { _folioEnCurso = null; }
   };
   // El folio es un dato INTERNO de control: se genera y se guarda en el registro,
   // pero no se dibuja en el documento — ni en el PDF, ni al imprimir, ni en la
@@ -3028,9 +3045,14 @@ async function extractINE(input, party) {
   }
   var _downloadPDF = window.downloadPDF;
   if (typeof _downloadPDF === 'function') {
+    var _pdfEnCurso = false;
     window.downloadPDF = async function(){
-      await window.nivaAsignarFolio(); // asegura folio (reservado en servidor) antes de capturar el PDF
-      return _downloadPDF.apply(this, arguments);
+      if (_pdfEnCurso) return; // doble clic → un solo PDF
+      _pdfEnCurso = true;
+      try {
+        await window.nivaAsignarFolio(); // asegura folio (reservado en servidor) antes de capturar el PDF
+        return await _downloadPDF.apply(this, arguments);
+      } finally { _pdfEnCurso = false; }
     };
   }
   var _clearForm = window.clearForm;
@@ -3132,8 +3154,8 @@ function nivaToggleEdit(){
   var _cf = window.clearForm;
   if (typeof _cf === 'function') window.clearForm = function(){ var r = _cf.apply(this, arguments); nivaDocEditado = false; nivaEditMode = false; var p=document.getElementById('docPreview'); if(p){p.contentEditable='false'; p.style.outline='none';} var b=document.getElementById('btn-edit-doc'); if(b){b.textContent='✏️ Editar texto'; b.style.background='#2a2a2a';} renderPreview(); return r; };
 })();
-function nivaDownloadWord(){
-  try { if (typeof window.nivaAsignarFolio === 'function') window.nivaAsignarFolio(); } catch(e){}
+async function nivaDownloadWord(){
+  try { if (typeof window.nivaAsignarFolio === 'function') await window.nivaAsignarFolio(); } catch(e){}
   var prev = document.getElementById('docPreview');
   var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>Documento NIVA</title><style>body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.45;color:#111} @page{size:letter;margin:2.2cm}</style></head><body>' + prev.innerHTML + '</body></html>';
   var blob = new Blob(['\ufeff', html], {type:'application/msword'});
