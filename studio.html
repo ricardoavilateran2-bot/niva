@@ -59,7 +59,24 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;color:#1e293b;height:100v
 /* ── LAYOUT ── */
 .body{display:flex;flex:1;min-height:0}
 .panel-form{width:380px;min-width:380px;background:white;overflow-y:auto;border-right:1px solid var(--border);transition:transform .3s ease}
-.panel-out{flex:1;overflow-y:auto;padding:20px;background:#f0f4f8}
+.panel-out{flex:1;overflow-y:auto;padding:20px;background:#f0f4f8;position:relative}
+/* ── INDICADOR DE "ESTOY TRABAJANDO" (Ricardo, 22-sep-2026): al generar, el panel derecho se
+   veía en blanco varios segundos (y en Safari a veces más) y parecía que la página había dejado
+   de funcionar. Ahora: velo con spinner mientras se arma el contenido, banner mientras el video
+   sigue pensando con IA, cursor de espera, y si algo truena se muestra el error en vez de nada. ── */
+body.niva-busy, body.niva-busy *{cursor:progress!important}
+#niva-busy-overlay{position:absolute;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(240,244,248,.92);backdrop-filter:blur(2px)}
+#niva-busy-overlay.on{display:flex}
+#niva-busy-overlay .box{text-align:center;max-width:380px;padding:28px 30px;background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(27,42,74,.18)}
+#niva-busy-overlay .spin{width:46px;height:46px;border:4px solid #e2e8f0;border-top-color:#C9A84C;border-radius:50%;margin:0 auto 14px;animation:nivaspin .9s linear infinite}
+#niva-busy-overlay h3{font-size:15px;color:#1B2A4A;margin:0 0 6px}
+#niva-busy-overlay p{font-size:12px;color:#64748b;line-height:1.5;margin:0}
+#niva-busy-overlay .err{color:#b91c1c;font-weight:700}
+#niva-busy-overlay button{margin-top:14px;padding:8px 18px;border:none;border-radius:8px;background:#1B2A4A;color:#fff;font-weight:700;cursor:pointer;font-size:12px}
+#niva-work-banner{display:none;position:sticky;top:0;z-index:30;margin:-20px -20px 14px;padding:9px 16px;background:#1B2A4A;color:#fff;font-size:12px;font-weight:600;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+#niva-work-banner.on{display:flex}
+#niva-work-banner .spin{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.25);border-top-color:#C9A84C;border-radius:50%;animation:nivaspin .9s linear infinite;flex-shrink:0}
+@keyframes nivaspin{to{transform:rotate(360deg)}}
 
 /* ── PESTAÑA PARA ABRIR/CERRAR EL FORMULARIO (celular) ── */
 .niva-form-tab{display:none;position:fixed;left:0;top:70px;z-index:60;background:var(--navy);color:#fff;border:none;padding:12px 7px;border-radius:0 10px 10px 0;font-size:16px;cursor:pointer;box-shadow:2px 2px 12px rgba(0,0,0,.25);line-height:1;writing-mode:vertical-rl;letter-spacing:.03em;font-weight:700}
@@ -568,13 +585,16 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
   </div>
 </div>
 
-<button class="btn-gen" onclick="generateAll()"><span>✨</span> Generar Todo el Contenido</button>
+<button class="btn-gen" id="niva-btn-gen" onclick="generateAll()"><span>✨</span> Generar Todo el Contenido</button>
 
 </div><!-- /fi -->
 </div><!-- /panel-form -->
 
 <!-- ═══════════════ OUTPUT PANEL ═══════════════ -->
 <div class="panel-out">
+
+<div id="niva-work-banner" class="no-print"><div class="spin"></div><span id="niva-work-banner-msg">Trabajando…</span></div>
+<div id="niva-busy-overlay" class="no-print"><div class="box"><div class="spin" id="niva-busy-spin"></div><h3 id="niva-busy-title">Generando tu contenido…</h3><p id="niva-busy-msg">Flyer, ficha, Instagram, textos y la base del video. Suele tardar unos segundos; con muchas fotos, hasta un minuto.</p><button id="niva-busy-btn" style="display:none" onclick="nivaBusy(false)">Cerrar</button></div></div>
 
 <div class="tabs no-print">
   <div class="tab on"  onclick="st('flyer',0)">🏠 Flyer</div>
@@ -1276,7 +1296,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-09.77';
+const NIVA_BUILD_VERSION = '2026-09-22.78';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -3090,23 +3110,105 @@ function cpBoth(btn) {
 // ══════════════════════════════════════════════
 //  GENERATE ALL
 // ══════════════════════════════════════════════
-function generateAll() {
+// ── Indicadores de "estoy trabajando" (ver CSS #niva-busy-overlay / #niva-work-banner) ──
+let _nivaBusyTimer = null;
+function nivaBusy(on, title, msg) {
+  const ov = document.getElementById('niva-busy-overlay');
+  if (!ov) return;
+  const t = document.getElementById('niva-busy-title'), m = document.getElementById('niva-busy-msg');
+  const sp = document.getElementById('niva-busy-spin'), btn = document.getElementById('niva-busy-btn');
+  clearTimeout(_nivaBusyTimer);
+  if (on) {
+    if (t) { t.textContent = title || 'Generando tu contenido…'; t.classList.remove('err'); }
+    if (m) m.textContent = msg || 'Flyer, ficha, Instagram, textos y la base del video. Suele tardar unos segundos; con muchas fotos, hasta un minuto.';
+    if (sp) sp.style.display = 'block';
+    if (btn) btn.style.display = 'none';
+    ov.classList.add('on');
+    document.body.classList.add('niva-busy');
+    // Red de seguridad: si por lo que sea nunca se cierra, que no parezca "muerto".
+    _nivaBusyTimer = setTimeout(() => {
+      if (m) m.textContent = 'Sigue trabajando… Con muchas fotos grandes puede tardar más. Si en un minuto no aparece nada, recarga la página e intenta con menos fotos.';
+      if (btn) btn.style.display = 'inline-block';
+    }, 45000);
+  } else {
+    ov.classList.remove('on');
+    document.body.classList.remove('niva-busy');
+  }
+}
+function nivaBusyError(err) {
+  const ov = document.getElementById('niva-busy-overlay');
+  if (!ov) return;
+  const t = document.getElementById('niva-busy-title'), m = document.getElementById('niva-busy-msg');
+  const sp = document.getElementById('niva-busy-spin'), btn = document.getElementById('niva-busy-btn');
+  clearTimeout(_nivaBusyTimer);
+  const txt = (err && (err.message || String(err))) || 'error desconocido';
+  if (t) { t.textContent = 'Algo falló al generar'; t.classList.add('err'); }
+  if (m) m.textContent = 'Detalle: ' + txt.slice(0, 220) + '. El resto del contenido que sí se generó está detrás de este aviso. Si vuelve a pasar, recarga la página e intenta con menos fotos o fotos más ligeras.';
+  if (sp) sp.style.display = 'none';
+  if (btn) btn.style.display = 'inline-block';
+  ov.classList.add('on');
+  document.body.classList.remove('niva-busy');
+  console.error('[NIVA][generateAll]', err);
+}
+let _nivaBannerDepth = 0;
+function nivaWorkBanner(msg) {
+  const b = document.getElementById('niva-work-banner'), s = document.getElementById('niva-work-banner-msg');
+  if (!b) return;
+  if (msg) { _nivaBannerDepth++; if (s) s.textContent = msg; b.classList.add('on'); document.body.classList.add('niva-busy'); }
+  else { _nivaBannerDepth = Math.max(0, _nivaBannerDepth - 1); if (_nivaBannerDepth === 0) { b.classList.remove('on'); document.body.classList.remove('niva-busy'); } }
+}
+// Envuelve una función async para mostrar el banner mientras corre (y quitarlo pase lo que pase).
+function nivaConBanner(msg, fn) {
+  return async function() {
+    nivaWorkBanner(msg);
+    try { return await fn.apply(this, arguments); } finally { nivaWorkBanner(null); }
+  };
+}
+// Cualquier error no atrapado mientras se genera: mostrarlo en vez de dejar el panel en blanco.
+window.addEventListener('error', (e) => { if (document.body.classList.contains('niva-busy') && e && e.error) nivaBusyError(e.error); });
+window.addEventListener('unhandledrejection', (e) => { if (document.body.classList.contains('niva-busy')) nivaBusyError(e && e.reason); });
+
+let _nivaGenerating = false;
+async function generateAll() {
+  if (_nivaGenerating) return; // doble clic
+  _nivaGenerating = true;
   const v = getV();
   // Actualizar etiqueta de Amenidades / Equipamiento en el formulario
   const secAmLabel = document.getElementById('sec-am-label');
   if (secAmLabel) secAmLabel.textContent = '✨ ' + amLabel(v.tipo);
-  genFlyer(v);
-  genFicha(v);
-  document.fonts.ready.then(() => {
-    genHistoria(v);
-    genCarrusel(v);
-    genVideo(v);
-  });
-  genTextos(v);
   st('flyer', 0);
+  nivaBusy(true);
+  const genBtn = document.getElementById('niva-btn-gen');
+  const genBtnHtml = genBtn ? genBtn.innerHTML : '';
+  if (genBtn) { genBtn.disabled = true; genBtn.style.opacity = '.7'; genBtn.innerHTML = '<span>⏳</span> Generando…'; }
   // En celular: cerrar el cajón del formulario para dejar ver todo el
   // contenido generado (flyer, ficha, instagram, video, textos).
   if (_nivaIsMobileLayout()) toggleFormPanel(false);
+  // Un respiro para que el navegador pinte el velo ANTES del trabajo pesado en canvas
+  // (si no, el hilo principal se bloquea y el spinner nunca llega a verse).
+  await new Promise(r => setTimeout(r, 60));
+  const safe = (fn) => Promise.resolve().then(() => fn(v)).catch(e => { console.error('[NIVA][generateAll]', fn.name, e); return e; });
+  try {
+    const fast = [safe(genFlyer), safe(genFicha), safe(genTextos)];
+    let fontsOk = true;
+    try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 8000))]); } catch (e) { fontsOk = false; }
+    const ig = [safe(genHistoria), safe(genCarrusel)];
+    // El video sigue por su cuenta (IA: hooks y guion) — se avisa con el banner, sin tapar el resto.
+    const video = safe(genVideo);
+    const res = await Promise.all(fast.concat(ig));
+    const firstErr = res.find(r => r instanceof Error);
+    if (firstErr) { nivaBusyError(firstErr); } else { nivaBusy(false); }
+    nivaWorkBanner('🎬 El video sigue pensando (hooks y guion con IA)… ya puedes revisar el flyer, la ficha y los textos mientras tanto.');
+    const vr = await video;
+    nivaWorkBanner(null);
+    if (vr instanceof Error) vidStatus('⚠️ No se pudo preparar el video: ' + (vr.message || vr), 'err');
+  } catch (e) {
+    nivaBusyError(e);
+    nivaWorkBanner(null);
+  } finally {
+    _nivaGenerating = false;
+    if (genBtn) { genBtn.disabled = false; genBtn.style.opacity = ''; genBtn.innerHTML = genBtnHtml; }
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -7359,7 +7461,9 @@ function getVidMeta() {
 }
 
 // ── GENERAR HOOKS CON GPT ──
-async function generarHooks(concept) {
+async function generarHooks(concept) { return _nivaGenerarHooksBanner.call(this, concept); }
+const _nivaGenerarHooksBanner = nivaConBanner('🎣 Generando hooks y guion del video con IA… puede tardar hasta un minuto.', _generarHooksInner);
+async function _generarHooksInner(concept) {
   if (!vidV) return;
   if (concept) activeConcepto = concept;
   const oaKey = getOaKey();
@@ -7466,7 +7570,9 @@ Responde en JSON:
 // ══════════════════════════════════════════════
 //  CREATIVE DIRECTOR — FASE 1
 // ══════════════════════════════════════════════
-async function generateCreativeConcepts() {
+async function generateCreativeConcepts() { return _nivaConceptsBanner.call(this); }
+const _nivaConceptsBanner = nivaConBanner('🎬 El Director Creativo está analizando la propiedad…', _generateCreativeConceptsInner);
+async function _generateCreativeConceptsInner() {
   if (!vidV) return;
   const v = vidV;
   const meta = getVidMeta();
@@ -7845,7 +7951,9 @@ function fitNarracionADuracion(text, durTargetSec) {
 }
 
 // ── GENERAR GUIÓN CON HOOK SELECCIONADO ──
-async function generarGuionConHook(hookIdx) {
+async function generarGuionConHook(hookIdx) { return _nivaGenerarGuionBanner.call(this, hookIdx); }
+const _nivaGenerarGuionBanner = nivaConBanner('📝 Escribiendo el guion del video con IA…', _generarGuionConHookInner);
+async function _generarGuionConHookInner(hookIdx) {
   if (!vidV) return;
   const oaKey = getOaKey();
   const scriptOuter = document.getElementById('vid-script-outer');
