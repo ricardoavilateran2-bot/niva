@@ -1296,7 +1296,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-22.81';
+const NIVA_BUILD_VERSION = '2026-09-22.82';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -10889,7 +10889,7 @@ let _nivaCurSceneDurMs = 0;       // duración de la escena que se está dibujan
 let _nivaMasterTimeline = null;   // {scenes:[{...durMs,startMs,voice:{offset,len,at}}], captions:[{text,startMs,endMs}], totalMs, hasAlignment}
 let _nivaAudioClock = null;       // {ctx, t0}: reloj maestro durante la grabación
 let _nivaVoiceSources = [];       // AudioBufferSourceNode programados (para poder detenerlos)
-const NIVA_TL = { LEAD_MS: 120, PRE_MS: 60, POST_MS: 260, BREATH_MS: 180, MIN_CAM_MS: 1800, MIN_SILENT_MS: 2500, MIN_OUTRO_MS: 2800 };
+const NIVA_TL = { LEAD_MS: 120, PRE_MS: 60, POST_MS: 260, BREATH_MS: 180, MIN_CAM_MS: 1800, MIN_SILENT_MS: 2500, MIN_OUTRO_MS: 3400 };
 
 function _nivaChunkCaptionWords(words) {
   // Agrupa palabras en renglones cortos y equilibrados (máx 4 palabras / ~26 letras),
@@ -11021,7 +11021,12 @@ function _nivaBuildMasterTimeline(scenes, al, voiceDurSec) {
     } else {
       durMs = Math.max(userMs, T.MIN_SILENT_MS);
     }
-    if (isLast && NIVA_FLAGS.newOutro) durMs = Math.max(durMs, T.MIN_OUTRO_MS);
+    if (isLast && NIVA_FLAGS.newOutro) {
+      // El cierre (botón CTA + NIVA + teléfono) necesita ~2.8 s DESPUÉS de que termine la
+      // última frase de la voz; si no, aparece a medias o no alcanza a verse.
+      const voiceMs = voice ? (voice.at + voice.len * 1000) : 0;
+      durMs = Math.max(durMs, T.MIN_OUTRO_MS, voiceMs + 2800);
+    }
     out.push({ ...sc, durMs, startMs: t, voice, _floorMs: durMs });
     t += durMs;
   }
@@ -12444,17 +12449,42 @@ function drawOutroScene(ctx, v, sceneT, W, H, scene) {
     ctaDelay = Math.min(Math.max(0, (ctaStartGlobalFrac - outroStartFrac) / outroDurFrac), 0.80);
   }
 
-  // ── CIERRE NIVA — sin CTA ──
+  // ── CIERRE NIVA CON LLAMADO A LA ACCIÓN (22-sep-2026, a petición de Ricardo) ──
+  // 0. Botón dorado con el CTA ("Agenda tu visita" o el del concepto creativo)
   // 1. Línea dorada + "NIVA INMOBILIARIA"
-  // 2. Asesor + teléfono — 0.20 fracción después de NIVA
+  // 2. Asesor + teléfono GRANDE (antes salía en letra chica, ilegible en celular)
   // Cada elemento tiene su propio slideUp + fade-in.
 
   const ANIM_DUR = 0.22; // duración de animación de cada elemento (fracción)
   const GAP_NIVA_ASE  = 0.20; // delay entre NIVA y asesor/tel
 
-  // Sin CTA — el cierre comienza directamente con NIVA INMOBILIARIA
+  // 0 — Botón CTA
+  const d1 = ctaDelay;
+  if (sceneT > d1) {
+    const t1 = Math.min((sceneT - d1) / ANIM_DUR, 1);
+    const pr1 = easeOut2(t1);
+    const ctaTxt = String((typeof activeConcepto !== 'undefined' && activeConcepto && activeConcepto.cta_texto) || 'AGENDA TU VISITA')
+      .replace(/[.!¡]+$/, '').toUpperCase().slice(0, 34);
+    ctx.save();
+    ctx.globalAlpha = t1 * globalFade;
+    ctx.font = `900 ${W * 0.042}px Inter, Arial, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const tw = Math.min(W * 0.86, ctx.measureText(ctaTxt).width + W * 0.09);
+    const bh = W * 0.10;
+    const cy = H * 0.665 + (1 - pr1) * H * 0.04;
+    const sc = 0.92 + 0.08 * pr1;
+    ctx.translate(W / 2, cy); ctx.scale(sc, sc);
+    ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 6;
+    ctx.fillStyle = GOLD;
+    cRoundRect(ctx, -tw / 2, -bh / 2, tw, bh, bh / 2, GOLD);
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    ctx.fillStyle = '#1B2A4A';
+    ctx.fillText(ctaTxt, 0, 2);
+    ctx.restore();
+  }
+
   // 1 — Línea dorada + "NIVA INMOBILIARIA"
-  const d2 = ctaDelay;
+  const d2 = ctaDelay + 0.10;
   if (sceneT > d2) {
     const t2 = Math.min((sceneT - d2) / ANIM_DUR, 1);
     const progress2 = easeOut2(t2);
@@ -12504,9 +12534,11 @@ function drawOutroScene(ctx, v, sceneT, W, H, scene) {
       ctx.fillStyle = 'rgba(255,255,255,0.92)';
       ctx.fillText(v.asesor, W / 2, baseY3);
       if (v.tel) {
-        ctx.font = `500 ${W * 0.027}px Inter, Arial, sans-serif`;
-        ctx.fillStyle = 'rgba(255,255,255,0.72)';
-        ctx.fillText('📱 ' + v.tel, W / 2, baseY3 + H * 0.043);
+        // Teléfono grande y legible: es el dato que la gente tiene que poder leer/anotar.
+        ctx.font = `800 ${W * 0.052}px Inter, Arial, sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.98)';
+        ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 18;
+        ctx.fillText('📲 ' + v.tel, W / 2, baseY3 + H * 0.052);
       }
     }
 
