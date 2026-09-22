@@ -1296,7 +1296,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-22.78';
+const NIVA_BUILD_VERSION = '2026-09-22.79';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -7008,12 +7008,18 @@ function nivaVidWizardShow(step) {
   if (step === 3) {
     const hooksPanel = document.getElementById('vid-hooks-panel');
     if (hooksPanel) hooksPanel.style.display = 'block';
+    const loadEl = document.getElementById('vid-hooks-loading');
     if (typeof vidHooks !== 'undefined' && vidHooks && vidHooks.length > 0) {
+      if (loadEl) loadEl.style.display = 'none';
       const listEl = document.getElementById('vid-hooks-list');
       if (listEl && !listEl.children.length) renderHooks();
       document.querySelectorAll('.vid-hook-item').forEach((el2, i2) => {
         el2.classList.toggle('selected', i2 === selectedHookIdx);
       });
+    } else if (typeof _nivaHooksLoading !== 'undefined' && _nivaHooksLoading) {
+      if (loadEl) loadEl.style.display = 'block'; // la IA sigue trabajando: que se vea
+    } else if (typeof vidV !== 'undefined' && vidV) {
+      generarHooks(); // se llegó al paso sin hooks (p. ej. tras un error): generarlos aquí mismo
     }
   }
   const label = document.getElementById('niva-vid-step-label');
@@ -7463,15 +7469,20 @@ function getVidMeta() {
 // ── GENERAR HOOKS CON GPT ──
 async function generarHooks(concept) { return _nivaGenerarHooksBanner.call(this, concept); }
 const _nivaGenerarHooksBanner = nivaConBanner('🎣 Generando hooks y guion del video con IA… puede tardar hasta un minuto.', _generarHooksInner);
+let _nivaHooksLoading = false;
 async function _generarHooksInner(concept) {
   if (!vidV) return;
   if (concept) activeConcepto = concept;
   const oaKey = getOaKey();
   const hooksPanel = document.getElementById('vid-hooks-panel');
-  // No mostrar panel de hooks — flujo simplificado: auto-selección directa al guión
-  hooksPanel.style.display = 'none';
+  // BUG (Ricardo, 22-sep-2026): este panel se ocultaba aquí y otra vez al terminar. Si el asesor
+  // ya estaba en el Paso 3 cuando la IA terminaba, el paso quedaba EN BLANCO y había que ir
+  // Atrás/Siguiente para que apareciera. Ahora el panel siempre está visible dentro del paso 3
+  // (la visibilidad la manda el wizard), con su indicador de carga mientras la IA trabaja.
+  hooksPanel.style.display = 'block';
   const loadEl = document.getElementById('vid-hooks-loading');
   const listEl = document.getElementById('vid-hooks-list');
+  _nivaHooksLoading = true;
   loadEl.style.display = 'block';
   listEl.innerHTML = '';
   document.getElementById('vid-script-outer').style.display = 'none';
@@ -7487,8 +7498,9 @@ async function _generarHooksInner(concept) {
   if (!oaKey || oaKey.length < 10) {
     vidHooks = generarHooksPlantilla(v, meta);
     loadEl.style.display = 'none';
-    // Auto-seleccionar sin mostrar panel
-    if (vidHooks.length > 0) { selectedHookIdx = 0; await generarGuionConHook(0); }
+    _nivaHooksLoading = false;
+    renderHooks();
+    if (vidHooks.length > 0) { selectedHookIdx = 0; _nivaMarcarHookSeleccionado(); await generarGuionConHook(0); }
     return;
   }
 
@@ -7556,15 +7568,18 @@ Responde en JSON:
   }
 
   loadEl.style.display = 'none';
-  // ── AUTO-SELECCIÓN: ir directo al guión sin mostrar panel de hooks ──
+  _nivaHooksLoading = false;
+  renderHooks(); // siempre se pinta la lista: el Paso 3 existe para verla y cambiarla
+  // ── AUTO-SELECCIÓN: la IA elige el mejor y sigue al guión; el asesor puede cambiarlo en el Paso 3 ──
   if (vidHooks.length > 0) {
     const bestIdx = parseInt(document.getElementById('btn-use-best-hook')?.dataset?.best || '0');
     selectedHookIdx = Math.min(bestIdx, vidHooks.length - 1);
-    hooksPanel.style.display = 'none'; // ocultar panel de hooks — flujo simplificado
+    _nivaMarcarHookSeleccionado();
     await generarGuionConHook(selectedHookIdx);
-  } else {
-    renderHooks(); // fallback si no hay hooks
   }
+}
+function _nivaMarcarHookSeleccionado() {
+  document.querySelectorAll('.vid-hook-item').forEach((el, i) => el.classList.toggle('selected', i === selectedHookIdx));
 }
 
 // ══════════════════════════════════════════════
