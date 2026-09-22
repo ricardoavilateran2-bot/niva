@@ -1296,7 +1296,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-22.82';
+const NIVA_BUILD_VERSION = '2026-09-22.83';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -10529,10 +10529,12 @@ async function playVideoEL() {
         let _nivaElapsedSec = 0;
         // Cada 3 s (antes cada 1 s): el video grabado mostraba un micro-tirón de ~100 ms una
         // vez por segundo, coincidiendo con esta escritura al DOM durante la grabación.
+        // Medido en Safari (22-sep): CADA escritura de estado al DOM durante la grabación
+        // produce un hueco de ~125 ms en el video (cada 1 s antes, cada 3 s después). Durante
+        // la grabación no se toca el DOM: el aviso se pone una sola vez y el progreso va a consola.
         _nivaTicker = setInterval(() => {
           _nivaElapsedSec += 3;
-          const st = (mediaRecorder && mediaRecorder.state) || '?';
-          vidStatus('🎬 Grabando [' + String(_recordedMimeType || '').split(';')[0] + ']… ' + _nivaElapsedSec + 's · rec:' + st + ' · no cierres esta ventana', 'loading');
+          console.log('[NIVA][REC] ' + _nivaElapsedSec + 's · rec:' + ((mediaRecorder && mediaRecorder.state) || '?') + ' · frames:' + _nivaDrawFrameCount);
         }, 3000);
         mediaRecorder.onstop = async () => {
           window.__nivaOnstopRan = true;
@@ -11987,20 +11989,45 @@ function drawCameraMotion(ctx, img, rawProgress, presetNameOrObj, W, H, shake) {
     ? (maxSafeZoom - 1) / (_curveMax - 1)
     : 1;
   const _rescale = (s) => 1 + (s - 1) * _safeRatio;
-  const startScaleSafe = _rescale(preset.startScale);
-  const midScaleSafe   = preset.midScale !== undefined ? _rescale(preset.midScale) : undefined;
-  const endScaleSafe   = _rescale(preset.endScale);
+  let startScaleSafe = _rescale(preset.startScale);
+  let midScaleSafe   = preset.midScale !== undefined ? _rescale(preset.midScale) : undefined;
+  let endScaleSafe   = _rescale(preset.endScale);
+  // ── Recorrido mínimo visible (22-sep-2026): tras el Safe Frame, algunos presets quedaban
+  // con un zoom total de 3–5 % en 4–6 s — en el video se veía como foto fija (medido: segundos
+  // enteros con movimiento ~0.3 vs 2–5 en las escenas buenas). Si el recorrido (zoom +
+  // desplazamiento) es menor a 0.12, se amplifica hasta ese mínimo sin pasar del zoom seguro.
+  let _ax0 = preset.startX, _ax1 = preset.endX, _ay0 = preset.startY, _ay1 = preset.endY;
+  {
+    const travel = Math.abs(endScaleSafe - startScaleSafe) + Math.abs(_ax1 - _ax0) + Math.abs(_ay1 - _ay0);
+    const MIN_TRAVEL = 0.12;
+    if (travel > 0.001 && travel < MIN_TRAVEL) {
+      const boost = Math.min(3, MIN_TRAVEL / travel);
+      const dz = (endScaleSafe - startScaleSafe) * boost;
+      let e = startScaleSafe + dz;
+      if (e > maxSafeZoom) e = maxSafeZoom;
+      if (e < 1) e = 1;
+      // si el zoom ya no puede crecer, el resto del recorrido se pone en un deslizamiento suave
+      const gotZoom = Math.abs(e - startScaleSafe);
+      const need = Math.max(0, MIN_TRAVEL - gotZoom - Math.abs(_ax1 - _ax0) - Math.abs(_ay1 - _ay0));
+      endScaleSafe = e;
+      if (midScaleSafe !== undefined) midScaleSafe = (startScaleSafe + endScaleSafe) / 2;
+      if (need > 0 && Math.max(startScaleSafe, endScaleSafe) > 1.02) {
+        const dir = _ax0 <= 0.5 ? 1 : -1;
+        _ax1 = Math.min(0.8, Math.max(0.2, _ax1 + dir * need));
+      }
+    }
+  }
 
   // Interpolar escala y punto de anclaje — bezier si existe midScale, lineal si no
   let scale, anchorX, anchorY;
   if (preset.midScale !== undefined) {
     scale   = bezierQ(startScaleSafe, midScaleSafe, endScaleSafe, p);
-    anchorX = bezierQ(preset.startX,     preset.midX,     preset.endX,     p);
-    anchorY = bezierQ(preset.startY,     preset.midY,     preset.endY,     p);
+    anchorX = bezierQ(_ax0, (_ax1 === preset.endX) ? preset.midX : (_ax0 + _ax1) / 2, _ax1, p);
+    anchorY = bezierQ(_ay0, preset.midY, _ay1, p);
   } else {
     scale   = startScaleSafe + (endScaleSafe - startScaleSafe) * p;
-    anchorX = preset.startX     + (preset.endX     - preset.startX)     * p;
-    anchorY = preset.startY     + (preset.endY     - preset.startY)     * p;
+    anchorX = _ax0 + (_ax1 - _ax0) * p;
+    anchorY = _ay0 + (_ay1 - _ay0) * p;
   }
 
   // Red de seguridad final (redondeos de punto flotante) — nunca debe disparar en la
@@ -12463,8 +12490,11 @@ function drawOutroScene(ctx, v, sceneT, W, H, scene) {
   if (sceneT > d1) {
     const t1 = Math.min((sceneT - d1) / ANIM_DUR, 1);
     const pr1 = easeOut2(t1);
-    const ctaTxt = String((typeof activeConcepto !== 'undefined' && activeConcepto && activeConcepto.cta_texto) || 'AGENDA TU VISITA')
-      .replace(/[.!¡]+$/, '').toUpperCase().slice(0, 34);
+    // Solo se usa el CTA del concepto si de verdad pide una acción (agenda, escribe, manda…);
+    // si es una pregunta retórica ("¿Te imaginas aquí?") repetiría la última frase de la voz.
+    const _ctaRaw = String((typeof activeConcepto !== 'undefined' && activeConcepto && activeConcepto.cta_texto) || '');
+    const _ctaOk = /\b(agenda|agendar|escr[ií]be|manda|env[ií]a|ll[aá]ma|cont[aá]cta|visita|pregunta|reserva|solicita|aparta|pide|mensaje|whatsapp)\b/i.test(_ctaRaw) && !/\?/.test(_ctaRaw);
+    const ctaTxt = (_ctaOk ? _ctaRaw : 'AGENDA TU VISITA').replace(/[.!¡]+$/, '').toUpperCase().slice(0, 34);
     ctx.save();
     ctx.globalAlpha = t1 * globalFade;
     ctx.font = `900 ${W * 0.042}px Inter, Arial, sans-serif`;
