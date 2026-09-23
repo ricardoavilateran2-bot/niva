@@ -1178,6 +1178,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
         <button class="btn-stop" id="btn-stop-video" onclick="stopVideo()" style="display:none">⏹ Detener</button>
         <button class="btn-dl" id="btn-dl-video" onclick="downloadVideo()" style="display:none">⬇️ Descargar MP4 HD</button>
         <button class="btn-dl" id="btn-retry-mp4" onclick="retryMp4Conversion()" style="display:none;background:#7c5a00">🔄 Reintentar conversión</button>
+        <button class="btn-dl" id="btn-copy-diag" onclick="nivaCopiarDiagnostico()" style="display:none;background:#374151;font-size:11px">📋 Copiar diagnóstico del error</button>
         <button class="btn-dl" id="btn-dl-webm-fallback" onclick="downloadWebmFallback()" style="display:none;background:#374151;font-size:11px">⬇️ Descargar WebM (fallback técnico)</button>
       </div>
       <div id="vid-status-msg" class="vid-status info" style="display:none"></div>
@@ -1296,7 +1297,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-22.84';
+const NIVA_BUILD_VERSION = '2026-09-23.85';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -5288,6 +5289,7 @@ let _nivaVideoRecStopped = false, _nivaAudioRecStopped = false;
 // (nunca se vuelve a renderizar fotos/voz/música) y se ofrece reintentar o, como último
 // recurso, descargar el WebM técnico.
 let _nivaWebmBlob = null;      // Blob WebM validado, en memoria — fuente para la conversión / reintentos
+let _nivaNativeMp4Blob = null; // MP4 nativo (Safari/iOS) tal como salió de la grabación — fuente para reintentar el remux
 let _nivaMp4Blob = null;       // Blob MP4 validado, listo para descarga
 let _nivaFFmpeg = null;        // Instancia cacheada de FFmpeg (@ffmpeg/ffmpeg)
 let _nivaFFmpegLoadPromise = null; // Evita cargar ffmpeg.wasm dos veces en paralelo
@@ -5944,11 +5946,26 @@ async function finalizeRecording(mimeType, preBuiltBlob) {
     console.log('[NIVA][SAFARI REMUX][1] entered finalizeRecording — build=' + NIVA_REMUX_BUILD_TAG);
     console.log('[NIVA][SAFARI REMUX][2] source blob type=' + blob.type);
     console.log('[NIVA][SAFARI REMUX][3] source size=' + blob.size + ' bytes');
+    _nivaNativeMp4Blob = blob; // fuente para "Reintentar" (en MP4 nativo no existe WebM)
     try {
       vidStatus('🔧 Reestructurando MP4 nativo (Safari) — corrigiendo el contenedor…', 'loading');
       updateDiagStep('mp4', 'pending');
       console.log('[NIVA][SAFARI REMUX][4] remux started');
-      const remuxResult = await _nivaRemuxFragmentedMp4(blob);
+      // (2026-09-23, iPad de Raymundo) En iPad/iPhone el MP4 ya viene UNIDO por
+      // combineIOSVideoAudio (mp4-muxer: moov + mdat clásicos, sin moof). El remux de
+      // abajo solo sabe leer MP4 FRAGMENTADO (moof/trun) y con este archivo fallaba con
+      // "No se extrajeron muestras de video de los moof" → error grande + botón
+      // "Reintentar" que a su vez decía "No hay WebM en memoria". Si el archivo ya es
+      // un MP4 clásico válido, no hay nada que remuxar: se entrega tal cual.
+      let remuxResult;
+      const _srcArrBuf = await blob.arrayBuffer();
+      const _srcCheck = _nivaMp4ValidateNonFragmented(_srcArrBuf);
+      if (_srcCheck.ok) {
+        console.log('[NIVA][SAFARI REMUX][4b] el MP4 ya es clásico (sin moof) — se omite el remux');
+        remuxResult = { blob, structCheck: { moofCount: 0 }, outputVideoDurationSec: null, outputAudioDurationSec: null, videoSamples: '?', audioSamples: '?' };
+      } else {
+        remuxResult = await _nivaRemuxFragmentedMp4(blob);
+      }
       const normBlob = remuxResult.blob;
       console.log('[NIVA][SAFARI REMUX][5] remux completed');
       console.log('[NIVA][SAFARI REMUX][6] output size=' + normBlob.size + ' bytes (type=' + normBlob.type + ')');
@@ -6340,7 +6357,7 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
 // (para poder avisar claramente en vez de entregar un video mudo sin explicación).
 async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
   if (typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') {
-        throw new Error('Este navegador no soporta conversión a MP4 (WebCodecs) — no se puede unir audio y video. Abre esta página en Google Chrome — ahí sí funciona.');
+        throw new Error('Este iPad/iPhone no soporta la conversión a MP4 (WebCodecs) — actualiza iOS/iPadOS a la última versión o genera el video desde una computadora (Chrome o Safari).');
   }
   const { Muxer, ArrayBufferTarget } = await loadMp4MuxerLib();
   vidStatus('🔧 Uniendo video y audio (iOS)…', 'loading');
@@ -6638,11 +6655,16 @@ async function runMp4ConversionPipeline(durationSeconds) {
 
 // Reintentar conversión SIN volver a renderizar fotos/voz/música — reutiliza el WebM en memoria.
 function retryMp4Conversion() {
-  if (!_nivaWebmBlob) {
-    vidStatus('❌ No hay WebM en memoria para reintentar — genera el video de nuevo.', 'err');
+  if (_nivaWebmBlob) { runMp4ConversionPipeline(videoDurationSeconds); return; }
+  // Safari / iPad / iPhone graban MP4 nativo (no hay WebM): reintentar el remux del MP4 grabado.
+  if (_nivaNativeMp4Blob) {
+    document.getElementById('btn-retry-mp4').style.display = 'none';
+    finalizeRecording('video/mp4', _nivaNativeMp4Blob).then(ok => {
+      updateDiagStep('done', ok ? 'ok' : 'err');
+    }).catch(e => { console.error('[NIVA][RETRY]', e); vidStatus('❌ El reintento falló: ' + (e && e.message || e) + '. Genera el video de nuevo.', 'err'); });
     return;
   }
-  runMp4ConversionPipeline(videoDurationSeconds);
+  vidStatus('❌ No hay ningún video en memoria para reintentar — genera el video de nuevo.', 'err');
 }
 
 // Descarga de WebM — SOLO visible como fallback técnico cuando la conversión a MP4 falla.
@@ -7243,9 +7265,41 @@ function onTranscriptInput() {
     : '⚠️ Sin transcripción — el video se genera sin subtítulos';
   status.style.color = len > 0 ? '#166534' : '#b45309';
 }
+// ── Diagnóstico persistente (2026-09-23): cada error del generador de video se guarda en
+// el dispositivo (últimos 12) junto con las últimas líneas de consola, y aparece un botón
+// "Copiar diagnóstico" para pegarlo en WhatsApp/soporte. Motivo: en el iPad de Raymundo el
+// error se perdió al reintentar y no había forma de saber qué había pasado.
+const _nivaLogRing = [];
+(function(){
+  const wrap = (name) => { const orig = console[name].bind(console); console[name] = function() {
+    try { const line = Array.from(arguments).map(a => (a && a.stack) ? a.stack : (typeof a === 'object' ? JSON.stringify(a).slice(0, 300) : String(a))).join(' ');
+      _nivaLogRing.push(new Date().toISOString().slice(11, 19) + ' ' + name.toUpperCase() + ' ' + line.slice(0, 400)); if (_nivaLogRing.length > 80) _nivaLogRing.shift(); } catch(e) {}
+    return orig.apply(console, arguments); }; };
+  ['log', 'warn', 'error'].forEach(wrap);
+  window.addEventListener('error', e => { try { _nivaRegistrarError('window.onerror: ' + (e.message || '') + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno); } catch(x) {} });
+  window.addEventListener('unhandledrejection', e => { try { _nivaRegistrarError('unhandledrejection: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason)); } catch(x) {} });
+})();
+function _nivaRegistrarError(msg) {
+  try {
+    const key = 'niva_video_errores';
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.push({ ts: new Date().toISOString(), build: (typeof NIVA_BUILD_VERSION !== 'undefined' ? NIVA_BUILD_VERSION : '?'), ua: navigator.userAgent, ios: (typeof _nivaIsIOS === 'function' ? _nivaIsIOS() : null),
+      mime: (typeof _recordedMimeType !== 'undefined' ? _recordedMimeType : null), msg: String(msg).slice(0, 600), consola: _nivaLogRing.slice(-40) });
+    while (arr.length > 12) arr.shift();
+    localStorage.setItem(key, JSON.stringify(arr));
+  } catch(e) {}
+  const b = document.getElementById('btn-copy-diag'); if (b) b.style.display = 'flex';
+}
+async function nivaCopiarDiagnostico() {
+  let txt = '';
+  try { txt = 'NIVA Content Studio — diagnóstico\n' + JSON.stringify(JSON.parse(localStorage.getItem('niva_video_errores') || '[]').slice(-3), null, 1); } catch(e) { txt = 'sin diagnóstico guardado'; }
+  try { await navigator.clipboard.writeText(txt); vidStatus('📋 Diagnóstico copiado — pégalo en el chat con Ricardo.', 'info'); }
+  catch(e) { try { window.prompt('Copia este texto y mándaselo a Ricardo:', txt.slice(0, 2000)); } catch(e2) {} }
+}
 function vidStatus(msg, type) {
   const el = document.getElementById('vid-status-msg');
   if (!el) return;
+  if (type === 'err' && msg) _nivaRegistrarError(msg);
   // Evitar escrituras al DOM redundantes: durante la grabación, el ticker de "Xs · frames:Y"
   // llama esto una vez por segundo — reescribir className/style aunque no cambien fuerza un
   // recalculo de estilos innecesario justo cuando el hilo principal debe estar dibujando el
@@ -10074,10 +10128,12 @@ async function playVideoEL() {
   document.getElementById('btn-dl-video').style.display = 'none';
   document.getElementById('btn-retry-mp4').style.display = 'none';
   document.getElementById('btn-dl-webm-fallback').style.display = 'none';
+  document.getElementById('btn-copy-diag').style.display = 'none';
   _nivaOcultarPreviewVideo();
   recordedChunks = [];
   // Nueva grabación — descartar WebM/MP4 de una toma anterior (ya no son válidos para este render).
   _nivaWebmBlob = null;
+  _nivaNativeMp4Blob = null;
   _nivaMp4Blob = null;
 
   // ── P10: Mostrar diagnóstico antes de empezar ──
