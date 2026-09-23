@@ -199,6 +199,31 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .scotabla th{text-align:left;padding:8px 10px;border-bottom:2px solid rgba(255,255,255,.12);font-size:10.5px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;position:sticky;top:0;background:#12213d}
 .scotabla td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top;color:rgba(255,255,255,.85)}
 .scopill{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;background:rgba(201,168,76,.15);color:var(--gold);white-space:nowrap}
+
+.anav-group{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);padding:14px 14px 4px}
+.anav-badge{margin-left:auto;background:#dc2626;color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:1px 7px}
+.subtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.subtabs button{font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;cursor:pointer}
+.subtabs button.on{background:var(--gold);color:var(--navy2);border-color:transparent}
+.subtabs button .cnt{opacity:.75;font-weight:500;margin-left:4px}
+.subsec{display:none}.subsec.on{display:block}
+.explain{font-size:13px;color:rgba(255,255,255,.65);line-height:1.5;margin:-4px 0 14px}
+.asetabla{display:flex;flex-direction:column;gap:10px}
+.aserow{display:grid;grid-template-columns:1fr auto;gap:10px 16px;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px}
+.aserow .an{font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.aserow .am{font-size:12.5px;color:rgba(255,255,255,.65);margin-top:3px}
+.aserow .ak{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:rgba(255,255,255,.7)}
+.aserow .ak b{color:#fff;font-family:ui-monospace,monospace}
+.aserow .acts{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.aserow select,.aserow button{font:inherit;font-size:12.5px;padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.25);color:#fff;cursor:pointer}
+.aserow button.gold{background:var(--gold);color:var(--navy2);border-color:transparent;font-weight:700}
+.aserow button.danger{border-color:rgba(248,113,113,.5);color:#fca5a5}
+.pillst{font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px;background:rgba(255,255,255,.12)}
+.pillst.inactive{background:rgba(248,113,113,.2);color:#fca5a5}
+.repdesc{font-size:12px;color:rgba(255,255,255,.55);margin:-6px 0 10px}
+.sysrow{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px}
+.sysrow b{font-family:ui-monospace,monospace}
+@media (max-width:640px){.aserow{grid-template-columns:1fr}.aserow .acts{align-items:flex-start}}
 </style>
 </head>
 <body>
@@ -217,14 +242,19 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <div class="logo-sub">Administrador</div>
     </div>
     <nav class="anav" id="anav">
-      <button class="anav-item on" data-sec="inicio">🏁 Panel de inicio</button>
-      <button class="anav-item" data-sec="sindueno">⚠️ Sin dueño</button>
-      <button class="anav-item" data-sec="propasesor">🏠 Propiedades y asesores</button>
-      <button class="anav-item" data-sec="propnuevas">🆕 Propiedades nuevas</button><button class="anav-item" data-sec="propbaja">🚫 Dadas de baja</button>
-      <a class="anav-item" href="cierres.html" style="text-decoration:none;display:flex">🤝 Cierres</a>
-      <button class="anav-item" data-sec="reportes">📊 Reportes</button>
-      <button class="anav-item" data-sec="scouting">🔎 Calidad del Scouting</button>
+      <a class="anav-item" href="midia.html" style="text-decoration:none;display:flex">☀️ Mi día</a>
+      <button class="anav-item on" data-sec="inicio">🏁 Cómo va la empresa</button>
+      <div class="anav-group">Administrar</div>
+      <button class="anav-item" data-sec="propiedades">🏠 Propiedades <span class="anav-badge hidden" id="nav-sindueno"></span></button>
+      <button class="anav-item" data-sec="asesores">👔 Asesores</button>
+      <a class="anav-item" href="crm.html?tab=todos" style="text-decoration:none;display:flex">📋 Leads (CRM)</a>
+      <a class="anav-item" href="cierres.html" style="text-decoration:none;display:flex">🤝 Cierres y comisiones</a>
+      <div class="anav-group">Entender</div>
+      <button class="anav-item" data-sec="reportes">📊 Reportes y descargas</button>
+      <div class="anav-group">Herramientas</div>
+      <button class="anav-item" data-sec="scouting">🔎 Scouting</button>
       <a class="anav-item" href="renovaciones.html" style="text-decoration:none;display:flex">🔁 Renovaciones</a>
+      <button class="anav-item" data-sec="sistema">🔧 Sistema</button>
     </nav>
   </aside>
 
@@ -232,9 +262,9 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 
     <section class="asec on" id="sec-inicio">
       <div class="page-hero" style="padding-top:4px">
-        <div class="badge">🛡️ Portal de Administrador</div>
-        <h1>Visión general de <span>la inmobiliaria</span></h1>
-        <p>Aquí ves cómo va NIVA día a día: leads, captaciones y la asignación de propiedades a tus asesores.</p>
+        <div class="badge">🛡️ Administración</div>
+        <h1>Cómo va <span>la empresa</span></h1>
+        <p>Los números de fondo. Para saber qué hacer HOY, usa <a href="midia.html" style="color:var(--gold)">Mi día</a>; aquí administras (propiedades, asesores) y entiendes (reportes).</p>
       </div>
       <div class="dash-grid" id="dash-kpis"></div>
       <div class="chart-grid" id="dash-charts"></div>
@@ -245,26 +275,49 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       </div>
     </section>
 
-    <section class="asec" id="sec-sindueno">
-      <div class="sec-head"><h2>⚠️ Propiedades sin dueño</h2><button class="vertodo-btn" id="sd-vertodo">Ver todo</button></div>
-      <div class="repnote" style="margin-top:-8px">Al poner dueño, el sistema le pasa también los leads huérfanos de esa propiedad y los que lleguen después.</div>
-      <div id="sindueno"></div>
-    </section>
-
-    <section class="asec" id="sec-propasesor">
-      <div class="sec-head"><h2>🏠 Propiedades y asesores</h2><button class="vertodo-btn" id="pa-vertodo">Ver todo</button></div>
-      <div class="filtros2" id="prop-filtros">
-        <button class="on" data-f="todas">Todas</button>
-        <button data-f="capturadas">📸 Capturadas por el equipo</button>
+    <section class="asec" id="sec-propiedades">
+      <div class="sec-head"><h2>🏠 Propiedades</h2></div>
+      <div class="explain">Cada propiedad tiene un dueño (el asesor que la atiende). Cambiar el dueño mueve también sus leads pendientes y los que lleguen después. Aquí puedes buscar cualquier propiedad y cambiarle el asesor.</div>
+      <div class="subtabs" id="prop-subtabs">
+        <button class="on" data-sub="sindueno">⚠️ Sin dueño <span class="cnt" id="cnt-sindueno"></span></button>
+        <button data-sub="todas">Todas <span class="cnt" id="cnt-todas"></span></button>
+        <button data-sub="nuevas">🆕 Captadas esta semana <span class="cnt" id="cnt-nuevas"></span></button>
+        <button data-sub="bajas">🚫 Dadas de baja esta semana <span class="cnt" id="cnt-bajas"></span></button>
       </div>
-      <input type="text" class="searchbox" id="prop-buscar" placeholder="Buscar por propiedad, folio o asesor...">
-      <div id="propasesor"></div>
+      <div class="subsec on" id="sub-sindueno">
+        <div class="repnote" style="margin-top:-8px">Una propiedad sin dueño no le avisa a nadie cuando llega un lead. Asígnala aquí.</div>
+        <div style="text-align:right;margin-bottom:6px"><button class="vertodo-btn" id="sd-vertodo">Ver todo</button></div>
+        <div id="sindueno"></div>
+      </div>
+      <div class="subsec" id="sub-todas">
+        <div class="filtros2" id="prop-filtros">
+          <button class="on" data-f="todas">Todas</button>
+          <button data-f="capturadas">📸 Captadas por el equipo</button>
+        </div>
+        <input type="text" class="searchbox" id="prop-buscar" placeholder="Buscar por propiedad, folio o asesor...">
+        <div style="text-align:right;margin:6px 0"><button class="vertodo-btn" id="pa-vertodo">Ver todo</button></div>
+        <div id="propasesor"></div>
+      </div>
+      <div class="subsec" id="sub-nuevas">
+        <div class="repnote" style="margin-top:-8px">Propiedades captadas desde el módulo de Captaciones esta semana, con el asesor que las subió.</div>
+        <div id="propnuevas"></div>
+      </div>
+      <div class="subsec" id="sub-bajas">
+        <div class="repnote" style="margin-top:-8px">Propiedades que los asesores dieron de baja esta semana, con quién la dio de baja y el motivo.</div>
+        <div id="propbaja"></div>
+      </div>
     </section>
 
-    <section class="asec" id="sec-propnuevas">
-      <div class="sec-head"><h2>🆕 Propiedades nuevas (últimos 7 días)</h2></div>
-      <div class="repnote" style="margin-top:-8px">Propiedades captadas desde el módulo de Captaciones esta semana, con el asesor que las subió.</div>
-      <div id="propnuevas"></div></section><section class="asec" id="sec-propbaja"><div class="sec-head"><h2>🚫 Propiedades dadas de baja (últimos 7 días)</h2></div><div class="repnote" style="margin-top:-8px">Propiedades que los asesores dieron de baja esta semana, con quién la dio de baja y el motivo.</div><div id="propbaja"></div>
+    <section class="asec" id="sec-asesores">
+      <div class="sec-head"><h2>👔 Asesores</h2></div>
+      <div class="explain">Tu equipo, uno por uno: cuántas propiedades tiene, cuántos leads activos y cuándo entró a NIVA OS. Desde aquí puedes pasar todo lo de un asesor a otro (cuando alguien se va o de vacaciones) y activar o desactivar cuentas. Un asesor desactivado no puede entrar ni recibir leads.</div>
+      <div id="asesores"></div>
+    </section>
+
+    <section class="asec" id="sec-sistema">
+      <div class="sec-head"><h2>🔧 Sistema</h2></div>
+      <div class="explain">Lo técnico, en una sola pantalla: si EasyBroker está sincronizando, si hay errores de integración acumulados y si los avisos de WhatsApp a asesores están saliendo. Si todo está en verde, no hay nada que hacer aquí.</div>
+      <div id="sistema"></div>
     </section>
 
     <section class="asec" id="sec-reportes">
@@ -276,6 +329,17 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <div class="sec-head"><h2>🔎 Calidad del Scouting</h2></div>
       <div class="repnote" style="margin-top:-8px">Salud de los leads captados por el scraper: disponibilidad, datos faltantes, URLs caídas y posibles duplicados. Haz clic en cualquier tarjeta para ver los leads detrás del número.</div>
       <div class="dash-grid" id="scouting-kpis" style="grid-template-columns:repeat(4,1fr)"></div>
+      <div class="repsec" style="margin-top:18px"><div class="reph">🚫 Lista negra de asesores externos</div>
+        <div class="repnote" id="ln-nota" style="margin-bottom:12px">Números de otros asesores/inmobiliarias detectados en los portales. El scouting los usa para no proponerte propiedades que no son de dueño directo. Crece sola con cada escaneo.</div>
+        <div class="repgrid"><button class="repbtn" id="exp-lista-negra">⬇️ Descargar lista negra (CSV)</button></div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)">
+          <div style="font-weight:600;margin-bottom:6px">¿Un asesor te reclamó que sí es dueño directo? Quítalo de la lista:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input id="qn-tel" type="text" placeholder="Teléfono (10 dígitos)" style="padding:8px 10px;border:1px solid rgba(255,255,255,.2);border-radius:6px;min-width:180px;background:rgba(0,0,0,.25);color:#fff">
+            <button class="repbtn" id="qn-buscar">🔍 Buscar</button>
+          </div><div id="qn-resultado" style="margin-top:10px"></div>
+        </div>
+      </div>
     </section>
 
   </main>
@@ -419,8 +483,15 @@ async function cargar(){
     (d.data||[]).forEach(x=>{DUENOS[x.property_id]=x.advisor_id});
 
     $('#s-total').textContent = PROPS.length;
-    $('#s-sindueno').textContent = PROPS.filter(x=>!DUENOS[x.id]).length;
+    const nSinDueno=PROPS.filter(x=>!DUENOS[x.id]).length;
+    $('#s-sindueno').textContent = nSinDueno;
     $('#s-sinlead').textContent = LEADS.filter(x=>!x.advisor_id && !x.archived_at).length;
+    const nb=$('#nav-sindueno'); if(nb){ nb.textContent=nSinDueno; nb.classList.toggle('hidden',!nSinDueno); }
+    const hoy0=new Date(); hoy0.setHours(0,0,0,0); const d6=new Date(hoy0); d6.setDate(d6.getDate()-6);
+    const set=(id,v)=>{const el=$(id); if(el) el.textContent='('+v+')';};
+    set('#cnt-sindueno',nSinDueno); set('#cnt-todas',PROPS.length);
+    set('#cnt-nuevas',PROPS.filter(p=>p.captured_by_advisor_id&&p.created_at&&new Date(p.created_at)>=d6).length);
+    set('#cnt-bajas',PROPS_BAJA.filter(p=>p.cancelada_at&&new Date(p.cancelada_at)>=d6).length);
 
     renderSinDueno();
     renderPropAsesor();
@@ -610,7 +681,15 @@ $('#pa-vertodo').addEventListener('click',()=>{ PA_EXPANDED=!PA_EXPANDED; render
 $('#sd-vertodo').addEventListener('click',()=>{ SIN_EXPANDED=!SIN_EXPANDED; renderSinDueno(); });
 
 // ===== Navegación lateral =====
+function irASubProp(sub){
+  document.querySelectorAll('#prop-subtabs button').forEach(b=>b.classList.toggle('on',b.dataset.sub===sub));
+  document.querySelectorAll('#sec-propiedades .subsec').forEach(x=>x.classList.toggle('on',x.id==='sub-'+sub));
+}
+$('#prop-subtabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-sub]'); if(b) irASubProp(b.dataset.sub); });
 function irASeccion(sec){
+  if(sec==='sindueno'||sec==='propasesor'||sec==='propnuevas'||sec==='propbaja'){ const map={sindueno:'sindueno',propasesor:'todas',propnuevas:'nuevas',propbaja:'bajas'}; irASubProp(map[sec]); sec='propiedades'; }
+  if(sec==='asesores') renderAsesores();
+  if(sec==='sistema') renderSistema();
   const b=document.querySelector('#anav button[data-sec="'+sec+'"]');
   document.querySelectorAll('#anav .anav-item').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('.asec').forEach(s=>s.classList.toggle('on', s.id==='sec-'+sec));
@@ -628,6 +707,99 @@ $('#dash-kpis').addEventListener('click',e=>{
   if(e.target.closest('#kpi-leadssemana')) window.location.href='./crm.html?tab=todos&rango=semana';
   if(e.target.closest('#kpi-sinatender')) window.location.href='./crm.html?tab=todos&fil=new';
 });
+
+// ===== Asesores: el equipo, uno por uno, con acciones de dueño =====
+let ASE_FULL=[], USERS_BY_ID={};
+async function renderAsesores(){
+  const host=$('#asesores'); host.innerHTML='<div class="vacio"><span class="vi">⏳</span>Cargando asesores…</div>';
+  try{
+    const [a,u]=await Promise.all([
+      sb.from('advisors').select('id,first_name,last_name,niva_code,phone,status,user_id,porcentaje_niva').order('first_name'),
+      sb.from('app_users').select('id,username,last_login_at,status')
+    ]);
+    if(a.error) throw a.error;
+    ASE_FULL=a.data||[]; USERS_BY_ID={}; (u.data||[]).forEach(x=>USERS_BY_ID[x.id]=x);
+  }catch(e){ host.innerHTML=vacioHTML('No se pudieron cargar los asesores: '+(e.message||e),'⚠️'); return; }
+  const activosLeads=LEADS.filter(l=>!l.archived_at && l.status!=='cancelled');
+  const wrap=document.createElement('div'); wrap.className='asetabla';
+  const ordenados=ASE_FULL.slice().sort((x,y)=>(x.status==='active'?0:1)-(y.status==='active'?0:1)||String(x.first_name).localeCompare(String(y.first_name)));
+  ordenados.forEach(a=>{
+    const nombre=((a.first_name||'')+' '+(a.last_name||'')).trim();
+    const props=PROPS.filter(p=>DUENOS[p.id]===a.id).length;
+    const leads=activosLeads.filter(l=>l.advisor_id===a.id).length;
+    const nuevos=activosLeads.filter(l=>l.advisor_id===a.id&&l.status==='new').length;
+    const u=USERS_BY_ID[a.user_id]; const login=u&&u.last_login_at?haceTiempo(u.last_login_at):'nunca';
+    const otros=ASE_FULL.filter(x=>x.id!==a.id&&x.status==='active').map(x=>'<option value="'+esc(x.id)+'">'+esc(((x.first_name||'')+' '+(x.last_name||'')).trim())+'</option>').join('');
+    const row=document.createElement('div'); row.className='aserow';
+    row.innerHTML='<div><div class="an">'+esc(nombre)+' <span class="pillst'+(a.status!=='active'?' inactive':'')+'">'+(a.status==='active'?'Activo':'Desactivado')+'</span></div>'
+      +'<div class="am">Código '+esc(a.niva_code||'—')+' · '+esc(a.phone||'sin teléfono')+' · usuario '+esc(u?u.username:'sin usuario')+' · entró '+esc(login)+' · NIVA se queda '+esc(String(a.porcentaje_niva??20))+' %</div>'
+      +'<div class="ak"><span>Propiedades <b>'+props+'</b></span><span>Leads activos <b>'+leads+'</b></span><span>Sin atender <b>'+nuevos+'</b></span></div></div>'
+      +'<div class="acts">'
+      +(props||leads?'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><select class="ase-dest" data-aid="'+esc(a.id)+'"><option value="">Pasar todo a…</option>'+otros+'</select><button class="gold ase-mover hidden" data-aid="'+esc(a.id)+'">Mover '+props+' prop. y '+leads+' leads</button></div>':'')
+      +'<button class="'+(a.status==='active'?'danger':'gold')+' ase-toggle" data-aid="'+esc(a.id)+'" data-to="'+(a.status==='active'?'inactive':'active')+'">'+(a.status==='active'?'Desactivar cuenta':'Reactivar cuenta')+'</button>'
+      +'</div>';
+    wrap.appendChild(row);
+  });
+  host.innerHTML=''; host.appendChild(wrap);
+  wrap.addEventListener('change',e=>{ const sel=e.target.closest('.ase-dest'); if(!sel) return; const b=wrap.querySelector('.ase-mover[data-aid="'+sel.dataset.aid+'"]'); if(b) b.classList.toggle('hidden',!sel.value); });
+  wrap.addEventListener('click',async e=>{
+    const mv=e.target.closest('.ase-mover');
+    if(mv){
+      const aid=mv.dataset.aid; const sel=wrap.querySelector('.ase-dest[data-aid="'+aid+'"]'); const dest=sel&&sel.value; if(!dest) return;
+      const de=ASE_FULL.find(x=>x.id===aid), a=ASE_FULL.find(x=>x.id===dest);
+      if(!confirmar('Vas a pasar TODAS las propiedades y leads activos de '+((de.first_name||'')+' '+(de.last_name||'')).trim()+' a '+((a.first_name||'')+' '+(a.last_name||'')).trim()+'. ¿Seguro?')) return;
+      mv.disabled=true; mv.textContent='Moviendo…';
+      try{
+        const propsDe=PROPS.filter(p=>DUENOS[p.id]===aid);
+        for(const p of propsDe){ const r=await sb.rpc('asignar_dueno_propiedad',{p_property_id:p.id,p_advisor_id:dest}); if(r.error) throw r.error; }
+        const rl=await sb.from('leads').update({advisor_id:dest}).eq('advisor_id',aid).is('archived_at',null).neq('status','cancelled');
+        if(rl.error) throw rl.error;
+        toast('Listo: '+propsDe.length+' propiedades y sus leads pasaron a '+(a.first_name||'')); await cargar(); renderAsesores();
+      }catch(err){ toast('Error: '+(err.message||err)); mv.disabled=false; mv.textContent='Mover'; }
+      return;
+    }
+    const tg=e.target.closest('.ase-toggle');
+    if(tg){
+      const aid=tg.dataset.aid, to=tg.dataset.to; const a=ASE_FULL.find(x=>x.id===aid);
+      const props=PROPS.filter(p=>DUENOS[p.id]===aid).length;
+      if(to==='inactive' && props && !confirmar((a.first_name||'')+' todavía tiene '+props+' propiedades. Primero pásalas a otro asesor con "Pasar todo a…". ¿Desactivar de todos modos?')) return;
+      if(to==='inactive' && !props && !confirmar('¿Desactivar la cuenta de '+(a.first_name||'')+'? No podrá entrar a NIVA OS ni recibir leads.')) return;
+      tg.disabled=true;
+      try{
+        const r=await sb.from('advisors').update({status:to,deactivated_at:to==='inactive'?new Date().toISOString():null}).eq('id',aid); if(r.error) throw r.error;
+        if(a.user_id){ await sb.from('app_users').update({status:to}).eq('id',a.user_id); }
+        toast(to==='inactive'?'Cuenta desactivada':'Cuenta reactivada'); await cargar(); renderAsesores();
+      }catch(err){ toast('Error: '+(err.message||err)); tg.disabled=false; }
+    }
+  });
+}
+function confirmar(msg){ try{ return window.confirm(msg); }catch(_e){ return true; } }
+
+// ===== Sistema: salud técnica en una pantalla =====
+async function renderSistema(){
+  const host=$('#sistema'); host.innerHTML='<div class="vacio"><span class="vi">⏳</span>Revisando…</div>';
+  try{
+    const [sr,ie,wa,cr]=await Promise.all([
+      sb.from('sync_runs').select('source,started_at,finished_at,status,items_seen,items_changed,error_detail').order('started_at',{ascending:false}).limit(6),
+      sb.from('integration_errors').select('kind,created_at').is('resolved_at',null).limit(2000),
+      sb.from('whatsapp_notificaciones').select('estatus,creado_at').order('creado_at',{ascending:false}).limit(300),
+      sb.from('cierres').select('id').eq('estatus','pendiente'),
+    ]);
+    const runs=sr.data||[]; const last=runs.find(r=>r.source==='easybroker_properties')||runs[0];
+    const minAgo=last?Math.round((Date.now()-new Date(last.started_at).getTime())/6e4):null;
+    const syncOk=last && last.status==='ok' && minAgo!=null && minAgo<=30;
+    const errs=ie.data||[]; const porKind={}; errs.forEach(e=>{porKind[e.kind]=(porKind[e.kind]||0)+1});
+    const wam=wa.data||[]; const pend=wam.filter(w=>w.estatus==='pendiente').length, env=wam.filter(w=>w.estatus==='enviado').length;
+    const sem=(ok,warn)=>ok?'🟢':(warn?'🟡':'🔴');
+    host.innerHTML='<div class="repsec">'
+      +'<div class="sysrow"><span>'+sem(syncOk,minAgo!=null&&minAgo<=120)+' Sincronización con EasyBroker</span><b>'+(last?(last.status==='ok'?'OK':'con error')+' · hace '+minAgo+' min · '+(last.items_seen||0)+' revisadas, '+(last.items_changed||0)+' cambiadas':'sin registro')+'</b></div>'
+      +'<div class="sysrow"><span>'+sem(errs.length===0,errs.length<20)+' Errores de integración abiertos</span><b>'+errs.length+(errs.length?' ('+Object.entries(porKind).map(([k,v])=>k+' '+v).join(', ')+')':'')+'</b></div>'
+      +'<div class="sysrow"><span>'+sem(pend<=3,pend<=15)+' Avisos de WhatsApp a asesores</span><b>'+pend+' pendientes · '+env+' enviados (últimos 300)</b></div>'
+      +'<div class="sysrow"><span>'+sem((cr.data||[]).length===0,true)+' Cierres sin aprobar</span><b>'+(cr.data||[]).length+'</b></div>'
+      +'</div>'
+      +'<div class="repnote" style="margin-top:12px">Qué hacer si algo está en rojo: sincronización → esperar 15 min y recargar; si sigue, avísale a quien te da soporte técnico. Errores de integración → casi todos son "propiedad sin asesor": se resuelven asignando dueño en Propiedades. WhatsApp pendientes → el envío corre cada 10 min; si se acumulan, revisa el crédito del proveedor.</div>';
+  }catch(e){ host.innerHTML=vacioHTML('No se pudo revisar el sistema: '+(e.message||e),'⚠️'); }
+}
 
 // ===== Reportes del CRM (misma lógica que en el CRM, sección Reportes) =====
 let REP=null;
@@ -988,9 +1160,9 @@ const REP_META={
   'rep-costo':{fn:()=>repCosto(),label:'💸 Costo por lead',archivo:'costo_por_lead'},
 };
 const REP_CATS=[
-  {title:'📈 Resumen y desempeño',ids:['rep-resumen','rep-embudo','rep-asesor']},
-  {title:'🏠 Propiedades y demanda',ids:['rep-prop','rep-zonas','rep-frias']},
-  {title:'📅 Tiempo, fuentes y costos',ids:['rep-mes','rep-diahora','rep-costo']},
+  {title:'📈 ¿Cómo vamos?',desc:'Resumen general, cuántos leads se convierten en clientes y qué asesor rinde más.',ids:['rep-resumen','rep-embudo','rep-asesor']},
+  {title:'🏠 ¿Qué propiedades jalan y cuáles no?',desc:'Leads por propiedad, qué zonas y precios piden más, y cuáles llevan semanas sin demanda.',ids:['rep-prop','rep-zonas','rep-frias']},
+  {title:'📅 ¿Cuándo llegan y cuánto cuestan?',desc:'Leads por mes y portal, mejores días y horas, y cuánto pagas por cada lead en cada portal.',ids:['rep-mes','rep-diahora','rep-costo']},
 ];
 async function renderReportes(){
   const host=$('#reportes');
@@ -998,32 +1170,23 @@ async function renderReportes(){
   try{await cargarDatosRep();}catch(e){host.innerHTML=vacioHTML('No se pudieron cargar los datos: '+esc(e.message),'⚠️');return;}
   const b=(id,txt)=>'<button class="repbtn" id="'+id+'">'+txt+'</button>';
   let htm='<div class="repwrap">'
-    +'<div class="repsec"><div class="reph">⬇️ Descargar datos completos (CSV — se abre en Excel)</div><div class="repgrid">'
-    +b('exp-leads','📋 Leads completos')+b('exp-clientes','👤 Clientes')+b('exp-props','🏠 Propiedades')+b('exp-asesores','👔 Asesores')+b('exp-inter','⚡ Actividad')
-    +'</div></div>'
-    +'<div class="repsec"><div class="reph">🚫 Lista negra de asesores</div>'
-    +'<div class="repnote" style="margin-bottom:12px">'+((REP.AGX||[]).length).toLocaleString('es-MX')+' números registrados. El scraping los usa para descartar asesores automáticamente. La lista crece sola con cada escaneo.</div>'
-    +'<div class="repgrid">'+b('exp-lista-negra','⬇️ Descargar lista negra (CSV)')+b('imp-lista-negra','📥 Importar 59 detectados (análisis 03-sep)')+'</div>'
-    +'<div class="repnote" id="imp-status" style="margin-top:10px"></div>'
-    +'<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--linea,#e5e5e5)">'
-    +'<div style="font-weight:600;margin-bottom:6px">¿Un asesor te reclamó que sí es dueño directo?</div>'
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
-    +'<input id="qn-tel" type="text" placeholder="Teléfono (10 dígitos)" style="padding:8px 10px;border:1px solid var(--linea,#ccc);border-radius:6px;min-width:180px">'
-    +'<button class="repbtn" id="qn-buscar">🔍 Buscar</button>'
-    +'</div><div id="qn-resultado" style="margin-top:10px"></div></div></div>';
+    +'<div class="explain">Los reportes responden una pregunta cada uno. Elige uno, léelo aquí y, si lo quieres en Excel, descárgalo con el botón dorado. Abajo están las descargas completas para cuando necesites la base entera.</div>';
   REP_CATS.forEach(cat=>{
-    htm+='<div class="repsec"><div class="reph">'+cat.title+'</div><div class="repgrid">'
+    htm+='<div class="repsec"><div class="reph">'+cat.title+'</div><div class="repdesc">'+esc(cat.desc||'')+'</div><div class="repgrid">'
       +cat.ids.map(id=>b(id,REP_META[id].label)).join('')
       +'</div></div>';
   });
+  htm+='<div class="repsec"><div class="reph">⬇️ Descargar la base completa (Excel/CSV)</div>'
+    +'<div class="repdesc">Para tu contador, para un análisis aparte o como respaldo. Cada archivo trae todas las columnas.</div><div class="repgrid">'
+    +b('exp-leads','📋 Todos los leads')+b('exp-clientes','👤 Todos los clientes')+b('exp-props','🏠 Todas las propiedades')+b('exp-asesores','👔 Asesores')+b('exp-inter','⚡ Actividad de asesores')
+    +'</div></div>';
   htm+='<div class="repsec"><div class="reph" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'
     +'<span id="rep-titulo-actual">Reporte</span>'
     +'<button class="repbtn" id="rep-download" style="background:linear-gradient(135deg,var(--gold),#b8922e);color:var(--navy2);border-color:transparent">⬇️ Descargar este reporte en Excel</button>'
     +'</div><div id="repout"></div></div></div>';
   host.innerHTML=htm;
-  const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter,'exp-lista-negra':expListaNegra,'imp-lista-negra':impListaNegra };
+  const acc={ 'exp-leads':expLeads,'exp-clientes':expClientes,'exp-props':expProps,'exp-asesores':expAsesores,'exp-inter':expInter };
   Object.entries(acc).forEach(([id,fn])=>{const el=document.getElementById(id);if(el)el.onclick=fn;});
-  wireQuitarAsesor();
   let reporteActual='resumen_general';
   Object.entries(REP_META).forEach(([id,meta])=>{const el=document.getElementById(id);if(el)el.onclick=()=>{
     document.querySelectorAll('.repgrid .repbtn').forEach(x=>{if(REP_META[x.id])x.classList.remove('on')});
@@ -1144,9 +1307,17 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrarScoutingMod
 
 // Solo se carga cuando el admin entra a la sección (evita gastar una consulta
 // en cada carga de página si nunca la visita).
-let SCO_LOADED=false;
+let SCO_LOADED=false, LN_WIRED=false;
+async function wireListaNegra(){
+  if(LN_WIRED) return; LN_WIRED=true;
+  try{ await cargarDatosRep(); }catch(_e){}
+  const nota=$('#ln-nota'); if(nota && REP && REP.AGX) nota.textContent=(REP.AGX.length).toLocaleString('es-MX')+' números registrados. '+nota.textContent;
+  const b=$('#exp-lista-negra'); if(b) b.onclick=expListaNegra;
+  wireQuitarAsesor();
+}
 $('#anav').addEventListener('click', e=>{
   const b=e.target.closest('button[data-sec="scouting"]');
+  if(b) wireListaNegra();
   if(!b || SCO_LOADED) return;
   SCO_LOADED=true;
   cargarScoutingKPIs();
