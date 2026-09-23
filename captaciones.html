@@ -242,6 +242,10 @@ textarea { resize: vertical; min-height: 90px; }
         <div class="form-group">
           <label for="cap-zona">Colonia <small>(catálogo oficial de EasyBroker)</small></label><select id="cap-zona"><option value="">Selecciona una colonia...</option></select><input id="cap-zona-libre" placeholder="Escribe la colonia" autocomplete="off" style="display:none;margin-top:8px"></div>
         <div class="form-group full">
+          <label for="cap-calle">Calle y número <small>(opcional — solo para ubicar el pin en el mapa; no se muestra al público)</small></label>
+          <input id="cap-calle" placeholder="Ej. Río Amazonas 120" autocomplete="off">
+        </div>
+        <div class="form-group full">
           <label for="cap-titulo">Título <small>(opcional — se genera automático si lo dejas vacío)</small></label>
           <input id="cap-titulo" placeholder="Ej. Casa en venta en Cumbres">
         </div>
@@ -711,6 +715,7 @@ async function guardarCaptacion(){
     if(!reqId){ reqId=Math.random().toString(36).slice(2,12); try{ sessionStorage.setItem('niva_cap_req',reqId); }catch(_e){} }
     const body={ request_id:reqId,
       property_type:tipo,operation_type:op,price_amount:precio,description:desc,location_name:zona,municipio:mpio,
+      street:($('#cap-calle')&&$('#cap-calle').value.trim())||undefined,
       title:$('#cap-titulo').value.trim()||undefined,
       bedrooms:$('#cap-rec').value||undefined,bathrooms:$('#cap-bano').value||undefined,
       half_bathrooms:$('#cap-mbano').value||undefined,parking_spaces:$('#cap-est').value||undefined,
@@ -731,11 +736,15 @@ async function guardarCaptacion(){
     let out={};
     try{ out=await res.json(); }catch(_e){}
     if(!res.ok){
-      let detalle = out.detalle || out.detail;
-      if(detalle && typeof detalle !== 'string') detalle = JSON.stringify(detalle);
-      if(out.enviado) detalle = (detalle||'') + ' | Ubicación enviada a EasyBroker: ' + JSON.stringify(out.enviado);
+      // Mensaje para el asesor: claro y accionable. El detalle técnico va a la consola.
+      console.warn('[NIVA][captacion] EasyBroker rechazó:', out);
       const msgBase = out.error || ('EasyBroker rechazó la publicación (HTTP '+res.status+').');
-      throw new Error(detalle ? (msgBase+' — Motivo: '+detalle) : (msgBase+' Revisa que todos los campos obligatorios estén completos.'));
+      let detalle = '';
+      const errs = out.detalle && out.detalle.errors;
+      if(errs && typeof errs==='object' && !/No pudimos ubicar/.test(msgBase)){
+        try{ detalle = Object.entries(errs).map(([k,v])=>(k==='base'?'':k+': ')+(Array.isArray(v)?v.join(', '):v)).join(' · '); }catch(_e){}
+      }
+      throw new Error(detalle ? (msgBase+' — '+detalle) : msgBase);
     }
     // ── Content Studio: guardar fotos + datos de esta captación (selector de propiedades) ──
     try{
