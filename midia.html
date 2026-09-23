@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+(async()=>{
+  try{
+    const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+    const sb = createClient(cfg.url, cfg.anon);
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ window.location.replace('./index.html'); return; }
+    window.__nivaSession = session;
+    window.__nivaSb = sb;
+    window.__nivaCfg = cfg;
+    sb.auth.onAuthStateChange((_e, s)=>{ if(!s) window.location.replace('./index.html'); });
+  }catch(e){ console.error('niva-auth-guard', e); window.location.replace('./index.html'); }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Mi día</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --bg:#F5F3EE;--surface:#FFFFFF;--ink:#1B2A4A;--ink-2:#4A5568;--ink-3:#7A8496;--line:#E4E0D6;
+  --navy:#1B2A4A;--gold:#C9A84C;--gold-ink:#7A5E1E;--gold-soft:#F6EDD6;
+  --bad:#B2432F;--bad-soft:#F8E3DE;--warn:#B8860B;--warn-soft:#FBF0D2;--good:#2E7D5B;--good-soft:#DDF0E6;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5}
+.topbar{background:var(--navy);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:14px;justify-content:space-between}
+.topbar a{color:var(--gold);text-decoration:none;font-weight:600;font-size:13px;border:1px solid rgba(201,168,76,.45);padding:5px 12px;border-radius:6px}
+.topbar .who{font-size:13px;color:rgba(255,255,255,.75)}
+.wrap{max-width:760px;margin:0 auto;padding-block:22px 60px;padding-inline:16px}
+header.h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.brand{font-family:"Source Serif 4",Georgia,serif;font-weight:700;font-size:22px;letter-spacing:.02em}
+.brand b{color:var(--gold)}
+.date{font-size:13px;color:var(--ink-3)}
+.loading{font-size:14px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.err{font-size:14px;color:var(--bad);background:var(--bad-soft);border-radius:10px;padding:12px 16px;margin-bottom:16px}
+h2.q{font-family:"Source Serif 4",Georgia,serif;font-weight:500;font-size:26px;line-height:1.2;margin:0 0 4px;text-wrap:balance}
+.verdict{font-size:14px;color:var(--ink-2);margin:0 0 14px}
+.verdict strong{font-weight:600}
+section{margin-bottom:34px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.item{display:grid;grid-template-columns:8px 1fr auto;gap:0 14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.item .stripe{align-self:stretch;background:var(--line)}
+.item.bad .stripe{background:var(--bad)}.item.warn .stripe{background:var(--warn)}.item.good .stripe{background:var(--good)}.item.info .stripe{background:var(--gold)}
+.item .body{padding:12px 0}
+.item .num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;font-size:22px;font-variant-numeric:tabular-nums;line-height:1;margin-right:8px;vertical-align:-2px}
+.item.bad .num{color:var(--bad)}.item.warn .num{color:var(--warn)}.item.good .num{color:var(--good)}.item.info .num{color:var(--gold-ink)}
+.item .t{font-weight:600}
+.item .why{font-size:13px;color:var(--ink-2);margin-top:3px}
+.item .act{padding:10px 12px 10px 0;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.btn{font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block}
+.btn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.month{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi .l{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.kpi .v{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;font-size:24px;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .d{font-size:12px;color:var(--ink-2)}
+.kpi.good .v{color:var(--good)}.kpi.bad .v{color:var(--bad)}.kpi.warn .v{color:var(--warn)}
+.funnel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.funnel .row{display:grid;grid-template-columns:110px 1fr 56px;align-items:center;gap:10px;font-size:13px;margin:6px 0}
+.funnel .bar{height:14px;background:var(--gold-soft);border-radius:4px;overflow:hidden}
+.funnel .bar i{display:block;height:100%;background:var(--gold)}
+.funnel .n{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.funnel .note{font-size:12px;color:var(--ink-2);margin-top:8px}
+.meta{display:flex;align-items:center;gap:12px;margin-top:12px;font-size:13px;color:var(--ink-2)}
+.meta .track{flex:1;height:10px;background:var(--line);border-radius:5px;overflow:hidden}
+.meta .track i{display:block;height:100%;width:0;background:var(--good)}
+.adv{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;border-top:4px solid var(--line)}
+.card.good{border-top-color:var(--good)}.card.warn{border-top-color:var(--warn)}.card.bad{border-top-color:var(--bad)}
+.card .n{font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--line);color:var(--ink-2);white-space:nowrap}
+.card.good .pill{background:var(--good-soft);color:var(--good)}.card.warn .pill{background:var(--warn-soft);color:var(--warn)}.card.bad .pill{background:var(--bad-soft);color:var(--bad)}
+.card .g{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:8px;font-size:12px;color:var(--ink-2)}
+.card .g b{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.card .say{font-size:13px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.improve{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.improve .one{display:grid;grid-template-columns:28px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.improve .one:last-child{border-bottom:0}
+.improve .k{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--gold-ink);font-size:13px;padding-top:2px}
+.improve .t{font-weight:600}.improve .d{font-size:13px;color:var(--ink-2);margin-top:2px}
+.improve .gain{font-size:12px;color:var(--good);font-weight:600;margin-top:4px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 16px}
+details summary{cursor:pointer;padding:14px 0;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details summary::after{content:"+";font-family:"IBM Plex Mono",monospace;color:var(--ink-3)}
+details[open] summary::after{content:"–"}
+details .in{padding:0 0 16px;font-size:14px;color:var(--ink-2)}
+details .in a{color:var(--navy);font-weight:600}
+.gloss{font-size:13px;color:var(--ink-2);background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:12px 16px}
+.gloss dt{font-weight:600;color:var(--ink);margin-top:8px}.gloss dt:first-child{margin-top:0}
+.gloss dd{margin:2px 0 0}
+.hidden{display:none!important}
+@media (max-width:520px){
+  .month{grid-template-columns:repeat(2,1fr)}
+  .item{grid-template-columns:8px 1fr}
+  .item .act{grid-column:2;flex-direction:row;padding:0 12px 12px 0;align-items:center;justify-content:flex-start;flex-wrap:wrap}
+  .funnel .row{grid-template-columns:90px 1fr 48px}
+}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="./index.html">← NIVA OS</a><span class="who" id="who"></span></div>
+<div class="wrap">
+  <header class="h">
+    <div class="brand">NIVA <b>·</b> Mi día</div>
+    <div class="date" id="fecha"></div>
+  </header>
+  <div id="err" class="err hidden"></div>
+  <div id="loading" class="loading">Leyendo tus leads, propiedades y cierres…</div>
+  <div id="app" class="hidden">
+
+    <section>
+      <h2 class="q">¿Dónde se me está yendo dinero hoy?</h2>
+      <p class="verdict" id="v1"></p>
+      <div class="stack" id="s1"></div>
+    </section>
+
+    <section>
+      <h2 class="q">¿Qué tengo que decidir yo hoy?</h2>
+      <p class="verdict" id="v2"></p>
+      <div class="stack" id="s2"></div>
+    </section>
+
+    <section>
+      <h2 class="q">¿Vamos bien este mes?</h2>
+      <p class="verdict" id="v3"></p>
+      <div class="month" id="kpis"></div>
+      <div class="funnel" id="funnel"></div>
+    </section>
+
+    <section>
+      <h2 class="q">¿Cómo va cada asesor?</h2>
+      <p class="verdict"><strong>Uno por uno, con semáforo.</strong> Verde responde en menos de 1 hora; ámbar en el día; rojo más de un día o sin actividad. "Responde en" es el tiempo típico entre que llega un lead y el asesor lo toca por primera vez (llamada, WhatsApp o cambio de etapa en el CRM).</p>
+      <div class="adv" id="adv"></div>
+    </section>
+
+    <section>
+      <h2 class="q">Qué haría yo esta semana para mejorar</h2>
+      <p class="verdict"><strong>Ordenado por cuánto dinero mueve.</strong> Se recalcula cada vez que abres esta página con los datos del momento.</p>
+      <div class="improve" id="improve"></div>
+    </section>
+
+    <section>
+      <h2 class="q" style="font-size:20px">Para cuando quieras ver más</h2>
+      <div class="stack">
+        <details><summary>Todos los leads (CRM completo)</summary><div class="in">Lista completa con filtros por etapa, asesor y fecha. <a href="./crm.html?tab=todos">Abrir CRM</a></div></details>
+        <details><summary>Cierres y comisiones</summary><div class="in">Cierres pendientes y aprobados, monto de comisión y parte NIVA. <a href="./cierres.html">Abrir Cierres</a></div></details>
+        <details><summary>Inventario y captaciones</summary><div class="in">Las propiedades activas, quién es dueño de cada una y las captaciones del equipo. <a href="./captaciones.html">Abrir Captaciones</a> · <a href="./admin.html">Panel de administrador</a></div></details>
+        <details><summary>Scouting de propietarios</summary><div class="in">Propiedades detectadas en portales para captar, y las liberaciones que piden los asesores. <a href="./scouting.html">Abrir Scouting</a></div></details>
+        <details><summary>Todo lo técnico</summary><div class="in">Sincronización con EasyBroker, errores de integración y notificaciones. Sigue en el <a href="./admin.html">panel de administrador</a>; aquí no se quitó nada.</div></details>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="q" style="font-size:20px">Palabras que vas a ver</h2>
+      <dl class="gloss">
+        <dt>Lead</dt><dd>Una persona que pidió informes de una propiedad. Todavía no es cliente.</dd>
+        <dt>Respondido</dt><dd>Un asesor ya lo tocó: le llamó, le escribió por WhatsApp o lo movió de etapa en el CRM. Lo que importa es en cuánto tiempo.</dd>
+        <dt>Activo / Tibio</dt><dd>Las etapas del CRM después de "nuevo": activo es que se está trabajando; tibio, que respondió pero no avanza.</dd>
+        <dt>Cierre</dt><dd>Se firmó la renta o la venta. Solo cuenta en utilidad cuando tú lo apruebas.</dd>
+        <dt>Utilidad NIVA</dt><dd>La parte de la comisión que queda para NIVA después de la parte del asesor (y de otra inmobiliaria, si se compartió).</dd>
+      </dl>
+    </section>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtMXN=n=>'$'+Math.round(Number(n)||0).toLocaleString('es-MX');
+const META_UTILIDAD=200000;
+const H=3600e3, D=24*H;
+function fechaHoy(){ const d=new Date(); const s=d.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'}); return s.charAt(0).toUpperCase()+s.slice(1)+' · '+d.toLocaleTimeString('es-MX',{hour:'numeric',minute:'2-digit'}); }
+function hace(ts){ if(!ts) return 'nunca'; const ms=Date.now()-new Date(ts).getTime(); if(ms<H) return 'hace '+Math.max(1,Math.round(ms/6e4))+' min'; if(ms<D) return 'hoy '+new Date(ts).toLocaleTimeString('es-MX',{hour:'numeric',minute:'2-digit'}); const d=Math.round(ms/D); return d===1?'ayer':'hace '+d+' días'; }
+function dur(ms){ if(ms==null) return '—'; if(ms<H) return Math.max(1,Math.round(ms/6e4))+' min'; if(ms<D) return (ms/H).toFixed(ms<3*H?1:0)+' h'; return Math.round(ms/D)+' días'; }
+function mediana(arr){ if(!arr.length) return null; const a=[...arr].sort((x,y)=>x-y); const m=Math.floor(a.length/2); return a.length%2?a[m]:(a[m-1]+a[m])/2; }
+function item(cls,num,t,why,acts){ return '<div class="item '+cls+'"><div class="stripe"></div><div class="body"><span class="num">'+num+'</span><span class="t">'+t+'</span>'+(why?'<div class="why">'+why+'</div>':'')+'</div><div class="act">'+(acts||'')+'</div></div>'; }
+function btn(txt,href,primary){ return '<a class="btn'+(primary?' primary':'')+'" href="'+href+'">'+txt+'</a>'; }
+
+(async function main(){
+  $('#fecha').textContent=fechaHoy();
+  while(!window.__nivaSb){ await new Promise(r=>setTimeout(r,20)); }
+  const sb=window.__nivaSb, session=window.__nivaSession;
+  const uname=((session&&session.user&&session.user.email)||'').split('@')[0];
+  $('#who').textContent=uname;
+  if(uname!=='admin'){ $('#loading').classList.add('hidden'); $('#err').textContent='Esta página es solo para el dueño (usuario admin).'; $('#err').classList.remove('hidden'); return; }
+  try{
+    const now=Date.now();
+    const mesIni=new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const [rL,rI,rA,rU,rP,rC,rS]=await Promise.all([
+      sb.from('leads').select('id,advisor_id,status,created_at,happened_at,archived_at,property_id,source').range(0,4999),
+      sb.from('lead_interactions').select('lead_id,actor,type,created_at').eq('actor','advisor').range(0,9999),
+      sb.from('advisors').select('id,first_name,last_name,user_id,status'),
+      sb.from('app_users').select('id,username,last_login_at,role,status'),
+      sb.from('properties').select('id,title,location_name,price_amount,created_at,eb_created_at,captured_by_advisor_id,eb_public_id').eq('internal_status','active'),
+      sb.from('cierres').select('id,advisor_id,estatus,monto_niva,monto_comision,fecha_cierre,approved_at,created_at,operation_type,cliente_nombre'),
+      sb.from('scouting_leads').select('id,titulo,liberacion_solicitada_por,liberacion_solicitada_at').not('liberacion_solicitada_at','is',null).is('liberado_at',null),
+    ]);
+    for(const r of [rL,rI,rA,rU,rP,rC,rS]) if(r.error) throw r.error;
+    const leads=rL.data||[], inter=rI.data||[], advisors=(rA.data||[]).filter(a=>a.status==='active'), users=rU.data||[], props=rP.data||[], cierres=rC.data||[], scout=rS.data||[];
+
+    // ── Primera respuesta por lead (primer toque de un asesor) ──
+    const first={};
+    for(const i of inter){ const t=new Date(i.created_at).getTime(); if(!first[i.lead_id]||t<first[i.lead_id]) first[i.lead_id]=t; }
+    const t0=l=>new Date(l.happened_at||l.created_at).getTime();
+    const vivos=leads.filter(l=>!l.archived_at && l.status!=='cancelled');
+    const advName={}; advisors.forEach(a=>advName[a.id]=(a.first_name||'').trim());
+    const nombre=id=>advName[id]||'sin asignar';
+
+    // ── 1. Dinero en riesgo ──
+    const sinResp48=vivos.filter(l=>l.status==='new' && !first[l.id] && now-t0(l)<=2*D);
+    const porAsesor={}; sinResp48.forEach(l=>{ const k=nombre(l.advisor_id); porAsesor[k]=(porAsesor[k]||0)+1; });
+    const viejos=vivos.filter(l=>l.status==='new' && now-t0(l)>30*D);
+    const leadsPorProp={}; leads.forEach(l=>{ if(l.property_id && now-t0(l)<=45*D) leadsPorProp[l.property_id]=(leadsPorProp[l.property_id]||0)+1; });
+    const sinLeads45=props.filter(p=>!leadsPorProp[p.id] && now-new Date(p.eb_created_at||p.created_at).getTime()>45*D);
+    const s1=[];
+    if(sinResp48.length) s1.push(item('bad',sinResp48.length,'leads llegaron en las últimas 48 horas y nadie les ha escrito','Después de 1 hora sin respuesta, la mitad ya habló con otra inmobiliaria. Los tienen: '+esc(Object.entries(porAsesor).sort((a,b)=>b[1]-a[1]).map(([k,v])=>k+' '+v).join(', '))+'.',btn('Ver y reasignar','./crm.html?tab=todos&fil=new&rango=semana',true)));
+    else s1.push(item('good',0,'leads de las últimas 48 horas sin respuesta','Todos los leads recientes ya fueron tocados por un asesor.',btn('Ver CRM','./crm.html?tab=todos&rango=semana')));
+    if(viejos.length) s1.push(item('warn',viejos.length,'leads llevan más de 30 días en "nuevo"','Ya no van a cerrar así. Vale la pena un último mensaje y archivarlos; los que contesten regresan solos al CRM.',btn('Ver la lista','./crm.html?tab=todos&fil=new',true)));
+    if(sinLeads45.length) s1.push(item('warn',sinLeads45.length,'propiedades activas llevan 45+ días sin recibir un solo lead','Casi siempre es precio o fotos. Las que más tiempo llevan: '+esc(sinLeads45.slice(0,3).map(p=>(p.title||p.eb_public_id||'').slice(0,40)).join(' · '))+'.',btn('Revisar inventario','./admin.html',true)));
+    else s1.push(item('good',0,'propiedades sin leads en 45 días','Todo el inventario activo está generando interés.',''));
+    $('#s1').innerHTML=s1.join('');
+    const nRiesgo=(sinResp48.length?1:0)+(viejos.length?1:0)+(sinLeads45.length?1:0);
+    $('#v1').innerHTML=nRiesgo? '<strong>'+(nRiesgo===1?'Una cosa':nRiesgo+' cosas')+'.</strong> Cada lead es alguien que pidió informes de una propiedad tuya; cada día sin respuesta vale dinero.' : '<strong>Nada urgente hoy.</strong> Los leads recientes están atendidos y el inventario genera interés.';
+
+    // ── 2. Decisiones ──
+    const pend=cierres.filter(c=>c.estatus==='pendiente');
+    const capt7=props.filter(p=>p.captured_by_advisor_id && now-new Date(p.created_at).getTime()<=7*D);
+    const s2=[];
+    if(pend.length){ const desde=pend.map(c=>c.fecha_cierre||c.created_at).sort()[0]; s2.push(item('info',pend.length,'cierres esperan tu aprobación'+(desde?' desde '+new Date(desde).toLocaleDateString('es-MX',{day:'numeric',month:'short'}):''),'Mientras no los apruebes, no cuentan en utilidad ni en comisiones de los asesores. Suman '+fmtMXN(pend.reduce((a,c)=>a+(Number(c.monto_niva)||0),0))+' para NIVA.',btn('Aprobar uno por uno','./cierres.html',true))); }
+    if(scout.length) s2.push(item('info',scout.length,(scout.length===1?'asesor pide':'asesores piden')+' liberar un lead de scouting','Quieren pasar un prospecto detectado al CRM general; solo tú puedes autorizarlo.',btn('Decidir','./scouting.html',true)));
+    if(capt7.length) s2.push(item('good',capt7.length,'captación'+(capt7.length>1?'es nuevas':' nueva')+' esta semana',esc(capt7.slice(0,3).map(p=>(p.title||'').slice(0,42)+' ('+nombre(p.captured_by_advisor_id)+')').join(' · '))+'. Ya están en EasyBroker con comisión compartida.',btn('Ver contenido','./studio.html')));
+    if(!s2.length) s2.push(item('good','✓','Nada pendiente de ti hoy','',''));
+    $('#s2').innerHTML=s2.join('');
+    const nDec=pend.length+scout.length;
+    $('#v2').innerHTML=nDec?'<strong>'+nDec+' '+(nDec===1?'decisión':'decisiones')+', unos '+Math.max(2,Math.ceil(nDec*0.5))+' minutos.</strong> Solo aparece aquí lo que nadie más puede hacer por ti.':'<strong>Sin decisiones pendientes.</strong> Solo aparece aquí lo que nadie más puede hacer por ti.';
+
+    // ── 3. El mes ──
+    const enMes=l=>t0(l)>=mesIni.getTime();
+    const leadsMes=leads.filter(enMes);
+    const resp1h=leadsMes.filter(l=>first[l.id] && first[l.id]-t0(l)<=H).length;
+    const contactadosMes=leadsMes.filter(l=>l.status!=='new'||first[l.id]).length;
+    const tibiosMes=leadsMes.filter(l=>l.status==='attended').length;
+    const cierresMes=cierres.filter(c=>{ const f=new Date(c.approved_at||c.fecha_cierre||c.created_at).getTime(); return c.estatus==='aprobado' && f>=mesIni.getTime(); });
+    const cierresMesTodos=cierres.filter(c=>new Date(c.fecha_cierre||c.created_at).getTime()>=mesIni.getTime());
+    const utilidad=cierresMes.reduce((a,c)=>a+(Number(c.monto_niva)||0),0);
+    const utilidadPend=cierresMesTodos.filter(c=>c.estatus==='pendiente').reduce((a,c)=>a+(Number(c.monto_niva)||0),0);
+    const pct=leadsMes.length?Math.round(100*resp1h/leadsMes.length):0;
+    const mesAnt=new Date(mesIni); mesAnt.setMonth(mesAnt.getMonth()-1);
+    const leadsMesAnt=leads.filter(l=>t0(l)>=mesAnt.getTime()&&t0(l)<mesIni.getTime()).length;
+    const varLeads=leadsMesAnt?Math.round(100*(leadsMes.length-leadsMesAnt)/leadsMesAnt):null;
+    $('#kpis').innerHTML=
+      '<div class="kpi"><div class="l">Leads del mes</div><div class="v">'+leadsMes.length+'</div><div class="d">'+(varLeads==null?'sin mes anterior':(varLeads>=0?'+':'')+varLeads+' % vs. mes pasado')+'</div></div>'+
+      '<div class="kpi '+(pct>=80?'good':pct>=50?'warn':'bad')+'"><div class="l">Respondidos en 1 h</div><div class="v">'+pct+' %</div><div class="d">meta: 80 %</div></div>'+
+      '<div class="kpi"><div class="l">En trabajo</div><div class="v">'+contactadosMes+'</div><div class="d">'+(leadsMes.length?Math.round(100*contactadosMes/leadsMes.length):0)+' % de los leads del mes</div></div>'+
+      '<div class="kpi '+(cierresMes.length?'good':'')+'"><div class="l">Cierres aprobados</div><div class="v">'+cierresMes.length+'</div><div class="d">'+cierresMes.filter(c=>c.operation_type==='rental'||/rent/i.test(c.operation_type||'')).length+' rentas · '+cierresMes.filter(c=>c.operation_type==='sale'||/vent/i.test(c.operation_type||'')).length+' ventas</div></div>';
+    const w=n=>leadsMes.length?Math.max(2,Math.round(100*n/leadsMes.length)):0;
+    $('#funnel').innerHTML=
+      '<div class="row"><span>Leads</span><div class="bar"><i style="width:100%"></i></div><span class="n">'+leadsMes.length+'</span></div>'+
+      '<div class="row"><span>Contactados</span><div class="bar"><i style="width:'+w(contactadosMes)+'%"></i></div><span class="n">'+contactadosMes+'</span></div>'+
+      '<div class="row"><span>Tibios</span><div class="bar"><i style="width:'+w(tibiosMes)+'%"></i></div><span class="n">'+tibiosMes+'</span></div>'+
+      '<div class="row"><span>Cierres</span><div class="bar"><i style="width:'+w(cierresMes.length)+'%"></i></div><span class="n">'+cierresMes.length+'</span></div>'+
+      '<div class="note">'+(leadsMes.length-contactadosMes>0?'Se pierden '+(leadsMes.length-contactadosMes)+' leads entre "llegó" y "contactado". Ese es el hueco más barato de cerrar: no cuesta publicidad, solo responder.':'Todos los leads del mes han sido contactados.')+'</div>'+
+      '<div class="meta"><span>Utilidad del mes</span><div class="track"><i style="width:'+Math.min(100,Math.round(100*utilidad/META_UTILIDAD))+'%"></i></div><span>'+fmtMXN(utilidad)+' de '+fmtMXN(META_UTILIDAD)+(utilidadPend?' (+'+fmtMXN(utilidadPend)+' pendientes de aprobar)':'')+'</span></div>';
+    $('#v3').innerHTML= pct<50 ? '<strong>Vamos regular:</strong> entran leads, pero se pierden antes de trabajarse. El cuello de botella está en responder, no en conseguir clientes.'
+      : (utilidad>=META_UTILIDAD ? '<strong>Vamos bien:</strong> la meta del mes ya se alcanzó.' : '<strong>Vamos en camino:</strong> la respuesta a leads está sana; ahora el juego es convertir los activos en cierres.');
+
+    // ── 4. Por asesor ──
+    const userById={}; users.forEach(u=>userById[u.id]=u);
+    const cards=advisors.map(a=>{
+      const mine=leadsMes.filter(l=>l.advisor_id===a.id);
+      const tiempos=mine.filter(l=>first[l.id]).map(l=>first[l.id]-t0(l));
+      const med=mediana(tiempos);
+      const pendMios=vivos.filter(l=>l.advisor_id===a.id && l.status==='new' && !first[l.id]);
+      const activos=vivos.filter(l=>l.advisor_id===a.id && l.status!=='new').length;
+      const cie=cierres.filter(c=>c.advisor_id===a.id && c.estatus==='aprobado' && new Date(c.approved_at||c.fecha_cierre||c.created_at).getTime()>=mesIni.getTime()).length;
+      const capt=props.filter(p=>p.captured_by_advisor_id===a.id && new Date(p.created_at).getTime()>=mesIni.getTime()).length;
+      const u=userById[a.user_id]; const login=u&&u.last_login_at?new Date(u.last_login_at).getTime():null;
+      let cls='', pill='Sin leads';
+      if(mine.length||pendMios.length){
+        if(med!=null && med<=H && pendMios.length<=1){cls='good';pill='Al día';}
+        else if((med!=null && med<=D) || (med==null && pendMios.length===0)){cls='warn';pill='Lento';}
+        else {cls='bad';pill=pendMios.length?'Leads sin tocar':'Sin actividad';}
+      } else if(login && now-login>7*D){cls='warn';pill='Inactivo';}
+      let say='';
+      if(pendMios.length) say='Tiene '+pendMios.length+' lead'+(pendMios.length>1?'s':'')+' sin tocar'+(pendMios.some(l=>now-t0(l)>2*D)?', alguno de hace más de 2 días':'')+'. Si no responde hoy, conviene reasignarlos.';
+      else if(cls==='good' && mine.length>=3) say='Responde rápido y convierte. Buen candidato para recibir los leads sin asignar.';
+      else if(cls==='warn' && med!=null) say='Responde, pero tarda '+dur(med)+'. Un recordatorio a los 20 minutos le ayudaría.';
+      else if(!mine.length && !pendMios.length) say='No recibió leads este mes. Revisa si tiene propiedades asignadas.';
+      return {cls,html:'<div class="card '+cls+'"><div class="n"><span>'+esc((a.first_name+' '+(a.last_name||'').charAt(0)).trim()+(a.last_name?'.':''))+'</span><span class="pill">'+pill+'</span></div>'+
+        '<div class="g"><span>Leads mes</span><b>'+mine.length+'</b><span>Responde en</span><b>'+dur(med)+'</b><span>Sin tocar</span><b>'+pendMios.length+'</b><span>Activos</span><b>'+activos+'</b><span>Cierres mes</span><b>'+cie+'</b><span>Captaciones</span><b>'+capt+'</b><span>Entró a NIVA OS</span><b>'+esc(hace(login))+'</b></div>'+
+        (say?'<div class="say">'+say+'</div>':'')+'</div>', orden:cls==='bad'?0:cls==='warn'?1:cls==='good'?2:3};
+    }).sort((x,y)=>x.orden-y.orden);
+    $('#adv').innerHTML=cards.map(c=>c.html).join('')||'<div class="loading">No hay asesores activos registrados.</div>';
+
+    // ── 5. Qué haría yo esta semana ──
+    const sug=[];
+    if(pct<80 && leadsMes.length>=5){
+      const extra=Math.round((0.8*leadsMes.length-contactadosMes)*(tibiosMes/Math.max(1,contactadosMes)));
+      sug.push({t:'Regla de 1 hora: si un asesor no responde un lead en 60 minutos, se reasigna solo',d:'Hoy solo '+pct+' % de los leads del mes se contestan en la primera hora. Con la regla, el sistema avisa a los 20 minutos, reasigna a los 60 y te informa.',g:'Estimado: '+(extra>0?'+'+extra:'más')+' leads trabajados al mes con los mismos que ya pagas.',peso:3});
+    }
+    if(sinLeads45.length) sug.push({t:'Revisar precio o fotos de las '+sinLeads45.length+' propiedades sin leads en 45 días',d:'Ninguna ha recibido un solo contacto desde hace mes y medio. Un ajuste del 5–7 % o fotos nuevas suele reactivar los portales.',g:'Estimado: 1 cierre extra por cada 4–5 propiedades reactivadas.',peso:2});
+    if(pend.length) sug.push({t:'Aprobar los '+pend.length+' cierres pendientes y pagar comisiones',d:'Mientras estén "pendientes", ni tú sabes tu utilidad real ni los asesores ven su dinero. La barra de la meta se mide con lo aprobado.',g:'Beneficio: claridad; hoy la utilidad del mes está subestimada en '+fmtMXN(utilidadPend)+'.',peso:2});
+    if(viejos.length>=20) sug.push({t:'Archivar los '+viejos.length+' leads de más de 30 días con un mensaje final',d:'Un último WhatsApp ("¿sigues buscando?") recupera entre 2 y 5 de cada 100; los demás dejan de estorbar en el CRM.',g:'Estimado: '+Math.max(1,Math.round(viejos.length*0.03))+'–'+Math.max(2,Math.round(viejos.length*0.05))+' leads recuperados.',peso:1});
+    const malos=cards.filter(c=>c.cls==='bad').length;
+    if(malos) sug.push({t:'Hablar esta semana con los '+malos+' asesor'+(malos>1?'es':'')+' en rojo',d:'Tienen leads sin tocar o no han entrado a NIVA OS. Un lead que se queda con un asesor inactivo es un lead perdido.',g:'Beneficio: los leads vuelven a circular.',peso:2});
+    if(!sug.length) sug.push({t:'Mantener el ritmo',d:'Respuesta rápida, inventario con interés y cierres al día. La siguiente palanca es más captaciones.',g:'',peso:0});
+    sug.sort((a,b)=>b.peso-a.peso);
+    $('#improve').innerHTML=sug.slice(0,4).map((s,i)=>'<div class="one"><div class="k">'+(i+1)+'</div><div><div class="t">'+esc(s.t)+'</div><div class="d">'+esc(s.d)+'</div>'+(s.g?'<div class="gain">'+esc(s.g)+'</div>':'')+'</div></div>').join('');
+
+    $('#loading').classList.add('hidden'); $('#app').classList.remove('hidden');
+  }catch(e){
+    console.error('[NIVA][midia]',e);
+    $('#loading').classList.add('hidden');
+    $('#err').textContent='No pude leer los datos: '+(e.message||e)+'. Recarga la página; si sigue, avísale a Ricardo.';
+    $('#err').classList.remove('hidden');
+  }
+})();
+</script>
+</body>
+</html>
