@@ -221,6 +221,21 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 .pillst{font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px;background:rgba(255,255,255,.12)}
 .pillst.inactive{background:rgba(248,113,113,.2);color:#fca5a5}
 .repdesc{font-size:12px;color:rgba(255,255,255,.55);margin:-6px 0 10px}
+.leadrow{display:grid;grid-template-columns:1fr auto;gap:10px 16px;align-items:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:11px 14px;margin-bottom:8px}
+.leadrow .ln{font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.leadrow .lm{font-size:12.5px;color:rgba(255,255,255,.65);margin-top:3px}
+.leadrow .lacts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.leadrow select,.leadrow a.lbtn{font:inherit;font-size:12.5px;padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.25);color:#fff;text-decoration:none}
+.est{font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px}
+.est.new{background:rgba(96,165,250,.2);color:#93c5fd}.est.contacted{background:rgba(251,191,36,.2);color:#fde68a}.est.attended{background:rgba(249,115,22,.2);color:#fdba74}.est.cancelled{background:rgba(248,113,113,.2);color:#fca5a5}
+.cierrow{display:grid;grid-template-columns:1fr auto;gap:10px 16px;align-items:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.cierrow .cn{font-weight:700}.cierrow .cm{font-size:12.5px;color:rgba(255,255,255,.65);margin-top:3px}
+.cierrow .money{font-family:ui-monospace,monospace;font-weight:700;color:var(--gold)}
+.cierrow .cacts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.cierrow button{font:inherit;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.25);color:#fff;cursor:pointer}
+.cierrow button.ok{background:rgba(74,222,128,.18);border-color:rgba(74,222,128,.4);color:#86efac}
+.cierrow button.no{border-color:rgba(248,113,113,.4);color:#fca5a5}
+@media (max-width:640px){.leadrow,.cierrow{grid-template-columns:1fr}.leadrow .lacts,.cierrow .cacts{justify-content:flex-start}}
 .sysrow{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px}
 .sysrow b{font-family:ui-monospace,monospace}
 @media (max-width:640px){.aserow{grid-template-columns:1fr}.aserow .acts{align-items:flex-start}}
@@ -247,8 +262,8 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <div class="anav-group">Administrar</div>
       <button class="anav-item" data-sec="propiedades">🏠 Propiedades <span class="anav-badge hidden" id="nav-sindueno"></span></button>
       <button class="anav-item" data-sec="asesores">👔 Asesores</button>
-      <a class="anav-item" href="crm.html?tab=todos" style="text-decoration:none;display:flex">📋 Leads (CRM)</a>
-      <a class="anav-item" href="cierres.html" style="text-decoration:none;display:flex">🤝 Cierres y comisiones</a>
+      <button class="anav-item" data-sec="leads">📋 Leads <span class="anav-badge hidden" id="nav-leads"></span></button>
+      <button class="anav-item" data-sec="cierres">🤝 Cierres y comisiones <span class="anav-badge hidden" id="nav-cierres"></span></button>
       <div class="anav-group">Entender</div>
       <button class="anav-item" data-sec="reportes">📊 Reportes y descargas</button>
       <div class="anav-group">Herramientas</div>
@@ -312,6 +327,36 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <div class="sec-head"><h2>👔 Asesores</h2></div>
       <div class="explain">Tu equipo, uno por uno: cuántas propiedades tiene, cuántos leads activos y cuándo entró a NIVA OS. Desde aquí puedes pasar todo lo de un asesor a otro (cuando alguien se va o de vacaciones) y activar o desactivar cuentas. Un asesor desactivado no puede entrar ni recibir leads.</div>
       <div id="asesores"></div>
+    </section>
+
+    <section class="asec" id="sec-leads">
+      <div class="sec-head"><h2>📋 Leads</h2></div>
+      <div class="explain">Todos los leads de la empresa, de todos los asesores. Aquí ves quién tiene cada uno, en qué etapa va y desde cuándo; puedes cambiar el asesor de un lead o su etapa sin salir de aquí. Para trabajar un lead (escribirle, ver la conversación) se abre en el CRM.</div>
+      <div class="subtabs" id="lead-subtabs">
+        <button class="on" data-f="nuevos">🆕 Nuevos <span class="cnt" id="lcnt-nuevos"></span></button>
+        <button data-f="sinasesor">⚠️ Sin asesor <span class="cnt" id="lcnt-sinasesor"></span></button>
+        <button data-f="semana">📅 Últimos 7 días <span class="cnt" id="lcnt-semana"></span></button>
+        <button data-f="activos">Todos los activos <span class="cnt" id="lcnt-activos"></span></button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+        <input type="text" class="searchbox" id="lead-buscar" placeholder="Buscar por nombre, teléfono, propiedad o asesor..." style="flex:1;min-width:220px;margin:0">
+        <select id="lead-asesor-f" style="font:inherit;font-size:13px;padding:9px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.25);color:#fff"><option value="">Todos los asesores</option></select>
+      </div>
+      <div style="text-align:right;margin-bottom:6px"><button class="vertodo-btn" id="lead-vertodo">Ver todo</button></div>
+      <div id="leadslist"></div>
+    </section>
+
+    <section class="asec" id="sec-cierres">
+      <div class="sec-head"><h2>🤝 Cierres y comisiones</h2></div>
+      <div class="explain">Un cierre es una renta o venta firmada. El asesor lo registra y tú lo apruebas; solo lo aprobado cuenta como utilidad y como comisión. Aquí apruebas o rechazas los pendientes y ves el mes.</div>
+      <div class="dash-grid" id="cierres-kpis"></div>
+      <div class="subtabs" id="cierre-subtabs">
+        <button class="on" data-f="pendiente">⏳ Por aprobar <span class="cnt" id="ccnt-pendiente"></span></button>
+        <button data-f="aprobado">✅ Aprobados <span class="cnt" id="ccnt-aprobado"></span></button>
+        <button data-f="rechazado">❌ Rechazados <span class="cnt" id="ccnt-rechazado"></span></button>
+      </div>
+      <div id="cierreslist"></div>
+      <div class="repnote" style="margin-top:12px">Para registrar un cierre nuevo o editar uno, usa el módulo <a href="cierres.html" style="color:var(--gold)">Cierres</a>.</div>
     </section>
 
     <section class="asec" id="sec-sistema">
@@ -487,6 +532,9 @@ async function cargar(){
     $('#s-sindueno').textContent = nSinDueno;
     $('#s-sinlead').textContent = LEADS.filter(x=>!x.advisor_id && !x.archived_at).length;
     const nb=$('#nav-sindueno'); if(nb){ nb.textContent=nSinDueno; nb.classList.toggle('hidden',!nSinDueno); }
+    const nSinAsesor=LEADS.filter(x=>!x.advisor_id && !x.archived_at && x.status!=='cancelled').length;
+    const nl=$('#nav-leads'); if(nl){ nl.textContent=nSinAsesor; nl.classList.toggle('hidden',!nSinAsesor); }
+    try{ const cp=await sb.from('cierres').select('id').eq('estatus','pendiente'); const nc=$('#nav-cierres'); if(nc&&!cp.error){ nc.textContent=(cp.data||[]).length; nc.classList.toggle('hidden',!(cp.data||[]).length); } }catch(_e){}
     const hoy0=new Date(); hoy0.setHours(0,0,0,0); const d6=new Date(hoy0); d6.setDate(d6.getDate()-6);
     const set=(id,v)=>{const el=$(id); if(el) el.textContent='('+v+')';};
     set('#cnt-sindueno',nSinDueno); set('#cnt-todas',PROPS.length);
@@ -690,6 +738,8 @@ function irASeccion(sec){
   if(sec==='sindueno'||sec==='propasesor'||sec==='propnuevas'||sec==='propbaja'){ const map={sindueno:'sindueno',propasesor:'todas',propnuevas:'nuevas',propbaja:'bajas'}; irASubProp(map[sec]); sec='propiedades'; }
   if(sec==='asesores') renderAsesores();
   if(sec==='sistema') renderSistema();
+  if(sec==='leads') renderLeadsAdmin();
+  if(sec==='cierres') renderCierresAdmin();
   const b=document.querySelector('#anav button[data-sec="'+sec+'"]');
   document.querySelectorAll('#anav .anav-item').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('.asec').forEach(s=>s.classList.toggle('on', s.id==='sec-'+sec));
@@ -774,6 +824,89 @@ async function renderAsesores(){
   });
 }
 function confirmar(msg){ try{ return window.confirm(msg); }catch(_e){ return true; } }
+
+// ===== Leads (vista de dueño): quién tiene qué, cambiar asesor o etapa sin salir =====
+let LEAD_F='nuevos', LEAD_Q='', LEAD_A='', LEAD_EXP=false;
+const EST_NOM={new:'Nuevo',contacted:'Activo',attended:'Tibio',cancelled:'Cerrado'};
+const FTE_NOM={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Directo',manual_asesor:'Directo',facebook_messenger:'Messenger',whatsapp_meta:'WhatsApp',meta_lead_form:'Meta',web:'Web'};
+function renderLeadsAdmin(){
+  const host=$('#leadslist'); if(!host) return;
+  const selA=$('#lead-asesor-f');
+  if(selA && selA.options.length<=1) selA.innerHTML='<option value="">Todos los asesores</option><option value="__none__">Sin asesor</option>'+ASESORES.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.n)+'</option>').join('');
+  const hoy0=new Date(); hoy0.setHours(0,0,0,0); const d6=new Date(hoy0); d6.setDate(d6.getDate()-6);
+  const f=l=>new Date(l.happened_at||l.created_at);
+  const activos=LEADS.filter(l=>!l.archived_at && l.status!=='cancelled');
+  const sets={nuevos:activos.filter(l=>l.status==='new'), sinasesor:activos.filter(l=>!l.advisor_id), semana:LEADS.filter(l=>!l.archived_at&&f(l)>=d6), activos};
+  Object.entries(sets).forEach(([k,v])=>{const el=$('#lcnt-'+k); if(el) el.textContent='('+v.length+')';});
+  let lista=sets[LEAD_F]||activos;
+  if(LEAD_A==='__none__') lista=lista.filter(l=>!l.advisor_id); else if(LEAD_A) lista=lista.filter(l=>l.advisor_id===LEAD_A);
+  if(LEAD_Q){ const q=LEAD_Q.toLowerCase(); lista=lista.filter(l=>[l.full_name,l.phone_normalized,l.property_title,l.advisor_name,l.eb_public_id].join(' ').toLowerCase().includes(q)); }
+  lista=lista.slice().sort((a,b)=>f(b)-f(a));
+  const btn=$('#lead-vertodo'); const LIM=15;
+  if(btn){ btn.textContent=LEAD_EXP?'Ver menos':'Ver todo ('+lista.length+')'; btn.classList.toggle('hidden',lista.length<=LIM); }
+  if(!lista.length){ host.innerHTML=vacioHTML('No hay leads con ese filtro.','📭'); return; }
+  const show=LEAD_EXP?lista:lista.slice(0,LIM);
+  host.innerHTML=show.map(l=>{
+    const opts='<option value="">Sin asesor</option>'+ASESORES.map(a=>'<option value="'+esc(a.id)+'"'+(l.advisor_id===a.id?' selected':'')+'>'+esc(a.n)+'</option>').join('');
+    const est=['new','contacted','attended','cancelled'].map(k=>'<option value="'+k+'"'+(l.status===k?' selected':'')+'>'+EST_NOM[k]+'</option>').join('');
+    return '<div class="leadrow" data-lid="'+esc(l.id)+'"><div><div class="ln">'+esc(l.full_name||'Sin nombre')+' <span class="est '+esc(l.status)+'">'+(EST_NOM[l.status]||l.status)+'</span></div>'
+      +'<div class="lm">'+[esc(l.phone_normalized||''),esc(l.property_title||'sin propiedad'),FTE_NOM[l.source]||esc(l.source||''),haceTiempo(l.happened_at||l.created_at)].filter(Boolean).join(' · ')+(l.first_message?'<br>«'+esc(String(l.first_message).slice(0,110))+'»':'')+'</div></div>'
+      +'<div class="lacts"><select class="lead-adv" title="Asesor">'+opts+'</select><select class="lead-est" title="Etapa">'+est+'</select><a class="lbtn" href="crm.html?tab=todos" title="Abrir en el CRM">Abrir ↗</a></div></div>';
+  }).join('');
+}
+$('#lead-subtabs').addEventListener('click',e=>{const b=e.target.closest('button[data-f]'); if(!b) return; LEAD_F=b.dataset.f; LEAD_EXP=false; document.querySelectorAll('#lead-subtabs button').forEach(x=>x.classList.toggle('on',x===b)); renderLeadsAdmin();});
+$('#lead-buscar').addEventListener('input',e=>{LEAD_Q=e.target.value.trim(); renderLeadsAdmin();});
+$('#lead-asesor-f').addEventListener('change',e=>{LEAD_A=e.target.value; renderLeadsAdmin();});
+$('#lead-vertodo').addEventListener('click',()=>{LEAD_EXP=!LEAD_EXP; renderLeadsAdmin();});
+$('#leadslist').addEventListener('change',async e=>{
+  const row=e.target.closest('.leadrow'); if(!row) return; const lid=row.dataset.lid; const l=LEADS.find(x=>x.id===lid); if(!l) return;
+  try{
+    if(e.target.classList.contains('lead-adv')){
+      const to=e.target.value||null;
+      const r=await sb.from('leads').update({advisor_id:to,updated_at:new Date().toISOString()}).eq('id',lid); if(r.error) throw r.error;
+      l.advisor_id=to; l.advisor_name=to?nomAsesor(to):null; toast(to?'Lead pasado a '+nomAsesor(to):'Lead sin asesor');
+    } else if(e.target.classList.contains('lead-est')){
+      const st=e.target.value;
+      const r=await sb.from('leads').update({status:st,updated_at:new Date().toISOString()}).eq('id',lid); if(r.error) throw r.error;
+      l.status=st; toast('Etapa: '+EST_NOM[st]);
+    }
+    renderLeadsAdmin();
+  }catch(err){ toast('Error: '+(err.message||err)); renderLeadsAdmin(); }
+});
+
+// ===== Cierres y comisiones (aprobar / rechazar desde aquí) =====
+let CIERRES_ADM=[], CIERRE_F='pendiente';
+async function renderCierresAdmin(){
+  const host=$('#cierreslist'); host.innerHTML='<div class="vacio"><span class="vi">⏳</span>Cargando cierres…</div>';
+  try{ const r=await sb.from('cierres').select('*').order('fecha_cierre',{ascending:false}).limit(500); if(r.error) throw r.error; CIERRES_ADM=r.data||[]; }
+  catch(e){ host.innerHTML=vacioHTML('No se pudieron cargar los cierres: '+(e.message||e),'⚠️'); return; }
+  const mesIni=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  const niva=c=>Number(c.monto_niva)||(Number(c.monto_comision)||0)*(Number(c.porcentaje_niva)||0)/100;
+  const apr=CIERRES_ADM.filter(c=>c.estatus==='aprobado'), pen=CIERRES_ADM.filter(c=>c.estatus==='pendiente'), rec=CIERRES_ADM.filter(c=>c.estatus==='rechazado');
+  const aprMes=apr.filter(c=>new Date(c.approved_at||c.fecha_cierre)>=mesIni);
+  $('#cierres-kpis').innerHTML=
+    '<div class="dkpi"><div class="dl">Por aprobar</div><div class="dv">'+pen.length+'</div><div class="dhint">'+fmt(pen.reduce((s,c)=>s+niva(c),0))+' para NIVA en espera</div></div>'
+   +'<div class="dkpi"><div class="dl">Cierres aprobados este mes</div><div class="dv">'+aprMes.length+'</div><div class="dhint">'+aprMes.filter(c=>/rent/i.test(c.operation_type||'')).length+' rentas · '+aprMes.filter(c=>/sale|vent/i.test(c.operation_type||'')).length+' ventas</div></div>'
+   +'<div class="dkpi"><div class="dl">Utilidad NIVA del mes</div><div class="dv">'+fmt(aprMes.reduce((s,c)=>s+niva(c),0))+'</div><div class="dhint">solo cierres aprobados</div></div>'
+   +'<div class="dkpi"><div class="dl">Comisión total del mes</div><div class="dv">'+fmt(aprMes.reduce((s,c)=>s+(Number(c.monto_comision)||0),0))+'</div><div class="dhint">antes de repartir</div></div>';
+  const set=(k,v)=>{const el=$('#ccnt-'+k); if(el) el.textContent='('+v+')';}; set('pendiente',pen.length); set('aprobado',apr.length); set('rechazado',rec.length);
+  const lista=CIERRES_ADM.filter(c=>c.estatus===CIERRE_F);
+  if(!lista.length){ host.innerHTML=vacioHTML(CIERRE_F==='pendiente'?'No hay cierres esperando tu aprobación.':'Nada por aquí todavía.','📭'); return; }
+  host.innerHTML=lista.map(c=>'<div class="cierrow" data-cid="'+esc(c.id)+'"><div><div class="cn">'+esc(c.cliente_nombre||'Cliente')+' · '+(/rent/i.test(c.operation_type||'')?'Renta':'Venta')+(c.compartida?' · compartida':'')+'</div>'
+    +'<div class="cm">'+[esc(c.advisor_nombre||nomAsesor(c.advisor_id)),esc(c.ubicacion||c.property_externa||''),c.valor_propiedad?'valor '+fmt(c.valor_propiedad):'',c.fecha_cierre?new Date(c.fecha_cierre+'T12:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}):''].filter(Boolean).join(' · ')
+    +'<br>Comisión <span class="money">'+fmt(c.monto_comision)+'</span> · NIVA se queda <span class="money">'+fmt(niva(c))+'</span> ('+esc(String(c.porcentaje_niva||''))+' %)'+(c.notas?'<br>«'+esc(String(c.notas).slice(0,120))+'»':'')+'</div></div>'
+    +'<div class="cacts">'+(c.estatus==='pendiente'?'<button class="ok" data-a="aprobado">✅ Aprobar</button><button class="no" data-a="rechazado">❌ Rechazar</button>':(c.estatus==='rechazado'?'<button data-a="pendiente">Volver a pendiente</button>':'<span class="est contacted">Aprobado '+(c.approved_at?haceTiempo(c.approved_at):'')+'</span>'))+'</div></div>').join('');
+}
+$('#cierre-subtabs').addEventListener('click',e=>{const b=e.target.closest('button[data-f]'); if(!b) return; CIERRE_F=b.dataset.f; document.querySelectorAll('#cierre-subtabs button').forEach(x=>x.classList.toggle('on',x===b)); renderCierresAdmin();});
+$('#cierreslist').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-a]'); if(!b) return; const cid=b.closest('.cierrow').dataset.cid; const to=b.dataset.a;
+  if(to==='rechazado' && !confirmar('¿Rechazar este cierre? El asesor lo verá como rechazado.')) return;
+  b.disabled=true;
+  try{ const r=await sb.from('cierres').update({estatus:to,approved_at:to==='aprobado'?new Date().toISOString():null,approved_by:to==='aprobado'?'admin':null}).eq('id',cid); if(r.error) throw r.error;
+    toast(to==='aprobado'?'Cierre aprobado ✅':to==='rechazado'?'Cierre rechazado':'Cierre de vuelta a pendiente'); renderCierresAdmin();
+    const nc=$('#nav-cierres'); if(nc){ const n=Math.max(0,(parseInt(nc.textContent)||0)+(to==='pendiente'?1:-1)); nc.textContent=n; nc.classList.toggle('hidden',!n); }
+  }catch(err){ toast('Error: '+(err.message||err)); b.disabled=false; }
+});
 
 // ===== Sistema: salud técnica en una pantalla =====
 async function renderSistema(){
