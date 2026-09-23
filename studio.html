@@ -1296,7 +1296,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-22.83';
+const NIVA_BUILD_VERSION = '2026-09-22.84';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -11273,12 +11273,13 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, W, H);
 
-    const fadeIn  = Math.min(sceneT / 0.08, 1);
-    const fadeOut = sceneT > 0.88 ? Math.max(1-(sceneT-0.88)/0.12, 0) : 1;
-    ctx.globalAlpha = Math.min(fadeIn, fadeOut);
-
     const v = vidV;
     const isLast = sceneNum === scaledScenes.length - 1;
+    const fadeIn  = Math.min(sceneT / 0.08, 1);
+    // La última escena NO se desvanece: el cierre (CTA, NIVA, asesor y teléfono) debe
+    // quedarse en pantalla hasta el último cuadro (Ricardo, 22-sep).
+    const fadeOut = (!isLast && sceneT > 0.88) ? Math.max(1-(sceneT-0.88)/0.12, 0) : 1;
+    ctx.globalAlpha = Math.min(fadeIn, fadeOut);
 
     const _funC = (scene.funcion || '').toLowerCase();
 
@@ -11660,27 +11661,40 @@ function drawSubtitleText(ctx, elapsedMs, W, H) {
   const weight = style === 'EDITORIAL' ? '600' : '800';
   const font   = `${weight} ${fs}px Inter, 'Helvetica Neue', sans-serif`;
 
-  // ── Dividir en máximo 2 líneas balanceadas ──
-  ctx.font = font;
+  // ── Dividir en líneas que QUEPAN en el cuadro (máx 88 % del ancho) ──
+  // Antes se partía en 2 líneas "balanceadas" sin medir el ancho: un renglón como
+  // "MODERNOS Y COMPLETAMENTE" se salía del video por los lados. Ahora: se prueba con
+  // 1, 2 y 3 líneas equilibradas y, si aun así no cabe, se reduce la fuente hasta 44 px.
   const words = rawText.toUpperCase().split(' ');
-  let lines;
-  if (words.length <= 3) {
-    lines = [words.join(' ')];
-  } else {
-    // Dividir buscando el punto de corte que más balancee las anchuras
-    let bestMid = Math.ceil(words.length / 2);
-    let bestDiff = Infinity;
-    for (let m = 1; m < words.length; m++) {
-      const w1 = ctx.measureText(words.slice(0, m).join(' ')).width;
-      const w2 = ctx.measureText(words.slice(m).join(' ')).width;
-      const diff = Math.abs(w1 - w2);
-      if (diff < bestDiff) { bestDiff = diff; bestMid = m; }
+  const MAXW = W * 0.88;
+  let fsUse = fs, lines = [words.join(' ')];
+  const splitBalanced = (nL) => {
+    if (nL === 1) return [words.join(' ')];
+    if (nL === 2) {
+      let best = 1, bestDiff = Infinity;
+      for (let m = 1; m < words.length; m++) {
+        const d = Math.abs(ctx.measureText(words.slice(0, m).join(' ')).width - ctx.measureText(words.slice(m).join(' ')).width);
+        if (d < bestDiff) { bestDiff = d; best = m; }
+      }
+      return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
     }
-    lines = [
-      words.slice(0, bestMid).join(' '),
-      words.slice(bestMid).join(' '),
-    ].filter(Boolean);
+    const per = Math.ceil(words.length / nL); const out = [];
+    for (let i = 0; i < words.length; i += per) out.push(words.slice(i, i + per).join(' '));
+    return out;
+  };
+  const fits = (ls) => ls.every(l => ctx.measureText(l).width <= MAXW);
+  outer: for (fsUse = fs; fsUse >= 44; fsUse -= 4) {
+    ctx.font = `${weight} ${fsUse}px Inter, 'Helvetica Neue', sans-serif`;
+    for (const nL of [1, 2, 3]) {
+      if (nL === 1 && words.length > 3) continue;
+      if (nL > words.length) continue;
+      const ls = splitBalanced(nL);
+      if (fits(ls)) { lines = ls; break outer; }
+    }
+    lines = splitBalanced(Math.min(3, words.length));
   }
+  ctx.font = `${weight} ${fsUse}px Inter, 'Helvetica Neue', sans-serif`;
+  const fontUse = ctx.font;
 
   // ── Animación: entrada suave / salida limpia ──
   // Entrada: primeros 10% del segmento → fade-in + slide-up 14px
@@ -11694,7 +11708,7 @@ function drawSubtitleText(ctx, elapsedMs, W, H) {
   const slideY  = localT < ENTER ? (1 - localT / ENTER) * 14 : 0;
 
   // ── Layout ──
-  const lineH  = fs * 1.25;
+  const lineH  = fsUse * 1.25;
   const totalH = lines.length * lineH;
 
   // ── Posición inteligente: lower-third por defecto, con variación sutil por segmento ──
@@ -11713,7 +11727,7 @@ function drawSubtitleText(ctx, elapsedMs, W, H) {
 
   if (style === 'EDITORIAL') {
     // Dorado premium — para CINEMATIC y estilos premium
-    ctx.font          = font;
+    ctx.font          = fontUse;
     ctx.shadowColor   = 'rgba(0,0,0,0.80)';
     ctx.shadowBlur    = 20;
     ctx.shadowOffsetY = 2;
@@ -11736,7 +11750,7 @@ function drawSubtitleText(ctx, elapsedMs, W, H) {
     // CLEAN — blanco moderno, sombra sutil en capas, sin fondo.
     // Con tiempos por palabra (ElevenLabs), la palabra que se está diciendo se pinta en
     // dorado — el texto "camina" con la voz (estilo Reels/TikTok) en vez de aparecer en bloque.
-    ctx.font = font;
+    ctx.font = fontUse;
     const wt = (active.words && active.words.length === words.length) ? active.words : null;
     let curW = -1;
     if (wt) { for (let i = 0; i < wt.length; i++) if (elapsedMs >= wt[i].startMs - 40) curW = i; }
@@ -12435,8 +12449,8 @@ function drawOutroScene(ctx, v, sceneT, W, H, scene) {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
-  // ── Fade global al final de la escena (últimos 8%) ──
-  const globalFade = sceneT > 0.92 ? Math.max(1 - (sceneT - 0.92) / 0.08, 0) : 1;
+  // Sin fade al final: el cierre se queda completo hasta el último cuadro del video.
+  const globalFade = 1;
 
   // ── Calcular cuándo empieza el CTA (después del último caption) ──
   // Se reservan aproximadamente los últimos 2.5-3 segundos de la escena para el cierre.
@@ -12482,8 +12496,11 @@ function drawOutroScene(ctx, v, sceneT, W, H, scene) {
   // 2. Asesor + teléfono GRANDE (antes salía en letra chica, ilegible en celular)
   // Cada elemento tiene su propio slideUp + fade-in.
 
-  const ANIM_DUR = 0.22; // duración de animación de cada elemento (fracción)
-  const GAP_NIVA_ASE  = 0.20; // delay entre NIVA y asesor/tel
+  // Tiempos REALES (no fracción de la escena): en un cierre largo, las fracciones hacían que
+  // el teléfono terminara de aparecer hasta el 90 % de la escena y casi no se viera.
+  const _outroMs = (scene && scene.durMs) ? scene.durMs : 3000;
+  const ANIM_DUR = Math.min(0.22, 350 / _outroMs); // 350 ms por elemento
+  const GAP_NIVA_ASE  = Math.min(0.20, 300 / _outroMs); // 300 ms entre NIVA y asesor/tel
 
   // 0 — Botón CTA
   const d1 = ctaDelay;
@@ -12514,7 +12531,7 @@ function drawOutroScene(ctx, v, sceneT, W, H, scene) {
   }
 
   // 1 — Línea dorada + "NIVA INMOBILIARIA"
-  const d2 = ctaDelay + 0.10;
+  const d2 = ctaDelay + Math.min(0.10, 150 / _outroMs);
   if (sceneT > d2) {
     const t2 = Math.min((sceneT - d2) / ANIM_DUR, 1);
     const progress2 = easeOut2(t2);
