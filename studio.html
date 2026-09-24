@@ -1299,7 +1299,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-23.86';
+const NIVA_BUILD_VERSION = '2026-09-23.87';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -13935,7 +13935,7 @@ async function downloadFichaAsPDF(btn) {
   // antes de capturar con html2canvas — si no, en conexiones lentas o con un clic
   // rápido justo después de generar, la captura puede salir con la fuente de
   // respaldo (Arial/Georgia) en vez de la tipografía de marca.
-  try { await document.fonts.ready; } catch (e) {}
+  try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 5000))]); } catch (e) {}
   const inclAsesor = document.getElementById('fichaAsesorCheck').checked;
   const inclLogo   = document.getElementById('fichaLogoCheck').checked;
   const footer       = document.getElementById('fic-footer');         // ambos
@@ -14016,7 +14016,22 @@ async function downloadFichaAsPDF(btn) {
     }
 
     const fichaEl = document.getElementById('ficha');
-    const cv1 = await html2canvas(fichaEl, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
+    // (2026-09-23) html2canvas clona TODO el documento en un iframe oculto antes de
+    // dibujar — y Content Studio es una página enorme (canvas del video 1080×1920,
+    // flyer, carrusel, todas las fotos del grid…). En Safari eso tardaba tanto que el
+    // botón se quedaba en "Generando PDF…" para siempre (reporte de Ricardo). Con
+    // ignoreElements solo se clona la ficha y sus ancestros; el resto se descarta.
+    // Además: tiempo límite, para que si algo se atora se avise en vez de colgarse.
+    btn.innerHTML = '⏳ Generando PDF… (1/3 portada)';
+    const _pdfTimeout = (ms, what) => new Promise((_, rej) => setTimeout(() => rej(new Error(what + ' tardó más de ' + Math.round(ms/1000) + 's. Recarga la página e intenta de nuevo.')), ms));
+    const cv1 = await Promise.race([
+      html2canvas(fichaEl, {
+        scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false,
+        // Solo se descarta lo que vive en <body> fuera de la ficha — <head> (estilos) se conserva.
+        ignoreElements: (el) => el.tagName !== 'BODY' && document.body.contains(el) && el !== fichaEl && !fichaEl.contains(el) && !el.contains(fichaEl)
+      }),
+      _pdfTimeout(45000, 'La captura de la ficha')
+    ]);
 
     // La ficha siempre cabe en UNA página A4.
     // Si la imagen es ligeramente más alta la comprimimos para que no corte nada.
@@ -14097,13 +14112,15 @@ async function downloadFichaAsPDF(btn) {
           const x = startX + col * (cW + GAP);
           // Convertir foto a JPEG a alta resolución (800px ancho → buena calidad en PDF)
           const pxW = 800, pxH = Math.round(800 * cH / cW);
-          const imgData = await _photoToJpeg(photos[i], pxW, pxH);
+          btn.innerHTML = '⏳ Generando PDF… (2/3 foto ' + (i + 1) + ' de ' + photos.length + ')';
+          const imgData = await Promise.race([_photoToJpeg(photos[i], pxW, pxH), _pdfTimeout(15000, 'La foto ' + (i + 1))]);
           pdf.addImage(imgData, 'JPEG', x, rowStart, cW, cH);
         }
       }
     }
 
     restore();
+    btn.innerHTML = '⏳ Generando PDF… (3/3 armando archivo)';
     const pdfFilename = 'ficha-tecnica-niva.pdf';
     const pdfBlob = pdf.output('blob');
     const pdfObjUrl = URL.createObjectURL(pdfBlob);
@@ -14113,7 +14130,8 @@ async function downloadFichaAsPDF(btn) {
     setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-dl-loading'); }, 2500);
   } catch(e) {
     restore();
-    console.error(e);
+    console.error('[NIVA][PDF]', e);
+    try { _nivaRegistrarError('PDF ficha: ' + (e && e.message || e)); } catch(e2) {}
     btn.innerHTML = orig; btn.classList.remove('btn-dl-loading');
     alert('Error al generar el PDF: ' + e.message);
   }
