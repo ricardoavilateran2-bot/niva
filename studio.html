@@ -73,7 +73,7 @@ body.niva-busy, body.niva-busy *{cursor:progress!important}
 #niva-busy-overlay p{font-size:12px;color:#64748b;line-height:1.5;margin:0}
 #niva-busy-overlay .err{color:#b91c1c;font-weight:700}
 #niva-busy-overlay button{margin-top:14px;padding:8px 18px;border:none;border-radius:8px;background:#1B2A4A;color:#fff;font-weight:700;cursor:pointer;font-size:12px}
-#niva-work-banner{display:none;position:sticky;top:0;z-index:30;margin:-20px -20px 14px;padding:9px 16px;background:#1B2A4A;color:#fff;font-size:12px;font-weight:600;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+#niva-work-banner{display:none;position:sticky;top:0;z-index:30;margin:0 0 14px;border-radius:10px;padding:9px 16px;background:#1B2A4A;color:#fff;font-size:12px;font-weight:600;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 #niva-work-banner.on{display:flex}
 #niva-work-banner .spin{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.25);border-top-color:#C9A84C;border-radius:50%;animation:nivaspin .9s linear infinite;flex-shrink:0}
 @keyframes nivaspin{to{transform:rotate(360deg)}}
@@ -593,7 +593,6 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 <!-- ═══════════════ OUTPUT PANEL ═══════════════ -->
 <div class="panel-out">
 
-<div id="niva-work-banner" class="no-print"><div class="spin"></div><span id="niva-work-banner-msg">Trabajando…</span></div>
 <div id="niva-busy-overlay" class="no-print"><div class="box"><div class="spin" id="niva-busy-spin"></div><h3 id="niva-busy-title">Generando tu contenido…</h3><p id="niva-busy-msg">Flyer, ficha, Instagram, textos y la base del video. Suele tardar unos segundos; con muchas fotos, hasta un minuto.</p><button id="niva-busy-btn" style="display:none" onclick="nivaBusy(false)">Cerrar</button></div></div>
 
 <div class="tabs no-print">
@@ -789,6 +788,9 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
     <p>Sistema de hooks, storytelling y escenas dinámicas<br>para Reels, TikTok y YouTube Shorts</p>
   </div>
   <div id="r-video" style="display:none">
+    <!-- Aviso de "la IA sigue trabajando" — vive SOLO dentro de la sección Video (2026-09-23, petición de Ricardo) -->
+    <div id="niva-work-banner" class="no-print"><div class="spin"></div><span id="niva-work-banner-msg">Trabajando…</span></div>
+    <div id="niva-vid-step-loader" class="no-print" style="display:none;align-items:center;gap:10px;padding:14px 16px;margin:0 0 12px;background:#fffbea;border:1px solid #f0d78c;border-radius:12px;color:#1B2A4A;font-size:12.5px;font-weight:700"><div class="spin" style="width:16px;height:16px;border:2.5px solid #e2e8f0;border-top-color:#C9A84C;border-radius:50%;animation:nivaspin .9s linear infinite;flex-shrink:0"></div><span>Cargando…</span></div>
 
     <!-- ══ WIZARD DE PASOS — organiza "antes de generar el video" para verlo -->
     <!-- de 1 en 1 (Atrás/Siguiente) en vez de todo junto, a petición de Ricardo. -->
@@ -1297,7 +1299,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-23.85';
+const NIVA_BUILD_VERSION = '2026-09-23.86';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -3159,11 +3161,39 @@ function nivaWorkBanner(msg) {
   else { _nivaBannerDepth = Math.max(0, _nivaBannerDepth - 1); if (_nivaBannerDepth === 0) { b.classList.remove('on'); document.body.classList.remove('niva-busy'); } }
 }
 // Envuelve una función async para mostrar el banner mientras corre (y quitarlo pase lo que pase).
-function nivaConBanner(msg, fn) {
+function nivaConBanner(msg, fn, stepKey) {
   return async function() {
     nivaWorkBanner(msg);
-    try { return await fn.apply(this, arguments); } finally { nivaWorkBanner(null); }
+    if (stepKey) nivaVidWork(stepKey, true, msg);
+    try { return await fn.apply(this, arguments); } finally { nivaWorkBanner(null); if (stepKey) nivaVidWork(stepKey, false); }
   };
+}
+// ── "Cargando…" por paso del video (2026-09-23) ──
+// Si el asesor da "Siguiente" y la IA todavía no terminó lo que ese paso necesita
+// (conceptos → paso 2, hooks → paso 3, guion → paso 5), el aviso aparece DENTRO de ese
+// paso, no en todo Content Studio.
+const _nivaVidWork = {};
+const _NIVA_VID_STEP_KEY = { 2: 'concepts', 3: 'hooks', 5: 'guion' };
+function nivaVidWork(key, on, msg) { _nivaVidWork[key] = on ? (msg || 'Cargando…') : false; nivaVidStepLoaderRefresh(); }
+function nivaVidStepLoaderRefresh() {
+  const el = document.getElementById('niva-vid-step-loader');
+  if (!el) return;
+  const step = (typeof nivaVidCurrentStep !== 'undefined') ? nivaVidCurrentStep : 1;
+  const key = _NIVA_VID_STEP_KEY[step];
+  const stepEl = document.getElementById('niva-vid-step-' + step);
+  const msg = key && _nivaVidWork[key];
+  if (msg && stepEl) {
+    if (el.parentNode !== stepEl || stepEl.firstElementChild !== el) stepEl.insertBefore(el, stepEl.firstChild);
+    const sp = el.querySelector('span'); if (sp) sp.textContent = String(msg).replace(/^[^\wÁÉÍÓÚáéíóúñÑ]+/, '⏳ ') + ' Este paso se llenará solo en cuanto termine.';
+    el.style.display = 'flex';
+    // Mientras carga, el aviso de los hooks (paso 3) ya tiene su propio texto: no duplicar.
+    if (step === 3) el.style.display = 'none';
+  } else {
+    el.style.display = 'none';
+  }
+  // Si el paso ya muestra su propio "cargando", el banner general de arriba sobra.
+  const banner = document.getElementById('niva-work-banner');
+  if (banner) banner.style.display = (el.style.display === 'flex') ? 'none' : '';
 }
 // Cualquier error no atrapado mientras se genera: mostrarlo en vez de dejar el panel en blanco.
 window.addEventListener('error', (e) => { if (document.body.classList.contains('niva-busy') && e && e.error) nivaBusyError(e.error); });
@@ -7045,6 +7075,7 @@ function nivaVidWizardShow(step) {
       generarHooks(); // se llegó al paso sin hooks (p. ej. tras un error): generarlos aquí mismo
     }
   }
+  nivaVidStepLoaderRefresh();
   const label = document.getElementById('niva-vid-step-label');
   const name = document.getElementById('niva-vid-step-name');
   const info = NIVA_VID_STEPS[step - 1];
@@ -7523,7 +7554,7 @@ function getVidMeta() {
 
 // ── GENERAR HOOKS CON GPT ──
 async function generarHooks(concept) { return _nivaGenerarHooksBanner.call(this, concept); }
-const _nivaGenerarHooksBanner = nivaConBanner('🎣 Generando hooks y guion del video con IA… puede tardar hasta un minuto.', _generarHooksInner);
+const _nivaGenerarHooksBanner = nivaConBanner('🎣 Generando hooks y guion del video con IA… puede tardar hasta un minuto.', _generarHooksInner, 'hooks');
 let _nivaHooksLoading = false;
 async function _generarHooksInner(concept) {
   if (!vidV) return;
@@ -7641,7 +7672,7 @@ function _nivaMarcarHookSeleccionado() {
 //  CREATIVE DIRECTOR — FASE 1
 // ══════════════════════════════════════════════
 async function generateCreativeConcepts() { return _nivaConceptsBanner.call(this); }
-const _nivaConceptsBanner = nivaConBanner('🎬 El Director Creativo está analizando la propiedad…', _generateCreativeConceptsInner);
+const _nivaConceptsBanner = nivaConBanner('🎬 El Director Creativo está analizando la propiedad…', _generateCreativeConceptsInner, 'concepts');
 async function _generateCreativeConceptsInner() {
   if (!vidV) return;
   const v = vidV;
@@ -8022,7 +8053,7 @@ function fitNarracionADuracion(text, durTargetSec) {
 
 // ── GENERAR GUIÓN CON HOOK SELECCIONADO ──
 async function generarGuionConHook(hookIdx) { return _nivaGenerarGuionBanner.call(this, hookIdx); }
-const _nivaGenerarGuionBanner = nivaConBanner('📝 Escribiendo el guion del video con IA…', _generarGuionConHookInner);
+const _nivaGenerarGuionBanner = nivaConBanner('📝 Escribiendo el guion del video con IA…', _generarGuionConHookInner, 'guion');
 async function _generarGuionConHookInner(hookIdx) {
   if (!vidV) return;
   const oaKey = getOaKey();
