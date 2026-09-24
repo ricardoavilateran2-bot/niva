@@ -1299,7 +1299,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-23.87';
+const NIVA_BUILD_VERSION = '2026-09-24.88';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -6857,6 +6857,7 @@ const NIVA_FLAGS = {
   subtitleSystem:           true,  // sistema de subtítulos sincronizados con voz — SIEMPRE ACTIVO
   photoMotionByType:        true,  // movimiento de cámara inteligente según tipo de foto clasificada
   photoEnhance:             true,  // realce sutil de luz/color/contraste en el video (contrast+saturate+brightness)
+  fullPhotoFrame:           true,  // fotos horizontales completas en el 9:16 sobre fondo desenfocado del mismo color (2026-09-24)
 };
 
 // ── Easing functions ──
@@ -10146,6 +10147,7 @@ async function playVideoEL() {
   // grande con filtro) → 0.25–0.5 s de imagen congelada justo en cada cambio de escena
   // (medido en el video del 22-sep: rachas de 7–15 cuadros repetidos). Se precalcula aquí.
   try { vidScaledImages.forEach(im => { if (im) _nivaGetEnhancedSource(im); }); } catch (e) {}
+  try { _nivaFramedCache.clear(); vidScaledImages.forEach(im => { if (im) _nivaGetFramedSource(im, 1080, 1920); }); } catch (e) {}
 
   // Clasificar fotos con GPT-4o Vision (Fase 3) — solo si hay fotos reales
   if (NIVA_FLAGS.photoClassifier && photos.length > 0) {
@@ -11928,7 +11930,7 @@ function getKenBurnsVariant(sceneIndex, photoIndex) {
 // mismo drawImage, mismo encuadre — solo deja de recalcularse en cada cuadro.
 const _nivaEnhancedCache = new WeakMap();
 function _nivaGetEnhancedSource(img) {
-  if (!NIVA_FLAGS.photoEnhance || !img) return img;
+  if (!NIVA_FLAGS.photoEnhance || !img || img._nivaNoEnhance) return img;
   const cached = _nivaEnhancedCache.get(img);
   if (cached) return cached;
   try {
@@ -11947,9 +11949,55 @@ function _nivaGetEnhancedSource(img) {
   }
 }
 
+// ── FOTO COMPLETA EN EL VIDEO (2026-09-24, petición de Ricardo) ──
+// El video es 9:16 y casi todas las fotos son horizontales (4:3). Con el encuadre
+// "cover" de siempre solo se veía la franja central de cada foto (la fachada nunca
+// salía completa). Para esas fotos se arma UNA VEZ una "lámina" del tamaño del video:
+// fondo = la misma foto desenfocada y oscurecida (mismos colores de la imagen), y
+// encima la foto COMPLETA a lo ancho. La cámara (zoom in / zoom out / paneos) se mueve
+// sobre esa lámina, así que a zoom 1.0 la foto se ve entera: el pullOut termina en la
+// foto completa y el dollyIn/pushIn arranca con ella completa. Las fotos verticales
+// (que ya casi llenan el 9:16) siguen con el encuadre cover de siempre.
+const _nivaFramedCache = new Map();
+const NIVA_FRAMED = { MIN_CROP: 0.30, PHOTO_Y: 0.47, BG_DARK: 0.42, MAX_ZOOM: 1.30 };
+function _nivaGetFramedSource(img, W, H) {
+  if (!img || !NIVA_FLAGS.fullPhotoFrame) return img;
+  const cached = _nivaFramedCache.get(img);
+  if (cached) return cached;
+  const origW = img._origWidth || img.width, origH = img._origHeight || img.height;
+  if (!origW || !origH) return img;
+  const ir = origW / origH, cr = W / H;
+  const visible = ir > cr ? cr / ir : ir / cr; // fracción de la foto que se vería con cover
+  if (1 - visible < NIVA_FRAMED.MIN_CROP) { _nivaFramedCache.set(img, img); return img; }
+  try {
+    const src = _nivaGetEnhancedSource(img);
+    const oc = document.createElement('canvas'); oc.width = W; oc.height = H;
+    const c = oc.getContext('2d');
+    // Fondo: la foto muy reducida y vuelta a agrandar (desenfoque barato que funciona en
+    // cualquier navegador, sin depender de ctx.filter), cubriendo todo el cuadro.
+    const tiny = document.createElement('canvas'); tiny.width = 24; tiny.height = Math.max(1, Math.round(24 / ir));
+    tiny.getContext('2d').drawImage(src, 0, 0, tiny.width, tiny.height);
+    let bW, bH; if (ir > cr) { bH = H * 1.08; bW = bH * ir; } else { bW = W * 1.08; bH = bW / ir; }
+    c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+    c.drawImage(tiny, (W - bW) / 2, (H - bH) / 2, bW, bH);
+    c.fillStyle = 'rgba(8,14,26,' + NIVA_FRAMED.BG_DARK + ')'; c.fillRect(0, 0, W, H);
+    // Foto completa a lo ancho (o a lo alto si fuera más vertical que el cuadro)
+    let pW, pH; if (ir > cr) { pW = W; pH = W / ir; } else { pH = H; pW = H * ir; }
+    const px = (W - pW) / 2, py = Math.max(0, H * NIVA_FRAMED.PHOTO_Y - pH / 2);
+    c.save(); c.shadowColor = 'rgba(0,0,0,.55)'; c.shadowBlur = 40; c.shadowOffsetY = 12;
+    c.fillStyle = '#000'; c.fillRect(px, py, pW, pH); c.restore();
+    c.drawImage(src, px, py, pW, pH);
+    oc._origWidth = W; oc._origHeight = H; oc._nivaNoEnhance = true; oc._maxZoomOverride = NIVA_FRAMED.MAX_ZOOM;
+    oc._nivaFramed = { px, py, pW, pH };
+    _nivaFramedCache.set(img, oc);
+    return oc;
+  } catch (e) { _nivaFramedCache.set(img, img); return img; }
+}
+
 // ── Legacy Ken Burns (fallback siempre disponible) ──
 function drawPhotoWithKenBurns(ctx, img, progress, variant, W, H) {
   if (!img) return;
+  img = _nivaGetFramedSource(img, W, H);
   const ir = img.width / img.height;
   const cr = W / H;
   let baseW, baseH;
@@ -12035,6 +12083,7 @@ function bezierQ(p0, p1, p2, t) {
 // ── Nuevo motor de cámara cinematográfico ──
 function drawCameraMotion(ctx, img, rawProgress, presetNameOrObj, W, H, shake) {
   if (!img) return;
+  img = _nivaGetFramedSource(img, W, H);
 
   // Resolver preset
   let preset;
@@ -12165,6 +12214,7 @@ function drawCameraMotion(ctx, img, rawProgress, presetNameOrObj, W, H, shake) {
 // Evita upscaling excesivo cuando la foto es pequeña vs el canvas 1080×1920
 function calcMaxSafeZoom(img, renderW, renderH) {
   if (!img) return 1.45; // default
+  if (img._maxZoomOverride) return img._maxZoomOverride;
   const origW = img._origWidth || img.width;
   const origH = img._origHeight || img.height;
   if (!origW || !origH) return 1.45;
