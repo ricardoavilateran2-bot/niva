@@ -139,8 +139,8 @@ function pintar(){
   const fm=f=>{const d=Date.parse(f);return isNaN(d)?0:d};
   if(ord==='reciente') l.sort((a,b)=>fm(b.fecha_pub)-fm(a.fecha_pub)); else if(ord==='precio') l.sort((a,b)=>(a.precio||0)-(b.precio||0)); else if(ord==='m2') l.sort((a,b)=>((a.precio||0)/(a.m2c||1e9))-((b.precio||0)/(b.m2c||1e9))); else l.sort((a,b)=>(a.anillo-b.anillo)||((a.distancia_km??99)-(b.distancia_km??99))||(fm(b.fecha_pub)-fm(a.fecha_pub)));
   const anTxt=['En la colonia pedida','Colonia vecina','Mismo municipio','Más lejos'];
-  $('res').innerHTML=l.map(r=>{const m=MARCAS[r.clave]||{}; const foto=r.datos&&r.datos.foto; const c=r.contacto||{};
-    return `<div class="r ${m.favorito?'fav':''} ${m.descartado?'desc':''}"><div class="ph" style="${foto?`background-image:url('${esc(foto)}')`:''}"><span class="tag">${esc(r.fuente)}</span><span class="an">${anTxt[r.anillo]||''}${r.distancia_km!=null?' · '+r.distancia_km+' km':''}</span></div>
+  $('res').innerHTML=l.map(r=>{const m=MARCAS[r.clave]||{}; const foto=r.datos&&r.datos.foto; const c=Object.fromEntries(Object.entries(r.contacto||{}).map(([k,v])=>[k,(v==null||/^(null|none|n\/a|no|-)$/i.test(String(v).trim()))?null:v]));
+    return `<div class="r ${m.favorito?'fav':''} ${m.descartado?'desc':''}"><div class="ph" style="${foto?`background-image:url('${esc(foto)}')`:''}"><span class="tag">${esc(r.fuente)}${r.datos&&r.datos.verificada===false?' · sin verificar':''}</span><span class="an">${anTxt[r.anillo]||''}${r.distancia_km!=null?' · '+r.distancia_km+' km':''}</span></div>
     <div class="bd"><div class="pr">${fmt(r.precio)}${CRIT&&CRIT.operacion==='renta'?'/mes':''}${r.m2c?` <small style="font-size:11px;color:var(--muted);font-weight:500">· ${fmt(r.precio/r.m2c)}/m²</small>`:''}</div>
     <div class="ti">${esc(r.titulo||'Sin título')}</div>
     <div class="me">${[r.colonia,r.municipio].filter(Boolean).join(', ')}${r.m2c?' · '+Math.round(r.m2c)+' m²':''}${r.m2t?' · '+Math.round(r.m2t)+' m² terreno':''}${r.rec?' · '+r.rec+' rec':''}${r.banos?' · '+r.banos+' baños':''}${r.estac?' · '+r.estac+' est':''}</div>
