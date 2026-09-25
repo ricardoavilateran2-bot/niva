@@ -515,8 +515,17 @@ async function cargar(){
       sb.from('my_properties').select('*').range(0,9999),
       sb.from('my_leads').select('*').range(0,9999),
       sb.from('advisors').select('id,first_name,last_name,niva_code,status'),
-      sb.from('property_advisors').select('property_id,advisor_id').range(0,9999), sb.from('my_properties_canceladas').select('*').range(0,9999)
+      Promise.resolve({data:[]}), sb.from('my_properties_canceladas').select('*').range(0,9999)
     ]);
+    // Dueños: se piden solo los de las propiedades activas, en bloques (la API corta las respuestas a 1000 filas
+    // y la tabla property_advisors guarda también las propiedades históricas, por eso las renovadas parecían "sin dueño").
+    try{
+      const ids=(p.data||[]).map(x=>x.id); d.data=[];
+      for(let i=0;i<ids.length;i+=150){
+        const r=await sb.from('property_advisors').select('property_id,advisor_id').in('property_id', ids.slice(i,i+150));
+        if(r.error) throw r.error; d.data.push(...(r.data||[]));
+      }
+    }catch(e){ console.error('[admin] property_advisors:', e); }
     if(p.error) throw new Error(p.error.message||'propiedades');
     if(l.error) throw new Error(l.error.message||'leads');
     PROPS = p.data||[]; PROPS_BAJA = pb.data||[];

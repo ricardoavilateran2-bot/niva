@@ -590,7 +590,7 @@ async function cargar(){
           .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor'}))
           .sort((x,y)=>x.n.localeCompare(y.n));
       }
-      const d=await sb.from('property_advisors').select('property_id,advisor_id').range(0,9999); // >1000 filas: sin range PostgREST corta en 1000 y las demás parecían 'sin dueño'
+      const d=await sb.from('property_advisors').select('property_id,advisor_id').order('updated_at',{ascending:false}).range(0,9999); // la API corta en 1000 filas: pedimos primero las más recientes (las renovadas) para que no parezcan 'sin dueño'
       DUENOS={};
       if(!d.error)(d.data||[]).forEach(x=>{DUENOS[x.property_id]=x.advisor_id});
     }
