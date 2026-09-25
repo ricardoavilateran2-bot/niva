@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+(async()=>{
+  try{
+    const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+    const sb = createClient(cfg.url, cfg.anon);
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ window.location.replace('./index.html'); return; }
+    window.__nivaSession = session; window.__nivaSb = sb; window.__nivaCfg = cfg;
+    sb.auth.onAuthStateChange((_e, s)=>{ if(!s) window.location.replace('./index.html'); });
+    document.dispatchEvent(new Event('niva-ready'));
+  }catch(e){ console.error('niva-auth-guard', e); window.location.replace('./index.html'); }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Buscador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#1B2A4A;--navy2:#0f1e36;--gold:#C9A84C;--gold2:#e8c96a;--ink:#1e293b;--muted:#64748b;--line:#e2e8f0;--ok:#16a34a;--warn:#d97706;--bad:#dc2626}
+html,body{min-height:100vh;font-family:'Inter',sans-serif;background:#eef2f7;color:var(--ink)}
+.top{background:linear-gradient(135deg,#0d1828,#1B2A4A);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:20;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.top .brand{display:flex;align-items:baseline;gap:6px}.top .brand b{font-size:22px;font-weight:900}.top .brand span{font-size:10px;letter-spacing:.18em;color:rgba(201,168,76,.85);text-transform:uppercase}
+.top a{color:var(--gold);font-size:12px;font-weight:600;text-decoration:none;border:1px solid rgba(201,168,76,.4);padding:6px 12px;border-radius:8px}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 80px}
+.card{background:#fff;border-radius:16px;box-shadow:0 2px 14px rgba(27,42,74,.08);padding:20px;margin-bottom:16px}
+.card h2{font-size:15px;font-weight:800;color:var(--navy);margin-bottom:4px}.card .sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+label.f{display:block;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:13px;color:var(--ink);background:#fff}
+input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,168,76,.5);border-color:var(--gold)}
+.bad{border-color:var(--bad)!important;background:#fff7f7}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{font-size:12px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;user-select:none;background:#f8fafc}.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:none;border-radius:10px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy)}
+.btn.sec{background:#fff;color:var(--navy);border:1px solid var(--line)}.btn.sm{padding:6px 10px;font-size:11.5px}.btn:disabled{opacity:.6;cursor:wait}
+.hint{font-size:11.5px;color:var(--muted);margin-top:6px}
+.res{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.r{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.r.fav{border-color:var(--gold);box-shadow:0 0 0 2px rgba(201,168,76,.25)}.r.desc{opacity:.45}
+.r .ph{height:140px;background:#e2e8f0 center/cover no-repeat;position:relative}.r .ph .tag{position:absolute;left:8px;top:8px;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;background:rgba(27,42,74,.9);color:#fff}.r .ph .an{position:absolute;right:8px;top:8px;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;background:#fff;color:var(--navy)}
+.r .bd{padding:12px;display:flex;flex-direction:column;gap:5px;flex:1}.r .pr{font-size:18px;font-weight:900;color:var(--navy)}.r .ti{font-size:12.5px;font-weight:600;line-height:1.35}.r .me{font-size:11.5px;color:var(--muted)}.r .ct{font-size:11.5px;color:#334155;background:#f8fafc;border-radius:8px;padding:6px 8px}
+.r .ac{display:flex;gap:6px;padding:0 12px 12px;flex-wrap:wrap}.r .ac a{font-size:11.5px;font-weight:700;color:var(--navy);text-decoration:none;border:1px solid var(--line);padding:6px 10px;border-radius:8px}.r .ac button{font-size:11.5px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit}.r .ac button.on{background:var(--gold);border-color:var(--gold);font-weight:800}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#e2e8f0;color:#334155}.badge.new{background:#dcfce7;color:#166534}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.hidden{display:none!important}
+.err{background:#fee2e2;color:#991b1b;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:10px}
+.gasto{font-size:11.5px;color:var(--muted)}
+.hist div.it{padding:8px 0;border-bottom:1px dashed var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px}
+.hist a{color:var(--navy);font-weight:700;cursor:pointer;text-decoration:underline}
+.spin{width:16px;height:16px;border:2.5px solid #e2e8f0;border-top-color:var(--gold);border-radius:50%;animation:sp .9s linear infinite;display:inline-block;vertical-align:middle}@keyframes sp{to{transform:rotate(360deg)}}
+@media(max-width:700px){.res{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="top"><div class="brand"><b>NIVA</b><span>Buscador</span></div><a href="./index.html">← NIVA OS</a></div>
+<div class="wrap">
+
+<div class="card" id="c-form">
+  <h2>¿Qué busca tu cliente?</h2>
+  <div class="sub">Llena lo que te dijo. El buscador consulta la bolsa de EasyBroker, el inventario NIVA, dueños directos del Scouting y los portales (Inmuebles24, Avisos de Ocasión, Vivanuncios, Propiedades.com, Lamudi, Pincali, Mercado Libre…). Empieza por las colonias que pidió y se va abriendo si hace falta.</div>
+  <div class="grid">
+    <div><label class="f">Cliente</label><input id="cliente" placeholder="Nombre del cliente"></div>
+    <div><label class="f">Operación</label><select id="operacion"><option value="">Elige…</option><option value="renta">Renta</option><option value="venta">Venta</option></select></div>
+    <div><label class="f">Tipo</label><select id="tipo"><option value="">Elige…</option><option>Casa</option><option>Departamento</option><option>Terreno</option><option>Local comercial</option><option>Oficina</option><option>Bodega</option></select></div>
+    <div><label class="f">Municipio</label><select id="municipio"><option value="">Elige…</option><option>Monterrey</option><option>San Pedro Garza García</option><option>San Nicolás de los Garza</option><option>Guadalupe</option><option>Apodaca</option><option>Escobedo</option><option>Santa Catarina</option><option>García</option><option>Juárez</option><option>Santiago</option></select></div>
+    <div style="grid-column:span 2"><label class="f">Colonias o zonas (separadas por coma)</label><input id="zonas" placeholder="Ej: Cumbres, Valle Oriente, Contry"></div>
+    <div><label class="f">Presupuesto mínimo</label><input id="pmin" type="number" min="0" placeholder="0"></div>
+    <div><label class="f">Presupuesto máximo</label><input id="pmax" type="number" min="0" placeholder="Ej: 25000"></div>
+    <div><label class="f">Recámaras mín.</label><input id="rec" type="number" min="0" placeholder="0"></div>
+    <div><label class="f">Baños mín.</label><input id="ban" type="number" min="0" step="0.5" placeholder="0"></div>
+    <div><label class="f">m² construcción mín.</label><input id="m2" type="number" min="0" placeholder="0"></div>
+    <div><label class="f">Estacionamientos mín.</label><input id="est" type="number" min="0" placeholder="0"></div>
+  </div>
+  <div style="margin-top:12px"><label class="f">Imprescindibles</label><div class="chips" id="impr"></div></div>
+  <div style="margin-top:12px"><label class="f">Nota del cliente (lo que dijo con sus palabras)</label><textarea id="nota" rows="2" placeholder="Ej: quiere cerca del Tec, que acepten mascotas, se muda en noviembre"></textarea></div>
+  <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn" id="btn-go" onclick="buscar(false)">🔎 Buscar propiedades</button>
+    <button class="btn sec" id="btn-save" onclick="buscar(true)">💾 Buscar y guardar para este cliente</button>
+    <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="usar-web" checked style="width:auto">Incluir portales (IA)</label>
+    <span class="gasto" id="gasto"></span>
+  </div>
+  <div class="hint">Guardar la búsqueda hace que el sistema la repita solo (fuentes gratis a diario, portales dos veces por semana) y te avise por WhatsApp cuando aparezca algo nuevo.</div>
+  <div id="f-err" class="err hidden"></div>
+</div>
+
+<div class="card hidden" id="c-res">
+  <div class="toolbar">
+    <h2 id="r-tit" style="margin-right:auto">Resultados</h2>
+    <select id="orden" onchange="pintar()" style="width:auto"><option value="cerca">Más cercanas primero</option><option value="reciente">Más recientes primero</option><option value="precio">Precio menor a mayor</option><option value="m2">Precio por m²</option></select>
+    <select id="f-fuente" onchange="pintar()" style="width:auto"><option value="">Todas las fuentes</option></select>
+    <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="solo-fav" onchange="pintar()" style="width:auto">Solo favoritas</label>
+    <button class="btn sm" onclick="mensajeWA()">📲 Mensaje para el cliente</button>
+  </div>
+  <div class="sub" id="r-sub"></div>
+  <div class="res" id="res"></div>
+  <details style="margin-top:12px"><summary style="font-size:12px;color:var(--muted);cursor:pointer">Qué consultó el buscador</summary><div id="fuentes" style="font-size:12px;margin-top:6px"></div></details>
+</div>
+
+<div class="card hist" id="c-hist"><h2>Búsquedas guardadas</h2><div class="sub">Cada una se repite sola. Abre para ver resultados y novedades.</div><div id="hist-list">Cargando…</div></div>
+</div>
+
+<script>
+const IMPR=['Amueblado','Acepta mascotas','Alberca','Jardín','Planta baja','Elevador','Seguridad 24h','Cochera techada','Roof garden','Cerca del Tec','Cerca de escuelas','Cuarto de servicio','Terraza','Sin muebles'];
+const $=id=>document.getElementById(id); const fmt=n=>'$'+Math.round(n||0).toLocaleString('es-MX'); const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let RES=[], BID=null, CRIT=null, MARCAS={};
+$('impr').innerHTML=IMPR.map(a=>`<span class="chip" onclick="this.classList.toggle('on')">${a}</span>`).join('');
+function leer(){
+  const c={cliente:$('cliente').value.trim(),operacion:$('operacion').value,tipo:$('tipo').value,municipio:$('municipio').value,zonas:$('zonas').value.split(',').map(s=>s.trim()).filter(Boolean),presupuesto_min:+$('pmin').value||0,presupuesto_max:+$('pmax').value||0,recamaras_min:+$('rec').value||0,banos_min:+$('ban').value||0,m2_min:+$('m2').value||0,estacionamientos_min:+$('est').value||0,imprescindibles:[...document.querySelectorAll('#impr .chip.on')].map(x=>x.textContent),nota:$('nota').value.trim()};
+  let ok=true; ['operacion','tipo','municipio'].forEach(id=>{$(id).classList.toggle('bad',!$(id).value); if(!$(id).value) ok=false;});
+  return ok?c:null;
+}
+async function buscar(guardar){
+  $('f-err').classList.add('hidden'); const c=leer(); if(!c){ $('f-err').textContent='Faltan operación, tipo o municipio.'; $('f-err').classList.remove('hidden'); return; }
+  if(guardar && !c.cliente){ $('cliente').classList.add('bad'); $('f-err').textContent='Para guardar la búsqueda escribe el nombre del cliente.'; $('f-err').classList.remove('hidden'); return; }
+  $('btn-go').disabled=$('btn-save').disabled=true; const orig=$('btn-go').innerHTML; $('btn-go').innerHTML='<span class="spin"></span> Buscando en bolsa EB, NIVA, Scouting y portales… (30–60 s)';
+  try{
+    const r=await fetch(window.__nivaCfg.url+'/functions/v1/niva-buscador',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+window.__nivaCfg.anon,apikey:window.__nivaCfg.anon,'x-niva-jwt':window.__nivaSession.access_token},body:JSON.stringify({accion:'buscar',criterios:c,web:$('usar-web').checked,guardar:!!guardar,cliente_nombre:c.cliente||null})});
+    const j=await r.json(); if(!r.ok||!j.ok) throw new Error(j.error||('HTTP '+r.status));
+    RES=j.resultados||[]; BID=j.busqueda_id||null; CRIT=c; MARCAS={};
+    if(BID){ const {data}=await window.__nivaSb.from('busqueda_resultados').select('id,clave,favorito,descartado').eq('busqueda_id',BID); (data||[]).forEach(x=>MARCAS[x.clave]={id:x.id,favorito:x.favorito,descartado:x.descartado}); }
+    $('r-tit').textContent=(c.cliente?'Opciones para '+c.cliente:'Resultados')+' · '+RES.length;
+    $('r-sub').textContent=`${c.tipo} en ${c.operacion} en ${c.zonas.length?c.zonas.join(', ')+' ('+c.municipio+')':c.municipio}${c.presupuesto_max?' hasta '+fmt(c.presupuesto_max):''} · ${Math.round(j.duracion_ms/1000)} s`+(j.web&&!j.web.permitida?' · portales desactivados este mes (tope de gasto)':'');
+    $('fuentes').innerHTML=(j.fuentes||[]).map(f=>'• '+esc(f)).join('<br>');
+    if(j.gasto_mes) $('gasto').textContent='IA este mes: '+fmt(j.gasto_mes.costo_mxn)+' de '+fmt(j.gasto_mes.tope_mxn)+(j.web&&j.web.llamadas?' · esta búsqueda ≈ '+fmt(j.web.costo_mxn):'');
+    const fu=[...new Set(RES.map(r=>r.fuente))]; $('f-fuente').innerHTML='<option value="">Todas las fuentes</option>'+fu.map(f=>`<option>${esc(f)}</option>`).join('');
+    pintar(); $('c-res').classList.remove('hidden'); $('c-res').scrollIntoView({behavior:'smooth'}); if(guardar) cargarHist();
+  }catch(e){ $('f-err').textContent='No se pudo buscar: '+e.message; $('f-err').classList.remove('hidden'); }
+  finally{ $('btn-go').disabled=$('btn-save').disabled=false; $('btn-go').innerHTML=orig; }
+}
+function fechaTxt(f){ if(!f) return ''; const d=Date.parse(f); if(isNaN(d)) return f; const dias=Math.round((Date.now()-d)/864e5); return dias<=0?'hoy':dias===1?'ayer':dias<31?'hace '+dias+' días':dias<365?'hace '+Math.round(dias/30)+' meses':'hace más de un año'; }
+function pintar(){
+  const ord=$('orden').value, ff=$('f-fuente').value, sf=$('solo-fav').checked;
+  let l=RES.filter(r=>(!ff||r.fuente===ff)&&(!sf||(MARCAS[r.clave]||{}).favorito));
+  const fm=f=>{const d=Date.parse(f);return isNaN(d)?0:d};
+  if(ord==='reciente') l.sort((a,b)=>fm(b.fecha_pub)-fm(a.fecha_pub)); else if(ord==='precio') l.sort((a,b)=>(a.precio||0)-(b.precio||0)); else if(ord==='m2') l.sort((a,b)=>((a.precio||0)/(a.m2c||1e9))-((b.precio||0)/(b.m2c||1e9))); else l.sort((a,b)=>(a.anillo-b.anillo)||((a.distancia_km??99)-(b.distancia_km??99))||(fm(b.fecha_pub)-fm(a.fecha_pub)));
+  const anTxt=['En la colonia pedida','Colonia vecina','Mismo municipio','Más lejos'];
+  $('res').innerHTML=l.map(r=>{const m=MARCAS[r.clave]||{}; const foto=r.datos&&r.datos.foto; const c=r.contacto||{};
+    return `<div class="r ${m.favorito?'fav':''} ${m.descartado?'desc':''}"><div class="ph" style="${foto?`background-image:url('${esc(foto)}')`:''}"><span class="tag">${esc(r.fuente)}</span><span class="an">${anTxt[r.anillo]||''}${r.distancia_km!=null?' · '+r.distancia_km+' km':''}</span></div>
+    <div class="bd"><div class="pr">${fmt(r.precio)}${CRIT&&CRIT.operacion==='renta'?'/mes':''}${r.m2c?` <small style="font-size:11px;color:var(--muted);font-weight:500">· ${fmt(r.precio/r.m2c)}/m²</small>`:''}</div>
+    <div class="ti">${esc(r.titulo||'Sin título')}</div>
+    <div class="me">${[r.colonia,r.municipio].filter(Boolean).join(', ')}${r.m2c?' · '+Math.round(r.m2c)+' m²':''}${r.m2t?' · '+Math.round(r.m2t)+' m² terreno':''}${r.rec?' · '+r.rec+' rec':''}${r.banos?' · '+r.banos+' baños':''}${r.estac?' · '+r.estac+' est':''}</div>
+    <div class="me">${r.fecha_pub?'📅 '+fechaTxt(r.fecha_pub):'📅 fecha no visible'}</div>
+    ${(c.telefono||c.nombre||c.inmobiliaria)?`<div class="ct">👤 ${esc([c.nombre,c.inmobiliaria].filter(Boolean).join(' · '))}${c.telefono?` · <a href="https://wa.me/${String(c.telefono).replace(/\\D/g,'').replace(/^(\\d{10})$/,'52$1')}" target="_blank">${esc(c.telefono)}</a>`:''}${c.email?' · '+esc(c.email):''}</div>`:''}</div>
+    <div class="ac">${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener">Ver anuncio ↗</a>`:''}<button class="${m.favorito?'on':''}" onclick="marcar('${esc(r.clave)}','favorito')">${m.favorito?'★ Favorita':'☆ Favorita'}</button><button class="${m.descartado?'on':''}" onclick="marcar('${esc(r.clave)}','descartado')">${m.descartado?'Descartada':'Descartar'}</button></div></div>`;}).join('')||'<div class="hint">Nada con esos criterios. Prueba ampliando presupuesto o quitando colonias.</div>';
+}
+async function marcar(clave,campo){
+  const m=MARCAS[clave]||(MARCAS[clave]={}); m[campo]=!m[campo]; if(campo==='favorito'&&m.favorito) m.descartado=false; if(campo==='descartado'&&m.descartado) m.favorito=false; pintar();
+  if(m.id){ await window.__nivaSb.rpc('busqueda_marcar',{p_id:m.id,p_campo:campo,p_valor:!!m[campo]}); if(campo==='favorito'&&m.favorito) await window.__nivaSb.rpc('busqueda_marcar',{p_id:m.id,p_campo:'descartado',p_valor:false}); }
+}
+function mensajeWA(){
+  const favs=RES.filter(r=>(MARCAS[r.clave]||{}).favorito); const lista=(favs.length?favs:RES.slice(0,6));
+  const c=CRIT||{}; const txt=`Hola${c.cliente?' '+c.cliente:''}, te comparto opciones de ${(c.tipo||'propiedad').toLowerCase()} en ${c.operacion||''}${c.zonas&&c.zonas.length?' en '+c.zonas.join(', '):''}:\n\n`+lista.map((r,i)=>`${i+1}. ${r.titulo||'Propiedad'} — ${fmt(r.precio)}${c.operacion==='renta'?'/mes':''}${r.rec?', '+r.rec+' rec':''}${r.m2c?', '+Math.round(r.m2c)+' m²':''}${r.colonia?' · '+r.colonia:''}${r.url?'\n'+r.url:''}`).join('\n\n')+`\n\n¿Cuál te gustaría visitar? Con gusto agendo. — NIVA Inmobiliaria`;
+  navigator.clipboard.writeText(txt).then(()=>alert('Mensaje copiado. Pégalo en WhatsApp.')).catch(()=>window.prompt('Copia el mensaje:',txt));
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+}
+async function cargarHist(){
+  try{ const {data}=await window.__nivaSb.from('busquedas').select('id,cliente_nombre,criterios,activa,frecuencia_web,ultima_corrida_at,nuevos_sin_ver,created_at').order('created_at',{ascending:false}).limit(30);
+    $('hist-list').innerHTML=(data||[]).length?data.map(b=>{const c=b.criterios||{}; return `<div class="it"><a onclick="abrir('${b.id}')">${esc(b.cliente_nombre)}</a> <span style="color:var(--muted)">${esc(c.tipo||'')} en ${esc(c.operacion||'')}${c.zonas&&c.zonas.length?' · '+esc(c.zonas.join(', ')):' · '+esc(c.municipio||'')}${c.presupuesto_max?' · hasta '+fmt(c.presupuesto_max):''}</span> ${b.nuevos_sin_ver?`<span class="badge new">${b.nuevos_sin_ver} nuevas</span>`:''} <span style="margin-left:auto;display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--muted)">${b.ultima_corrida_at?'última '+fechaTxt(b.ultima_corrida_at):''} <select onchange="config('${b.id}',null,this.value)" style="width:auto;padding:3px 6px;font-size:11px"><option value="2x_semana" ${b.frecuencia_web==='2x_semana'?'selected':''}>portales 2x/sem</option><option value="diaria" ${b.frecuencia_web==='diaria'?'selected':''}>portales diario</option><option value="nunca" ${b.frecuencia_web==='nunca'?'selected':''}>solo gratis</option></select><button class="btn sec sm" onclick="config('${b.id}',${!b.activa},null)">${b.activa?'Pausar':'Activar'}</button></span></div>`;}).join(''):'Todavía no hay búsquedas guardadas.';
+  }catch(e){ $('hist-list').textContent=''; }
+}
+async function config(id,activa,frec){ await window.__nivaSb.rpc('busqueda_configurar',{p_id:id,p_activa:activa,p_frecuencia:frec}); cargarHist(); }
+async function abrir(id){
+  const {data:b}=await window.__nivaSb.from('busquedas').select('*').eq('id',id).single(); if(!b) return;
+  const {data:rs}=await window.__nivaSb.from('busqueda_resultados').select('*').eq('busqueda_id',id).eq('vigente',true).order('primera_vez_at',{ascending:false});
+  const c=b.criterios||{}; CRIT={...c,cliente:b.cliente_nombre}; BID=id; RES=(rs||[]).map(r=>({...r,anillo:r.anillo??3})); MARCAS={}; (rs||[]).forEach(x=>MARCAS[x.clave]={id:x.id,favorito:x.favorito,descartado:x.descartado});
+  // rellenar el formulario por si quiere volver a buscar
+  $('cliente').value=b.cliente_nombre; $('operacion').value=c.operacion||''; $('tipo').value=c.tipo||''; $('municipio').value=c.municipio||''; $('zonas').value=(c.zonas||[]).join(', '); $('pmin').value=c.presupuesto_min||''; $('pmax').value=c.presupuesto_max||''; $('rec').value=c.recamaras_min||''; $('ban').value=c.banos_min||''; $('m2').value=c.m2_min||''; $('est').value=c.estacionamientos_min||''; $('nota').value=c.nota||''; document.querySelectorAll('#impr .chip').forEach(x=>x.classList.toggle('on',(c.imprescindibles||[]).includes(x.textContent)));
+  $('r-tit').textContent='Opciones para '+b.cliente_nombre+' · '+RES.length; const nuevos=(rs||[]).filter(x=>!x.visto).length; $('r-sub').textContent=(nuevos?nuevos+' nuevas desde la última vez · ':'')+'Última corrida '+fechaTxt(b.ultima_corrida_at||b.created_at);
+  const fu=[...new Set(RES.map(r=>r.fuente))]; $('f-fuente').innerHTML='<option value="">Todas las fuentes</option>'+fu.map(f=>`<option>${esc(f)}</option>`).join(''); $('fuentes').innerHTML='';
+  pintar(); $('c-res').classList.remove('hidden'); $('c-res').scrollIntoView({behavior:'smooth'});
+  await window.__nivaSb.rpc('busqueda_vista',{p_id:id}); cargarHist();
+}
+document.addEventListener('niva-ready',async()=>{ cargarHist(); try{ const {data}=await window.__nivaSb.rpc('ia_gasto_mes'); if(data&&data[0]) $('gasto').textContent='IA este mes: '+fmt(data[0].costo_mxn)+' de '+fmt(data[0].tope_mxn); }catch(e){} });
+</script>
+</body>
+</html>
