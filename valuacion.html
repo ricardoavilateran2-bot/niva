@@ -212,7 +212,7 @@ async function valuar() {
   let i = 0; const tick = setInterval(() => { if (i < PASOS.length) { document.querySelectorAll('.step').forEach((s, j) => s.classList.toggle('run', j === i)); for (let j = 0; j < i; j++) document.querySelectorAll('.step')[j].classList.add('ok'); i++; } }, 9000);
   document.querySelector('.step').classList.add('run');
   try {
-    const r = await fetch(window.__nivaCfg.url + '/functions/v1/niva-valuacion', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + window.__nivaSession.access_token }, body: JSON.stringify({ propiedad: p, fotos: FOTOS.slice(0, 3) }) });
+    const r = await fetch(window.__nivaCfg.url + '/functions/v1/niva-valuacion', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + window.__nivaCfg.anon, apikey: window.__nivaCfg.anon, 'x-niva-jwt': window.__nivaSession.access_token }, body: JSON.stringify({ propiedad: p, fotos: FOTOS.slice(0, 3) }) });
     const j = await r.json();
     clearInterval(tick);
     if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
