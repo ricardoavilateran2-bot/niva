@@ -308,7 +308,7 @@ async function cargar(){
   const uname=(session.user?.email||'').split('@')[0];
   USUARIO=uname; ESADMIN=(uname==='admin');
   const [p,c,a,ci] = await Promise.all([
-    sb.from('my_properties').select('*'),
+    sb.from('my_properties').select('*').range(0,9999),
     sb.from('contacts').select('id,full_name,phone_normalized').order('full_name'),
     sb.from('advisors').select('id,user_id,first_name,last_name,niva_code,status,porcentaje_niva'),
     sb.from('cierres').select('*').order('created_at',{ascending:false})

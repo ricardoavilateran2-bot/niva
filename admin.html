@@ -512,10 +512,10 @@ async function cargar(){
   $('#dash-kpis').innerHTML='<div class="skel"><div class="l" style="width:60%"></div><div class="l" style="width:40%;margin-bottom:0"></div></div>';
   try{
         const [p,l,a,d,pb] = await Promise.all([
-      sb.from('my_properties').select('*'),
-      sb.from('my_leads').select('*'),
+      sb.from('my_properties').select('*').range(0,9999),
+      sb.from('my_leads').select('*').range(0,9999),
       sb.from('advisors').select('id,first_name,last_name,niva_code,status'),
-      sb.from('property_advisors').select('property_id,advisor_id'), sb.from('my_properties_canceladas').select('*')
+      sb.from('property_advisors').select('property_id,advisor_id').range(0,9999), sb.from('my_properties_canceladas').select('*').range(0,9999)
     ]);
     if(p.error) throw new Error(p.error.message||'propiedades');
     if(l.error) throw new Error(l.error.message||'leads');
@@ -590,7 +590,7 @@ function renderSinDueno(){
       if(!sel.value)return;
       btn.disabled=true;btn.textContent='Asignando...';
       const r=await sb.rpc('asignar_dueno_propiedad',{p_property_id:p.id,p_advisor_id:sel.value});
-      if(r.error){btn.disabled=false;btn.textContent='Asignar';toast('No se pudo asignar');return}
+      if(r.error){btn.disabled=false;btn.textContent='Asignar';toast('No se pudo asignar: '+(r.error.message||'').replace('Solo el administrador puede asignar duenos','entra con el usuario admin'));return}
       toast('Propiedad asignada a '+((ASESORES.find(a=>a.id===sel.value)||{}).n||'asesor'));
       await cargar();
     };
@@ -939,11 +939,11 @@ let REP=null;
 async function cargarDatosRep(){
   if(REP)return REP;
   const [l,c,p,a,i,pc,pv,agx]=await Promise.all([
-    sb.from('leads').select('*'),
+    sb.from('leads').select('*').range(0,9999),
     sb.from('contacts').select('*'),
-    sb.from('properties').select('id,eb_public_id,title,property_type,operation_type,price_amount,location_name,eb_status,bedrooms,bathrooms,construction_size,eb_created_at'),
+    sb.from('properties').select('id,eb_public_id,title,property_type,operation_type,price_amount,location_name,eb_status,bedrooms,bathrooms,construction_size,eb_created_at').range(0,9999),
     sb.from('advisors').select('*'),
-    sb.from('lead_interactions').select('lead_id,type,actor,created_at'),
+    sb.from('lead_interactions').select('lead_id,type,actor,created_at').range(0,19999),
     sb.from('portal_costos').select('*'),
     sb.from('portal_volumen').select('*'),
     sb.from('asesores_externos').select('*')

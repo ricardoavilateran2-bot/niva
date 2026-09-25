@@ -478,7 +478,7 @@ async function checkNuevos(){
   if(!navigator.onLine || document.hidden) return;
   if(!$('#login').classList.contains('hidden')) return; // aún no ha iniciado sesión
   try{
-    const {data,error}=await sb.from('my_leads').select('id');
+    const {data,error}=await sb.from('my_leads').select('id').range(0,9999);
     if(error||!data||!LASTLEADIDS)return;
     const nuevos=data.filter(x=>!LASTLEADIDS.has(x.id)).length;
     if(nuevos>0)mostrarBannerNuevos(nuevos);
@@ -561,8 +561,8 @@ async function cargar(){
   }
   try{
     const [l,p]=await Promise.all([
-      sb.from('my_leads').select('*').order('happened_at',{ascending:false}),
-      sb.from('my_properties').select('*')
+      sb.from('my_leads').select('*').order('happened_at',{ascending:false}).range(0,9999),
+      sb.from('my_properties').select('*').range(0,9999)
     ]);
     // P0: detectar errores de Supabase en vez de pintar éxito vacío.
     // Antes cualquier error (red, sesión vencida, RLS) se trataba igual y terminaba
@@ -590,7 +590,7 @@ async function cargar(){
           .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor'}))
           .sort((x,y)=>x.n.localeCompare(y.n));
       }
-      const d=await sb.from('property_advisors').select('property_id,advisor_id');
+      const d=await sb.from('property_advisors').select('property_id,advisor_id').range(0,9999); // >1000 filas: sin range PostgREST corta en 1000 y las demás parecían 'sin dueño'
       DUENOS={};
       if(!d.error)(d.data||[]).forEach(x=>{DUENOS[x.property_id]=x.advisor_id});
     }
@@ -1243,7 +1243,7 @@ let REP=null;
 async function cargarDatosRep(){
   if(REP)return REP;
   const [l,c,p,a,i,pc,pv]=await Promise.all([
-    sb.from('leads').select('*'),
+    sb.from('leads').select('*').range(0,9999),
     sb.from('contacts').select('*'),
     sb.from('properties').select('id,eb_public_id,title,property_type,operation_type,price_amount,location_name,eb_status,bedrooms,bathrooms,construction_size,eb_created_at'),
     sb.from('advisors').select('*'),
