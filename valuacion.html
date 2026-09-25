@@ -289,7 +289,8 @@ function nueva() { R = null; $('res').classList.add('hidden'); $('c-prog').class
 async function guardarAjustes() {
   if (!VAL_ID) return; const c = calcular();
   const ajustes = { urgencia: +$('a1').value, competencia: +$('a2').value, extras: +$('a3').value, criterio: +$('a4').value, justificacion: $('a-just').value, excluidos: [...EXCL] };
-  const { error } = await window.__nivaSb.from('valuaciones').update({ ajustes, valor_final: c.val }).eq('id', VAL_ID);
+  // RPC (POST) en vez de update (PATCH): hay equipos donde una extensión/antivirus bloquea PATCH.
+  const { error } = await window.__nivaSb.rpc('valuacion_guardar_ajustes', { p_id: VAL_ID, p_ajustes: ajustes, p_valor: c.val });
   $('save-hint').textContent = error ? 'No se pudo guardar: ' + error.message : '✅ Ajustes guardados.';
 }
 async function cargarHistorial() {
