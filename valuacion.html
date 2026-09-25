@@ -237,7 +237,8 @@ function calcular() {
   const vuZona = sumP ? comps.reduce((s, c) => s + c.vuH * c.peso, 0) / sumP : m.vu_zona;
   const f = R.factores_sujeto; const vuSujeto = vuZona * f.conservacion * f.acabados * f.edad;
   const vMercado = vuSujeto * m2ref;
-  const partes = [[vMercado, .7]]; if (R.fisico) partes.push([R.fisico.valor_construccion + R.fisico.valor_terreno, .15]); if (R.ingresos) partes.push([R.ingresos.valor, .15]);
+  const pesoCruce = v => Math.abs(v - vMercado) / (vMercado || 1) > 0.25 ? 0.05 : 0.12; // mismo criterio que el servidor
+  const partes = [[vMercado, .76]]; if (R.fisico) partes.push([R.fisico.valor_construccion + R.fisico.valor_terreno, pesoCruce(R.fisico.valor_construccion + R.fisico.valor_terreno)]); if (R.ingresos) partes.push([R.ingresos.valor, pesoCruce(R.ingresos.valor)]);
   const w = partes.reduce((s, x) => s + x[1], 0); const base = partes.reduce((s, x) => s + x[0] * x[1], 0) / w;
   const aj = ['a1','a2','a3','a4'].reduce((s, a) => s + Number($(a).value), 0) / 100;
   const paso = R.propiedad.operacion === 'venta' ? 1000 : 100;
@@ -255,9 +256,9 @@ function recalc() {
   $('e-rap-t').textContent = '≈ ' + t.rapido + ' días'; $('e-mer-t').textContent = '≈ ' + t.mercado + ' días'; $('e-max-t').textContent = '≈ ' + t.maximo + ' días o más';
   const tb = $('t-enf').querySelector('tbody'); tb.innerHTML = '';
   const row = (n, v, d) => tb.insertAdjacentHTML('beforeend', `<tr><td><b>${n}</b><br><span style="color:var(--muted)">${d}</span></td><td style="text-align:right;white-space:nowrap"><b>${v}</b></td></tr>`);
-  row('Comparativo de mercado (70%)', fmt(c.vMercado) + op, `${c.n} comparables · $/m² zona ${fmt(c.vuZona)} × factores de la propiedad (conservación ${R.factores_sujeto.conservacion}, acabados ${R.factores_sujeto.acabados}, edad ${R.factores_sujeto.edad})`);
-  if (R.fisico) row('Físico / costo de reposición (15%)', fmt(R.fisico.valor_construccion + R.fisico.valor_terreno), `Construcción ${fmt(R.fisico.valor_construccion)} (costo nuevo ${fmt(R.fisico.costo_nuevo_m2)}/m² × depreciación ${R.fisico.factor_depreciacion}) + terreno ${fmt(R.fisico.valor_terreno)} (${fmt(R.fisico.terreno_m2)}/m², ${R.fisico.origen_terreno})`);
-  if (R.ingresos) row('Ingresos / capitalización (15%)', fmt(R.ingresos.valor), `Renta típica ${fmt(R.ingresos.renta_mensual_tipica)}/mes × 12 ÷ cap rate ${(R.ingresos.cap_rate * 100).toFixed(1)}%`);
+  row('Comparativo de mercado (76%)', fmt(c.vMercado) + op, `${c.n} comparables · $/m² zona ${fmt(c.vuZona)} × factores de la propiedad (conservación ${R.factores_sujeto.conservacion}, acabados ${R.factores_sujeto.acabados}, edad ${R.factores_sujeto.edad})`);
+  if (R.fisico) row('Físico / costo de reposición (cruce)', fmt(R.fisico.valor_construccion + R.fisico.valor_terreno), `Construcción ${fmt(R.fisico.valor_construccion)} (costo nuevo ${fmt(R.fisico.costo_nuevo_m2)}/m² × depreciación ${R.fisico.factor_depreciacion}) + terreno ${fmt(R.fisico.valor_terreno)} (${fmt(R.fisico.terreno_m2)}/m², ${R.fisico.origen_terreno})`);
+  if (R.ingresos) row('Ingresos / capitalización (cruce)', fmt(R.ingresos.valor), `Renta típica ${fmt(R.ingresos.renta_mensual_tipica)}/mes × 12 ÷ cap rate ${(R.ingresos.cap_rate * 100).toFixed(1)}%`);
   row('Valor base ponderado', fmt(c.base) + op, 'Antes de ajustes del asesor');
   row('Ajuste del asesor', (c.aj > 0 ? '+' : '') + Math.round(c.aj * 100) + '%', $('a-just').value || 'Sin justificación capturada');
 }
@@ -367,9 +368,9 @@ async function generarPDF() {
 
   // ── Enfoques y conclusión ──
   y = header('Enfoques de valuación y conclusión'); y = h2('Enfoques', y);
-  const enf = [['Comparativo de mercado', fmt(c.vMercado) + op, '70%']];
-  if (R.fisico) enf.push(['Físico (costo de reposición)', fmt(R.fisico.valor_construccion + R.fisico.valor_terreno), '15%']);
-  if (R.ingresos) enf.push(['Ingresos (capitalización de rentas)', fmt(R.ingresos.valor), '15%']);
+  const enf = [['Comparativo de mercado', fmt(c.vMercado) + op, '76%']];
+  if (R.fisico) enf.push(['Físico (costo de reposición)', fmt(R.fisico.valor_construccion + R.fisico.valor_terreno), 'cruce']);
+  if (R.ingresos) enf.push(['Ingresos (capitalización de rentas)', fmt(R.ingresos.valor), 'cruce']);
   enf.push(['Valor base ponderado', fmt(c.base) + op, '100%']); enf.push(['Ajuste por criterio del asesor', (c.aj > 0 ? '+' : '') + Math.round(c.aj * 100) + '%', '']); enf.push(['VALOR CONCLUSIVO', fmt(c.val) + op, '']);
   pdf.autoTable({ startY: y, margin: { left: M, right: M }, theme: 'grid', styles: { fontSize: 9, cellPadding: 3 }, headStyles: { fillColor: NAVY, textColor: 255 }, head: [['Enfoque', 'Resultado', 'Ponderación']], body: enf, columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } }, didParseCell: (d) => { if (d.row.index === enf.length - 1) { d.cell.styles.fillColor = GOLD; d.cell.styles.textColor = NAVY; d.cell.styles.fontStyle = 'bold'; } } });
   y = pdf.lastAutoTable.finalY + 8;
