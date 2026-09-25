@@ -1299,7 +1299,7 @@ async function fetchWithTimeoutNIVA(url, opts, timeoutMs) {
 //  navegador del usuario está corriendo el código más reciente o una
 //  copia en caché. Se sube manualmente en cada despliegue.
 // ══════════════════════════════════════════════
-const NIVA_BUILD_VERSION = '2026-09-24.88';
+const NIVA_BUILD_VERSION = '2026-09-24.89';
 
 // Resuelve el nombre completo del asesor autenticado desde la tabla advisors (dinámico, sin
 // hardcodear). También guarda el teléfono en window.__nivaAdvisorPhone — Ricardo pidió que el
@@ -6794,7 +6794,7 @@ const NIVA_PROXY_SENTINEL = 'NIVA-PROXY-EMPRESA-KEY-000000';
           } catch(e){}
           // El proxy recibe la ruta de ElevenLabs y el cuerpo tal cual; responde el audio/JSON sin tocarlo.
           return _f(cfg.url + '/functions/v1/niva-openai-proxy?provider=elevenlabs&path=' + encodeURIComponent(url.replace('https://api.elevenlabs.io','')),
-                    { method: opts.method || 'POST', headers:{'Authorization':'Bearer '+token, 'apikey':cfg.anon, 'Content-Type':'application/json'}, body: opts.body });
+                    { method: opts.method || 'POST', headers:{'Authorization':'Bearer '+cfg.anon, 'apikey':cfg.anon, 'x-niva-jwt': token, 'Content-Type':'application/json'}, body: opts.body });
         }
       }
       if (typeof url === 'string' && url.startsWith('https://api.openai.com/') && opts && opts.headers) {
@@ -6811,7 +6811,8 @@ const NIVA_PROXY_SENTINEL = 'NIVA-PROXY-EMPRESA-KEY-000000';
             if (window.__nivaSb) { const s = await window.__nivaSb.auth.getSession(); if (s && s.data && s.data.session) token = s.data.session.access_token; }
             else if (window.__nivaSession) token = window.__nivaSession.access_token;
           } catch(e){}
-          return _f(cfg.url + '/functions/v1/niva-openai-proxy', { method:'POST', headers:{'Authorization':'Bearer '+token, 'apikey':cfg.anon, 'Content-Type':'application/json'}, body: opts.body });
+          // (24-sep-2026) anon key en Authorization (la puerta de Supabase rechaza los JWT nuevos) y el token real en x-niva-jwt
+          return _f(cfg.url + '/functions/v1/niva-openai-proxy', { method:'POST', headers:{'Authorization':'Bearer '+cfg.anon, 'apikey':cfg.anon, 'x-niva-jwt': token, 'Content-Type':'application/json'}, body: opts.body });
         }
       }
     } catch(e) { console.warn('[NIVA][PROXY] interceptor:', e); }
