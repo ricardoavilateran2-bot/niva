@@ -98,6 +98,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,168,76,.5);bo
   </div>
   <div class="sub" id="r-sub"></div>
   <div class="res" id="res"></div>
+  <div id="listados" class="hidden" style="margin-top:14px;padding:12px 14px;border:1px dashed var(--line,#d6dbe3);border-radius:10px"><div style="font-size:12px;font-weight:700;margin-bottom:6px">Ver también en los portales (ya filtrado; se abre en una pestaña nueva)</div><div id="listados-chips" style="display:flex;flex-wrap:wrap;gap:6px"></div><div class="hint" style="margin-top:6px">Inmuebles24 y otros portales no dejan que el sistema lea sus anuncios uno por uno; aquí va la liga directa al listado con la zona y el presupuesto del cliente.</div></div>
   <details style="margin-top:12px"><summary style="font-size:12px;color:var(--muted);cursor:pointer">Qué consultó el buscador</summary><div id="fuentes" style="font-size:12px;margin-top:6px"></div></details>
 </div>
 
@@ -128,11 +129,16 @@ async function buscar(guardar){
     $('fuentes').innerHTML=(j.fuentes||[]).map(f=>'• '+esc(f)).join('<br>');
     if(j.gasto_mes) $('gasto').textContent='IA este mes: '+fmt(j.gasto_mes.costo_mxn)+' de '+fmt(j.gasto_mes.tope_mxn)+(j.web&&j.web.llamadas?' · esta búsqueda ≈ '+fmt(j.web.costo_mxn):'');
     const fu=[...new Set(RES.map(r=>r.fuente))]; $('f-fuente').innerHTML='<option value="">Todas las fuentes</option>'+fu.map(f=>`<option>${esc(f)}</option>`).join('');
-    pintar(); $('c-res').classList.remove('hidden'); $('c-res').scrollIntoView({behavior:'smooth'}); if(guardar) cargarHist();
+    pintarListados(j.listados); pintar(); $('c-res').classList.remove('hidden'); $('c-res').scrollIntoView({behavior:'smooth'}); if(guardar) cargarHist();
   }catch(e){ $('f-err').textContent='No se pudo buscar: '+e.message; $('f-err').classList.remove('hidden'); }
   finally{ $('btn-go').disabled=$('btn-save').disabled=false; $('btn-go').innerHTML=orig; }
 }
 function fechaTxt(f){ if(!f) return ''; const d=Date.parse(f); if(isNaN(d)) return f; const dias=Math.round((Date.now()-d)/864e5); return dias<=0?'hoy':dias===1?'ayer':dias<31?'hace '+dias+' días':dias<365?'hace '+Math.round(dias/30)+' meses':'hace más de un año'; }
+function pintarListados(ls){
+  const box=$('listados'); const arr=Array.isArray(ls)?ls:[]; if(!arr.length){ box.classList.add('hidden'); return; }
+  $('listados-chips').innerHTML=arr.map(l=>`<a class="chip" href="${esc(l.url)}" target="_blank" rel="noopener" style="text-decoration:none">${esc(l.portal)}: ${esc((l.titulo||'').slice(0,70))} ↗</a>`).join('');
+  box.classList.remove('hidden');
+}
 function pintar(){
   const ord=$('orden').value, ff=$('f-fuente').value, sf=$('solo-fav').checked;
   let l=RES.filter(r=>(!ff||r.fuente===ff)&&(!sf||(MARCAS[r.clave]||{}).favorito));
@@ -143,7 +149,7 @@ function pintar(){
     return `<div class="r ${m.favorito?'fav':''} ${m.descartado?'desc':''}"><div class="ph" style="${foto?`background-image:url('${esc(foto)}')`:''}"><span class="tag">${esc(r.fuente)}${r.datos&&r.datos.verificada===false?' · sin verificar':''}</span><span class="an">${anTxt[r.anillo]||''}${r.distancia_km!=null?' · '+r.distancia_km+' km':''}</span></div>
     <div class="bd"><div class="pr">${fmt(r.precio)}${CRIT&&CRIT.operacion==='renta'?'/mes':''}${r.m2c?` <small style="font-size:11px;color:var(--muted);font-weight:500">· ${fmt(r.precio/r.m2c)}/m²</small>`:''}</div>
     <div class="ti">${esc(r.titulo||'Sin título')}</div>
-    <div class="me">${[r.colonia,r.municipio].filter(Boolean).join(', ')}${r.m2c?' · '+Math.round(r.m2c)+' m²':''}${r.m2t?' · '+Math.round(r.m2t)+' m² terreno':''}${r.rec?' · '+r.rec+' rec':''}${r.banos?' · '+r.banos+' baños':''}${r.estac?' · '+r.estac+' est':''}</div>
+    <div class="me">${esc((r.datos&&r.datos.direccion)||[r.colonia,r.municipio].filter(Boolean).join(', '))}${r.m2c?' · '+Math.round(r.m2c)+' m²':''}${r.m2t?' · '+Math.round(r.m2t)+' m² terreno':''}${r.rec?' · '+r.rec+' rec':''}${r.banos?' · '+r.banos+' baños':''}${r.estac?' · '+r.estac+' est':''}</div>
     <div class="me">${r.fecha_pub?'📅 '+fechaTxt(r.fecha_pub):'📅 fecha no visible'}</div>
     ${(c.telefono||c.nombre||c.inmobiliaria)?`<div class="ct">👤 ${esc([c.nombre,c.inmobiliaria].filter(Boolean).join(' · '))}${c.telefono?` · <a href="https://wa.me/${String(c.telefono).replace(/\\D/g,'').replace(/^(\\d{10})$/,'52$1')}" target="_blank">${esc(c.telefono)}</a>`:''}${c.email?' · '+esc(c.email):''}</div>`:''}</div>
     <div class="ac">${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener">Ver anuncio ↗</a>`:''}<button class="${m.favorito?'on':''}" onclick="marcar('${esc(r.clave)}','favorito')">${m.favorito?'★ Favorita':'☆ Favorita'}</button><button class="${m.descartado?'on':''}" onclick="marcar('${esc(r.clave)}','descartado')">${m.descartado?'Descartada':'Descartar'}</button></div></div>`;}).join('')||'<div class="hint">Nada con esos criterios. Prueba ampliando presupuesto o quitando colonias.</div>';
@@ -172,7 +178,7 @@ async function abrir(id){
   $('cliente').value=b.cliente_nombre; $('operacion').value=c.operacion||''; $('tipo').value=c.tipo||''; $('municipio').value=c.municipio||''; $('zonas').value=(c.zonas||[]).join(', '); $('pmin').value=c.presupuesto_min||''; $('pmax').value=c.presupuesto_max||''; $('rec').value=c.recamaras_min||''; $('ban').value=c.banos_min||''; $('m2').value=c.m2_min||''; $('est').value=c.estacionamientos_min||''; $('nota').value=c.nota||''; document.querySelectorAll('#impr .chip').forEach(x=>x.classList.toggle('on',(c.imprescindibles||[]).includes(x.textContent)));
   $('r-tit').textContent='Opciones para '+b.cliente_nombre+' · '+RES.length; const nuevos=(rs||[]).filter(x=>!x.visto).length; $('r-sub').textContent=(nuevos?nuevos+' nuevas desde la última vez · ':'')+'Última corrida '+fechaTxt(b.ultima_corrida_at||b.created_at);
   const fu=[...new Set(RES.map(r=>r.fuente))]; $('f-fuente').innerHTML='<option value="">Todas las fuentes</option>'+fu.map(f=>`<option>${esc(f)}</option>`).join(''); $('fuentes').innerHTML='';
-  pintar(); $('c-res').classList.remove('hidden'); $('c-res').scrollIntoView({behavior:'smooth'});
+  pintarListados(b.listados); pintar(); $('c-res').classList.remove('hidden'); $('c-res').scrollIntoView({behavior:'smooth'});
   await window.__nivaSb.rpc('busqueda_vista',{p_id:id}); cargarHist();
 }
 document.addEventListener('niva-ready',async()=>{ cargarHist(); try{ const {data}=await window.__nivaSb.rpc('ia_gasto_mes'); if(data&&data[0]) $('gasto').textContent='IA este mes: '+fmt(data[0].costo_mxn)+' de '+fmt(data[0].tope_mxn); }catch(e){} });
