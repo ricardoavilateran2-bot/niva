@@ -62,7 +62,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,168,76,.5);bo
 
 <div class="card" id="c-form">
   <h2>¿Qué busca tu cliente?</h2>
-  <div class="sub">Llena lo que te dijo. El buscador consulta la bolsa de EasyBroker, el inventario NIVA, dueños directos del Scouting y los portales (Inmuebles24, Avisos de Ocasión, Vivanuncios, Propiedades.com, Lamudi, Pincali, Mercado Libre…). Empieza por las colonias que pidió y se va abriendo si hace falta.</div>
+  <div class="sub">Llena lo que te dijo. El buscador consulta el inventario NIVA, dueños directos del Scouting y los portales (Inmuebles24, Lamudi, Propiedades.com y Mercado Libre). Empieza por las colonias que pidió y se va abriendo si hace falta.</div>
   <div class="grid">
     <div><label class="f">Cliente</label><input id="cliente" placeholder="Nombre del cliente"></div>
     <div><label class="f">Operación</label><select id="operacion"><option value="">Elige…</option><option value="renta">Renta</option><option value="venta">Venta</option></select></div>
@@ -81,7 +81,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,168,76,.5);bo
   <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn" id="btn-go" onclick="buscar(false)">🔎 Buscar propiedades</button>
     <button class="btn sec" id="btn-save" onclick="buscar(true)">💾 Buscar y guardar para este cliente</button>
-    <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="usar-web" checked style="width:auto">Incluir portales (IA)</label>
+    <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="usar-web" checked style="width:auto">Incluir portales (Inmuebles24, Lamudi, Propiedades.com, Mercado Libre)</label>
     <span class="gasto" id="gasto"></span>
   </div>
   <div class="hint">Guardar la búsqueda hace que el sistema la repita solo (fuentes gratis a diario, portales dos veces por semana) y te avise por WhatsApp cuando aparezca algo nuevo.</div>
@@ -127,7 +127,7 @@ async function buscar(guardar){
     $('r-tit').textContent=(c.cliente?'Opciones para '+c.cliente:'Resultados')+' · '+RES.length;
     $('r-sub').textContent=`${c.tipo} en ${c.operacion} en ${c.zonas.length?c.zonas.join(', ')+' ('+c.municipio+')':c.municipio}${c.presupuesto_max?' hasta '+fmt(c.presupuesto_max):''} · ${Math.round(j.duracion_ms/1000)} s`+(j.web&&!j.web.permitida?' · portales desactivados este mes (tope de gasto)':'');
     $('fuentes').innerHTML=(j.fuentes||[]).map(f=>'• '+esc(f)).join('<br>');
-    if(j.gasto_mes) $('gasto').textContent='IA este mes: '+fmt(j.gasto_mes.costo_mxn)+' de '+fmt(j.gasto_mes.tope_mxn)+(j.web&&j.web.llamadas?' · esta búsqueda ≈ '+fmt(j.web.costo_mxn):'');
+    if(j.gasto_mes) $('gasto').textContent='Gasto de búsqueda este mes: '+fmt(j.gasto_mes.costo_mxn)+' de '+fmt(j.gasto_mes.tope_mxn)+(j.web&&j.web.llamadas?' · esta búsqueda ≈ '+fmt(j.web.costo_mxn):'');
     const fu=[...new Set(RES.map(r=>r.fuente))]; $('f-fuente').innerHTML='<option value="">Todas las fuentes</option>'+fu.map(f=>`<option>${esc(f)}</option>`).join('');
     pintarListados(j.listados); pintar(); $('c-res').classList.remove('hidden'); $('c-res').scrollIntoView({behavior:'smooth'}); if(guardar) cargarHist();
   }catch(e){ $('f-err').textContent='No se pudo buscar: '+e.message; $('f-err').classList.remove('hidden'); }
@@ -182,7 +182,7 @@ async function abrir(id){
   pintarListados(b.listados); pintar(); $('c-res').classList.remove('hidden'); $('c-res').scrollIntoView({behavior:'smooth'});
   await window.__nivaSb.rpc('busqueda_vista',{p_id:id}); cargarHist();
 }
-document.addEventListener('niva-ready',async()=>{ cargarHist(); try{ const {data}=await window.__nivaSb.rpc('ia_gasto_mes'); if(data&&data[0]) $('gasto').textContent='IA este mes: '+fmt(data[0].costo_mxn)+' de '+fmt(data[0].tope_mxn); }catch(e){} });
+document.addEventListener('niva-ready',async()=>{ cargarHist(); try{ const {data}=await window.__nivaSb.rpc('ia_gasto_mes'); if(data&&data[0]) $('gasto').textContent='Gasto de búsqueda este mes: '+fmt(data[0].costo_mxn)+' de '+fmt(data[0].tope_mxn); }catch(e){} });
 </script>
 </body>
 </html>
