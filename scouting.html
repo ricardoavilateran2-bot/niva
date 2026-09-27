@@ -263,7 +263,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
   let LEADS = [], isAdmin = false, portalSel = "";
   let FB_CFG = { precio_min_renta: 20000, precio_min_venta: 2500000 };
   const $ = id => document.getElementById(id);
-  const PORTALES = [["","Todos"],["inmuebles24","Inmuebles24"],["vivanuncios","Vivanuncios"],["mercadolibre","Mercado Libre"],["facebook","Facebook"]];
+  const PORTALES = [["","Todos"],["inmuebles24","Inmuebles24"],["vivanuncios","Vivanuncios"],["mercadolibre","Mercado Libre"],["avisosdeocasion","Avisos de Ocasión"],["propiedades","Propiedades.com"],["facebook","Facebook"]];
   const portalLabel = p => { const f = PORTALES.find(x => x[0] === (p || "inmuebles24")); return f ? f[1] : (p || "inmuebles24"); };
 
   function toast(msg){
@@ -346,6 +346,12 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       // El admin sigue viendo todo para poder administrar.
       if (!isAdmin && !esVisibleParaAsesor(l)) return false;
 
+      // El estado real es lead_status (lo cambian los botones y la limpieza automática).
+      // El admin también deja de ver lo captado / asesor / no disponible, salvo que lo pida en el filtro.
+      const LS = { capturado: "CAPTADO", agencia: "ASESOR", descartado: "DESCARTADO" };
+      if (st && LS[st]) { if ((l.lead_status || "DISPONIBLE") !== LS[st]) return false; }
+      else if (!esVisibleParaAsesor(l)) return false;
+
       const v = l.estatus || "nuevo";
       // Los leads ya captados, marcados como asesor/agencia, o descartados
       // (datos basura/inválidos) solo los puede ver el admin -- para cualquier
@@ -355,8 +361,8 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       // Sin filtro de estatus explícito: los ya captados, marcados como
       // agencia, o descartados se ocultan de la lista general por default
       // (el admin los puede ver eligiendo ese estatus específico en el filtro).
-      if (st) { if (v !== st) return false; }
-      else if (v === "capturado" || v === "agencia" || v === "descartado") return false;
+      if (st && !LS[st]) { if (v !== st) return false; }
+      else if (!st && (v === "capturado" || v === "agencia" || v === "descartado")) return false;
       if (completos && !["A","B"].includes((l.calidad_status||"").toUpperCase())) return false;
       return (!op || l.operacion === op) &&
         (!tp || l.tipo_propiedad === tp) &&
@@ -371,7 +377,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     if (!host) return;
     host.innerHTML = "";
     for (const [key, label] of PORTALES){
-      const n = key ? LEADS.filter(l => (l.portal || "inmuebles24") === key).length : LEADS.length;
+      const vv = LEADS.filter(esVisibleParaAsesor); const n = key ? vv.filter(l => (l.portal || "inmuebles24") === key).length : vv.length;
       const b = document.createElement("button");
       b.className = "ptab" + (portalSel === key ? " on" : "");
       b.innerHTML = esc(label) + '<span class="cnt">' + n + '</span>';
@@ -418,7 +424,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       // Estos dos botones van en su propia fila, separados del resto de
       // acciones (Ver anuncio / teléfono / WhatsApp), para que no se den
       // clics por accidente al usar los otros enlaces.
-      if ((l.estatus || "nuevo") !== "capturado" && (l.estatus || "nuevo") !== "agencia"){
+      if (esVisibleParaAsesor(l)){
         const danger = document.createElement("div");
         danger.className = "lead-danger";
 
@@ -450,7 +456,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
         btnNoDisp.textContent = "🚫 Ya no está disponible";
         btnNoDisp.addEventListener("click", () => {
           if (!confirm("¿Confirmas que esta propiedad ya no está disponible (ej. ya se rentó/vendió)? Se quitará de la lista.")) return;
-          saveLead(l, { estatus: "descartado" }, el);
+          marcarNoDisponible(l, el);
         });
         danger.appendChild(btnNoDisp);
 
@@ -502,7 +508,8 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     $("vacio").classList.toggle("hidden", rows.length > 0);
     // KPIs: respetan el portal seleccionado (pestaña activa), no el resto de los filtros
     // (búsqueda/operación/tipo/estatus/hoy) para que sigan siendo un resumen general de ese portal.
-    const base = portalSel ? LEADS.filter(l => (l.portal || "inmuebles24") === portalSel) : LEADS;
+    const vivos = LEADS.filter(esVisibleParaAsesor);
+    const base = portalSel ? vivos.filter(l => (l.portal || "inmuebles24") === portalSel) : vivos;
     $("k-total").textContent = base.length;
     $("k-nuevos").textContent = base.filter(l => !l.estatus || l.estatus === "nuevo").length;
     $("k-venta").textContent = base.filter(l => l.operacion === "venta").length;
@@ -553,6 +560,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     }
     quitarDeLista(l.id);
     toast("Lead captado. ¡Éxito!");
+    await cargar();
   }
 
   async function marcarAsesor(l, el){
@@ -566,6 +574,17 @@ header { display: flex; align-items: center; justify-content: space-between; pad
     }
     quitarDeLista(l.id);
     toast("Marcado como asesor/agencia");
+    await cargar();
+  }
+
+  async function marcarNoDisponible(l, el){
+    const sb = window.__nivaSb;
+    const { data, error } = await sb.rpc("scouting_marcar_no_disponible", { p_lead_id: l.id, p_marcado_por: currentAdvisorId(), p_motivo: null });
+    if (error){ toast("No se pudo marcar: " + error.message); return; }
+    if (data && data.success === false){ toast("No se pudo marcar: " + (data.reason || "motivo desconocido")); return; }
+    quitarDeLista(l.id);
+    toast("Marcada como no disponible");
+    await cargar();
   }
 
   async function solicitarLiberacion(l, motivo, el){
@@ -628,7 +647,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
           return;
         }
         LEADS[idx] = Object.assign({}, LEADS[idx], row);
-        if (!isAdmin && !esVisibleParaAsesor(LEADS[idx])){
+        if (!esVisibleParaAsesor(LEADS[idx]) && !($("f-est") && ["capturado","agencia","descartado"].includes($("f-est").value))){
           // Dejó de estar disponible (lo captó/marcó otro asesor, etc.):
           // se quita de la lista local sin necesidad de recargar la página.
           LEADS.splice(idx, 1);
