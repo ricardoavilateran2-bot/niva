@@ -174,8 +174,10 @@ body[data-vista="tablero"] #buscar{max-width:640px}
 .kbmover{width:100%;margin-top:6px;padding:10px 8px;border-radius:7px;border:1px solid rgba(0,0,0,.12);background:#f6f8fb;color:var(--navy);font-size:16px;font-weight:600;font-family:inherit;cursor:pointer}
 .kbvacia{font-size:12px;color:var(--mut);text-align:center;padding:14px 6px;font-style:italic}
 #modalFicha{position:fixed;inset:0;background:rgba(8,14,26,.62);display:flex;align-items:flex-start;justify-content:center;z-index:70;padding:20px 12px;overflow-y:auto}
-#modalFicha .fbox{width:100%;max-width:520px}
-#modalFicha .fcerrar{display:block;width:100%;margin-top:10px;padding:11px;border:0;border-radius:10px;background:#fff;color:var(--navy);font-weight:700;font-size:14px;cursor:pointer}
+#modalFicha .fbox{width:100%;max-width:520px;position:relative;margin-top:8px}
+#modalFicha .fcerrar{position:absolute;top:-12px;right:-6px;z-index:2;width:36px;height:36px;padding:0;border:2px solid #fff;border-radius:50%;background:var(--navy);color:#fff;font-size:20px;line-height:1;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+/* Con el detalle de un lead abierto se oculta el botón "← NIVA OS" */
+body.ficha-abierta .niva-backfab{display:none!important}
 .interes{margin:0 14px 12px;padding:11px 12px;background:#f6f8fb;border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:10px}
 .ilinea{display:flex;gap:10px;font-size:13px;padding:3px 0;align-items:baseline}
 .ilinea span{flex:0 0 92px;color:var(--mut);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
@@ -874,10 +876,14 @@ function abrirFicha(l){
   const m=document.createElement('div');m.id='modalFicha';
   const b=document.createElement('div');b.className='fbox';
   b.appendChild(cardLead(l));
-  const x=document.createElement('button');x.className='fcerrar';x.textContent='Cerrar';
-  x.onclick=()=>m.remove();b.appendChild(x);
+  const cerrar=()=>{m.remove();document.body.classList.remove('ficha-abierta');document.removeEventListener('keydown',esc_)};
+  const esc_=e=>{if(e.key==='Escape')cerrar()};
+  const x=document.createElement('button');x.className='fcerrar';x.type='button';x.setAttribute('aria-label','Cerrar');x.textContent='✕';
+  x.onclick=cerrar;b.prepend(x);
   m.appendChild(b);
-  m.addEventListener('click',e=>{if(e.target===m)m.remove()});
+  m.addEventListener('click',e=>{if(e.target===m)cerrar()});
+  document.addEventListener('keydown',esc_);
+  document.body.classList.add('ficha-abierta');
   document.body.appendChild(m);
 }
 function kbCard(l,colsVisibles){
@@ -1180,7 +1186,7 @@ function cardLead(l){
     btnElim.disabled=true;btnElim.textContent='Eliminando...';
     const {error}=await sb.rpc('eliminar_lead',{p_lead_id:l.id,p_motivo:motivo||null});
     if(error){btnElim.disabled=false;btnElim.textContent='🗑️ Eliminar';toast(error.message||'No se pudo eliminar');return}
-    const mf=document.getElementById('modalFicha'); if(mf)mf.remove();
+    const mf=document.getElementById('modalFicha'); if(mf){mf.remove();document.body.classList.remove('ficha-abierta');}
     toast('Lead eliminado');
     await cargar();
   };
