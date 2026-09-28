@@ -82,12 +82,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,168,76,.5);bo
   <div style="margin-top:12px"><label class="f">Imprescindibles</label><div class="chips" id="impr"></div></div>
   <div style="margin-top:12px"><label class="f">Nota del cliente (lo que dijo con sus palabras)</label><textarea id="nota" rows="2" placeholder="Ej: quiere cerca del Tec, que acepten mascotas, se muda en noviembre"></textarea></div>
   <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <button class="btn" id="btn-go" onclick="buscar(false)">🔎 Buscar propiedades</button>
-    <button class="btn sec" id="btn-save" onclick="buscar(true)">💾 Buscar y guardar para este cliente</button>
+    <button class="btn" id="btn-go" onclick="buscar(true)">🔎 Buscar propiedades</button>
+    <button class="btn sec" id="btn-save" onclick="buscar(true)" style="display:none">💾 Buscar y guardar</button>
     <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="usar-web" checked style="width:auto">Incluir portales (Inmuebles24, Pincali/bolsa EB, Lamudi, Propiedades.com, Avisos de Ocasión, Mercado Libre) — mismos filtros, radio 10 km, más recientes</label>
     <span class="gasto" id="gasto"></span>
   </div>
-  <div class="hint">Guardar la búsqueda hace que el sistema la repita solo (fuentes gratis a diario, portales dos veces por semana) y te avise por WhatsApp cuando aparezca algo nuevo.</div>
+  <div class="hint">Todas las búsquedas se guardan solas abajo en "Búsquedas guardadas": ábrelas cuando quieras sin volver a gastar créditos. Se revisan solas cada día en las fuentes gratis; si quieres que también revise portales, cámbialo en la búsqueda guardada.</div>
   <div id="f-err" class="err hidden"></div>
 </div>
 
@@ -120,12 +120,13 @@ function leer(){
 }
 async function buscar(guardar){
   $('f-err').classList.add('hidden'); const c=leer(); if(!c){ $('f-err').textContent='Faltan operación, tipo o municipio.'; $('f-err').classList.remove('hidden'); return; }
-  if(guardar && !c.cliente){ $('cliente').classList.add('bad'); $('f-err').textContent='Para guardar la búsqueda escribe el nombre del cliente.'; $('f-err').classList.remove('hidden'); return; }
+  guardar=true; // siempre se guarda, para no volver a gastar créditos en la misma búsqueda
+  if(!c.cliente){ c.cliente='Sin nombre · '+new Date().toLocaleString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
   $('btn-go').disabled=$('btn-save').disabled=true; const orig=$('btn-go').innerHTML; $('btn-go').innerHTML='<span class="spin"></span> Buscando en bolsa EB, NIVA, Scouting y portales… (30–60 s)';
   try{
     // Sesión fresca (si la página llevaba mucho abierta, el permiso vencía y el buscador se quedaba trabado)
     const tok=async(forzar)=>{ const sb=window.__nivaSb; let s=null; if(forzar){ const {data}=await sb.auth.refreshSession(); s=data&&data.session; } if(!s){ const {data}=await sb.auth.getSession(); s=data&&data.session; } if(s) window.__nivaSession=s; return s?s.access_token:''; };
-    const pedir=async(forzar)=>{ const ac=new AbortController(); const tm=setTimeout(()=>ac.abort(),150000); try{ return await fetch(window.__nivaCfg.url+'/functions/v1/niva-buscador',{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json',Authorization:'Bearer '+window.__nivaCfg.anon,apikey:window.__nivaCfg.anon,'x-niva-jwt':await tok(forzar)},body:JSON.stringify({accion:'buscar',criterios:c,web:$('usar-web').checked,guardar:!!guardar,cliente_nombre:c.cliente||null,lead_id:window.__leadSel||null})}); } catch(e){ if(e.name==='AbortError') throw new Error('la búsqueda tardó demasiado. Intenta de nuevo; la segunda vez es más rápida porque los portales ya quedaron guardados.'); throw e; } finally{ clearTimeout(tm); } };
+    const pedir=async(forzar)=>{ const ac=new AbortController(); const tm=setTimeout(()=>ac.abort(),150000); try{ return await fetch(window.__nivaCfg.url+'/functions/v1/niva-buscador',{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json',Authorization:'Bearer '+window.__nivaCfg.anon,apikey:window.__nivaCfg.anon,'x-niva-jwt':await tok(forzar)},body:JSON.stringify({accion:'buscar',criterios:c,web:$('usar-web').checked,guardar:!!guardar,cliente_nombre:c.cliente||null,lead_id:window.__leadSel||null,frecuencia_web:'nunca'})}); } catch(e){ if(e.name==='AbortError') throw new Error('la búsqueda tardó demasiado. Intenta de nuevo; la segunda vez es más rápida porque los portales ya quedaron guardados.'); throw e; } finally{ clearTimeout(tm); } };
     let r=await pedir(false); if(r.status===401) r=await pedir(true);
     const j=await r.json().catch(()=>({})); if(!r.ok||!j.ok) throw new Error(r.status===401?'tu sesión venció. Recarga la página e inicia sesión otra vez.':(j.error||('HTTP '+r.status)));
     RES=j.resultados||[]; BID=j.busqueda_id||null; CRIT=c; MARCAS={};
