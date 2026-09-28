@@ -54,6 +54,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,168,76,.5);bo
 .hist a{color:var(--navy);font-weight:700;cursor:pointer;text-decoration:underline}
 .spin{width:16px;height:16px;border:2.5px solid #e2e8f0;border-top-color:var(--gold);border-radius:50%;animation:sp .9s linear infinite;display:inline-block;vertical-align:middle}@keyframes sp{to{transform:rotate(360deg)}}
 @media(max-width:700px){.res{grid-template-columns:1fr}}
+.grid input.auto,.grid select.auto,textarea.auto{background:#fff8e1!important;border-color:var(--gold)!important;transition:background .4s}
 </style>
 </head>
 <body>
@@ -64,6 +65,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,168,76,.5);bo
   <h2>¿Qué busca tu cliente?</h2>
   <div class="sub">Llena lo que te dijo. El buscador consulta el inventario NIVA, dueños directos del Scouting y los portales (Inmuebles24, Lamudi, Propiedades.com y Mercado Libre). Empieza por las colonias que pidió y se va abriendo si hace falta.</div>
   <div class="grid">
+    <div style="grid-column:1/-1"><label class="f">Cliente activo del CRM (opcional)</label><select id="cli-activo" onchange="usarClienteActivo(this.value)"><option value="">Cargando tus clientes activos…</option></select><div id="cli-nota" style="font-size:11.5px;color:var(--muted);margin-top:4px">Elige uno y se llenan solos los datos que ya tienes en el CRM. Todo lo puedes cambiar a mano.</div></div>
     <div><label class="f">Cliente</label><input id="cliente" placeholder="Nombre del cliente"></div>
     <div><label class="f">Operación</label><select id="operacion"><option value="">Elige…</option><option value="renta">Renta</option><option value="venta">Venta</option></select></div>
     <div><label class="f">Tipo</label><select id="tipo"><option value="">Elige…</option><option>Casa</option><option>Departamento</option><option>Terreno</option><option>Local comercial</option><option>Oficina</option><option>Bodega</option></select></div>
@@ -120,7 +122,7 @@ async function buscar(guardar){
   if(guardar && !c.cliente){ $('cliente').classList.add('bad'); $('f-err').textContent='Para guardar la búsqueda escribe el nombre del cliente.'; $('f-err').classList.remove('hidden'); return; }
   $('btn-go').disabled=$('btn-save').disabled=true; const orig=$('btn-go').innerHTML; $('btn-go').innerHTML='<span class="spin"></span> Buscando en bolsa EB, NIVA, Scouting y portales… (30–60 s)';
   try{
-    const r=await fetch(window.__nivaCfg.url+'/functions/v1/niva-buscador',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+window.__nivaCfg.anon,apikey:window.__nivaCfg.anon,'x-niva-jwt':window.__nivaSession.access_token},body:JSON.stringify({accion:'buscar',criterios:c,web:$('usar-web').checked,guardar:!!guardar,cliente_nombre:c.cliente||null})});
+    const r=await fetch(window.__nivaCfg.url+'/functions/v1/niva-buscador',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+window.__nivaCfg.anon,apikey:window.__nivaCfg.anon,'x-niva-jwt':window.__nivaSession.access_token},body:JSON.stringify({accion:'buscar',criterios:c,web:$('usar-web').checked,guardar:!!guardar,cliente_nombre:c.cliente||null,lead_id:window.__leadSel||null})});
     const j=await r.json(); if(!r.ok||!j.ok) throw new Error(j.error||('HTTP '+r.status));
     RES=j.resultados||[]; BID=j.busqueda_id||null; CRIT=c; MARCAS={};
     if(BID){ const {data}=await window.__nivaSb.from('busqueda_resultados').select('id,clave,favorito,descartado').eq('busqueda_id',BID); (data||[]).forEach(x=>MARCAS[x.clave]={id:x.id,favorito:x.favorito,descartado:x.descartado}); }
@@ -184,6 +186,57 @@ async function abrir(id){
   await window.__nivaSb.rpc('busqueda_vista',{p_id:id}); cargarHist();
 }
 document.addEventListener('niva-ready',async()=>{ cargarHist(); try{ const {data}=await window.__nivaSb.rpc('ia_gasto_mes'); if(data&&data[0]) $('gasto').textContent='Gasto de búsqueda este mes: '+fmt(data[0].costo_mxn)+' de '+fmt(data[0].tope_mxn); }catch(e){} });
+
+// ── Clientes ACTIVOS del CRM: al elegir uno se llenan los campos (todo se puede editar) ──
+let CLIS=[]; window.__leadSel=null;
+const _norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+function _num(t){ // "$2.5 millones", "25 mil", "25,000", "25k"
+  const out=[]; const re=/(\d+(?:[.,]\d+)*)\s*(millones|millon|mdp|m\b|mil|k\b)?/gi; let m;
+  while((m=re.exec(t))){ let s=m[1]; let v; const u=(m[2]||'').toLowerCase();
+    if(u.startsWith('mill')||u==='mdp'||u==='m'){ v=parseFloat(s.replace(',', '.'))*1e6; }
+    else { v=parseFloat(s.replace(/[.,](?=\d{3}\b)/g,'').replace(',', '.')); if(u==='mil'||u==='k') v*=1000; }
+    if(v>=1000) out.push(Math.round(v)); }
+  return out;
+}
+async function cargarClientesActivos(){
+  const sb=window.__nivaSb; const sel=$('cli-activo'); if(!sb||!sel) return;
+  try{
+    const user=(window.__nivaSession?.user?.email||'').split('@')[0];
+    const esAdmin=user==='admin';
+    let advId=null; try{ const {data}=await sb.rpc('my_advisor_id'); advId=data||null; }catch(_){ }
+    let q=sb.from('leads').select('id,advisor_id,zone_text,budget_text,notes,first_message,happened_at,contacts(full_name,phone_normalized),properties(title,operation_type,property_type,location_name,price_amount,bedrooms)').eq('status','contacted').is('archived_at',null).order('happened_at',{ascending:false}).limit(300);
+    if(!esAdmin){ if(!advId){ sel.innerHTML='<option value="">No encontré tu perfil de asesor</option>'; return; } q=q.eq('advisor_id',advId); }
+    const {data,error}=await q; if(error) throw error;
+    CLIS=data||[];
+    let nombres={}; if(esAdmin){ const {data:ad}=await sb.from('advisors').select('id,first_name,last_name'); (ad||[]).forEach(a=>nombres[a.id]=(a.first_name||'')+' '+(a.last_name||'')); }
+    const etiqueta=l=>{const n=l.contacts?.full_name||'Sin nombre'; const p=l.properties?.title||''; return n+(p?' — '+p.slice(0,45):(l.zone_text?' — '+l.zone_text:''));};
+    if(!CLIS.length){ sel.innerHTML='<option value="">No tienes clientes activos en el CRM</option>'; return; }
+    if(esAdmin){ const g={}; CLIS.forEach(l=>{const k=nombres[l.advisor_id]||'Sin asesor'; (g[k]=g[k]||[]).push(l);});
+      sel.innerHTML='<option value="">Elige un cliente activo… ('+CLIS.length+')</option>'+Object.keys(g).sort().map(k=>'<optgroup label="'+esc(k)+'">'+g[k].map(l=>'<option value="'+l.id+'">'+esc(etiqueta(l))+'</option>').join('')+'</optgroup>').join('');
+    } else sel.innerHTML='<option value="">Elige uno de tus clientes activos… ('+CLIS.length+')</option>'+CLIS.map(l=>'<option value="'+l.id+'">'+esc(etiqueta(l))+'</option>').join('');
+  }catch(e){ sel.innerHTML='<option value="">No se pudieron cargar tus clientes</option>'; console.error(e); }
+}
+function usarClienteActivo(id){
+  window.__leadSel=id||null; const l=CLIS.find(x=>String(x.id)===String(id)); if(!l) return;
+  const p=l.properties||{}; const txt=_norm((l.first_message||'')+' '+(p.title||''));
+  const llenar=(el,v)=>{ if(v==null||v===''||v===0) return; $(el).value=v; $(el).classList.add('auto'); setTimeout(()=>$(el).classList.remove('auto'),2500); };
+  llenar('cliente', l.contacts?.full_name||'');
+  const op=/rent/.test(_norm(p.operation_type))||/\brenta\b/.test(txt)?'renta':(/sale|vent/.test(_norm(p.operation_type))||/\bventa\b/.test(txt)?'venta':''); llenar('operacion',op);
+  const tipos=[...$('tipo').options].map(o=>o.value).filter(Boolean); const tt=_norm(p.property_type)+' '+txt;
+  const tp=tipos.find(t=>tt.includes(_norm(t).split(' ')[0].slice(0,5))); llenar('tipo',tp||'');
+  const muns=[...$('municipio').options].map(o=>o.value).filter(Boolean); const loc=_norm((p.location_name||'')+' '+(l.zone_text||'')+' '+txt);
+  llenar('municipio', muns.find(m=>loc.includes(_norm(m).split(' ').slice(0,2).join(' ')))||'');
+  llenar('zonas', l.zone_text || (p.location_name?String(p.location_name).split(',')[0].trim():''));
+  const nums=_num(l.budget_text||'');
+  if(nums.length>=2){ llenar('pmin',Math.min(...nums)); llenar('pmax',Math.max(...nums)); }
+  else if(nums.length===1){ llenar('pmax',nums[0]); }
+  else if(p.price_amount){ llenar('pmin',Math.round(p.price_amount*0.85)); llenar('pmax',Math.round(p.price_amount*1.15)); }
+  if(p.bedrooms) llenar('rec',p.bedrooms);
+  if(l.notes && !$('nota').value) llenar('nota',l.notes);
+  $('cli-nota').textContent='Llené lo que había en el CRM de '+(l.contacts?.full_name||'este cliente')+'. Revisa y corrige lo que haga falta antes de buscar.';
+}
+document.addEventListener('niva-ready',cargarClientesActivos);
+if(window.__nivaSb) cargarClientesActivos();
 </script>
 </body>
 </html>
