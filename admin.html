@@ -270,6 +270,7 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <button class="anav-item" data-sec="scouting">🔎 Scouting</button>
       <a class="anav-item" href="renovaciones.html" style="text-decoration:none;display:flex">🔁 Renovaciones</a>
       <button class="anav-item" data-sec="sistema">🔧 Sistema</button>
+      <button class="anav-item" data-sec="servicios">💳 Servicios y costos</button>
     </nav>
   </aside>
 
@@ -363,6 +364,12 @@ header { display: flex; align-items: center; justify-content: space-between; pad
       <div class="sec-head"><h2>🔧 Sistema</h2></div>
       <div class="explain">Lo técnico, en una sola pantalla: si EasyBroker está sincronizando, si hay errores de integración acumulados y si los avisos de WhatsApp a asesores están saliendo. Si todo está en verde, no hay nada que hacer aquí.</div>
       <div id="sistema"></div>
+    </section>
+
+    <section class="asec" id="sec-servicios">
+      <div class="sec-head"><h2>💳 Servicios y costos</h2></div>
+      <div class="explain">Todo lo que NIVA OS usa para funcionar: qué hace cada servicio por ti, cuánto cuesta y cuánto llevas usado este mes. Si un precio dice "Por confirmar", ábrelo en "Editar precio" y ponlo para que entre en la suma.</div>
+      <div id="servicios"></div>
     </section>
 
     <section class="asec" id="sec-reportes">
@@ -737,6 +744,67 @@ $('#prop-buscar').addEventListener('input',e=>{
 $('#pa-vertodo').addEventListener('click',()=>{ PA_EXPANDED=!PA_EXPANDED; renderPropAsesor(); });
 $('#sd-vertodo').addEventListener('click',()=>{ SIN_EXPANDED=!SIN_EXPANDED; renderSinDueno(); });
 
+// ===== Servicios y costos =====
+async function renderServicios(){
+  const host=document.getElementById('servicios'); if(!host) return;
+  host.innerHTML='<div class="repnote">Cargando…</div>';
+  const [{data:rows,error},{data:uso}]=await Promise.all([
+    sb.from('servicios_niva').select('*').eq('activo',true).order('orden'),
+    sb.rpc('admin_uso_servicios')
+  ]);
+  if(error){host.innerHTML='<div class="repnote">No se pudo cargar: '+esc(error.message)+'</div>';return;}
+  const tc=Number((uso&&uso.tipo_cambio)||17.68);
+  const fmt=n=>'$'+Math.round(n).toLocaleString('es-MX');
+  const mensualMXN=s=>{
+    if(s.periodo==='uso'){ if(/openai/i.test(s.nombre)) return Number(uso?.openai_mes?.costo_mxn||0); return s.costo==null?null:Number(s.costo)*(s.moneda==='USD'?tc:1); }
+    if(s.costo==null) return null;
+    let v=Number(s.costo)*(s.moneda==='USD'?tc:1); if(s.periodo==='anual') v=v/12; return v;
+  };
+  let total=0, pend=0, gratis=0, pagados=0;
+  for(const s of rows){ const v=mensualMXN(s); if(v==null) pend++; else if(v===0) gratis++; else {total+=v; pagados++;} }
+  const bar=(usado,lim,txt)=>{const p=Math.min(100,Math.round(usado/lim*100));const c=p>85?'#dc2626':p>65?'#f59e0b':'#16a34a';return '<div style="margin-top:6px;font-size:12px;opacity:.85">'+txt+'</div><div style="height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:4px"><div style="height:100%;width:'+p+'%;background:'+c+'"></div></div>';};
+  const detUso=s=>{
+    if(s.nombre==='ZenRows'&&s.uso&&s.uso.credit_limit){const u=s.uso;const lib=u.credit_limit-u.usage_credits;return bar(u.usage_credits,u.credit_limit,'Créditos usados: <b>'+Number(u.usage_credits).toLocaleString('es-MX')+'</b> de '+Number(u.credit_limit).toLocaleString('es-MX')+' · quedan <b>'+lib.toLocaleString('es-MX')+'</b> (≈'+Math.floor(lib/25)+' páginas / ≈'+Math.floor(lib/150)+' búsquedas del Buscador) · se renueva el '+new Date(u.period_ends_at).toLocaleDateString('es-MX',{day:'numeric',month:'short'}));}
+    if(s.nombre==='Supabase'&&uso){return bar(uso.db_mb,500,'Base de datos: <b>'+uso.db_mb+' MB</b> de 500 MB gratis')+bar(uso.storage_mb,1024,'Fotos y archivos: <b>'+uso.storage_mb+' MB</b> de 1,024 MB gratis');}
+    if(/openai/i.test(s.nombre)&&uso){const g=uso.openai_mes||{};const t=Number(uso.tope_ia||2000);return bar(Number(g.costo_mxn||0),t,'Este mes (estimado): <b>'+fmt(g.costo_mxn||0)+' MXN</b> en '+(g.llamadas||0)+' consultas · tope mensual '+fmt(t));}
+    return '';
+  };
+  const card=s=>{
+    const v=mensualMXN(s);
+    const precio=v==null?'<span style="color:#f59e0b;font-weight:700">Por confirmar</span>':(v===0?'<span style="color:#4ade80;font-weight:700">Gratis</span>':'<b>'+fmt(v)+' MXN/mes</b>'+(s.moneda==='USD'&&s.costo!=null?' <span style="opacity:.7">('+s.costo+' USD'+(s.periodo==='anual'?'/año':'/mes')+')</span>':(s.periodo==='anual'?' <span style="opacity:.7">('+fmt(s.costo)+'/año)</span>':'')));
+    return '<div class="repsec" style="margin-bottom:10px" data-sid="'+s.id+'">'+
+      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><div class="reph" style="margin:0">'+esc(s.nombre)+(s.plan?' <span style="font-weight:500;opacity:.7;font-size:12px">· '+esc(s.plan)+'</span>':'')+'</div><div>'+precio+'</div></div>'+
+      '<div class="repnote" style="margin:6px 0 0">'+esc(s.para_que||'')+'</div>'+
+      (s.notas&&!(v!=null&&/^Por confirmar/.test(s.notas))?'<div style="font-size:12px;opacity:.7;margin-top:4px">'+esc(s.notas)+'</div>':'')+
+      detUso(s)+
+      '<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12px;opacity:.8">✏️ Editar precio</summary><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center">'+
+        '<input type="number" step="0.01" class="sv-costo" placeholder="Precio" value="'+(s.costo??'')+'" style="width:110px;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:inherit">'+
+        '<select class="sv-moneda" style="padding:6px;border-radius:6px"><option'+(s.moneda==='MXN'?' selected':'')+'>MXN</option><option'+(s.moneda==='USD'?' selected':'')+'>USD</option></select>'+
+        '<select class="sv-periodo" style="padding:6px;border-radius:6px"><option value="mensual"'+(s.periodo==='mensual'?' selected':'')+'>al mes</option><option value="anual"'+(s.periodo==='anual'?' selected':'')+'>al año</option><option value="uso"'+(s.periodo==='uso'?' selected':'')+'>por uso</option></select>'+
+        '<input class="sv-plan" placeholder="Plan" value="'+esc(s.plan||'')+'" style="flex:1;min-width:140px;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:inherit">'+
+        '<button class="repbtn sv-guardar" type="button" style="padding:6px 12px">Guardar</button>'+
+        (s.url?' <a href="'+esc(s.url)+'" target="_blank" rel="noopener" style="font-size:12px">Abrir cuenta →</a>':'')+
+      '</div></details></div>';
+  };
+  host.innerHTML=
+    '<div class="dash-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">'+
+      '<div class="repsec"><div class="repnote" style="margin:0">Gasto mensual de NIVA OS</div><div style="font-size:26px;font-weight:800;margin-top:4px">'+fmt(total)+' MXN</div><div style="font-size:12px;opacity:.7">'+pagados+' de pago'+(pend?' · <span style="color:#f59e0b">'+pend+' por confirmar (no sumados)</span>':'')+'</div></div>'+
+      '<div class="repsec"><div class="repnote" style="margin:0">Al año (aprox.)</div><div style="font-size:26px;font-weight:800;margin-top:4px">'+fmt(total*12)+' MXN</div><div style="font-size:12px;opacity:.7">Dólar a $'+tc.toFixed(2)+'</div></div>'+
+      '<div class="repsec"><div class="repnote" style="margin:0">Servicios gratis</div><div style="font-size:26px;font-weight:800;margin-top:4px">'+gratis+'</div><div style="font-size:12px;opacity:.7">de '+rows.length+' en total</div></div>'+
+    '</div>'+
+    '<div class="reph">💳 De pago o por confirmar</div>'+rows.filter(s=>mensualMXN(s)!==0).map(card).join('')+
+    '<div class="reph" style="margin-top:16px">🆓 Gratis</div>'+rows.filter(s=>mensualMXN(s)===0).map(card).join('')+
+    '<div class="repnote" style="margin-top:10px">Los créditos de ZenRows se actualizan solos una vez al día. OpenAI es un cálculo aproximado de NIVA OS; el cobro exacto está en tu cuenta de OpenAI.</div>';
+  host.querySelectorAll('.sv-guardar').forEach(b=>b.addEventListener('click',async()=>{
+    const box=b.closest('[data-sid]'); const id=+box.dataset.sid;
+    const c=box.querySelector('.sv-costo').value.trim();
+    const patch={costo:c===''?null:Number(c),moneda:box.querySelector('.sv-moneda').value,periodo:box.querySelector('.sv-periodo').value,plan:box.querySelector('.sv-plan').value.trim()||null,actualizado_at:new Date().toISOString()};
+    const {error}=await sb.from('servicios_niva').update(patch).eq('id',id);
+    if(error){alert('No se pudo guardar: '+error.message);return;}
+    renderServicios();
+  }));
+}
+
 // ===== Navegación lateral =====
 function irASubProp(sub){
   document.querySelectorAll('#prop-subtabs button').forEach(b=>b.classList.toggle('on',b.dataset.sub===sub));
@@ -747,6 +815,7 @@ function irASeccion(sec){
   if(sec==='sindueno'||sec==='propasesor'||sec==='propnuevas'||sec==='propbaja'){ const map={sindueno:'sindueno',propasesor:'todas',propnuevas:'nuevas',propbaja:'bajas'}; irASubProp(map[sec]); sec='propiedades'; }
   if(sec==='asesores') renderAsesores();
   if(sec==='sistema') renderSistema();
+  if(sec==='servicios') renderServicios();
   if(sec==='leads') renderLeadsAdmin();
   if(sec==='cierres') renderCierresAdmin();
   const b=document.querySelector('#anav button[data-sec="'+sec+'"]');
