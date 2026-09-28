@@ -221,24 +221,34 @@ async function cargarClientesActivos(){
     } else sel.innerHTML='<option value="">Elige uno de tus clientes activos… ('+CLIS.length+')</option>'+CLIS.map(l=>'<option value="'+l.id+'">'+esc(etiqueta(l))+'</option>').join('');
   }catch(e){ sel.innerHTML='<option value="">No se pudieron cargar tus clientes</option>'; console.error(e); }
 }
-function usarClienteActivo(id){
+async function usarClienteActivo(id){
   window.__leadSel=id||null; const l=CLIS.find(x=>String(x.id)===String(id)); if(!l) return;
-  const p=l.properties||{}; const txt=_norm((l.first_message||'')+' '+(p.title||''));
+  let p=l.properties||{};
+  // Leads de Inmuebles24 con código de aviso: datos del aviso (título, renta/venta, precio)
+  const cod=((l.first_message||'').match(/C[OÓ]D:\s*([A-Za-z0-9-]+)/i)||[])[1];
+  let pl=null; if(cod){ try{ const {data}=await window.__nivaSb.from('portal_listings').select('titulo,operacion,precio').ilike('codigo',cod).limit(1); pl=(data&&data[0])||null; }catch(_){ } }
+  const txt=_norm([l.first_message,l.budget_text,l.zone_text,p.title,pl&&pl.titulo].filter(Boolean).join(' '));
   const llenar=(el,v)=>{ if(v==null||v===''||v===0) return; $(el).value=v; $(el).classList.add('auto'); setTimeout(()=>$(el).classList.remove('auto'),2500); };
   llenar('cliente', l.contacts?.full_name||'');
-  const op=/rent/.test(_norm(p.operation_type))||/\brenta\b/.test(txt)?'renta':(/sale|vent/.test(_norm(p.operation_type))||/\bventa\b/.test(txt)?'venta':''); llenar('operacion',op);
-  const tipos=[...$('tipo').options].map(o=>o.value).filter(Boolean); const tt=_norm(p.property_type)+' '+txt;
-  const tp=tipos.find(t=>tt.includes(_norm(t).split(' ')[0].slice(0,5))); llenar('tipo',tp||'');
-  const muns=[...$('municipio').options].map(o=>o.value).filter(Boolean); const loc=_norm((p.location_name||'')+' '+(l.zone_text||'')+' '+txt);
-  llenar('municipio', muns.find(m=>loc.includes(_norm(m).split(' ').slice(0,2).join(' ')))||'');
+  // Renta o venta
+  const opTxt=_norm(p.operation_type)+' '+_norm(pl&&pl.operacion)+' '+txt;
+  const op=/rent|renta|alquiler|arriendo/.test(opTxt)?'renta':(/sale|venta|compra|vende/.test(opTxt)?'venta':''); llenar('operacion',op);
+  // Tipo de propiedad
+  const tt=_norm(p.property_type)+' '+txt; const TIP=[['Departamento',/depa|departament|dpto|apartment|loft|penthouse/],['Casa',/\bcasa|house|residencia/],['Terreno',/terreno|lote\b/],['Local comercial',/local/],['Oficina',/oficina/],['Bodega',/bodega|nave/]];
+  const tp=(TIP.find(([,re])=>re.test(tt))||[])[0]; llenar('tipo',tp||'');
+  // Municipio y zona
+  const muns=[...$('municipio').options].map(o=>o.value).filter(Boolean); const loc=_norm((p.location_name||'')+' '+txt);
+  llenar('municipio', muns.find(m=>loc.includes(_norm(m).split(' ').slice(0,2).join(' ')))||(/san pedro|valle oriente|del valle/.test(loc)?'San Pedro Garza García':(/monterrey|cumbres|contry|centro/.test(loc)?'Monterrey':'')));
   llenar('zonas', l.zone_text || (p.location_name?String(p.location_name).split(',')[0].trim():''));
-  const nums=_num(l.budget_text||'');
-  if(nums.length>=2){ llenar('pmin',Math.min(...nums)); llenar('pmax',Math.max(...nums)); }
-  else if(nums.length===1){ llenar('pmax',nums[0]); }
-  else if(p.price_amount){ llenar('pmin',Math.round(p.price_amount*0.85)); llenar('pmax',Math.round(p.price_amount*1.15)); }
-  if(p.bedrooms) llenar('rec',p.bedrooms);
+  // Precio máximo: lo que dijo el cliente; si no, el precio de la propiedad por la que preguntó
+  const nums=_num([l.budget_text,(l.first_message||'').split(/busca:/i)[1]].filter(Boolean).join(' '));
+  const pmax=nums.length?Math.max(...nums):(Number(p.price_amount)||Number(pl&&pl.precio)||0);
+  $('pmin').value=''; llenar('pmax',pmax);
+  // Recámaras
+  const rec=Number(p.bedrooms)||Number((txt.match(/(\d+)\s*(rec|habitacion|cuarto)/)||[])[1])||0; llenar('rec',rec);
   if(l.notes && !$('nota').value) llenar('nota',l.notes);
-  $('cli-nota').textContent='Llené lo que había en el CRM de '+(l.contacts?.full_name||'este cliente')+'. Revisa y corrige lo que haga falta antes de buscar.';
+  const falt=[!op&&'renta o venta',!tp&&'tipo',!pmax&&'precio máximo'].filter(Boolean);
+  $('cli-nota').textContent='Llené lo que había en el CRM de '+(l.contacts?.full_name||'este cliente')+'.'+(falt.length?' Falta: '+falt.join(', ')+' — complétalo a mano.':' Revisa y corrige lo que haga falta antes de buscar.');
 }
 document.addEventListener('niva-ready',cargarClientesActivos);
 if(window.__nivaSb) cargarClientesActivos();
