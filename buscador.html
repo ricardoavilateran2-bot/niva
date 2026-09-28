@@ -156,8 +156,8 @@ function pintar(){
   // Por anillos de cercanía y, dentro de cada anillo, lo más reciente primero:
   // 1) en la zona pedida o a menos de 3 km · 2) hasta 6 km · 3) hasta 10 km o sin ubicación exacta
   const banda=r=>{ const d=r.distancia_km; if(r.anillo===0||(d!=null&&d<=3)) return 0; if(d!=null&&d<=6) return 1; return 2; };
-  if(ord==='reciente') l.sort((a,b)=>(banda(a)-banda(b))||(fr(b)-fr(a))||((a.distancia_km??99)-(b.distancia_km??99)));
-  avisoPocas(l.length); else if(ord==='precio') l.sort((a,b)=>(a.precio||0)-(b.precio||0)); else if(ord==='m2') l.sort((a,b)=>((a.precio||0)/(a.m2c||1e9))-((b.precio||0)/(b.m2c||1e9))); else l.sort((a,b)=>(a.anillo-b.anillo)||((a.distancia_km??99)-(b.distancia_km??99))||(fm(b.fecha_pub)-fm(a.fecha_pub)));
+  if(ord==='reciente') l.sort((a,b)=>(banda(a)-banda(b))||(fr(b)-fr(a))||((a.distancia_km??99)-(b.distancia_km??99))); else if(ord==='precio') l.sort((a,b)=>(a.precio||0)-(b.precio||0)); else if(ord==='m2') l.sort((a,b)=>((a.precio||0)/(a.m2c||1e9))-((b.precio||0)/(b.m2c||1e9))); else l.sort((a,b)=>(a.anillo-b.anillo)||((a.distancia_km??99)-(b.distancia_km??99))||(fm(b.fecha_pub)-fm(a.fecha_pub)));
+  avisoPocas(l.length);
   const anTxt=['En la colonia pedida','Colonia vecina','Mismo municipio','Más lejos'];
   $('res').innerHTML=l.map(r=>{const m=MARCAS[r.clave]||{}; const foto=r.datos&&r.datos.foto; const c=Object.fromEntries(Object.entries(r.contacto||{}).map(([k,v])=>[k,(v==null||/^(null|none|n\/a|no|-)$/i.test(String(v).trim()))?null:v]));
     return `<div class="r ${m.favorito?'fav':''} ${m.descartado?'desc':''}"><div class="ph" style="${foto?`background-image:url('${esc(foto)}')`:''}"><span class="tag">${esc(r.fuente)}${r.datos&&r.datos.verificada===false?' · sin verificar':''}</span><span class="an">${anTxt[r.anillo]||''}${r.distancia_km!=null?' · '+r.distancia_km+' km':''}</span></div>
