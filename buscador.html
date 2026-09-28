@@ -122,8 +122,11 @@ async function buscar(guardar){
   if(guardar && !c.cliente){ $('cliente').classList.add('bad'); $('f-err').textContent='Para guardar la búsqueda escribe el nombre del cliente.'; $('f-err').classList.remove('hidden'); return; }
   $('btn-go').disabled=$('btn-save').disabled=true; const orig=$('btn-go').innerHTML; $('btn-go').innerHTML='<span class="spin"></span> Buscando en bolsa EB, NIVA, Scouting y portales… (30–60 s)';
   try{
-    const r=await fetch(window.__nivaCfg.url+'/functions/v1/niva-buscador',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+window.__nivaCfg.anon,apikey:window.__nivaCfg.anon,'x-niva-jwt':window.__nivaSession.access_token},body:JSON.stringify({accion:'buscar',criterios:c,web:$('usar-web').checked,guardar:!!guardar,cliente_nombre:c.cliente||null,lead_id:window.__leadSel||null})});
-    const j=await r.json(); if(!r.ok||!j.ok) throw new Error(j.error||('HTTP '+r.status));
+    // Sesión fresca (si la página llevaba mucho abierta, el permiso vencía y el buscador se quedaba trabado)
+    const tok=async(forzar)=>{ const sb=window.__nivaSb; let s=null; if(forzar){ const {data}=await sb.auth.refreshSession(); s=data&&data.session; } if(!s){ const {data}=await sb.auth.getSession(); s=data&&data.session; } if(s) window.__nivaSession=s; return s?s.access_token:''; };
+    const pedir=async(forzar)=>{ const ac=new AbortController(); const tm=setTimeout(()=>ac.abort(),150000); try{ return await fetch(window.__nivaCfg.url+'/functions/v1/niva-buscador',{method:'POST',signal:ac.signal,headers:{'Content-Type':'application/json',Authorization:'Bearer '+window.__nivaCfg.anon,apikey:window.__nivaCfg.anon,'x-niva-jwt':await tok(forzar)},body:JSON.stringify({accion:'buscar',criterios:c,web:$('usar-web').checked,guardar:!!guardar,cliente_nombre:c.cliente||null,lead_id:window.__leadSel||null})}); } catch(e){ if(e.name==='AbortError') throw new Error('la búsqueda tardó demasiado. Intenta de nuevo; la segunda vez es más rápida porque los portales ya quedaron guardados.'); throw e; } finally{ clearTimeout(tm); } };
+    let r=await pedir(false); if(r.status===401) r=await pedir(true);
+    const j=await r.json().catch(()=>({})); if(!r.ok||!j.ok) throw new Error(r.status===401?'tu sesión venció. Recarga la página e inicia sesión otra vez.':(j.error||('HTTP '+r.status)));
     RES=j.resultados||[]; BID=j.busqueda_id||null; CRIT=c; MARCAS={};
     if(BID){ const {data}=await window.__nivaSb.from('busqueda_resultados').select('id,clave,favorito,descartado').eq('busqueda_id',BID); (data||[]).forEach(x=>MARCAS[x.clave]={id:x.id,favorito:x.favorito,descartado:x.descartado}); }
     $('r-tit').textContent=(c.cliente?'Opciones para '+c.cliente:'Resultados')+' · '+RES.length;
