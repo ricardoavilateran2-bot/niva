@@ -95,7 +95,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid rgba(201,168,76,.5);bo
 <div class="card hidden" id="c-res">
   <div class="toolbar">
     <h2 id="r-tit" style="margin-right:auto">Resultados</h2>
-    <select id="orden" onchange="pintar()" style="width:auto"><option value="reciente" selected>Más recientes primero</option><option value="cerca">Más cercanas primero</option><option value="precio">Precio menor a mayor</option><option value="m2">Precio por m²</option></select>
+    <select id="orden" onchange="pintar()" style="width:auto"><option value="reciente" selected>Recientes y cercanas primero</option><option value="cerca">Más cercanas primero</option><option value="precio">Precio menor a mayor</option><option value="m2">Precio por m²</option></select>
     <select id="f-fuente" onchange="pintar()" style="width:auto"><option value="">Todas las fuentes</option></select>
     <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="solo-fav" onchange="pintar()" style="width:auto">Solo favoritas</label>
     <button class="btn sm" onclick="mensajeWA()">📲 Mensaje para el cliente</button>
@@ -153,7 +153,11 @@ function pintar(){
   const fm=f=>{const d=Date.parse(f);return isNaN(d)?0:d};
   // Fecha del anuncio; si el portal no la muestra, se estima por su lugar en la lista "más recientes" del portal
   const fr=r=>{ const d=fm(r.fecha_pub); if(d) return d; const m=/hace (\d+) (d[ií]a|semana|mes)/i.exec(r.fecha_pub||''); if(m){ const u=m[2].toLowerCase(); return Date.now()-(+m[1])*(u.startsWith('d')?1:u.startsWith('s')?7:30)*864e5; } if(r.datos&&r.datos.orden_reciente!=null) return Date.now()-(r.datos.orden_reciente+1)*6*3600e3; return 0; };
-  if(ord==='reciente') l.sort((a,b)=>(fr(b)-fr(a))||((a.distancia_km??99)-(b.distancia_km??99))); else if(ord==='precio') l.sort((a,b)=>(a.precio||0)-(b.precio||0)); else if(ord==='m2') l.sort((a,b)=>((a.precio||0)/(a.m2c||1e9))-((b.precio||0)/(b.m2c||1e9))); else l.sort((a,b)=>(a.anillo-b.anillo)||((a.distancia_km??99)-(b.distancia_km??99))||(fm(b.fecha_pub)-fm(a.fecha_pub)));
+  // Por anillos de cercanía y, dentro de cada anillo, lo más reciente primero:
+  // 1) en la zona pedida o a menos de 3 km · 2) hasta 6 km · 3) hasta 10 km o sin ubicación exacta
+  const banda=r=>{ const d=r.distancia_km; if(r.anillo===0||(d!=null&&d<=3)) return 0; if(d!=null&&d<=6) return 1; return 2; };
+  if(ord==='reciente') l.sort((a,b)=>(banda(a)-banda(b))||(fr(b)-fr(a))||((a.distancia_km??99)-(b.distancia_km??99)));
+  avisoPocas(l.length); else if(ord==='precio') l.sort((a,b)=>(a.precio||0)-(b.precio||0)); else if(ord==='m2') l.sort((a,b)=>((a.precio||0)/(a.m2c||1e9))-((b.precio||0)/(b.m2c||1e9))); else l.sort((a,b)=>(a.anillo-b.anillo)||((a.distancia_km??99)-(b.distancia_km??99))||(fm(b.fecha_pub)-fm(a.fecha_pub)));
   const anTxt=['En la colonia pedida','Colonia vecina','Mismo municipio','Más lejos'];
   $('res').innerHTML=l.map(r=>{const m=MARCAS[r.clave]||{}; const foto=r.datos&&r.datos.foto; const c=Object.fromEntries(Object.entries(r.contacto||{}).map(([k,v])=>[k,(v==null||/^(null|none|n\/a|no|-)$/i.test(String(v).trim()))?null:v]));
     return `<div class="r ${m.favorito?'fav':''} ${m.descartado?'desc':''}"><div class="ph" style="${foto?`background-image:url('${esc(foto)}')`:''}"><span class="tag">${esc(r.fuente)}${r.datos&&r.datos.verificada===false?' · sin verificar':''}</span><span class="an">${anTxt[r.anillo]||''}${r.distancia_km!=null?' · '+r.distancia_km+' km':''}</span></div>
@@ -255,6 +259,22 @@ async function usarClienteActivo(id){
 }
 document.addEventListener('niva-ready',cargarClientesActivos);
 if(window.__nivaSb) cargarClientesActivos();
+
+// Aviso cuando una búsqueda trae pocas opciones, con sugerencias concretas para abrirla
+function avisoPocas(n){
+  let box=document.getElementById('pocas');
+  if(!box){ box=document.createElement('div'); box.id='pocas'; box.style.cssText='margin:10px 0;padding:10px 12px;border-radius:10px;background:#fff8e1;border:1px solid #f5d27a;color:#7a5b00;font-size:13px;line-height:1.45'; const ref=document.getElementById('r-sub'); if(ref&&ref.parentNode) ref.parentNode.insertBefore(box, ref.nextSibling); else return; }
+  if(n>=10||!CRIT){ box.style.display='none'; return; }
+  const c=CRIT, t=[];
+  if(c.presupuesto_max) t.push('subir el precio máximo a '+fmt(Math.round(c.presupuesto_max*1.15/1000)*1000)+' (15% más)');
+  if(c.presupuesto_min) t.push('quitar el precio mínimo');
+  if(c.recamaras_min>1) t.push('bajar recámaras a '+(c.recamaras_min-1));
+  if(c.banos_min||c.m2_min||c.estacionamientos_min) t.push('quitar baños, m² o estacionamientos mínimos');
+  if(c.zonas&&c.zonas.length) t.push('agregar colonias vecinas o dejar solo el municipio');
+  if(!(c.municipios&&c.municipios.length>1)) t.push('agregar otro municipio cercano');
+  box.innerHTML='⚠️ <b>Solo salieron '+n+' opción'+(n===1?'':'es')+'.</b> Para encontrar más, prueba: '+t.join('; ')+'.';
+  box.style.display='block';
+}
 </script>
 </body>
 </html>
