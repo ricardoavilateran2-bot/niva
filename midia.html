@@ -104,6 +104,11 @@ details .in a{color:var(--navy);font-weight:600}
   .funnel .row{grid-template-columns:90px 1fr 48px}
 }
 </style>
+<style>/* NIVA-COMPAT-2026-09-29: iPhone/Android/Safari/Chrome/Windows */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:820px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}
+img,video,canvas{max-width:100%}
+</style>
 </head>
 <body>
 <div class="topbar"><a href="./index.html">← NIVA OS</a><span class="who" id="who"></span></div>
