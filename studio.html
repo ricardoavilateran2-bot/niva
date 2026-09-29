@@ -1371,7 +1371,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const warn = document.getElementById('niva-safari-warning');
     if (warn) warn.style.display = 'block';
   }
-    if (typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') {
+    let _nivaMp4Nativo = false; try { _nivaMp4Nativo = !!(window.MediaRecorder && MediaRecorder.isTypeSupported('video/mp4')); } catch(e) {}
+    if ((typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') && !_nivaMp4Nativo) {
           const warnCodec = document.getElementById('niva-webcodecs-warning');
           if (warnCodec) warnCodec.style.display = 'block';
     }
@@ -6385,7 +6386,56 @@ async function convertWebmToMp4(webmBlob, durationSeconds) {
 // mp4-muxer — la misma técnica ya probada en convertWebmToMp4, sin WASM ni servidor.
 // Devuelve {blob, hasAudio} — hasAudio=false si el audio grabado no pudo decodificarse
 // (para poder avisar claramente en vez de entregar un video mudo sin explicación).
+// ── iOS: unión POR BYTES (2026-09-28) ──
+// Une el MP4 de video (H.264) y el de audio (AAC) que graba el iPhone SIN recomprimir y SIN
+// WebCodecs (Safari de iPhone no tiene AudioEncoder, por eso antes salía el aviso rojo).
+// Mismos bytes que grabó el teléfono → misma calidad HD. Si algo falla, se usa el método anterior.
+async function _nivaMuxIOSPorBytes(videoBlob, audioBlob) {
+  if (!/mp4/i.test(videoBlob.type || '') || !/mp4|aac/i.test(audioBlob.type || '')) return null;
+  const { Muxer, ArrayBufferTarget } = await loadMp4MuxerLib();
+  const leer = async (blob) => {
+    const buf = await blob.arrayBuffer();
+    const top = _nivaMp4ReadBoxes(buf, 0, buf.byteLength);
+    const moov = _nivaMp4FindBox(top, 'moov');
+    if (!moov) throw new Error('MP4 sin moov');
+    const { tracks, defaults } = _nivaMp4ParseMoov(buf, moov);
+    return { buf, tracks, sbt: _nivaMp4ParseMoofs(buf, top, defaults) };
+  };
+  const V = await leer(videoBlob), A = await leer(audioBlob);
+  const pick = (X, kind) => { for (const tid of Object.keys(X.tracks)) { const c = X.tracks[tid].config; if (c && c.kind === kind) return { t: X.tracks[tid], s: X.sbt[tid] || [] }; } return null; };
+  const v = pick(V, 'video'), a = pick(A, 'audio');
+  if (!v || !v.s.length || !v.t.config.description) throw new Error('el video no trae muestras H.264 legibles');
+  const hasAudio = !!(a && a.s.length && a.t.config && a.t.config.description);
+  vidStatus('🔧 Uniendo video y audio (iPhone/iPad, sin perder calidad)…', 'loading');
+  updateDiagStep('mp4', 'pending');
+  const cfg = { target: new ArrayBufferTarget(), video: { codec: 'avc', width: v.t.config.width, height: v.t.config.height }, fastStart: 'in-memory', firstTimestampBehavior: 'offset' };
+  if (hasAudio) cfg.audio = { codec: 'aac', numberOfChannels: a.t.config.channelCount, sampleRate: a.t.config.sampleRate };
+  const muxer = new Muxer(cfg);
+  const us = (ticks, ts) => (ticks / ts) * 1e6;
+  let first = true;
+  for (const s of v.s) {
+    const meta = first ? { decoderConfig: { codec: 'avc1', codedWidth: v.t.config.width, codedHeight: v.t.config.height, description: v.t.config.description } } : undefined;
+    muxer.addVideoChunkRaw(new Uint8Array(V.buf, s.offset, s.size), (s.flags & 0x00010000) ? 'delta' : 'key', us(s.dts + s.cts, v.t.timescale), us(s.duration, v.t.timescale), meta, us(s.cts, v.t.timescale));
+    first = false;
+  }
+  if (hasAudio) {
+    first = true;
+    for (const s of a.s) {
+      const meta = first ? { decoderConfig: { codec: 'mp4a.40.2', sampleRate: a.t.config.sampleRate, numberOfChannels: a.t.config.channelCount, description: a.t.config.description } } : undefined;
+      muxer.addAudioChunkRaw(new Uint8Array(A.buf, s.offset, s.size), 'key', us(s.dts, a.t.timescale), us(s.duration, a.t.timescale), meta);
+      first = false;
+    }
+  }
+  muxer.finalize();
+  const out = muxer.target.buffer;
+  const chk = _nivaMp4ValidateNonFragmented(out);
+  if (!chk.ok) throw new Error('MP4 unido inválido: ' + chk.reason);
+  console.log('[NIVA][IOS-BYTES] OK — video ' + v.s.length + ' muestras, audio ' + (hasAudio ? a.s.length : 0));
+  return { blob: new Blob([out], { type: 'video/mp4' }), hasAudio, audioDecodeErrorMsg: hasAudio ? null : 'el audio grabado no trae muestras AAC' };
+}
+
 async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
+  try { const rB = await _nivaMuxIOSPorBytes(videoBlob, audioBlob); if (rB) return rB; } catch (eB) { console.warn('[NIVA][IOS-BYTES] no se pudo unir por bytes, se intenta WebCodecs:', eB); }
   if (typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') {
         throw new Error('Este iPad/iPhone no soporta la conversión a MP4 (WebCodecs) — actualiza iOS/iPadOS a la última versión o genera el video desde una computadora (Chrome o Safari).');
   }
@@ -10515,7 +10565,7 @@ async function playVideoEL() {
           return;
         }
         recordedChunks = []; recordedAudioChunks = [];
-        mediaRecorder = new MediaRecorder(videoOnlyStream, { videoBitsPerSecond: 4_000_000, mimeType: videoMime });
+        mediaRecorder = new MediaRecorder(videoOnlyStream, { videoBitsPerSecond: 8_000_000, mimeType: videoMime });
         audioRecorder = new MediaRecorder(audioOnlyStream, { mimeType: audioMime });
         _recordedMimeType = mediaRecorder.mimeType || videoMime;
         _recordedAudioMimeType = audioRecorder.mimeType || audioMime;
