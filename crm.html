@@ -1174,6 +1174,8 @@ function cardLead(l){
     }
     l.archived_at=cambio.archived_at;l.archived_by=cambio.archived_by;
         sb.from('lead_interactions').insert({lead_id:l.id,type:archivando?'archived':'unarchived',actor:'advisor',payload:{}}).then(()=>{});
+    // Al archivar/restaurar se cierra el detalle del lead (asesor o cliente)
+    const mfA=document.getElementById('modalFicha'); if(mfA){mfA.remove();document.body.classList.remove('ficha-abierta');}
     toast(archivando?'Lead archivado':'Lead restaurado');
     pintar();cargarContadores();
   }
