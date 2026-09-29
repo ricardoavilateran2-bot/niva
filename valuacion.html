@@ -25,7 +25,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--navy:#1B2A4A;--navy2:#0f1e36;--gold:#C9A84C;--gold2:#e8c96a;--ink:#1e293b;--muted:#64748b;--line:#e2e8f0;--ok:#16a34a;--warn:#d97706;--bad:#dc2626}
-html,body{min-height:100vh;font-family:'Inter',sans-serif;background:#eef2f7;color:var(--ink)}
+html,body{min-height:100vh;min-height:100dvh;font-family:'Inter',sans-serif;background:#eef2f7;color:var(--ink)}
 .top{background:linear-gradient(135deg,#0d1828,#1B2A4A);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:20;box-shadow:0 2px 12px rgba(0,0,0,.25)}
 .top .brand{display:flex;align-items:baseline;gap:6px}.top .brand b{font-size:22px;font-weight:900;letter-spacing:-.02em}.top .brand span{font-size:10px;letter-spacing:.18em;color:rgba(201,168,76,.85);text-transform:uppercase}
 .top a{color:var(--gold);font-size:12px;font-weight:600;text-decoration:none;border:1px solid rgba(201,168,76,.4);padding:6px 12px;border-radius:8px}
@@ -64,6 +64,11 @@ tr.off td{opacity:.4;text-decoration:line-through}
 .hist{font-size:12.5px}.hist a{color:var(--navy);font-weight:600;cursor:pointer;text-decoration:underline}
 .err{background:#fee2e2;color:#991b1b;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:10px}
 ul.plain{padding-left:18px;font-size:13px;line-height:1.6}
+</style>
+<style>/* NIVA-COMPAT-2026-09-29: iPhone/Android/Safari/Chrome/Windows */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:820px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}
+img,video,canvas{max-width:100%}
 </style>
 </head>
 <body>
