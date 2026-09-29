@@ -30,7 +30,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
   --navy: #1B2A4A; --navy2: #0f1e36; --gold: #C9A84C; --gold2: #e8c96a;
   --white: #fff; --radius: 16px;
 }
-html, body { min-height: 100vh; font-family: 'Inter', sans-serif; background: var(--navy2); color: var(--white); overflow-x: hidden; }
+html, body { min-height:100vh;min-height:100dvh; font-family: 'Inter', sans-serif; background: var(--navy2); color: var(--white); overflow-x: hidden; }
 .hidden{display:none !important}
 .bg-pattern {
   position: fixed; inset: 0; z-index: 0;
@@ -42,7 +42,7 @@ html, body { min-height: 100vh; font-family: 'Inter', sans-serif; background: va
   background-image: linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
   background-size: 60px 60px;
 }
-.page { position: relative; z-index: 1; min-height: 100vh; max-width: 1040px; margin: 0 auto; padding: 0 20px 80px; }
+.page { position: relative; z-index: 1; min-height:100vh;min-height:100dvh; max-width: 1040px; margin: 0 auto; padding: 0 20px 80px; }
 header { display: flex; align-items: center; justify-content: space-between; padding: 32px 0 0; gap: 12px; }
 .logo-block { display: flex; align-items: flex-end; gap: 4px; }
 .logo-niva { font-size: 38px; font-weight: 900; letter-spacing: -.02em; color: var(--white); line-height: 1; }
@@ -108,6 +108,11 @@ header { display: flex; align-items: center; justify-content: space-between; pad
 
 .niva-backfab{position:fixed;top:14px;left:14px;z-index:99999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:8px 14px;border-radius:9px;text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);display:inline-flex;align-items:center;gap:6px}
 .niva-backfab:hover{background:#22345c}
+</style>
+<style>/* NIVA-COMPAT-2026-09-29: iPhone/Android/Safari/Chrome/Windows */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:820px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}
+img,video,canvas{max-width:100%}
 </style>
 </head>
 <body>
