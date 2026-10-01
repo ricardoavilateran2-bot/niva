@@ -2945,7 +2945,7 @@ function addPhotos(input) {
     if (!c) return;
   const set = (id, val) => { const el = document.getElementById(id); if (el && val != null && String(val) !== '') el.value = val; };
     const clampSel = (id, val, max, cero) => { const n = parseInt(val, 10); if (isNaN(n)) return; if (n <= 0) { set(id, cero); return; } set(id, String(Math.min(n, max))); };
-  set('tipo', c.tipo === 'Local comercial' ? 'Local Comercial' : c.tipo);
+  set('tipo', ({'Local comercial':'Local Comercial','Bodega comercial':'Bodega','Terreno comercial':'Terreno'})[c.tipo] || c.tipo);
   set('op', c.operacion === 'sale' ? 'Venta' : 'Renta');
   set('col', c.colonia);
   set('city', c.municipio);
