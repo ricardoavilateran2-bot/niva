@@ -1041,7 +1041,7 @@ function cardLead(l){
     +(esArchivado(l)?'<button class="acc desarch">↩️ Restaurar</button>':'<button class="acc arch">🗄️ Archivar</button>')
     +(ESADMIN?'<button class="acc elim">🗑️ Eliminar</button>':'')
     +'</div>'
-    +'<div class="wabox hidden"><textarea></textarea><button class="go">Abrir WhatsApp con este mensaje</button></div>'
+    +'<div class="wabox hidden"><textarea></textarea><label class="wficha hidden" style="display:flex;gap:6px;align-items:center;font-size:13px;margin:6px 0"><input type="checkbox" class="wfichachk" checked> 📎 Incluir la ficha técnica de la propiedad</label><button class="go">Abrir WhatsApp con este mensaje</button></div>'
     +'<div class="estado"><span>Estado:</span><select>'
     +Object.entries(EST).map(([k,v])=>'<option value="'+k+'"'+(k===l.status?' selected':'')+'>'+v+'</option>').join('')
     +'</select></div>'
@@ -1128,11 +1128,14 @@ function cardLead(l){
     if(wab.classList.contains('hidden')){
       wab.querySelector('textarea').value=mensajeWa(l);
       wab.classList.remove('hidden');
+      const wf=wab.querySelector('.wficha'); wf.classList.add('hidden'); wab.dataset.ficha='';
+      if(l.eb_public_id) sb.rpc('ficha_de_eb',{p_eb:l.eb_public_id}).then(({data})=>{ if(data){ wab.dataset.ficha=data; wf.classList.remove('hidden'); } });
     } else wab.classList.add('hidden');
   };
   const go=d.querySelector('.go');
   if(go)go.onclick=async()=>{
-    const msg=wab.querySelector('textarea').value;
+    let msg=wab.querySelector('textarea').value;
+    if(wab.dataset.ficha&&wab.querySelector('.wfichachk').checked) msg+='\n\n📋 Ficha técnica: '+wab.dataset.ficha;
     window.open('https://wa.me/'+l.phone_normalized.replace('+','')+'?text='+encodeURIComponent(msg),'_blank');
     await sb.from('lead_interactions').insert({lead_id:l.id,type:'whatsapp_click',actor:'advisor',payload:{message:msg}});
     if(l.status==='new'){await sb.from('leads').update({status:'contacted'}).eq('id',l.id);l.status='contacted';toast('Lead marcado como ACTIVO');pintar();cargarContadores()}
