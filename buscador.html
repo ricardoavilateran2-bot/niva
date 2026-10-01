@@ -82,7 +82,7 @@ img,video,canvas{max-width:100%}
     <div><label class="f">Municipio</label><select id="municipio"><option value="">Elige…</option><option>Monterrey</option><option>San Pedro Garza García</option><option>San Nicolás de los Garza</option><option>Guadalupe</option><option>Apodaca</option><option>Escobedo</option><option>Santa Catarina</option><option>García</option><option>Juárez</option><option>Santiago</option></select></div>
     <div><label class="f">Otro municipio (opcional)</label><select id="municipio2"><option value="">Ninguno</option><option>Monterrey</option><option>San Pedro Garza García</option><option>San Nicolás de los Garza</option><option>Guadalupe</option><option>Apodaca</option><option>Escobedo</option><option>Santa Catarina</option><option>García</option><option>Juárez</option><option>Santiago</option></select></div>
     <div style="grid-column:span 2"><label class="f">Colonias o zonas (separadas por coma)</label><input id="zonas" placeholder="Ej: Cumbres, Valle Oriente, Contry — o márcalas en el mapa de abajo"></div>
-    <div style="grid-column:1/-1"><label class="f">🗺️ Buscar en el mapa (opcional): toca el punto central y elige los km a la redonda</label><div id="mapa"></div><div class="mapbar"><span>Radio:</span><input type="range" id="km" min="0.5" max="15" step="0.5" value="3"><b id="km-v">3 km</b><button type="button" class="btn sec sm" id="map-quitar" style="display:none" onclick="quitarPunto()">Quitar punto</button></div><div id="map-cols">Toca el mapa donde quiere vivir tu cliente. Se llenan solas las colonias y municipios dentro del círculo.</div></div>
+    <div style="grid-column:1/-1"><label class="f">🗺️ Buscar en el mapa (opcional): toca el mapa para poner un punto y elige sus km. Puedes agregar hasta 4 puntos (ej. San Pedro + Valle Poniente)</label><div id="mapa"></div><div class="mapbar"><span id="km-lbl">Radio:</span><input type="range" id="km" min="0.5" max="15" step="0.5" value="3"><b id="km-v">3 km</b><button type="button" class="btn sec sm" id="map-add" style="display:none" onclick="nuevoPunto()">➕ Agregar otro punto</button><button type="button" class="btn sec sm" id="map-quitar" style="display:none" onclick="quitarPunto()">Quitar todos</button></div><div id="map-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div><div id="map-cols">Toca el mapa donde quiere vivir tu cliente. Se llenan solas las colonias y municipios dentro del círculo.</div></div>
     <div><label class="f">Presupuesto mínimo</label><input id="pmin" type="number" min="0" placeholder="0"></div>
     <div><label class="f">Presupuesto máximo</label><input id="pmax" type="number" min="0" placeholder="Ej: 25000"></div>
     <div><label class="f">Recámaras mín.</label><input id="rec" type="number" min="0" placeholder="0"></div>
@@ -125,7 +125,7 @@ const $=id=>document.getElementById(id); const fmt=n=>'$'+Math.round(n||0).toLoc
 let RES=[], BID=null, CRIT=null, MARCAS={};
 $('impr').innerHTML=IMPR.map(a=>`<span class="chip" onclick="this.classList.toggle('on')">${a}</span>`).join('');
 function leer(){
-  const c={cliente:$('cliente').value.trim(),operacion:$('operacion').value,tipo:$('tipo').value,municipio:$('municipio').value,municipios:[$('municipio').value,$('municipio2').value].filter((x,i,a)=>x&&a.indexOf(x)===i),zonas:$('zonas').value.split(',').map(s=>s.trim()).filter(Boolean),presupuesto_min:+$('pmin').value||0,presupuesto_max:+$('pmax').value||0,recamaras_min:+$('rec').value||0,banos_min:+$('ban').value||0,m2_min:+$('m2').value||0,estacionamientos_min:+$('est').value||0,imprescindibles:[...document.querySelectorAll('#impr .chip.on')].map(x=>x.textContent),nota:$('nota').value.trim(),centro:window.__centro||null,...(window.__centro&&window.__mapMunis&&window.__mapMunis.length?{municipios:window.__mapMunis.slice(0,3)}:{})};
+  const c={cliente:$('cliente').value.trim(),operacion:$('operacion').value,tipo:$('tipo').value,municipio:$('municipio').value,municipios:[$('municipio').value,$('municipio2').value].filter((x,i,a)=>x&&a.indexOf(x)===i),zonas:$('zonas').value.split(',').map(s=>s.trim()).filter(Boolean),presupuesto_min:+$('pmin').value||0,presupuesto_max:+$('pmax').value||0,recamaras_min:+$('rec').value||0,banos_min:+$('ban').value||0,m2_min:+$('m2').value||0,estacionamientos_min:+$('est').value||0,imprescindibles:[...document.querySelectorAll('#impr .chip.on')].map(x=>x.textContent),nota:$('nota').value.trim(),centros:window.__centros&&window.__centros.length?window.__centros:null,centro:window.__centro||null,...(window.__centro&&window.__mapMunis&&window.__mapMunis.length?{municipios:window.__mapMunis.slice(0,3)}:{})};
   let ok=true; ['operacion','tipo','municipio'].forEach(id=>{$(id).classList.toggle('bad',!$(id).value); if(!$(id).value) ok=false;});
   return ok?c:null;
 }
@@ -205,7 +205,7 @@ async function abrir(id){
   const {data:rs}=await window.__nivaSb.from('busqueda_resultados').select('*').eq('busqueda_id',id).eq('vigente',true).order('primera_vez_at',{ascending:false});
   const c=b.criterios||{}; CRIT={...c,cliente:b.cliente_nombre}; BID=id; RES=(rs||[]).map(r=>({...r,anillo:r.anillo??3})); MARCAS={}; (rs||[]).forEach(x=>MARCAS[x.clave]={id:x.id,favorito:x.favorito,descartado:x.descartado});
   // rellenar el formulario por si quiere volver a buscar
-  $('cliente').value=b.cliente_nombre; $('operacion').value=c.operacion||''; $('tipo').value=c.tipo||''; $('municipio').value=c.municipio||''; $('municipio2').value=(c.municipios||[])[1]||''; $('zonas').value=(c.zonas||[]).join(', '); if(c.centro&&window.ponerPunto){ window.__mapMunis=c.municipios||[]; ponerPunto(c.centro.lat,c.centro.lng,c.centro.km,true); } else if(window.quitarPunto) quitarPunto(true); $('pmin').value=c.presupuesto_min||''; $('pmax').value=c.presupuesto_max||''; $('rec').value=c.recamaras_min||''; $('ban').value=c.banos_min||''; $('m2').value=c.m2_min||''; $('est').value=c.estacionamientos_min||''; $('nota').value=c.nota||''; document.querySelectorAll('#impr .chip').forEach(x=>x.classList.toggle('on',(c.imprescindibles||[]).includes(x.textContent)));
+  $('cliente').value=b.cliente_nombre; $('operacion').value=c.operacion||''; $('tipo').value=c.tipo||''; $('municipio').value=c.municipio||''; $('municipio2').value=(c.municipios||[])[1]||''; $('zonas').value=(c.zonas||[]).join(', '); if((c.centros&&c.centros.length||c.centro)&&window.cargarPuntos){ window.__mapMunis=c.municipios||[]; cargarPuntos(c.centros&&c.centros.length?c.centros:[c.centro]); } else if(window.quitarPunto) quitarPunto(true); $('pmin').value=c.presupuesto_min||''; $('pmax').value=c.presupuesto_max||''; $('rec').value=c.recamaras_min||''; $('ban').value=c.banos_min||''; $('m2').value=c.m2_min||''; $('est').value=c.estacionamientos_min||''; $('nota').value=c.nota||''; document.querySelectorAll('#impr .chip').forEach(x=>x.classList.toggle('on',(c.imprescindibles||[]).includes(x.textContent)));
   $('r-tit').textContent='Opciones para '+b.cliente_nombre+' · '+RES.length; const nuevos=(rs||[]).filter(x=>!x.visto).length; $('r-sub').textContent=(nuevos?nuevos+' nuevas desde la última vez · ':'')+'Última corrida '+fechaTxt(b.ultima_corrida_at||b.created_at);
   const fu=[...new Set(RES.map(r=>r.fuente))]; $('f-fuente').innerHTML='<option value="">Todas las fuentes</option>'+fu.map(f=>`<option>${esc(f)}</option>`).join(''); $('fuentes').innerHTML='';
   pintarListados(b.listados); pintar(); $('c-res').classList.remove('hidden'); $('c-res').scrollIntoView({behavior:'smooth'});
@@ -292,7 +292,7 @@ function avisoPocas(n){
 </script>
 
 <script>
-// ── Mapa del buscador (2026-09-30): punto central + km a la redonda ──
+// ── Mapa del buscador (2026-10-01): varios puntos, cada uno con sus km ──
 (function(){
   if(!window.L) return;
   const MUNIS=[...document.getElementById('municipio').options].map(o=>o.value).filter(Boolean);
@@ -300,47 +300,65 @@ function avisoPocas(n){
   const aOpcion=m=>{ const n=nrm(m); return MUNIS.find(o=>{const k=nrm(o).split(' ')[0]==='san'?nrm(o).split(' ').slice(0,2).join(' '):nrm(o).split(' ')[0]; return n.includes(k);})||null; };
   const map=L.map('mapa',{scrollWheelZoom:false}).setView([25.6720,-100.3390],11);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(map);
-  let mk=null, circ=null, tmr=null, seq=0;
-  const kmEl=document.getElementById('km'), kmV=document.getElementById('km-v'), info=document.getElementById('map-cols');
+  const COLORES=['#b8860b','#2563eb','#16a34a','#c026d3'];
+  let P=[], act=-1, tmr=null, seq=0, nuevo=false;
+  const kmEl=document.getElementById('km'), kmV=document.getElementById('km-v'), info=document.getElementById('map-cols'), chips=document.getElementById('map-chips');
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  async function colonias(lat,lng,km,silencioso){
-    const my=++seq; info.innerHTML='<span class="spin"></span> Buscando colonias dentro de '+km+' km…';
+  function sync(){
+    window.__centros=P.map(p=>({lat:+p.lat.toFixed(5),lng:+p.lng.toFixed(5),km:p.km}));
+    window.__centro=window.__centros[0]||null;
+    document.getElementById('map-quitar').style.display=P.length?'':'none';
+    document.getElementById('map-add').style.display=(P.length&&P.length<4)?'':'none';
+    document.getElementById('km-lbl').textContent=act>=0?('Radio del punto '+(act+1)+':'):'Radio:';
+    chips.innerHTML=P.map((p,i)=>`<span style="display:inline-flex;align-items:center;gap:6px;border:2px solid ${COLORES[i]};border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;${i===act?'background:#f8f5ea;font-weight:700':''}" onclick="elegirPunto(${i})">Punto ${i+1} · ${p.km} km <b onclick="event.stopPropagation();borrarPunto(${i})" style="cursor:pointer;color:#b91c1c">✕</b></span>`).join('')+(nuevo?'<span style="font-size:12px;color:var(--muted)">👉 Toca el mapa para poner el nuevo punto</span>':'');
+  }
+  function dibujar(i){ const p=P[i];
+    if(!p.mk){ p.mk=L.marker([p.lat,p.lng],{draggable:true}).addTo(map); p.mk.on('dragend',()=>{const q=p.mk.getLatLng(); p.lat=q.lat; p.lng=q.lng; p.circ.setLatLng(q); act=P.indexOf(p); sync(); recalcular();}); p.mk.on('click',()=>elegirPunto(P.indexOf(p))); }
+    else p.mk.setLatLng([p.lat,p.lng]);
+    if(!p.circ) p.circ=L.circle([p.lat,p.lng],{radius:p.km*1000,color:COLORES[i],fillColor:COLORES[i],fillOpacity:.12,weight:2}).addTo(map);
+    else { p.circ.setLatLng([p.lat,p.lng]); p.circ.setRadius(p.km*1000); p.circ.setStyle({color:COLORES[i],fillColor:COLORES[i]}); }
+  }
+  function ajustar(){ if(!P.length) return; const g=L.featureGroup(P.map(p=>p.circ)); map.fitBounds(g.getBounds(),{padding:[20,20]}); }
+  async function colonias(silencioso){
+    const my=++seq; if(!P.length) return;
+    info.innerHTML='<span class="spin"></span> Buscando colonias dentro de '+(P.length>1?'los '+P.length+' puntos':P[0].km+' km')+'…';
     try{
       const sb=window.__nivaSb; let s=(await sb.auth.getSession()).data.session;
-      const r=await fetch(window.__nivaCfg.url+'/functions/v1/niva-buscador',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+window.__nivaCfg.anon,apikey:window.__nivaCfg.anon,'x-niva-jwt':s?s.access_token:''},body:JSON.stringify({accion:'colonias_radio',lat,lng,km})});
-      const j=await r.json(); if(my!==seq) return;
-      if(!r.ok||!j.ok) throw new Error(j.error||('error '+r.status));
-      const munis=[...new Set((j.municipios||[]).map(aOpcion).filter(Boolean))];
+      const outs=await Promise.all(P.map(p=>fetch(window.__nivaCfg.url+'/functions/v1/niva-buscador',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+window.__nivaCfg.anon,apikey:window.__nivaCfg.anon,'x-niva-jwt':s?s.access_token:''},body:JSON.stringify({accion:'colonias_radio',lat:+p.lat.toFixed(5),lng:+p.lng.toFixed(5),km:p.km})}).then(r=>r.json())));
+      if(my!==seq) return;
+      const cols=[], vistos=new Set(), mcount={};
+      outs.forEach(j=>{ (j.colonias||[]).forEach(c=>{const k=nrm(c.nombre); if(!vistos.has(k)){vistos.add(k); cols.push(c);} }); (j.municipios||[]).forEach((m,ix)=>{mcount[m]=(mcount[m]||0)+(10-ix);}); });
+      const munis=[...new Set(Object.entries(mcount).sort((a,b)=>b[1]-a[1]).map(([m])=>aOpcion(m)).filter(Boolean))].slice(0,3);
       window.__mapMunis=munis;
       if(!silencioso){
         if(munis[0]) document.getElementById('municipio').value=munis[0];
         document.getElementById('municipio2').value=munis[1]||'';
-        document.getElementById('zonas').value=(j.colonias||[]).slice(0,40).map(c=>c.nombre).join(', ');
+        document.getElementById('zonas').value=cols.slice(0,60).map(c=>c.nombre).join(', ');
       }
-      const n=(j.colonias||[]).length;
-      info.innerHTML=n?('<b>'+n+' colonias</b> dentro de '+j.km+' km'+(munis.length?' ('+esc(munis.join(', '))+')':'')+': '+esc((j.colonias||[]).slice(0,40).map(c=>c.nombre).join(', '))+(n>40?'…':'')+'<br>Solo se muestran propiedades dentro del círculo. Puedes borrar colonias del campo de arriba si alguna no le interesa.'):'No encontré colonias con nombre en ese radio; igual se buscará por distancia.';
-    }catch(e){ if(my===seq) info.textContent='No pude leer las colonias ('+e.message+'). Igual se buscará por distancia al punto.'; }
+      const n=cols.length;
+      info.innerHTML=n?('<b>'+n+' colonias</b> dentro de '+(P.length>1?'los '+P.length+' círculos':P[0].km+' km')+(munis.length?' ('+esc(munis.join(', '))+')':'')+': '+esc(cols.slice(0,60).map(c=>c.nombre).join(', '))+(n>60?'…':'')+'<br>Solo se muestran propiedades dentro de los círculos. Puedes borrar colonias del campo de arriba si alguna no le interesa.'):'No encontré colonias con nombre en esa zona; igual se buscará por distancia.';
+    }catch(e){ if(my===seq) info.textContent='No pude leer las colonias ('+e.message+'). Igual se buscará por distancia a los puntos.'; }
   }
-  window.ponerPunto=function(lat,lng,km,silencioso){
-    km=+km||+kmEl.value||3; kmEl.value=km; kmV.textContent=km+' km';
-    if(!mk){ mk=L.marker([lat,lng],{draggable:true}).addTo(map); mk.on('dragend',()=>{const p=mk.getLatLng(); ponerPunto(p.lat,p.lng,+kmEl.value);}); } else mk.setLatLng([lat,lng]);
-    if(!circ) circ=L.circle([lat,lng],{radius:km*1000,color:'#b8860b',fillColor:'#d4a017',fillOpacity:.12,weight:2}).addTo(map); else { circ.setLatLng([lat,lng]); circ.setRadius(km*1000); }
-    window.__centro={lat:+lat.toFixed(5),lng:+lng.toFixed(5),km};
-    document.getElementById('map-quitar').style.display='';
-    map.fitBounds(circ.getBounds(),{padding:[20,20]});
-    clearTimeout(tmr); tmr=setTimeout(()=>colonias(window.__centro.lat,window.__centro.lng,km,silencioso),silencioso?0:500);
-  };
+  function recalcular(silencioso){ clearTimeout(tmr); tmr=setTimeout(()=>colonias(silencioso),silencioso?0:500); }
+  function agregar(lat,lng,km,silencioso){ if(P.length>=4) return; P.push({lat,lng,km:+km||+kmEl.value||3}); act=P.length-1; nuevo=false; dibujar(act); kmEl.value=P[act].km; kmV.textContent=P[act].km+' km'; sync(); ajustar(); recalcular(silencioso); }
+  window.elegirPunto=function(i){ act=i; kmEl.value=P[i].km; kmV.textContent=P[i].km+' km'; nuevo=false; sync(); };
+  window.nuevoPunto=function(){ if(P.length>=4) return; nuevo=true; act=-1; sync(); };
+  window.borrarPunto=function(i){ const p=P[i]; if(p.mk) map.removeLayer(p.mk); if(p.circ) map.removeLayer(p.circ); P.splice(i,1); P.forEach((q,k)=>dibujar(k)); act=P.length?Math.min(i,P.length-1):-1; sync(); if(P.length){ ajustar(); recalcular(); } else quitarPunto(); };
+  window.cargarPuntos=function(arr){ quitarPunto(true); (arr||[]).filter(Boolean).slice(0,4).forEach(p=>agregar(+p.lat,+p.lng,+p.km,true)); };
+  window.ponerPunto=function(lat,lng,km,silencioso){ window.cargarPuntos([{lat,lng,km}]); };
   window.quitarPunto=function(silencioso){
-    if(mk){map.removeLayer(mk);mk=null;} if(circ){map.removeLayer(circ);circ=null;}
-    window.__centro=null; window.__mapMunis=null; seq++;
-    document.getElementById('map-quitar').style.display='none';
+    P.forEach(p=>{ if(p.mk) map.removeLayer(p.mk); if(p.circ) map.removeLayer(p.circ); }); P=[]; act=-1; nuevo=false; seq++;
+    window.__mapMunis=null; sync();
     if(!silencioso){ document.getElementById('zonas').value=''; document.getElementById('municipio2').value=''; }
     info.textContent='Toca el mapa donde quiere vivir tu cliente. Se llenan solas las colonias y municipios dentro del círculo.';
   };
-  map.on('click',e=>ponerPunto(e.latlng.lat,e.latlng.lng,+kmEl.value));
-  kmEl.addEventListener('input',()=>{ kmV.textContent=kmEl.value+' km'; if(circ) circ.setRadius(+kmEl.value*1000); });
-  kmEl.addEventListener('change',()=>{ if(window.__centro){ const c=window.__centro; ponerPunto(c.lat,c.lng,+kmEl.value); } });
-  setTimeout(()=>map.invalidateSize(),400);
+  map.on('click',e=>{
+    if(!P.length||nuevo){ agregar(e.latlng.lat,e.latlng.lng,+kmEl.value); return; }
+    const p=P[act>=0?act:0]; p.lat=e.latlng.lat; p.lng=e.latlng.lng; dibujar(P.indexOf(p)); sync(); recalcular();
+  });
+  kmEl.addEventListener('input',()=>{ kmV.textContent=kmEl.value+' km'; if(act>=0&&P[act]){ P[act].km=+kmEl.value; P[act].circ.setRadius(P[act].km*1000); sync(); } });
+  kmEl.addEventListener('change',()=>{ if(act>=0&&P[act]){ ajustar(); recalcular(); } });
+  sync(); setTimeout(()=>map.invalidateSize(),400);
 })();
 </script>
 </body>
