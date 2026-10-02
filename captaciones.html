@@ -341,7 +341,7 @@ img,video,canvas{max-width:100%}
       <div class="form-group"><label>M² construcción</label><input id="pe-m2c" inputmode="numeric"></div>
       <div class="form-group"><label>M² terreno</label><input id="pe-m2t" inputmode="numeric"></div>
     </div>
-    <div class="form-group full"><label>Fotos (la primera es la portada)</label><div class="pe-fotos" id="pe-fotos"></div><label class="pe-add">➕ Agregar fotos<input type="file" id="pe-file" accept="image/*" multiple hidden></label> <span id="pe-fmsg" style="font-size:12px;color:var(--muted,#94a3b8)"></span></div>
+    <div class="form-group full"><label>Fotos (la primera es la portada)</label><div class="pe-fotos" id="pe-fotos"></div><label class="pe-add">➕ Agregar fotos<input type="file" id="pe-file" accept="image/*" multiple hidden></label> <button type="button" class="pe-add" id="pe-clear" style="background:none;border-color:#ef4444;color:#ef4444">🗑️ Quitar todas</button> <span id="pe-fmsg" style="font-size:12px;color:var(--muted,#94a3b8)"></span></div>
     <div class="merr" id="pe-err"></div>
     <div class="pedit-actions">
       <button type="button" class="pedit-cancel" id="pe-cancel">Cancelar</button>
@@ -440,6 +440,7 @@ $('#pe-fotos').onclick=(e)=>{
   else if(a==='der'&&i<PE_FOTOS.length-1){ [PE_FOTOS[i+1],PE_FOTOS[i]]=[PE_FOTOS[i],PE_FOTOS[i+1]]; }
   pintarFotosEdicion();
 };
+$('#pe-clear').onclick=()=>{ if(!PE_FOTOS.length) return; if(!confirm('¿Quitar las '+PE_FOTOS.length+' fotos? Luego agrega las nuevas. No se cambia nada en EasyBroker hasta que des "Guardar cambios".')) return; PE_FOTOS=[]; pintarFotosEdicion(); $('#pe-fmsg').textContent='Se quitaron todas. Agrega las fotos nuevas y da "Guardar cambios".'; };
 $('#pe-file').onchange=async(e)=>{
   const files=[...e.target.files]; e.target.value=''; if(!files.length) return;
   const msg=$('#pe-fmsg'); let n=0;
