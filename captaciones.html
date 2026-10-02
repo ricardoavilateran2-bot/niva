@@ -414,14 +414,14 @@ function abrirEdicion(p){
   cargarFotosEdicion(p);
 }
 // ── Fotos en edición (2026-10-02): agregar, quitar, ordenar y elegir portada → EasyBroker ──
-let PE_FOTOS=[], PE_FOTOS_ORIG='[]', PE_FOTOS_OK=false;
+let PE_FOTOS=[], PE_FOTOS_ORIG='[]', PE_FOTOS_OK=false, PE_GUARDANDO=false;
 function pintarFotosEdicion(){
   const box=$('#pe-fotos');
   if(!PE_FOTOS.length){ box.innerHTML='<div style="grid-column:1/-1;font-size:12.5px;color:#94a3b8">Sin fotos. Agrega al menos una.</div>'; return; }
   box.innerHTML=PE_FOTOS.map((u,i)=>'<div class="pe-f'+(i===0?' portada':'')+'" style="background-image:url(\''+esc(u)+'\')">'+(i===0?'<span class="pe-tag">PORTADA</span>':'')+'<div class="pe-bt">'+(i>0?'<button type="button" data-a="port" data-i="'+i+'" title="Hacer portada">⭐</button><button type="button" data-a="izq" data-i="'+i+'" title="Mover antes">◀</button>':'')+(i<PE_FOTOS.length-1?'<button type="button" data-a="der" data-i="'+i+'" title="Mover después">▶</button>':'')+'<button type="button" data-a="del" data-i="'+i+'" title="Quitar">✕</button></div></div>').join('');
 }
 async function cargarFotosEdicion(p){
-  PE_FOTOS=[]; PE_FOTOS_OK=false; $('#pe-fmsg').textContent='';
+  PE_FOTOS=[]; PE_FOTOS_OK=false; $('#pe-fmsg').textContent=''; $('#pe-file').disabled=true;
   $('#pe-fotos').innerHTML='<div style="grid-column:1/-1;font-size:12.5px;color:#94a3b8">Cargando fotos de EasyBroker…</div>';
   const r=await ebUpdateProperty(p.id,{action:'get_images'});
   if(PEDIT_ACTUAL!==p) return;
@@ -429,6 +429,7 @@ async function cargarFotosEdicion(p){
   if(!imgs){ try{ imgs=Array.isArray(p.images)?p.images:JSON.parse(p.images||'[]'); }catch(_e){ imgs=[]; } }
   PE_FOTOS=(imgs||[]).filter(u=>typeof u==='string'&&u); PE_FOTOS_ORIG=JSON.stringify(PE_FOTOS); PE_FOTOS_OK=!r.error;
   if(r.error) $('#pe-fmsg').textContent='No pude leer las fotos actuales de EasyBroker; si las cambias se reemplazan por estas.';
+  $('#pe-file').disabled=false;
   pintarFotosEdicion();
 }
 $('#pe-fotos').onclick=(e)=>{
@@ -443,8 +444,9 @@ $('#pe-fotos').onclick=(e)=>{
 $('#pe-clear').onclick=()=>{ if(!PE_FOTOS.length) return; if(!confirm('¿Quitar las '+PE_FOTOS.length+' fotos? Luego agrega las nuevas. No se cambia nada en EasyBroker hasta que des "Guardar cambios".')) return; PE_FOTOS=[]; pintarFotosEdicion(); $('#pe-fmsg').textContent='Se quitaron todas. Agrega las fotos nuevas y da "Guardar cambios".'; };
 $('#pe-file').onchange=async(e)=>{
   const files=[...e.target.files]; e.target.value=''; if(!files.length) return;
-  const msg=$('#pe-fmsg'); let n=0;
+  const msg=$('#pe-fmsg'); let n=0; const duenoFotos=PEDIT_ACTUAL;
   for(const f of files){
+    if(PEDIT_ACTUAL!==duenoFotos) return;
     if(PE_FOTOS.length>=50){ msg.textContent='Máximo 50 fotos.'; break; }
     msg.textContent='Subiendo foto '+(++n)+' de '+files.length+'…';
     try{
@@ -452,6 +454,8 @@ $('#pe-file').onchange=async(e)=>{
       const path='edit_'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.jpg';
       const up=await sb.storage.from('captaciones').upload(path,c,{contentType:'image/jpeg'});
       if(up.error) throw up.error;
+      if(PEDIT_ACTUAL!==duenoFotos) return;
+      if(c===f && !/jpe?g|png|webp/i.test(f.type||'')) throw new Error('formato no compatible (¿HEIC?). Conviértela a JPG');
       PE_FOTOS.push(sb.storage.from('captaciones').getPublicUrl(path).data.publicUrl);
       pintarFotosEdicion();
     }catch(err){ msg.textContent='No se pudo subir '+f.name+': '+(err.message||err); return; }
@@ -459,6 +463,7 @@ $('#pe-file').onchange=async(e)=>{
   msg.textContent='Listo. Ordena las fotos y da "Guardar cambios".';
 };
 function cerrarEdicion(){
+  if(PE_GUARDANDO){ toast('Espera a que termine de guardar…'); return; }
   $('#pedit-overlay').classList.add('hidden');
   PEDIT_ACTUAL=null;
 }
@@ -475,18 +480,21 @@ async function guardarEdicion(){
   if(titulo && titulo!==(PEDIT_ACTUAL.title||''))fields.title=titulo;
   if(desc && desc!==(PEDIT_ACTUAL.description||''))fields.description=desc;
   if(precio!=null && precio!==PEDIT_ACTUAL.price_amount)fields.price_amount=precio;
-  const rec=num($('#pe-rec').value); if(rec!=null)fields.bedrooms=rec;
-  const bano=num($('#pe-bano').value); if(bano!=null)fields.bathrooms=bano;
-  const mbano=num($('#pe-mbano').value); if(mbano!=null)fields.half_bathrooms=mbano;
-  const est=num($('#pe-est').value); if(est!=null)fields.parking_spaces=est;
-  const m2c=num($('#pe-m2c').value); if(m2c!=null)fields.construction_size=m2c;
-  const m2t=num($('#pe-m2t').value); if(m2t!=null)fields.lot_size=m2t;
+  // (2026-10-02) Solo se mandan los números que de verdad cambiaron, y se rechaza texto no numérico.
+  for(const [id,k,lbl] of [['#pe-rec','bedrooms','Recámaras'],['#pe-bano','bathrooms','Baños'],['#pe-mbano','half_bathrooms','Medios baños'],['#pe-est','parking_spaces','Estacionamientos'],['#pe-m2c','construction_size','M² construcción'],['#pe-m2t','lot_size','M² terreno']]){
+    const raw=String($(id).value||'').trim().replace(/,/g,'');
+    if(raw==='') continue;
+    const v=Number(raw);
+    if(!Number.isFinite(v)||v<0){err.textContent=lbl+': escribe solo el número (ej. 3 o 120).';return}
+    if(PEDIT_ACTUAL[k]==null || v!==Number(PEDIT_ACTUAL[k])) fields[k]=v;
+  }
   const fotosCambiaron=JSON.stringify(PE_FOTOS)!==PE_FOTOS_ORIG;
   if(fotosCambiaron){ if(!PE_FOTOS.length){err.textContent='La propiedad debe tener al menos 1 foto.';return} fields.photos=PE_FOTOS.slice(); }
   if(!Object.keys(fields).length){err.textContent='No cambiaste nada.';return}
   err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
-  const r=await ebUpdateProperty(PEDIT_ACTUAL.id,fields);
-  btn.disabled=false;btn.textContent='Guardar cambios';
+  const prop=PEDIT_ACTUAL; PE_GUARDANDO=true;
+  try{
+  const r=await ebUpdateProperty(prop.id,fields);
   if(r.error){err.textContent=errMsg(r.error);return}
   if(fotosCambiaron){
     // Verificación: EasyBroker debe quedar con exactamente las fotos enviadas
@@ -494,16 +502,16 @@ async function guardarEdicion(){
     let n=null;
     for(let t=0;t<5;t++){
       if(t) { btn.textContent='Verificando fotos…'; await new Promise(r=>setTimeout(r,4000)); }
-      const chk=await ebUpdateProperty(PEDIT_ACTUAL.id,{action:'get_images'});
+      const chk=await ebUpdateProperty(prop.id,{action:'get_images'});
       n=chk.data&&chk.data.data&&chk.data.data.images?chk.data.data.images.length:null;
       if(n==null||n===fields.photos.length) break;
     }
-    btn.textContent='Guardar cambios';
     if(n!=null && n!==fields.photos.length){ err.textContent='Ojo: EasyBroker quedó con '+n+' fotos y se mandaron '+fields.photos.length+'. Revisa la propiedad en EasyBroker.'; await cargar(); return; }
   }
   toast(fotosCambiaron?'Fotos y datos actualizados en EasyBroker':'Propiedad actualizada en NIVA OS y EasyBroker');
-  cerrarEdicion();
+  PE_GUARDANDO=false; cerrarEdicion();
   await cargar();
+  } finally { PE_GUARDANDO=false; btn.disabled=false; btn.textContent='Guardar cambios'; }
 }
 
 let PROPS=[], PROPSC=[], ESADMIN=false, CAP_FOTOS=[], MI_ADVISOR_ID=null;
@@ -594,7 +602,7 @@ function renderProps(){
           if(!confirm('¿Reactivar "'+(p.title||p.eb_public_id)+'"?\n\nVuelve a la lista de propiedades activas y se vuelve a publicar en EasyBroker.'))return;
           bc.disabled=true;bc.textContent='...';
           const r=await ebToggle(p.id,'publish');
-          if(r.error){bc.disabled=false;bc.textContent='↩️';toast(errMsg(r.error)||'No se pudo');return}
+          if(r.error){toast(errMsg(r.error)||'No se pudo');await cargar();return}
           toast('Propiedad reactivada y publicada en EasyBroker');
         } else {
           if(!confirm('¿Archivar "'+(p.title||p.eb_public_id)+'"?\n\nSale de la lista de propiedades activas y de los reportes, y se despublica automáticamente en EasyBroker.\nSus leads se conservan. Puedes reactivarla cuando quieras.'))return;
@@ -602,7 +610,7 @@ function renderProps(){
           if(mot===null)return;
           bc.disabled=true;bc.textContent='...';
           const r=await ebToggle(p.id,'archive',mot);
-          if(r.error){bc.disabled=false;bc.textContent='🗑️';toast(errMsg(r.error)||'No se pudo');return}
+          if(r.error){toast(errMsg(r.error)||'No se pudo');await cargar();return}
           toast('Propiedad archivada y despublicada en EasyBroker');
         }
         await cargar();
@@ -754,6 +762,16 @@ async function guardarCaptacion(){
   }
   const zona=colonia;
   if(desc.length<10){err.textContent='Escribe una descripción (mínimo 10 caracteres).';return}
+  if(!CAP_FOTOS.length){err.textContent='Agrega al menos una foto.';return}
+  // (2026-10-02) Números: solo cifras (antes "120 m2" creaba la propiedad en EasyBroker y fallaba al guardarla en NIVA)
+  const NUM={};
+  for(const [id,k,lbl] of [['#cap-rec','bedrooms','Recámaras'],['#cap-bano','bathrooms','Baños'],['#cap-mbano','half_bathrooms','Medios baños'],['#cap-est','parking_spaces','Estacionamientos'],['#cap-m2c','construction_size','M² construcción'],['#cap-m2t','lot_size','M² terreno']]){
+    const raw=String($(id).value||'').trim().replace(/,/g,'');
+    if(raw==='') continue;
+    const v=Number(raw);
+    if(!Number.isFinite(v)||v<0){err.textContent=lbl+': escribe solo el número (ej. 3 o 120).';return}
+    NUM[k]=v;
+  }
   err.textContent='';btn.disabled=true;btn.textContent='Subiendo fotos...';
   try{
     const photoUrls=new Array(CAP_FOTOS.length);
@@ -762,6 +780,7 @@ async function guardarCaptacion(){
     async function subirFoto(i){
       const f=CAP_FOTOS[i];
       const comprimida=await comprimirFoto(f.file,1920,0.9);
+      if(comprimida===f.file && !/jpe?g|png|webp/i.test(f.file.type||'')) throw new Error('La foto '+(i+1)+' ('+f.file.name+') está en formato HEIC y este navegador no la puede convertir. Súbela desde el iPhone (Safari) o conviértela a JPG.');
       const path=Date.now()+'_'+Math.random().toString(36).slice(2)+'_'+f.file.name.replace(/[^a-zA-Z0-9.]/g,'_');
       let up=await sb.storage.from('captaciones').upload(path,comprimida,{contentType:'image/jpeg'});
       if(up.error){
@@ -787,15 +806,15 @@ async function guardarCaptacion(){
     btn.textContent='Publicando en EasyBroker...';
     // request_id estable por intento de formulario: si se corta la red y el asesor vuelve a dar
     // "Publicar", la Edge Function reconoce el mismo id y no crea la propiedad dos veces.
-    let reqId=null; try{ reqId=sessionStorage.getItem('niva_cap_req'); }catch(_e){}
-    if(!reqId){ reqId=Math.random().toString(36).slice(2,12); try{ sessionStorage.setItem('niva_cap_req',reqId); }catch(_e){} }
+    // El id se liga al CONTENIDO del formulario: si se captura otra propiedad distinta, se genera otro id.
+    const firma=JSON.stringify([tipo,op,precio,mpio,colonia,desc.slice(0,200),CAP_FOTOS.map(f=>f.file.name+'|'+f.file.size)]);
+    let reqId=null; try{ const st=JSON.parse(sessionStorage.getItem('niva_cap_req2')||'null'); if(st&&st.firma===firma) reqId=st.id; }catch(_e){}
+    if(!reqId){ reqId=Math.random().toString(36).slice(2,12); try{ sessionStorage.setItem('niva_cap_req2',JSON.stringify({id:reqId,firma})); }catch(_e){} }
     const body={ request_id:reqId,
       property_type:tipo,operation_type:op,price_amount:precio,description:desc,location_name:zona,municipio:mpio,
       street:($('#cap-calle')&&$('#cap-calle').value.trim())||undefined,
       title:$('#cap-titulo').value.trim()||undefined,
-      bedrooms:$('#cap-rec').value||undefined,bathrooms:$('#cap-bano').value||undefined,
-      half_bathrooms:$('#cap-mbano').value||undefined,parking_spaces:$('#cap-est').value||undefined,
-      construction_size:$('#cap-m2c').value||undefined,lot_size:$('#cap-m2t').value||undefined,
+      ...NUM,
       photos:photoUrls
     };
     // (2026-10-02) La sesión vence si el formulario estuvo abierto mucho tiempo (fotos, llenado largo):
@@ -849,13 +868,13 @@ async function guardarCaptacion(){
         console.log('[NIVA] Rotación: '+podar.length+' fotos antiguas liberadas');
       }
     }catch(_eCS){ console.warn('[NIVA] captacion_fotos (no crítico):',_eCS); }
-    try{ sessionStorage.removeItem('niva_cap_req'); }catch(_e){}
+    try{ sessionStorage.removeItem('niva_cap_req'); sessionStorage.removeItem('niva_cap_req2'); }catch(_e){}
     toast(out.duplicate?'Esta captación ya se había publicado ✅':'Captación publicada ✅');
     $('#cap-tipo').value='Casa';$('#cap-op').value='rental';$('#cap-precio').value='';
     $('#cap-titulo').value='';$('#cap-desc').value='';
     $('#cap-rec').value='';$('#cap-bano').value='';$('#cap-mbano').value='';$('#cap-est').value='';$('#cap-m2c').value='';$('#cap-m2t').value='';
     $('#cap-fotos').value='';CAP_FOTOS=[];pintarFotosCap();
-    $('#cap-zona').value='';$('#cap-zona-libre').value='';$('#cap-mpio-otro').style.display='none';$('#cap-mpio-otro').value='';
+    $('#cap-zona').value='';$('#cap-zona-libre').value='';if($('#cap-calle'))$('#cap-calle').value='';$('#cap-mpio-otro').style.display='none';$('#cap-mpio-otro').value='';
     btn.disabled=false;btn.textContent='Publicar captación';
     await cargar();
   }catch(e){
@@ -895,7 +914,9 @@ $('#cap-fotos').onchange=(e)=>{
   // Se AGREGAN a las ya elegidas (antes cada selección borraba las anteriores y en celular,
   // donde solo se pueden elegir de una carpeta a la vez, era imposible juntar fotos).
   const MAX=30;
-  const nuevas=Array.from(e.target.files||[]).filter(f=>f.type.startsWith('image/'));
+  const todas=Array.from(e.target.files||[]);
+  const nuevas=todas.filter(f=>(f.type||'').startsWith('image/')||/\.(heic|heif|jpe?g|png|webp)$/i.test(f.name));
+  if(nuevas.length<todas.length) toast((todas.length-nuevas.length)+' archivo(s) no son fotos y se omitieron');
   const yaHay=new Set(CAP_FOTOS.map(x=>x.file.name+'|'+x.file.size));
   for(const file of nuevas){
     const k=file.name+'|'+file.size;
