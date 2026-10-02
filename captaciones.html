@@ -361,13 +361,18 @@ const esc=(v)=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 function vacioHTML(txt,icon){return '<div class="vacio"><span class="vi">'+(icon||'📭')+'</span>'+txt+'</div>'}
+// (2026-10-02) Llamada a funciones con sesión siempre vigente: si el token venció (página abierta
+// mucho rato) se renueva y se reintenta una vez — antes salía "invalid_auth".
+async function llamarFuncion(nombre, payload){
+  const pedir=async(tk)=>fetch(cfg.url+'/functions/v1/'+nombre,{method:'POST',headers:{'Authorization':'Bearer '+cfg.anon,'apikey':cfg.anon,'x-niva-jwt':tk||'','Content-Type':'application/json'},body:JSON.stringify(payload)});
+  let { data:{ session } } = await sb.auth.getSession();
+  if(session && session.expires_at && session.expires_at*1000 < Date.now()+60000){ try{ const rr=await sb.auth.refreshSession(); if(rr.data&&rr.data.session) session=rr.data.session; }catch(_e){} }
+  let r=await pedir(session?.access_token);
+  if(r.status===401){ try{ const rr=await sb.auth.refreshSession(); if(rr.data&&rr.data.session){ r=await pedir(rr.data.session.access_token); } }catch(_e){} }
+  return r;
+}
 async function ebToggle(propertyId, action, motivo){
-  const { data:{ session } } = await sb.auth.getSession();
-  const r = await fetch(cfg.url+'/functions/v1/eb-toggle-publish', {
-    method:'POST',
-    headers:{ 'Authorization':'Bearer '+cfg.anon, 'apikey':cfg.anon, 'x-niva-jwt':(session?.access_token||''), 'Content-Type':'application/json' },
-    body: JSON.stringify({ property_id: propertyId, action, motivo: motivo||null })
-  });
+  const r = await llamarFuncion('eb-toggle-publish', { property_id: propertyId, action, motivo: motivo||null });
   let j={}; try{ j=await r.json(); }catch(_e){}
   if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
   return { data: j };
@@ -386,12 +391,7 @@ function errMsg(e){
   return String(e);
 }
 async function ebUpdateProperty(propertyId, fields){
-  const { data:{ session } } = await sb.auth.getSession();
-  const r = await fetch(cfg.url+'/functions/v1/eb-update-property', {
-    method:'POST',
-    headers:{ 'Authorization':'Bearer '+cfg.anon, 'apikey':cfg.anon, 'x-niva-jwt':(session?.access_token||''), 'Content-Type':'application/json' },
-    body: JSON.stringify({ property_id: propertyId, ...fields })
-  });
+  const r = await llamarFuncion('eb-update-property', { property_id: propertyId, ...fields });
   let j={}; try{ j=await r.json(); }catch(_e){}
   if(!r.ok || j.error) return { error: j.detail || j.error || ('HTTP '+r.status) };
   return { data: j };
