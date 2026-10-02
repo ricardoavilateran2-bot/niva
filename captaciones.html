@@ -369,6 +369,7 @@ async function llamarFuncion(nombre, payload){
   if(session && session.expires_at && session.expires_at*1000 < Date.now()+60000){ try{ const rr=await sb.auth.refreshSession(); if(rr.data&&rr.data.session) session=rr.data.session; }catch(_e){} }
   let r=await pedir(session?.access_token);
   if(r.status===401){ try{ const rr=await sb.auth.refreshSession(); if(rr.data&&rr.data.session){ r=await pedir(rr.data.session.access_token); } }catch(_e){} }
+  if(r.status===401){ toast('Tu sesión se cerró (entraste desde otro lado o expiró). Vuelve a iniciar sesión.'); setTimeout(()=>location.replace('./index.html'),3000); }
   return r;
 }
 async function ebToggle(propertyId, action, motivo){
