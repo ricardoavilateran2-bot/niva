@@ -490,8 +490,15 @@ async function guardarEdicion(){
   if(r.error){err.textContent=errMsg(r.error);return}
   if(fotosCambiaron){
     // Verificación: EasyBroker debe quedar con exactamente las fotos enviadas
-    const chk=await ebUpdateProperty(PEDIT_ACTUAL.id,{action:'get_images'});
-    const n=chk.data&&chk.data.data&&chk.data.data.images?chk.data.data.images.length:null;
+    // EasyBroker procesa las fotos unos segundos después: se reintenta antes de avisar.
+    let n=null;
+    for(let t=0;t<5;t++){
+      if(t) { btn.textContent='Verificando fotos…'; await new Promise(r=>setTimeout(r,4000)); }
+      const chk=await ebUpdateProperty(PEDIT_ACTUAL.id,{action:'get_images'});
+      n=chk.data&&chk.data.data&&chk.data.data.images?chk.data.data.images.length:null;
+      if(n==null||n===fields.photos.length) break;
+    }
+    btn.textContent='Guardar cambios';
     if(n!=null && n!==fields.photos.length){ err.textContent='Ojo: EasyBroker quedó con '+n+' fotos y se mandaron '+fields.photos.length+'. Revisa la propiedad en EasyBroker.'; await cargar(); return; }
   }
   toast(fotosCambiaron?'Fotos y datos actualizados en EasyBroker':'Propiedad actualizada en NIVA OS y EasyBroker');
