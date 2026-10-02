@@ -156,6 +156,13 @@ textarea { resize: vertical; min-height: 90px; }
 .pedit-h{font-size:16px;font-weight:800;color:var(--gold);margin-bottom:4px}
 .pedit-sub{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:18px}
 .pedit-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.pe-fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.pe-f{position:relative;aspect-ratio:4/3;background:#0b1424 center/cover no-repeat;border-radius:7px;border:2px solid transparent;overflow:hidden}
+.pe-f.portada{border-color:var(--gold)}
+.pe-f .pe-tag{position:absolute;top:3px;left:3px;background:var(--gold);color:#0b1424;font-size:10px;font-weight:800;padding:1px 6px;border-radius:5px}
+.pe-f .pe-bt{position:absolute;bottom:3px;left:3px;right:3px;display:flex;gap:3px;justify-content:space-between}
+.pe-f .pe-bt button{flex:1;border:0;border-radius:5px;background:rgba(11,20,36,.82);color:#fff;font-size:12px;padding:3px 0;cursor:pointer}
+.pe-add{display:inline-block;padding:8px 12px;border:1px dashed var(--gold);border-radius:8px;color:var(--gold);font-size:13px;font-weight:700;cursor:pointer}
 .pedit-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
 .pedit-actions button{padding:11px 20px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;border:0}
 .pedit-cancel{background:rgba(255,255,255,.07);color:#fff}
@@ -334,6 +341,7 @@ img,video,canvas{max-width:100%}
       <div class="form-group"><label>M² construcción</label><input id="pe-m2c" inputmode="numeric"></div>
       <div class="form-group"><label>M² terreno</label><input id="pe-m2t" inputmode="numeric"></div>
     </div>
+    <div class="form-group full"><label>Fotos (la primera es la portada)</label><div class="pe-fotos" id="pe-fotos"></div><label class="pe-add">➕ Agregar fotos<input type="file" id="pe-file" accept="image/*" multiple hidden></label> <span id="pe-fmsg" style="font-size:12px;color:var(--muted,#94a3b8)"></span></div>
     <div class="merr" id="pe-err"></div>
     <div class="pedit-actions">
       <button type="button" class="pedit-cancel" id="pe-cancel">Cancelar</button>
@@ -403,7 +411,52 @@ function abrirEdicion(p){
   $('#pe-m2t').value=p.lot_size!=null?p.lot_size:'';
   $('#pe-err').textContent='';
   $('#pedit-overlay').classList.remove('hidden');
+  cargarFotosEdicion(p);
 }
+// ── Fotos en edición (2026-10-02): agregar, quitar, ordenar y elegir portada → EasyBroker ──
+let PE_FOTOS=[], PE_FOTOS_ORIG='[]', PE_FOTOS_OK=false;
+function pintarFotosEdicion(){
+  const box=$('#pe-fotos');
+  if(!PE_FOTOS.length){ box.innerHTML='<div style="grid-column:1/-1;font-size:12.5px;color:#94a3b8">Sin fotos. Agrega al menos una.</div>'; return; }
+  box.innerHTML=PE_FOTOS.map((u,i)=>'<div class="pe-f'+(i===0?' portada':'')+'" style="background-image:url(\''+esc(u)+'\')">'+(i===0?'<span class="pe-tag">PORTADA</span>':'')+'<div class="pe-bt">'+(i>0?'<button type="button" data-a="port" data-i="'+i+'" title="Hacer portada">⭐</button><button type="button" data-a="izq" data-i="'+i+'" title="Mover antes">◀</button>':'')+(i<PE_FOTOS.length-1?'<button type="button" data-a="der" data-i="'+i+'" title="Mover después">▶</button>':'')+'<button type="button" data-a="del" data-i="'+i+'" title="Quitar">✕</button></div></div>').join('');
+}
+async function cargarFotosEdicion(p){
+  PE_FOTOS=[]; PE_FOTOS_OK=false; $('#pe-fmsg').textContent='';
+  $('#pe-fotos').innerHTML='<div style="grid-column:1/-1;font-size:12.5px;color:#94a3b8">Cargando fotos de EasyBroker…</div>';
+  const r=await ebUpdateProperty(p.id,{action:'get_images'});
+  if(PEDIT_ACTUAL!==p) return;
+  let imgs=(r.data&&r.data.data&&r.data.data.images)||null;
+  if(!imgs){ try{ imgs=Array.isArray(p.images)?p.images:JSON.parse(p.images||'[]'); }catch(_e){ imgs=[]; } }
+  PE_FOTOS=(imgs||[]).filter(u=>typeof u==='string'&&u); PE_FOTOS_ORIG=JSON.stringify(PE_FOTOS); PE_FOTOS_OK=!r.error;
+  if(r.error) $('#pe-fmsg').textContent='No pude leer las fotos actuales de EasyBroker; si las cambias se reemplazan por estas.';
+  pintarFotosEdicion();
+}
+$('#pe-fotos').onclick=(e)=>{
+  const b=e.target.closest('button[data-a]'); if(!b) return;
+  const i=+b.dataset.i, a=b.dataset.a;
+  if(a==='del'){ PE_FOTOS.splice(i,1); }
+  else if(a==='port'){ const [f]=PE_FOTOS.splice(i,1); PE_FOTOS.unshift(f); }
+  else if(a==='izq'&&i>0){ [PE_FOTOS[i-1],PE_FOTOS[i]]=[PE_FOTOS[i],PE_FOTOS[i-1]]; }
+  else if(a==='der'&&i<PE_FOTOS.length-1){ [PE_FOTOS[i+1],PE_FOTOS[i]]=[PE_FOTOS[i],PE_FOTOS[i+1]]; }
+  pintarFotosEdicion();
+};
+$('#pe-file').onchange=async(e)=>{
+  const files=[...e.target.files]; e.target.value=''; if(!files.length) return;
+  const msg=$('#pe-fmsg'); let n=0;
+  for(const f of files){
+    if(PE_FOTOS.length>=50){ msg.textContent='Máximo 50 fotos.'; break; }
+    msg.textContent='Subiendo foto '+(++n)+' de '+files.length+'…';
+    try{
+      const c=await comprimirFoto(f,1920,0.9);
+      const path='edit_'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.jpg';
+      const up=await sb.storage.from('captaciones').upload(path,c,{contentType:'image/jpeg'});
+      if(up.error) throw up.error;
+      PE_FOTOS.push(sb.storage.from('captaciones').getPublicUrl(path).data.publicUrl);
+      pintarFotosEdicion();
+    }catch(err){ msg.textContent='No se pudo subir '+f.name+': '+(err.message||err); return; }
+  }
+  msg.textContent='Listo. Ordena las fotos y da "Guardar cambios".';
+};
 function cerrarEdicion(){
   $('#pedit-overlay').classList.add('hidden');
   PEDIT_ACTUAL=null;
@@ -427,12 +480,20 @@ async function guardarEdicion(){
   const est=num($('#pe-est').value); if(est!=null)fields.parking_spaces=est;
   const m2c=num($('#pe-m2c').value); if(m2c!=null)fields.construction_size=m2c;
   const m2t=num($('#pe-m2t').value); if(m2t!=null)fields.lot_size=m2t;
+  const fotosCambiaron=JSON.stringify(PE_FOTOS)!==PE_FOTOS_ORIG;
+  if(fotosCambiaron){ if(!PE_FOTOS.length){err.textContent='La propiedad debe tener al menos 1 foto.';return} fields.photos=PE_FOTOS.slice(); }
   if(!Object.keys(fields).length){err.textContent='No cambiaste nada.';return}
   err.textContent='';btn.disabled=true;btn.textContent='Guardando...';
   const r=await ebUpdateProperty(PEDIT_ACTUAL.id,fields);
   btn.disabled=false;btn.textContent='Guardar cambios';
   if(r.error){err.textContent=errMsg(r.error);return}
-  toast('Propiedad actualizada en NIVA OS y EasyBroker');
+  if(fotosCambiaron){
+    // Verificación: EasyBroker debe quedar con exactamente las fotos enviadas
+    const chk=await ebUpdateProperty(PEDIT_ACTUAL.id,{action:'get_images'});
+    const n=chk.data&&chk.data.data&&chk.data.data.images?chk.data.data.images.length:null;
+    if(n!=null && n!==fields.photos.length){ err.textContent='Ojo: EasyBroker quedó con '+n+' fotos y se mandaron '+fields.photos.length+'. Revisa la propiedad en EasyBroker.'; await cargar(); return; }
+  }
+  toast(fotosCambiaron?'Fotos y datos actualizados en EasyBroker':'Propiedad actualizada en NIVA OS y EasyBroker');
   cerrarEdicion();
   await cargar();
 }
