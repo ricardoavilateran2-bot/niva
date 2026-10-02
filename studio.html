@@ -6444,6 +6444,39 @@ async function _nivaMuxIOSPorBytes(videoBlob, audioBlob) {
   return { blob: new Blob([out], { type: 'video/mp4' }), hasAudio, audioDecodeErrorMsg: hasAudio ? null : 'el audio grabado no trae muestras AAC' };
 }
 
+// ── Respaldo iOS (2026-10-02): reconstruye la pista de audio (voz por escenas + música) sin grabar ──
+async function _nivaAudioOffline(dur) {
+  const sr = 48000, d = Math.max(1, dur || 30), len = Math.ceil(sr * d);
+  const OC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OC) throw new Error('OfflineAudioContext no disponible');
+  const ctx = new OC(2, len, sr);
+  const master = ctx.createGain(); master.connect(ctx.destination);
+  let any = false;
+  const vb = window.__nivaOffVoice;
+  if (vb && _nivaMasterTimeline) {
+    const saved = _nivaVoiceSources; _nivaVoiceSources = [];
+    try { any = _nivaScheduleVoice(ctx, vb, master, _nivaMasterTimeline, 0) > 0; } finally { _nivaVoiceSources = saved; }
+  }
+  const m = window.__nivaOffMusic;
+  if (m && m.buf) {
+    const g = ctx.createGain(); const fs = Math.max(0, d - 1.5);
+    g.gain.setValueAtTime(m.vol, 0); g.gain.setValueAtTime(m.vol, fs); g.gain.linearRampToValueAtTime(0, d);
+    g.connect(master);
+    const s = ctx.createBufferSource(); s.buffer = m.buf; s.loop = true; s.connect(g); s.start(0);
+    any = true;
+  }
+  if (!any) throw new Error('no hay voz ni música para reconstruir');
+  const buf = await new Promise((res, rej) => { ctx.oncomplete = (e) => res(e.renderedBuffer); const p = ctx.startRendering(); if (p && p.then) p.then(res, rej); });
+  const ch = buf.numberOfChannels, n = buf.length, out = new DataView(new ArrayBuffer(44 + n * ch * 2));
+  const w = (o, t) => { for (let i = 0; i < t.length; i++) out.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, 'RIFF'); out.setUint32(4, 36 + n * ch * 2, true); w(8, 'WAVE'); w(12, 'fmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true);
+  out.setUint16(22, ch, true); out.setUint32(24, sr, true); out.setUint32(28, sr * ch * 2, true); out.setUint16(32, ch * 2, true); out.setUint16(34, 16, true);
+  w(36, 'data'); out.setUint32(40, n * ch * 2, true);
+  const data = []; for (let c = 0; c < ch; c++) data.push(buf.getChannelData(c));
+  let o = 44; for (let i = 0; i < n; i++) for (let c = 0; c < ch; c++) { const v = Math.max(-1, Math.min(1, data[c][i])); out.setInt16(o, v < 0 ? v * 0x8000 : v * 0x7FFF, true); o += 2; }
+  console.log('[NIVA][IOS-DUAL][OFFLINE] audio reconstruido: ' + d.toFixed(1) + 's');
+  return new Blob([out], { type: 'audio/wav' });
+}
 async function combineIOSVideoAudio(videoBlob, audioBlob, durationSeconds) {
   try { const rB = await _nivaMuxIOSPorBytes(videoBlob, audioBlob); if (rB) return rB; } catch (eB) { console.warn('[NIVA][IOS-BYTES] no se pudo unir por bytes, se intenta WebCodecs:', eB); }
   if (typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') {
@@ -10405,6 +10438,7 @@ async function playVideoEL() {
       if (audioMode !== 'music' && !_nivaVoiceBuffer) {
         source.connect(voiceBus);
       }
+      window.__nivaOffMusic = null; window.__nivaOffVoice = (audioMode !== 'music') ? _nivaVoiceBuffer : null; // respaldo de audio offline (iOS)
       const musicHandle = getMusicHandle();
       let musicSource = null;
       let musicGain   = null;
@@ -10441,6 +10475,7 @@ async function playVideoEL() {
             _nivaMusicBuffer = null;
           }
         }
+        window.__nivaOffMusic = _nivaMusicBuffer ? { buf: _nivaMusicBuffer, vol: baseVol } : null;
         let musicBufferSource = null;
         if (_nivaMusicBuffer) {
           musicBufferSource = audioCtx.createBufferSource();
@@ -10616,7 +10651,22 @@ async function playVideoEL() {
           if (recordedChunks.length === 0) {
             vidStatus('❌ El video no produjo datos — MediaRecorder de video vacío (0 bytes).', 'err');
           } else if (recordedAudioChunks.length === 0) {
-            vidStatus('❌ El audio no produjo datos — MediaRecorder de audio vacío, aunque el video sí grabó (' + (vBytes/1024).toFixed(0) + ' KB). Confirma que el bloqueo de audio de iOS ocurre incluso grabando por separado.', 'err');
+            // (2026-10-02) Falla intermitente de Safari en iPhone: el grabador de audio a veces
+            // entrega 0 datos. Como toda la voz y la música salen del AudioContext, se
+            // reconstruye el audio idéntico SIN volver a grabar (OfflineAudioContext) y se une.
+            console.warn('[NIVA][IOS-DUAL] audio vacío — reconstruyendo audio offline');
+            vidStatus('🔧 El iPhone no entregó el audio esta vez; reconstruyéndolo… no cierres esta ventana', 'loading');
+            try {
+              const wavBlob = await _nivaAudioOffline(videoDurationSeconds);
+              const videoBlob = new Blob(recordedChunks, { type: _recordedMimeType });
+              const { blob: mergedBlob, hasAudio, audioDecodeErrorMsg } = await combineIOSVideoAudio(videoBlob, wavBlob, videoDurationSeconds);
+              if (!hasAudio) vidStatus('⚠️ El video se generó, pero no se pudo reconstruir el audio — queda sin voz. [' + (audioDecodeErrorMsg || '?') + ']', 'err');
+              ok = await finalizeRecording('video/mp4', mergedBlob);
+            } catch (eOff) {
+              console.error('[NIVA][IOS-DUAL][OFFLINE]', eOff);
+              vidStatus('❌ El iPhone no grabó el audio en este intento (falla ocasional de Safari) y no se pudo reconstruir (' + (eOff && eOff.message || eOff) + '). Toca "Generar Video" de nuevo; si se repite, cierra otras apps/pestañas.', 'err');
+              try { _showPlayBtn(); } catch(e) {}
+            }
           } else {
             try {
               const videoBlob = new Blob(recordedChunks, { type: _recordedMimeType });
