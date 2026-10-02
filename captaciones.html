@@ -729,15 +729,21 @@ async function guardarCaptacion(){
       construction_size:$('#cap-m2c').value||undefined,lot_size:$('#cap-m2t').value||undefined,
       photos:photoUrls
     };
-    const {data:{session}}=await sb.auth.getSession();
+    // (2026-10-02) La sesión vence si el formulario estuvo abierto mucho tiempo (fotos, llenado largo):
+    // se renueva antes de publicar y, si aun así sale 401, se renueva y se reintenta una vez.
+    const tokenFresco=async()=>{ try{ const r=await sb.auth.refreshSession(); if(r&&r.data&&r.data.session) return r.data.session.access_token; }catch(_e){} const g=await sb.auth.getSession(); return g.data.session?g.data.session.access_token:''; };
     let res;
     try{
-      res=await fetch(cfg.url+'/functions/v1/niva-crear-captacion',{
+      const enviar=async(tk)=>fetch(cfg.url+'/functions/v1/niva-crear-captacion',{
         method:'POST',
-        headers:{'content-type':'application/json',Authorization:'Bearer '+cfg.anon,'apikey':cfg.anon,'x-niva-jwt':session.access_token},
+        headers:{'content-type':'application/json',Authorization:'Bearer '+cfg.anon,'apikey':cfg.anon,'x-niva-jwt':tk},
         body:JSON.stringify(body)
       });
+      res=await enviar(await tokenFresco());
+      if(res.status===401){ res=await enviar(await tokenFresco()); }
+      if(res.status===401) throw new Error('Tu sesión expiró. Copia lo que escribiste, recarga la página, vuelve a entrar y publica de nuevo.');
     }catch(netErr){
+      if(/sesión expiró/.test(netErr.message||'')) throw netErr;
       throw new Error('No se pudo conectar para publicar en EasyBroker (revisa tu conexión a internet e inténtalo de nuevo). Detalle: '+(netErr.message||netErr));
     }
     let out={};
