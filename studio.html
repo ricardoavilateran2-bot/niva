@@ -617,7 +617,12 @@ img,video,canvas{max-width:100%}
     </div>
     <!-- ── Selector de 4 templates ── -->
     <div id="niva-flyer-selector" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;justify-content:center">
-      <div class="niva-ftpl" id="ftpl-scroll" onclick="nivaFlyerSelect('scroll')" style="flex:1;min-width:110px;max-width:140px;border:2px solid #C9A84C;border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#0D1B31;color:#fff;user-select:none">
+      <div class="niva-ftpl" id="ftpl-clasico" onclick="nivaFlyerSelect('clasico')" style="flex:1;min-width:110px;max-width:140px;border:2px solid #C9A84C;border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#1A2A1A;color:#fff;user-select:none">
+        <div style="font-size:22px;margin-bottom:4px">✨</div>
+        <div style="font-size:11px;font-weight:800;color:#C9A84C;letter-spacing:.5px">CLÁSICO NIVA</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px">Limpio y claro</div>
+      </div>
+      <div class="niva-ftpl" id="ftpl-scroll" onclick="nivaFlyerSelect('scroll')" style="flex:1;min-width:110px;max-width:140px;border:2px solid #334;border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#141825;color:#fff;user-select:none">
         <div style="font-size:22px;margin-bottom:4px">🔥</div>
         <div style="font-size:11px;font-weight:800;color:#C9A84C;letter-spacing:.5px">DETÉN EL SCROLL</div>
         <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px">Hero + Hook</div>
@@ -3256,13 +3261,13 @@ async function generateAll() {
 // ══════════════════════════════════════════════
 //  FLYER — selector y dispatcher entre 4 estilos
 // ══════════════════════════════════════════════
-var NIVA_FLYER_selectedStyle = 'scroll';
+var NIVA_FLYER_selectedStyle = 'clasico';
 var NIVA_FLYER_lastV = null;
 
 function nivaFlyerSelect(style) {
   NIVA_FLYER_selectedStyle = style;
   // Actualizar UI de tarjetas
-  ['scroll','benefits','editorial','revista'].forEach(s => {
+  ['clasico','scroll','benefits','editorial','revista'].forEach(s => {
     const el = document.getElementById('ftpl-' + s);
     if (!el) return;
     if (s === style) {
@@ -3291,8 +3296,9 @@ async function genFlyer(v) {
   const ctx = cv.getContext('2d');
   const W = 1080, H = 1350;
   ctx.clearRect(0, 0, W, H);
-  const s = NIVA_FLYER_selectedStyle || 'scroll';
-  if      (s === 'scroll')    await flyerA(v, ctx, W, H);
+  const s = NIVA_FLYER_selectedStyle || 'clasico';
+  if      (s === 'clasico')   await flyerE(v, ctx, W, H);
+  else if (s === 'scroll')    await flyerA(v, ctx, W, H);
   else if (s === 'benefits')  await flyerB(v, ctx, W, H);
   else if (s === 'editorial') await flyerC(v, ctx, W, H);
   else if (s === 'revista')   await flyerD(v, ctx, W, H);
@@ -3302,6 +3308,76 @@ async function genFlyer(v) {
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+//  ESTILO E — ✨ CLÁSICO NIVA (2026-10-02)
+//  Foto grande limpia (sin texto encima) + 3 fotos + panel azul con datos claros
+// ══════════════════════════════════════════════
+function _nivaImg(src){ return new Promise(res=>{ if(!src){res(null);return;} const im=new Image(); if(!String(src).startsWith('data:')) im.crossOrigin='anonymous'; im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src; }); }
+function _nivaCover(ctx, im, x, y, w, h, r){
+  ctx.save(); ctx.beginPath();
+  if (r) { ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); } else ctx.rect(x,y,w,h);
+  ctx.clip();
+  if (im) { const ir=im.width/im.height, cr=w/h; let sw=im.width, sh=im.height, sx=0, sy=0; if(ir>cr){ sw=sh*cr; sx=(im.width-sw)/2; } else { sh=sw/cr; sy=(im.height-sh)*0.45; } ctx.drawImage(im,sx,sy,sw,sh,x,y,w,h); }
+  else { ctx.fillStyle='#1c2c48'; ctx.fillRect(x,y,w,h); }
+  ctx.restore();
+}
+function _nivaFit(ctx, txt, maxW, size, weight, family){ let s=size; do { ctx.font=weight+' '+s+'px '+family; if(ctx.measureText(txt).width<=maxW) break; s-=2; } while(s>22); return s; }
+async function flyerE(v, ctx, W, H) {
+  const NAVY='#0D1B31', GOLD='#C9A84C', WH='#FFFFFF', GRAY='rgba(255,255,255,.62)';
+  const F='Montserrat, Inter, Arial, sans-serif';
+  const imgs = await Promise.all([0,1,2,3].map(i=>_nivaImg(photos[i])));
+  const extra = imgs.slice(1).filter(Boolean);
+  ctx.fillStyle=NAVY; ctx.fillRect(0,0,W,H);
+  const HERO_H = extra.length ? 640 : 820;
+  _nivaCover(ctx, imgs[0], 0, 0, W, HERO_H, 0);
+  // sombra suave arriba para que se lean la etiqueta y el logo
+  let g=ctx.createLinearGradient(0,0,0,170); g.addColorStop(0,'rgba(0,0,0,.45)'); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,170);
+  const isRenta = String(v.op||'').toLowerCase().includes('rent');
+  const etiqueta = (isRenta?'EN RENTA':'EN VENTA');
+  ctx.font='800 26px '+F; const ew=ctx.measureText(etiqueta).width+52;
+  ctx.fillStyle=GOLD; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(44,44,ew,54,27) : ctx.rect(44,44,ew,54); ctx.fill();
+  ctx.fillStyle=NAVY; ctx.textBaseline='middle'; ctx.fillText(etiqueta, 70, 72);
+  ctx.textAlign='right'; ctx.fillStyle=WH; ctx.font='900 34px '+F; ctx.fillText('NIVA', W-44-ctx.measureText(' INMOBILIARIA').width*0.55, 72);
+  ctx.font='600 19px '+F; ctx.fillStyle=GOLD; ctx.fillText('INMOBILIARIA', W-44, 74); ctx.textAlign='left';
+  // franja dorada
+  ctx.fillStyle=GOLD; ctx.fillRect(0,HERO_H,W,6);
+  let y = HERO_H + 6;
+  if (extra.length) {
+    const n = Math.min(3, extra.length), gap=12, m=40, tw=(W-2*m-gap*(n-1))/n, th=180;
+    for (let i=0;i<n;i++) _nivaCover(ctx, extra[i], m+i*(tw+gap), y+26, tw, th, 14);
+    y += 26 + th;
+  }
+  // Tipo + colonia + ciudad
+  const tipo = String(v.tipo||'Propiedad');
+  ctx.textBaseline='alphabetic';
+  ctx.fillStyle=GOLD; ctx.font='700 24px '+F; ctx.fillText((tipo+' en '+(isRenta?'renta':'venta')).toUpperCase(), 44, y+62);
+  const col = String(v.col||'').trim() || tipo;
+  const cs=_nivaFit(ctx, col, W-88, 58, '800', F); ctx.fillStyle=WH; ctx.fillText(col, 44, y+62+cs+8);
+  const city=String(v.city||'').split(',')[0].trim();
+  ctx.fillStyle=GRAY; ctx.font='500 28px '+F; if(city) ctx.fillText(city+', N.L.', 44, y+62+cs+52);
+  // Datos en cajas
+  const datos=[[v.rec,'Recámaras'],[v.ban,'Baños'],[v.estac,'Estac.'],[v.m?(v.m+' m²'):'','Construcción']].filter(d=>d[0]&&String(d[0])!=='0');
+  const by=y+62+cs+84;
+  if (datos.length) {
+    const gap=14, bw=(W-88-gap*(datos.length-1))/datos.length, bh=96;
+    datos.forEach((d,i)=>{ const x=44+i*(bw+gap);
+      ctx.strokeStyle='rgba(201,168,76,.55)'; ctx.lineWidth=2; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x,by,bw,bh,16) : ctx.rect(x,by,bw,bh); ctx.stroke();
+      ctx.textAlign='center'; ctx.fillStyle=WH; ctx.font='800 40px '+F; ctx.fillText(String(d[0]), x+bw/2, by+50);
+      ctx.fillStyle=GRAY; ctx.font='500 21px '+F; ctx.fillText(d[1], x+bw/2, by+80); ctx.textAlign='left'; });
+  }
+  // Pie: precio a la izquierda, asesor a la derecha
+  const FY=H-150;
+  ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(44,FY,W-88,2);
+  const precio=fmtP(v.price);
+  ctx.fillStyle=GOLD; const ps=_nivaFit(ctx, precio, 560, 76, '900', F); ctx.fillText(precio, 44, FY+100);
+  const pw=ctx.measureText(precio).width;
+  ctx.fillStyle=GRAY; ctx.font='600 26px '+F; ctx.fillText(v.esMes||isRenta?'/ mes':'MXN', 44+pw+12, FY+100);
+  ctx.textAlign='right';
+  ctx.fillStyle=WH; ctx.font='700 30px '+F; ctx.fillText(v.asesor||'Asesor NIVA', W-44, FY+70);
+  ctx.fillStyle=GOLD; ctx.font='700 30px '+F; if(v.tel) ctx.fillText('📱 '+v.tel, W-44, FY+112);
+  ctx.textAlign='left';
+}
+
 // ══════════════════════════════════════════════
 //  ESTILO A — 🔥 DETÉN EL SCROLL
 //  Hero dominante + 2 fotos secundarias 50/50 + footer
