@@ -169,9 +169,10 @@ textarea { resize: vertical; min-height: 90px; }
 .pedit-cancel:hover{background:rgba(255,255,255,.12)}
 .pr-cancel{border:0;background:transparent;color:#f87171;border-radius:6px;padding:0;font-size:18px;font-weight:700;cursor:pointer;white-space:nowrap;width:40px;height:40px;flex-shrink:0;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1}
 .pr-cancel:hover{background:rgba(248,113,113,.15)}
-.pr-ft{border:1.5px solid #16a34a;background:rgba(22,163,74,.15);color:#4ade80;border-radius:6px;padding:0;width:36px;height:26px;font-size:11.5px;font-weight:800;cursor:pointer;flex-shrink:0;align-self:center;letter-spacing:.5px}
+.pr-ft{border:1.5px solid #16a34a;background:rgba(22,163,74,.15);color:#4ade80;border-radius:8px;padding:2px 0;width:44px;height:40px;font-size:9.5px;font-weight:800;cursor:pointer;flex-shrink:0;align-self:center;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;gap:1px}
+.pr-ft b{font-size:16px;font-weight:400}
 .pr-ft:hover{background:rgba(22,163,74,.3)}
-.pr-ft-ph{width:36px;flex-shrink:0}
+.pr-ft-ph{width:44px;flex-shrink:0}
 .pr-cancel.rea{color:#4ade80}
 .pr-cancel.rea:hover{background:rgba(74,222,128,.15)}
 </style>
@@ -597,7 +598,7 @@ function renderProps(){
         +'<div class="pr-specs">'+specs+'</div>'
         +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>'
         +'<button class="pr-edit" title="Editar propiedad">✏️</button>'
-        +(FICHAS[String(p.title||'').trim().toLowerCase()]?'<button class="pr-ft" title="Ya tiene ficha técnica guardada — tocar para verla">FT</button>':'<span class="pr-ft-ph"></span>')
+        +(FICHAS[String(p.title||'').trim().toLowerCase()]?'<button class="pr-ft" title="Ya tiene ficha técnica guardada — tocar para verla"><b>📄</b>Ficha</button>':'<span class="pr-ft-ph"></span>')
         +'<button class="pr-cancel'+(canc?' rea':'')+'" title="'+(canc?'Reactivar':'Archivar')+'">'+(canc?'↩️':'🗑️')+'</button>';
       if(canc)fila.classList.add('cancelada');
       const be=fila.querySelector('.pr-edit');
