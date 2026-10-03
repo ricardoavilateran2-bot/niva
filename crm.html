@@ -1041,7 +1041,7 @@ function cardLead(l){
     +(esArchivado(l)?'<button class="acc desarch">↩️ Restaurar</button>':'<button class="acc arch">🗄️ Archivar</button>')
     +(ESADMIN?'<button class="acc elim">🗑️ Eliminar</button>':'')
     +'</div>'
-    +'<div class="wabox hidden"><textarea></textarea><button type="button" class="wficha hidden" style="margin:6px 0;padding:9px 12px;border:1px solid #16a34a;border-radius:8px;background:#fff;color:#15803d;font-weight:700;font-size:13px;cursor:pointer">📄 Enviar mensaje + ficha PDF</button><button class="go">Abrir WhatsApp con este mensaje</button></div>'
+    +'<div class="wabox hidden"><textarea></textarea><button type="button" class="wficha hidden" style="margin:6px 0;padding:9px 12px;border:1px solid #16a34a;border-radius:8px;background:#fff;color:#15803d;font-weight:700;font-size:13px;cursor:pointer">📄 Enviar ficha técnica en PDF</button><button class="go">Abrir WhatsApp con este mensaje</button></div>'
     +'<div class="estado"><span>Estado:</span><select>'
     +Object.entries(EST).map(([k,v])=>'<option value="'+k+'"'+(k===l.status?' selected':'')+'>'+v+'</option>').join('')
     +'</select></div>'
@@ -1173,9 +1173,7 @@ function cardLead(l){
     if(!f){ toast('La ficha se está preparando, intenta en un segundo'); return; }
     try{
       if(navigator.canShare && navigator.canShare({files:[f]})){
-        // Se manda el PDF junto con el mensaje del cuadro de texto: un solo paso, solo hay que elegir el chat
-        const txt=(wab.querySelector('textarea').value||'').trim();
-        await navigator.share(txt?{files:[f],text:txt}:{files:[f]});
+        await navigator.share({files:[f]});
         sb.from('lead_interactions').insert({lead_id:l.id,type:'whatsapp_click',actor:'advisor',payload:{ficha_pdf:true}}).then(()=>{});
         return;
       }
