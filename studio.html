@@ -617,7 +617,12 @@ img,video,canvas{max-width:100%}
     </div>
     <!-- ── Selector de 4 templates ── -->
     <div id="niva-flyer-selector" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;justify-content:center">
-      <div class="niva-ftpl" id="ftpl-clasico" onclick="nivaFlyerSelect('clasico')" style="flex:1;min-width:110px;max-width:140px;border:2px solid #C9A84C;border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#1A2A1A;color:#fff;user-select:none">
+      <div class="niva-ftpl" id="ftpl-minimal" onclick="nivaFlyerSelect('minimal')" style="flex:1;min-width:110px;max-width:140px;border:2px solid #C9A84C;border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#F4EFE6;color:#0D1B31;user-select:none">
+        <div style="font-size:22px;margin-bottom:4px">🤍</div>
+        <div style="font-size:11px;font-weight:800;color:#0D1B31;letter-spacing:.5px">MINIMAL PÓSTER</div>
+        <div style="font-size:10px;color:#8a7a5a;margin-top:3px">Elegante y limpio</div>
+      </div>
+      <div class="niva-ftpl" id="ftpl-clasico" onclick="nivaFlyerSelect('clasico')" style="flex:1;min-width:110px;max-width:140px;border:2px solid #334;border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#1A2A1A;color:#fff;user-select:none">
         <div style="font-size:22px;margin-bottom:4px">✨</div>
         <div style="font-size:11px;font-weight:800;color:#C9A84C;letter-spacing:.5px">CLÁSICO NIVA</div>
         <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px">Limpio y claro</div>
@@ -3261,13 +3266,13 @@ async function generateAll() {
 // ══════════════════════════════════════════════
 //  FLYER — selector y dispatcher entre 4 estilos
 // ══════════════════════════════════════════════
-var NIVA_FLYER_selectedStyle = 'clasico';
+var NIVA_FLYER_selectedStyle = 'minimal';
 var NIVA_FLYER_lastV = null;
 
 function nivaFlyerSelect(style) {
   NIVA_FLYER_selectedStyle = style;
   // Actualizar UI de tarjetas
-  ['clasico','scroll','benefits','editorial','revista'].forEach(s => {
+  ['minimal','clasico','scroll','benefits','editorial','revista'].forEach(s => {
     const el = document.getElementById('ftpl-' + s);
     if (!el) return;
     if (s === style) {
@@ -3296,8 +3301,9 @@ async function genFlyer(v) {
   const ctx = cv.getContext('2d');
   const W = 1080, H = 1350;
   ctx.clearRect(0, 0, W, H);
-  const s = NIVA_FLYER_selectedStyle || 'clasico';
-  if      (s === 'clasico')   await flyerE(v, ctx, W, H);
+  const s = NIVA_FLYER_selectedStyle || 'minimal';
+  if      (s === 'minimal')   await flyerF(v, ctx, W, H);
+  else if (s === 'clasico')   await flyerE(v, ctx, W, H);
   else if (s === 'scroll')    await flyerA(v, ctx, W, H);
   else if (s === 'benefits')  await flyerB(v, ctx, W, H);
   else if (s === 'editorial') await flyerC(v, ctx, W, H);
@@ -3322,6 +3328,47 @@ function _nivaCover(ctx, im, x, y, w, h, r){
   ctx.restore();
 }
 function _nivaFit(ctx, txt, maxW, size, weight, family){ let s=size; do { ctx.font=weight+' '+s+'px '+family; if(ctx.measureText(txt).width<=maxW) break; s-=2; } while(s>22); return s; }
+async function flyerF(v, ctx, W, H) {
+  // ✨ MINIMAL PÓSTER (2026-10-02): fondo crema, foto enmarcada, tipografía elegante, mucho aire
+  const CREMA='#F4EFE6', NAVY='#0D1B31', GOLD='#B08D3C', GRIS='#7C7466';
+  const SANS='Montserrat, Inter, Arial, sans-serif', SERIF='"Playfair Display", Georgia, serif';
+  const sp=(t,x,y,ls)=>{ if('letterSpacing' in ctx){ ctx.letterSpacing=ls+'px'; ctx.fillText(t,x,y); ctx.letterSpacing='0px'; return; } let cx=x; const al=ctx.textAlign; let tw=0; for(const ch of t) tw+=ctx.measureText(ch).width+ls; tw-=ls; if(al==='center') cx=x-tw/2; else if(al==='right') cx=x-tw; ctx.textAlign='left'; for(const ch of t){ ctx.fillText(ch,cx,y); cx+=ctx.measureText(ch).width+ls; } ctx.textAlign=al; };
+  const im = await _nivaImg(photos[0]);
+  ctx.fillStyle=CREMA; ctx.fillRect(0,0,W,H);
+  const isRenta = String(v.op||'').toLowerCase().includes('rent');
+  // encabezado
+  ctx.textBaseline='alphabetic'; ctx.textAlign='center';
+  ctx.fillStyle=NAVY; ctx.font='800 30px '+SANS; sp('N I V A', W/2, 92, 6);
+  ctx.fillStyle=GOLD; ctx.font='600 15px '+SANS; sp('INMOBILIARIA', W/2, 120, 7);
+  // foto enmarcada
+  const M=70, PY=160, PH=760;
+  _nivaCover(ctx, im, M, PY, W-2*M, PH, 4);
+  ctx.strokeStyle='rgba(176,141,60,.55)'; ctx.lineWidth=1.5; ctx.strokeRect(M-14, PY-14, W-2*M+28, PH+28);
+  // etiqueta sobre el borde de la foto
+  const et=(isRenta?'EN RENTA':'EN VENTA'); ctx.font='700 18px '+SANS; const ew=ctx.measureText(et).width+8*et.length+50;
+  ctx.fillStyle=CREMA; ctx.fillRect(W/2-ew/2, PY+PH-2, ew, 34);
+  ctx.fillStyle=GOLD; sp(et, W/2, PY+PH+22, 8);
+  // tipo · ciudad
+  let y=PY+PH+92;
+  const tipo=String(v.tipo||'Propiedad'); const city=String(v.city||'').split(',')[0].trim();
+  ctx.fillStyle=GRIS; ctx.font='600 19px '+SANS; sp((tipo+(city?'  ·  '+city:'')).toUpperCase(), W/2, y, 5);
+  // colonia en serif
+  const col=String(v.col||'').trim()||tipo;
+  const cs=_nivaFit(ctx, col, W-2*M, 66, 'italic 700', SERIF); ctx.fillStyle=NAVY; ctx.fillText(col, W/2, y+cs+14);
+  y=y+cs+56;
+  // línea fina dorada
+  ctx.fillStyle=GOLD; ctx.fillRect(W/2-40, y, 80, 2);
+  // datos en una sola línea
+  const d=[]; if(v.rec&&v.rec!='0') d.push(v.rec+' rec'); if(v.ban&&v.ban!='0') d.push(v.ban+' baños'); if(v.estac&&v.estac!='0') d.push(v.estac+' estac.'); if(v.m&&v.m!='0') d.push(v.m+' m²');
+  ctx.fillStyle=NAVY; ctx.font='500 24px '+SANS; if(d.length) ctx.fillText(d.join('   ·   '), W/2, y+50);
+  // precio
+  const precio=fmtP(v.price)+((v.esMes||isRenta)?' / mes':'');
+  ctx.fillStyle=GOLD; _nivaFit(ctx, precio, W-2*M, 46, '700', SERIF); ctx.fillText(precio, W/2, y+112);
+  // pie
+  ctx.fillStyle='rgba(13,27,49,.15)'; ctx.fillRect(M, H-78, W-2*M, 1);
+  ctx.fillStyle=GRIS; ctx.font='600 17px '+SANS; sp(((v.asesor||'Asesor NIVA')+(v.tel?'   ·   '+v.tel:'')).toUpperCase(), W/2, H-40, 3);
+  ctx.textAlign='left';
+}
 async function flyerE(v, ctx, W, H) {
   const NAVY='#0D1B31', GOLD='#C9A84C', WH='#FFFFFF', GRAY='rgba(255,255,255,.62)';
   const F='Montserrat, Inter, Arial, sans-serif';
