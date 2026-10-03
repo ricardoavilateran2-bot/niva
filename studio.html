@@ -14328,7 +14328,7 @@ async function guardarFichaNiva(btn) {
     btn.innerHTML = '⏳ Subiendo…';
     const titulo = sel.options[sel.selectedIndex].dataset.t, eb = sel.value;
     const ruta = eb + '-' + Date.now() + '.pdf';
-    const up = await sb.storage.from('fichas').upload(ruta, window.__fichaBlob, { contentType: 'application/pdf', upsert: true });
+    const up = await sb.storage.from('fichas').upload(ruta, window.__fichaBlob, { contentType: 'application/pdf', upsert: false });
     if (up.error) throw up.error;
     const url = sb.storage.from('fichas').getPublicUrl(ruta).data.publicUrl;
     const yo = (await sb.auth.getSession()).data.session?.user?.email || null;
