@@ -14305,7 +14305,13 @@ async function downloadFichaAsPDF(btn) {
 async function cargarPropsFicha(n) {
   const sb = window.__nivaSb; if (!sb) { if ((n||0) < 40) setTimeout(() => cargarPropsFicha((n||0)+1), 300); return; }
   const sel = document.getElementById('fichaProp'); if (!sel || sel.dataset.ok) return;
-  const { data } = await sb.from('properties').select('title,eb_public_id').eq('eb_status','published').order('title').range(0,999);
+  // (2026-10-02) Solo las propiedades asignadas a quien está usando el Studio
+  let ids = null;
+  try { const { data: adv } = await sb.rpc('my_advisor_id'); if (adv) { const { data: as } = await sb.from('property_assignments').select('property_id').eq('advisor_id', adv).is('unassigned_at', null).range(0,1999); ids = (as || []).map(x => x.property_id); } } catch (e) {}
+  let q = sb.from('properties').select('title,eb_public_id').eq('eb_status','published').order('title');
+  if (ids) q = q.in('id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
+  const { data } = await q.range(0,999);
+  if (!(data || []).length) { const o0 = sel.options[0]; if (o0) o0.textContent = 'No tienes propiedades publicadas asignadas'; }
   const vistos = new Set();
   (data||[]).forEach(p => { const k = String(p.title||'').trim().toLowerCase(); if (!k || vistos.has(k)) return; vistos.add(k); const o = document.createElement('option'); o.value = p.eb_public_id; o.textContent = p.title + ' · ' + p.eb_public_id; o.dataset.t = p.title; sel.appendChild(o); });
   sel.dataset.ok = '1';
