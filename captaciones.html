@@ -169,6 +169,9 @@ textarea { resize: vertical; min-height: 90px; }
 .pedit-cancel:hover{background:rgba(255,255,255,.12)}
 .pr-cancel{border:0;background:transparent;color:#f87171;border-radius:6px;padding:0;font-size:18px;font-weight:700;cursor:pointer;white-space:nowrap;width:40px;height:40px;flex-shrink:0;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1}
 .pr-cancel:hover{background:rgba(248,113,113,.15)}
+.pr-ft{border:1.5px solid #16a34a;background:rgba(22,163,74,.15);color:#4ade80;border-radius:6px;padding:0;width:36px;height:26px;font-size:11.5px;font-weight:800;cursor:pointer;flex-shrink:0;align-self:center;letter-spacing:.5px}
+.pr-ft:hover{background:rgba(22,163,74,.3)}
+.pr-ft-ph{width:36px;flex-shrink:0}
 .pr-cancel.rea{color:#4ade80}
 .pr-cancel.rea:hover{background:rgba(74,222,128,.15)}
 </style>
@@ -515,7 +518,7 @@ async function guardarEdicion(){
   } finally { PE_GUARDANDO=false; btn.disabled=false; btn.textContent='Guardar cambios'; }
 }
 
-let PROPS=[], PROPSC=[], ESADMIN=false, CAP_FOTOS=[], MI_ADVISOR_ID=null;
+let FICHAS={}, PROPS=[], PROPSC=[], ESADMIN=false, CAP_FOTOS=[], MI_ADVISOR_ID=null;
 try{ const {data:advId}=await sb.rpc('my_advisor_id'); MI_ADVISOR_ID=advId||null; }catch(_e){}
 let PT='todas', PO='todo', PS='pmin', PQ='', PE='activas';
 
@@ -545,6 +548,8 @@ async function cargar(){
     sb.from('my_properties_canceladas').select('*')
   ]);
   PROPS = p.error? [] : (p.data||[]);
+  // (2026-10-02) Fichas técnicas guardadas (para mostrar el distintivo FT en cada propiedad)
+  try{ const {data:ft}=await sb.from('fichas_tecnicas').select('titulo_key,url'); FICHAS={}; (ft||[]).forEach(x=>FICHAS[x.titulo_key]=x.url); }catch(_e){}
   PROPSC = pc.error? [] : (pc.data||[]);
   // Antes un error (sesión vencida, RLS, red) se veía igual que "no tienes propiedades".
   if(p.error||pc.error){
@@ -592,10 +597,13 @@ function renderProps(){
         +'<div class="pr-specs">'+specs+'</div>'
         +'<div class="pr-precio">'+fmt(p.price_amount)+(op==='rental'?'<small>/mes</small>':'')+'</div>'
         +'<button class="pr-edit" title="Editar propiedad">✏️</button>'
+        +(FICHAS[String(p.title||'').trim().toLowerCase()]?'<button class="pr-ft" title="Ya tiene ficha técnica guardada — tocar para verla">FT</button>':'<span class="pr-ft-ph"></span>')
         +'<button class="pr-cancel'+(canc?' rea':'')+'" title="'+(canc?'Reactivar':'Archivar')+'">'+(canc?'↩️':'🗑️')+'</button>';
       if(canc)fila.classList.add('cancelada');
       const be=fila.querySelector('.pr-edit');
       be.onclick=(e)=>{ e.preventDefault();e.stopPropagation(); abrirEdicion(p); };
+      const bft=fila.querySelector('.pr-ft');
+      if(bft) bft.onclick=(e)=>{ e.preventDefault();e.stopPropagation(); window.open(FICHAS[String(p.title||'').trim().toLowerCase()],'_blank'); };
       const bc=fila.querySelector('.pr-cancel');
       bc.onclick=async(e)=>{
         e.preventDefault();e.stopPropagation();
