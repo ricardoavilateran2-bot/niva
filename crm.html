@@ -1122,7 +1122,31 @@ function cardLead(l){
     }
     btnGuardarTel.disabled=false;btnGuardarTel.textContent='Guardar';
   };
-  function mensajeWa(l){const nombre=l.full_name?l.full_name.split(' ')[0]:'';const quien=ADVISOR_DISPLAY_NAME||'tu asesor';if(tipoLead(l)==='agent'){const datos=[];if(l.price_amount)datos.push(fmt(l.price_amount)+(l.operation_type==='rental'?'/mes':''));if(l.location_name)datos.push(l.location_name);return 'Hola '+nombre+', soy '+quien+' de NIVA Inmobiliaria. Te comparto la información de "'+(l.property_title||'la propiedad')+'"'+(datos.length?': '+datos.join(' · '):'')+(l.public_url?'. '+l.public_url:'');}return 'Hola '+nombre+', soy '+quien+', asesor inmobiliario de NIVA Inmobiliaria. Vi tu interés en "'+(l.property_title||'nuestra propiedad')+'"'+(l.price_amount?' ('+fmt(l.price_amount)+(l.operation_type==='rental'?' al mes':'')+')':'')+'. ¿Te gustaría agendar una visita o resolver alguna duda?';} const wab=d.querySelector('.wabox');
+  function mensajeWa(l){
+    // (2026-10-02) Mensaje más humano: corto, sin el título en MAYÚSCULAS ni frases de plantilla,
+    // saludo según la hora y varias versiones para que no suene a robot.
+    const cap=t=>t?t.charAt(0).toUpperCase()+t.slice(1).toLowerCase():'';
+    const nombre=l.full_name?cap(l.full_name.trim().split(/\s+/)[0]):'';
+    const quien=(ADVISOR_DISPLAY_NAME||'').trim().split(/\s+/)[0]||'tu asesor';
+    const tt=String(l.property_title||'').toLowerCase();
+    const T=[['departamento','el','depa'],['depa','el','depa'],['casa','la','casa'],['terreno','el','terreno'],['local','el','local'],['oficina','la','oficina'],['bodega','la','bodega'],['quinta','la','quinta']].find(x=>tt.includes(x[0]));
+    const art=T?T[1]:'la', tipo=T?T[2]:'propiedad';
+    let zona=String(l.location_name||'').split(',')[0].trim();
+    if(!zona){ const m=tt.replace(/\b(en )?(venta|renta)\b/g,' ').replace(/\s+/g,' ').trim().match(/\ben ([a-záéíóúñ ]{3,40})$/); if(m) zona=m[1]; }
+    zona=zona.replace(/\b\w/g,c=>c.toUpperCase());
+    const que=art+' '+tipo+(zona?' en '+zona:''); const la=art==='el'?'lo':'la';
+    const h=new Date().getHours(); const sal=h<12?'buen día':h<19?'buenas tardes':'buenas noches';
+    const hola='Hola'+(nombre?' '+nombre:'');
+    if(tipoLead(l)==='agent'){
+      return hola+', '+sal+'. Soy '+quien+' de NIVA. Te paso la info de '+que+(l.price_amount?' ('+fmt(l.price_amount)+(l.operation_type==='rental'?' al mes':'')+')':'')+(l.public_url?': '+l.public_url:'')+'. Cualquier duda aquí ando.';
+    }
+    const v=[
+      hola+', '+sal+' 👋 Soy '+quien+', de NIVA. Vi que te interesó '+que+'. ¿Sigues buscando? Con gusto te paso más fotos o info.',
+      '¡'+hola+'! Soy '+quien+' 🙂 Vi que preguntaste por '+que+'. ¿Te gustaría ver'+la+' esta semana o prefieres que te cuente más por aquí?',
+      hola+', '+sal+'. Te escribe '+quien+' por '+que+' que viste. ¿Todavía te interesa? Dime qué te gustaría saber y te ayudo.'
+    ];
+    return v[Math.floor(Math.random()*v.length)];
+  } const wab=d.querySelector('.wabox');
   const btnWa=d.querySelector('.wa');
   if(btnWa)btnWa.onclick=()=>{
     if(wab.classList.contains('hidden')){
