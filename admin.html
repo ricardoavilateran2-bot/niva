@@ -470,7 +470,7 @@ function renderDashboard(){
   const semPrev=activos.filter(l=>{const f=leadFecha(l);if(!f)return false;const d=new Date(f);return d>=diasAtras(13)&&d<diasAtras(6)}).length;
   const deltaSem = semPrev? Math.round((semAct-semPrev)*100/semPrev) : (semAct?100:null);
   const capSemana = PROPS.filter(p=>p.captured_by_advisor_id && p.created_at && new Date(p.created_at)>=diasAtras(6)).length;
-  const nuevosSinAtender = activos.filter(l=>l.status==='new').length;
+  const nuevosSinAtender = activos.filter(l=>l.status==='new'&&l.contact_type!=='agent').length; // (2026-10-03) sin colegas asesores
 
   const deltaHTML=(d)=>{
     if(d==null) return '<span class="dd flat">— sin datos previos</span>';
@@ -861,7 +861,7 @@ async function renderAsesores(){
     const nombre=((a.first_name||'')+' '+(a.last_name||'')).trim();
     const props=PROPS.filter(p=>DUENOS[p.id]===a.id).length;
     const leads=activosLeads.filter(l=>l.advisor_id===a.id).length;
-    const nuevos=activosLeads.filter(l=>l.advisor_id===a.id&&l.status==='new').length;
+    const nuevos=activosLeads.filter(l=>l.advisor_id===a.id&&l.status==='new'&&l.contact_type!=='agent').length;
     const u=USERS_BY_ID[a.user_id]; const login=u&&u.last_login_at?haceTiempo(u.last_login_at):'nunca';
     const otros=ASE_FULL.filter(x=>x.id!==a.id&&x.status==='active').map(x=>'<option value="'+esc(x.id)+'">'+esc(((x.first_name||'')+' '+(x.last_name||'')).trim())+'</option>').join('');
     const row=document.createElement('div'); row.className='aserow';
@@ -920,7 +920,7 @@ function renderLeadsAdmin(){
   const hoy0=new Date(); hoy0.setHours(0,0,0,0); const d6=new Date(hoy0); d6.setDate(d6.getDate()-6);
   const f=l=>new Date(l.happened_at||l.created_at);
   const activos=LEADS.filter(l=>!l.archived_at && l.status!=='cancelled');
-  const sets={nuevos:activos.filter(l=>l.status==='new'), sinasesor:activos.filter(l=>!l.advisor_id), semana:LEADS.filter(l=>!l.archived_at&&f(l)>=d6), activos};
+  const sets={nuevos:activos.filter(l=>l.status==='new'&&l.contact_type!=='agent'), sinasesor:activos.filter(l=>!l.advisor_id), semana:LEADS.filter(l=>!l.archived_at&&f(l)>=d6), activos};
   Object.entries(sets).forEach(([k,v])=>{const el=$('#lcnt-'+k); if(el) el.textContent='('+v.length+')';});
   let lista=sets[LEAD_F]||activos;
   if(LEAD_A==='__none__') lista=lista.filter(l=>!l.advisor_id); else if(LEAD_A) lista=lista.filter(l=>l.advisor_id===LEAD_A);
