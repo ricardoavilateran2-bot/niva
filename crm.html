@@ -1651,7 +1651,7 @@ let _dq=null;
 $('#buscar').oninput=(e)=>{clearTimeout(_dq);_dq=setTimeout(()=>{Q=e.target.value;SHOWN=60;pintar()},180)};
 // sesion existente
 const {data:{session}}=await sb.auth.getSession();
-if(session)iniciar();
+if(session){iniciar(); try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){} }
 
 (function(){
   var btn=document.getElementById('niva-backfab');
