@@ -551,6 +551,7 @@ async function resolveAdvisorDisplayName(uname){
   return uname.split(/[._]/).filter(Boolean).map(s=>s[0].toUpperCase()+s.slice(1)).join(' ');
 }
 function showPortal(email){
+  try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){} // (2026-10-03) registra cuándo entró el asesor
   $('#login').classList.add('hidden');
   $('#portal').classList.remove('hidden');
   const uname=(email||'').split('@')[0];
