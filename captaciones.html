@@ -613,7 +613,7 @@ function renderProps(){
       const be=fila.querySelector('.pr-edit');
       be.onclick=(e)=>{ e.preventDefault();e.stopPropagation(); abrirEdicion(p); };
       const bft=fila.querySelector('.pr-ft');
-      if(bft) bft.onclick=(e)=>{ e.preventDefault();e.stopPropagation(); window.open(FICHAS[String(p.title||'').trim().toLowerCase()],'_blank'); };
+      if(bft) bft.onclick=(e)=>{ e.preventDefault();e.stopPropagation(); menuFicha(FICHAS[String(p.title||'').trim().toLowerCase()], p.title); };
       const bc=fila.querySelector('.pr-cancel');
       bc.onclick=async(e)=>{
         e.preventDefault();e.stopPropagation();
@@ -821,6 +821,28 @@ function mostrarFichaLista(url){
   d.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9999;background:#1B2A4A;color:#fff;border:1px solid #C9A84C;border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.4);font-size:13.5px;max-width:92vw';
   d.innerHTML='<span>📄 Ficha técnica lista</span><a href="'+url+'" target="_blank" rel="noopener" style="background:#C9A84C;color:#1B2A4A;font-weight:800;padding:7px 12px;border-radius:9px;text-decoration:none">Abrir / Descargar</a><button style="background:transparent;border:0;color:#fff;font-size:18px;cursor:pointer">✕</button>';
   d.querySelector('button').onclick=()=>d.remove(); document.body.appendChild(d); setTimeout(()=>{ if(d.isConnected) d.remove(); },20000);
+}
+// (2026-10-05) Menú de ficha: compartir el PDF (WhatsApp, etc.) como en el CRM, o verla en el link
+function menuFicha(url,titulo){
+  let o=document.getElementById('ft-menu'); if(o) o.remove();
+  o=document.createElement('div'); o.id='ft-menu';
+  o.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center';
+  const B='display:block;width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;margin-top:10px;';
+  o.innerHTML='<div style="background:#fff;color:#1B2A4A;width:100%;max-width:460px;border-radius:18px 18px 0 0;padding:18px 16px 22px">'
+   +'<div style="font-weight:800;font-size:15px;margin-bottom:4px">📄 Ficha técnica</div><div style="font-size:12.5px;color:#64748b">'+String(titulo||'').replace(/</g,'&lt;')+'</div>'
+   +'<button id="ftm-share" disabled style="'+B+'border:0;background:#25D366;color:#fff;opacity:.6">⏳ Preparando PDF…</button>'
+   +'<a id="ftm-link" href="'+url+'" target="_blank" rel="noopener" style="'+B+'text-align:center;text-decoration:none;border:1px solid #C9A84C;background:#fff;color:#1B2A4A">🔗 Ver ficha en el link</a>'
+   +'<button id="ftm-x" style="'+B+'border:0;background:#f1f5f9;color:#475569">Cerrar</button></div>';
+  document.body.appendChild(o);
+  o.onclick=(e)=>{ if(e.target===o) o.remove(); };
+  o.querySelector('#ftm-x').onclick=()=>o.remove();
+  const bs=o.querySelector('#ftm-share'); let archivo=null;
+  // Se descarga antes para que al tocar "Compartir" el iPhone abra el menú al instante
+  fetch(url).then(r=>r.ok?r.blob():null).then(bl=>{ if(!bl) throw 0; const nom='Ficha '+String(titulo||'propiedad').replace(/[^\wáéíóúñÁÉÍÓÚÑ ]+/g,' ').trim().slice(0,50)+'.pdf'; archivo=new File([bl],nom,{type:'application/pdf'}); bs.disabled=false; bs.style.opacity='1'; bs.textContent='📤 Compartir PDF (WhatsApp, etc.)'; })
+   .catch(()=>{ bs.textContent='No se pudo preparar el PDF — usa el link'; });
+  bs.onclick=async()=>{ if(!archivo) return;
+    if(navigator.canShare && navigator.canShare({files:[archivo]})){ try{ await navigator.share({files:[archivo]}); o.remove(); }catch(_e){} }
+    else { const u=URL.createObjectURL(archivo); const a=document.createElement('a'); a.href=u; a.download=archivo.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),8000); toast('PDF descargado'); } };
 }
 async function guardarCaptacion(){
   const err=$('#cap-err'), btn=$('#cap-save');
