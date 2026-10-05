@@ -1157,7 +1157,9 @@ function cardLead(l){
       // (2026-10-02) La ficha se manda como ARCHIVO PDF (no como link): se descarga desde ahora para
       // que al tocar el botón el celular abra "Compartir" al instante (iPhone exige que sea inmediato).
       // Si el lead no trae folio de EasyBroker (ej. llegó de Inmuebles24), se busca la ficha por el título
-      const _buscaFicha=l.eb_public_id ? sb.rpc('ficha_de_eb',{p_eb:l.eb_public_id}) : (l.property_title ? sb.from('fichas_tecnicas').select('url').eq('titulo_key',String(l.property_title).trim().toLowerCase()).maybeSingle().then(r=>({data:r.data&&r.data.url})) : Promise.resolve({data:null}));
+      // (2026-10-05) Por folio de EasyBroker y, si no hay, por título (Inmuebles24 recorta el título, por eso se busca por inicio)
+      const _porTit=()=>l.property_title ? sb.rpc('ficha_por_titulo',{p_t:String(l.property_title)}) : Promise.resolve({data:null});
+      const _buscaFicha=(l.eb_public_id ? sb.rpc('ficha_de_eb',{p_eb:l.eb_public_id}).then(r=>(r&&r.data)?r:_porTit()) : _porTit()).catch(()=>({data:null}));
       _buscaFicha.then(async({data})=>{ if(!data) return; wab.dataset.ficha=data; wf.classList.remove('hidden');
         try{ const b=await fetch(data).then(r=>r.ok?r.blob():null); if(b){ const nom='Ficha '+String(l.property_title||'propiedad').replace(/[^\wáéíóúñÁÉÍÓÚÑ ]+/g,' ').trim().slice(0,50)+'.pdf'; wab._fichaFile=new File([b],nom,{type:'application/pdf'}); } }catch(_e){} });
     } else wab.classList.add('hidden');
