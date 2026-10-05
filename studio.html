@@ -661,7 +661,8 @@ img,video,canvas{max-width:100%}
         Incluir logo NIVA
       </label>
       <button class="btn-dl" id="btn-dl-ficha" onclick="downloadFichaAsPDF(this)">⬇️ Descargar Ficha como PDF</button>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;border-top:1px dashed var(--gold);padding-top:10px">
+      <!-- (2026-10-05) Oculto: las fichas para Captaciones/CRM ahora se generan solas desde EasyBroker -->
+      <div style="display:none;gap:8px;align-items:center;flex-wrap:wrap;width:100%;border-top:1px dashed var(--gold);padding-top:10px">
         <select id="fichaProp" style="flex:1;min-width:200px;padding:7px 8px;border:1px solid var(--border);border-radius:7px;font-size:12.5px"><option value="">¿De qué propiedad es esta ficha? (para guardarla)</option></select>
         <button class="btn-dl" id="btn-save-ficha" onclick="guardarFichaNiva(this)">💾 Guardar en NIVA OS</button>
         <span id="fichaSaveMsg" style="font-size:12px;color:var(--navy);width:100%"></span>
@@ -14464,7 +14465,7 @@ async function guardarFichaNiva(btn) {
     btn.innerHTML = orig;
   } finally { btn.disabled = false; setTimeout(() => { if (btn.innerHTML === '✅ Guardada') btn.innerHTML = orig; }, 4000); }
 }
-cargarPropsFicha();
+// cargarPropsFicha(); (2026-10-05) ya no se usa: el guardado manual se quitó
 
 // Convierte un data URL (cualquier formato) a JPEG a alta resolución con crop cover
 function _photoToJpeg(src, w, h) {
