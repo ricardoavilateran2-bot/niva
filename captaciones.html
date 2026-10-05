@@ -771,7 +771,10 @@ function _fotoJpeg(src,w,h){return new Promise(res=>{const c=document.createElem
   const im=new Image();im.crossOrigin='anonymous';let ok=false;const fin=()=>{if(ok)return;ok=true;try{res(c.toDataURL('image/jpeg',0.9))}catch(_e){res(null)}};
   im.onload=()=>{try{const ir=im.width/im.height,cr=w/h;let sx=0,sy=0,sw=im.width,sh=im.height;if(ir>cr){sw=sh*cr;sx=(im.width-sw)/2}else{sh=sw/cr;sy=(im.height-sh)/2}x.drawImage(im,sx,sy,sw,sh,0,0,w,h)}catch(_e){}fin()};
   im.onerror=fin;setTimeout(fin,20000);im.src=src;});}
+// (2026-10-05) Quita emojis/símbolos que el PDF no puede dibujar (salían como caracteres raros)
+function _limpiarPDF(s){ return String(s||'').replace(/\r/g,'').split('\n').map(l=>{ let t=l.replace(/^\s*((?:\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}])+)\s*/u,'- '); t=t.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}]/gu,'').replace(/\p{Extended_Pictographic}/gu,''); t=t.replace(/[“”«»]/g,'"').replace(/[‘’´]/g,"'").replace(/[–—]/g,'-').replace(/…/g,'...').replace(/[•●▪◦]/g,'-'); t=t.replace(/[^\x09\x20-\x7E -ÿ]/g,''); return t.replace(/[ \t]{2,}/g,' ').trim(); }).join('\n').replace(/^- \s*$/gm,'').replace(/\n{3,}/g,'\n\n').trim(); }
 async function generarFichaPDF(d,fotos){
+  d={...d, desc:_limpiarPDF(d.desc), colonia:_limpiarPDF(d.colonia)};
   const {jsPDF}=window.jspdf; const pdf=new jsPDF({unit:'mm',format:'a4'}); const PW=210,PH=297,M=14;
   const NAVY=[27,42,74],GOLD=[201,168,76],GR=[100,116,139];
   const esRenta=d.op==='rental'; const fmt=n=>'$'+Number(n||0).toLocaleString('es-MX');
