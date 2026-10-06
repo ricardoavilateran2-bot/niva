@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Propuestas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#1B2A4A;--navy2:#0f1e36;--gold:#C9A84C;--gold2:#e8c96a;--line:rgba(255,255,255,.12);--muted:#94a3b8}
+body{font-family:Inter,sans-serif;background:var(--navy2);color:#fff;min-height:100vh}
+.hidden{display:none!important}
+header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--navy2);z-index:5}
+header a{color:var(--gold);text-decoration:none;font-weight:700;font-size:14px}
+header h1{font-size:17px;font-weight:800;flex:1}
+.wrap{max-width:980px;margin:0 auto;padding:18px 16px 80px}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:800;font-size:13.5px;cursor:pointer;background:var(--gold);color:var(--navy)}
+.btn.sec{background:transparent;color:#fff;border:1px solid var(--line)}
+.btn.sm{padding:6px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:default}
+.card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+label{font-size:12px;color:var(--muted);display:block;margin:10px 0 4px;font-weight:600}
+input,textarea,select{width:100%;background:#0b1424;border:1px solid var(--line);color:#fff;border-radius:9px;padding:9px 10px;font:inherit;font-size:14px}
+textarea{resize:vertical}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:0 10px}
+@media(max-width:640px){.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
+.tabs{display:flex;gap:6px;margin:8px 0}.tabs button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line);background:transparent;color:#fff;font-weight:700;cursor:pointer;font-size:13px}
+.tabs button.on{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.res{display:flex;gap:10px;align-items:center;padding:8px;border-bottom:1px solid var(--line);font-size:13px}
+.res img{width:64px;height:48px;object-fit:cover;border-radius:6px;background:#223}
+.res .t{flex:1;min-width:0}.res .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opt{border:1px solid rgba(201,168,76,.35)}
+.opt h3{font-size:14px;flex:1}
+.fotos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.fotos div{position:relative;width:84px;height:62px;border-radius:7px;background:#223 center/cover}
+.fotos div button{position:absolute;top:2px;right:2px;border:0;border-radius:5px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;padding:1px 5px;cursor:pointer}
+.fotos div.p{outline:2px solid var(--gold)}
+.pill{font-size:11px;padding:2px 8px;border-radius:12px;background:rgba(201,168,76,.18);color:var(--gold2);font-weight:700}
+.lst .it{display:flex;gap:10px;align-items:center}
+.lst .it .t{flex:1}
+.muted{color:var(--muted);font-size:12.5px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111c30;border:1px solid var(--gold);padding:10px 16px;border-radius:10px;font-size:13.5px;opacity:0;transition:.2s;z-index:99;pointer-events:none}
+#toast.show{opacity:1}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet>div{background:#fff;color:var(--navy);width:100%;max-width:460px;border-radius:18px 18px 0 0;padding:18px 16px 22px}
+.sheet .b{display:block;width:100%;padding:13px;border-radius:12px;font-size:15px;font-weight:800;margin-top:10px;border:0;cursor:pointer;text-align:center;text-decoration:none}
+</style>
+</head>
+<body>
+<header><a href="./index.html">← NIVA OS</a><h1>📑 Propuestas para clientes</h1><button class="btn sm" id="nueva">+ Nueva</button></header>
+<div class="wrap">
+  <!-- LISTA -->
+  <div id="v-lista">
+    <p class="muted" style="margin-bottom:12px">Arma una selección de opciones para un cliente (inventario NIVA, Buscador o capturadas a mano). Se genera un PDF con diseño NIVA y un link donde el cliente marca cuáles le interesan.</p>
+    <div id="lista" class="lst"></div>
+  </div>
+  <!-- EDITOR -->
+  <div id="v-editor" class="hidden">
+    <div class="card">
+      <div class="g2">
+        <div><label>Cliente</label><input id="e-cliente" placeholder="Ej. Lic. Garza"></div>
+        <div><label>Título de la propuesta</label><input id="e-titulo" placeholder="Ej. Opciones de oficina en venta y renta"></div>
+      </div>
+      <label>Subtítulo (opcional)</label><input id="e-sub" placeholder="Ej. Espacios corporativos de 200 a 350 m² en Monterrey y San Pedro">
+      <label>Nota del asesor para el cliente</label><textarea id="e-nota" rows="3" placeholder="Ej. Hola, te comparto las opciones que revisé para ti…"></textarea>
+      <label>Referencia de mercado <button class="btn sm sec" id="e-calc" type="button" style="margin-left:6px">Calcular automático</button></label>
+      <textarea id="e-mercado" rows="2" placeholder="Ej. En Valle Oriente las oficinas en venta se publican entre $63,000 y $85,000 por m²."></textarea>
+    </div>
+
+    <div class="card">
+      <b style="font-size:14px">➕ Agregar opción</b>
+      <div class="tabs"><button class="on" data-t="inv">🏠 Inventario NIVA</button><button data-t="bus">🔎 Buscador</button><button data-t="man">✍️ Manual</button></div>
+      <div id="t-inv"><input id="inv-q" placeholder="Busca por nombre, colonia o folio EB…"><div id="inv-r"></div></div>
+      <div id="t-bus" class="hidden"><select id="bus-sel"><option value="">Elige una búsqueda…</option></select><div id="bus-r"></div></div>
+      <div id="t-man" class="hidden"><p class="muted" style="margin:8px 0">Agrega una opción vacía y llena sus datos y fotos abajo.</p><button class="btn sm" id="man-add" type="button">+ Agregar opción manual</button></div>
+    </div>
+
+    <div id="opts"></div>
+
+    <div class="row" style="position:sticky;bottom:0;background:var(--navy2);padding:12px 0;border-top:1px solid var(--line)">
+      <button class="btn sec" id="e-volver" type="button">← Volver</button>
+      <span style="flex:1"></span>
+      <button class="btn sec" id="e-guardar" type="button">💾 Guardar</button>
+      <button class="btn" id="e-generar" type="button">📄 Generar PDF y link</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const $=s=>document.querySelector(s);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cfg=await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+const sb=createClient(cfg.url,cfg.anon);
+let {data:{session}}=await sb.auth.getSession();
+if(!session){ location.replace('./index.html'); }
+try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){}
+const BASE=location.origin+location.pathname.replace(/[^/]*$/,'');
+let ME={id:null,nombre:'',tel:''};
+try{ const {data:aid}=await sb.rpc('my_advisor_id'); if(aid){ const {data:a}=await sb.from('advisors').select('id,first_name,last_name,phone').eq('id',aid).maybeSingle(); if(a) ME={id:a.id,nombre:((a.first_name||'')+' '+(a.last_name||'')).trim(),tel:a.phone||''}; } }catch(_e){}
+
+const TIPOS={House:'Casa',Apartment:'Departamento',Land:'Terreno','Commercial land':'Terreno comercial',Office:'Oficina','Commercial space':'Local comercial',Warehouse:'Bodega','Bodega comercial':'Bodega'};
+const limpiar=s=>String(s||'').replace(/\r/g,'').split('\n').map(l=>{let t=l.replace(/^\s*((?:\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}])+)\s*/u,'- ');t=t.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}]/gu,'').replace(/\p{Extended_Pictographic}/gu,'');t=t.replace(/[“”«»]/g,'"').replace(/[‘’´]/g,"'").replace(/[–—]/g,'-').replace(/…/g,'...').replace(/[•●▪◦]/g,'-');t=t.replace(/[^\x09\x20-\x7E -ÿ]/g,'');return t.replace(/[ \t]{2,}/g,' ').trim();}).join('\n').replace(/^- \s*$/gm,'').replace(/\n{3,}/g,'\n\n').trim();
+const caractDeDesc=d=>{const ls=limpiar(d).split('\n').filter(l=>/^- /.test(l)).map(l=>l.slice(2).trim()).filter(l=>l.length>2&&l.length<90);return ls.slice(0,7);};
+const num=v=>{const n=Number(String(v??'').replace(/[^\d.]/g,''));return Number.isFinite(n)&&n>0?n:null};
+const fmt=n=>n?'$'+Math.round(n).toLocaleString('en-US'):'—';
+
+let P=null; // propuesta en edición
+// ── LISTA ──
+async function cargarLista(){
+  const {data,error}=await sb.from('propuestas').select('id,token,cliente_nombre,titulo,opciones,respuestas,vista_at,created_at,pdf_url').order('created_at',{ascending:false}).limit(100);
+  const L=$('#lista'); if(error){L.innerHTML='<p class="muted">Error: '+esc(error.message)+'</p>';return}
+  if(!data.length){L.innerHTML='<div class="card muted">Aún no hay propuestas. Toca “+ Nueva”.</div>';return}
+  L.innerHTML=data.map(p=>{const r=Object.values(p.respuestas||{});const ni=r.filter(x=>x.r==='interesa').length,nv=r.filter(x=>x.r==='visitar').length;
+    return '<div class="card it" data-id="'+p.id+'"><div class="t"><b>'+esc(p.cliente_nombre||'Sin nombre')+'</b> <span class="muted">· '+esc(p.titulo||'')+'</span><div class="muted">'+new Date(p.created_at).toLocaleDateString('es-MX')+' · '+(p.opciones||[]).length+' opciones · '+(p.vista_at?'👀 la abrió':'aún no la abre')+(ni?' · ❤️ '+ni+' le interesan':'')+(nv?' · 📅 '+nv+' quiere visitar':'')+'</div></div>'
+    +'<button class="btn sm sec" data-a="ed">Editar</button>'+(p.pdf_url?'<button class="btn sm" data-a="sh">Enviar</button>':'')+'</div>'}).join('');
+  L.querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{const id=b.closest('[data-id]').dataset.id;const {data:p}=await sb.from('propuestas').select('*').eq('id',id).single();if(b.dataset.a==='ed')abrirEditor(p);else menuEnviar(p);});
+}
+$('#nueva').onclick=()=>abrirEditor({cliente_nombre:'',titulo:'',subtitulo:'',nota:'',mercado_texto:'',opciones:[]});
+function abrirEditor(p){P=JSON.parse(JSON.stringify(p));$('#v-lista').classList.add('hidden');$('#v-editor').classList.remove('hidden');
+  $('#e-cliente').value=P.cliente_nombre||'';$('#e-titulo').value=P.titulo||'';$('#e-sub').value=P.subtitulo||'';$('#e-nota').value=P.nota||'';$('#e-mercado').value=P.mercado_texto||'';pintarOpts();window.scrollTo(0,0);}
+$('#e-volver').onclick=()=>{$('#v-editor').classList.add('hidden');$('#v-lista').classList.remove('hidden');cargarLista();};
+
+// ── PESTAÑAS AGREGAR ──
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));['inv','bus','man'].forEach(t=>$('#t-'+t).classList.toggle('hidden',t!==b.dataset.t));if(b.dataset.t==='bus')cargarBusquedas();});
+let invT=null;$('#inv-q').oninput=()=>{clearTimeout(invT);invT=setTimeout(buscarInv,350)};
+async function buscarInv(){const q=$('#inv-q').value.trim();const R=$('#inv-r');if(q.length<2){R.innerHTML='';return}
+  const s=q.replace(/[%,()]/g,' ');
+  const {data}=await sb.from('properties').select('id,eb_public_id,title,price_amount,operation_type,property_type,location_name,construction_size,lot_size,bedrooms,bathrooms,half_bathrooms,parking_spaces,description,title_image_url,images,lat,lng').eq('eb_status','published').or('title.ilike.%'+s+'%,location_name.ilike.%'+s+'%,eb_public_id.ilike.%'+s+'%').limit(15);
+  R.innerHTML=(data||[]).map((p,i)=>'<div class="res"><img src="'+esc(p.title_image_url||'')+'"><div class="t"><b>'+esc(p.title)+'</b><span class="muted">'+esc(p.eb_public_id)+' · '+fmt(p.price_amount)+' · '+esc(String(p.location_name||'').split(',')[0])+'</span></div><button class="btn sm" data-i="'+i+'">Agregar</button></div>').join('')||'<p class="muted" style="padding:8px">Sin resultados</p>';
+  R.querySelectorAll('button').forEach(b=>b.onclick=()=>{const p=data[+b.dataset.i];const loc=String(p.location_name||'').split(',').map(x=>x.trim());
+    const fotos=[p.title_image_url,...(p.images||[]).map(x=>typeof x==='string'?x:x&&x.url)].filter(Boolean);const vist=new Set();
+    addOpt({origen:'niva',ref:p.eb_public_id,titulo:limpiar(p.title),zona:loc[0]||'',municipio:loc[1]||'',tipo:TIPOS[p.property_type]||p.property_type||'',operacion:p.operation_type==='rental'?'renta':'venta',
+      precio:p.price_amount,m2:p.construction_size||p.lot_size||null,rec:p.bedrooms,banos:p.bathrooms?Number(p.bathrooms)+(p.half_bathrooms?0.5*p.half_bathrooms:0):null,estac:p.parking_spaces,
+      estado:'',caract:caractDeDesc(p.description),nota:'',fotos:fotos.filter(u=>{const k=u.split('?')[0];if(vist.has(k))return false;vist.add(k);return true}).slice(0,12),lat:p.lat,lng:p.lng});
+    toast('Agregada: '+p.title);});
+}
+async function cargarBusquedas(){const S=$('#bus-sel');if(S.dataset.ok)return;const {data}=await sb.from('busquedas').select('id,cliente_nombre,created_at').order('created_at',{ascending:false}).limit(40);
+  S.innerHTML='<option value="">Elige una búsqueda…</option>'+(data||[]).map(b=>'<option value="'+b.id+'">'+esc(b.cliente_nombre||'Búsqueda')+' · '+new Date(b.created_at).toLocaleDateString('es-MX')+'</option>').join('');S.dataset.ok=1;}
+$('#bus-sel').onchange=async()=>{const id=$('#bus-sel').value;const R=$('#bus-r');if(!id){R.innerHTML='';return}
+  const {data}=await sb.from('busqueda_resultados').select('*').eq('busqueda_id',id).eq('descartado',false).order('favorito',{ascending:false}).order('distancia_km',{ascending:true,nullsFirst:false}).limit(60);
+  R.innerHTML=(data||[]).map((r,i)=>'<div class="res"><img src="'+esc((r.datos&&r.datos.foto)||'')+'"><div class="t"><b>'+(r.favorito?'⭐ ':'')+esc(r.titulo)+'</b><span class="muted">'+fmt(r.precio)+' · '+esc(r.colonia||'')+' · '+esc(r.portal||r.fuente||'')+'</span></div><button class="btn sm" data-i="'+i+'">Agregar</button></div>').join('')||'<p class="muted" style="padding:8px">Sin resultados</p>';
+  R.querySelectorAll('button').forEach(b=>b.onclick=()=>{const r=data[+b.dataset.i];
+    addOpt({origen:'buscador',ref:r.url,titulo:limpiar(r.titulo),zona:r.colonia||'',municipio:r.municipio||'',tipo:'',operacion:'',precio:r.precio,m2:r.m2c||r.m2t,rec:r.rec,banos:r.banos,estac:r.estac,estado:'',caract:[],nota:'',fotos:(r.datos&&r.datos.foto)?[r.datos.foto]:[],lat:r.lat,lng:r.lng});
+    toast('Agregada. Revisa y completa sus datos abajo.');});
+};
+$('#man-add').onclick=()=>{addOpt({origen:'manual',titulo:'',zona:'',municipio:'',tipo:'',operacion:'venta',precio:null,m2:null,rec:null,banos:null,estac:null,estado:'',caract:[],nota:'',fotos:[]});toast('Opción agregada abajo');};
+
+// ── OPCIONES ──
+function addOpt(o){P.opciones.push(o);pintarOpts();}
+function pintarOpts(){const C=$('#opts');
+  C.innerHTML=P.opciones.map((o,i)=>'<div class="card opt" data-i="'+i+'"><div class="row"><span class="pill">Opción '+(i+1)+'</span><span class="pill" style="background:rgba(255,255,255,.08);color:#cbd5e1">'+({niva:'Inventario NIVA',buscador:'Buscador',manual:'Manual'}[o.origen]||'')+'</span><h3></h3>'
+   +(i>0?'<button class="btn sm sec" data-a="up">▲</button>':'')+(i<P.opciones.length-1?'<button class="btn sm sec" data-a="dn">▼</button>':'')+'<button class="btn sm sec" data-a="del">🗑️</button></div>'
+   +'<div class="g2"><div><label>Nombre / inmueble</label><input data-f="titulo" value="'+esc(o.titulo)+'"></div><div><label>Zona / colonia</label><input data-f="zona" value="'+esc(o.zona)+'"></div></div>'
+   +'<div class="g4"><div><label>Operación</label><select data-f="operacion"><option value="venta"'+(o.operacion==='venta'?' selected':'')+'>Venta</option><option value="renta"'+(o.operacion==='renta'?' selected':'')+'>Renta</option><option value="ambas"'+(o.operacion==='ambas'?' selected':'')+'>Venta o renta</option></select></div>'
+   +'<div><label>Precio venta</label><input data-f="precio" inputmode="numeric" value="'+esc(o.venta??(o.operacion==='renta'?'':(o.precio||'')))+'"></div><div><label>Renta mensual</label><input data-f="renta" inputmode="numeric" value="'+esc(o.renta??(o.operacion==='renta'?(o.precio||''):''))+'"></div><div><label>M²</label><input data-f="m2" inputmode="numeric" value="'+esc(o.m2||'')+'"></div>'
+   +'<div><label>Recámaras</label><input data-f="rec" inputmode="numeric" value="'+esc(o.rec||'')+'"></div><div><label>Baños</label><input data-f="banos" inputmode="decimal" value="'+esc(o.banos||'')+'"></div><div><label>Estacionamientos</label><input data-f="estac" value="'+esc(o.estac||'')+'"></div><div><label>Estado / entrega</label><input data-f="estado" placeholder="Ej. Obra gris" value="'+esc(o.estado||'')+'"></div></div>'
+   +'<label>Características (una por línea)</label><textarea data-f="caract" rows="3">'+esc((o.caract||[]).join('\n'))+'</textarea>'
+   +'<label>¿Por qué se la recomiendas? (opcional)</label><textarea data-f="nota" rows="2">'+esc(o.nota||'')+'</textarea>'
+   +'<label>Fotos (la primera es la portada) · <span class="muted">toca una para hacerla portada</span></label><div class="fotos">'+(o.fotos||[]).map((u,k)=>'<div class="'+(k===0?'p':'')+'" data-k="'+k+'" style="background-image:url(\''+esc(String(u).replace(/'/g,'%27'))+'\')"><button data-a="fx" data-k="'+k+'">✕</button></div>').join('')+'</div>'
+   +'<label class="btn sm sec" style="display:inline-block;margin-top:8px;color:#fff">📷 Agregar fotos<input type="file" accept="image/*" multiple hidden data-a="up-f"></label></div>').join('');
+  C.querySelectorAll('.opt').forEach(card=>{const i=+card.dataset.i, o=P.opciones[i];
+    card.querySelector('h3').textContent=o.titulo||'';
+    card.querySelectorAll('[data-f]').forEach(inp=>inp.oninput=inp.onchange=()=>{const f=inp.dataset.f;let v=inp.value;
+      if(f==='caract') o.caract=v.split('\n').map(s=>s.trim()).filter(Boolean);
+      else if(f==='precio'){ o.venta=num(v); }
+      else o[f]=['m2','rec','banos','renta'].includes(f)?num(v):v;
+      if(f==='titulo') card.querySelector('h3').textContent=v; });
+    card.querySelectorAll('[data-a]').forEach(b=>{const a=b.dataset.a;
+      if(a==='up-f'){ b.onchange=async e=>{const fs=[...e.target.files];e.target.value='';for(const f of fs){toast('Subiendo foto…');try{const j=await aJpeg(URL.createObjectURL(f),1920);const path='propuestas/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.jpg';const up=await sb.storage.from('captaciones').upload(path,j,{contentType:'image/jpeg'});if(up.error)throw up.error;o.fotos.push(sb.storage.from('captaciones').getPublicUrl(path).data.publicUrl);}catch(err){toast('No se pudo subir: '+(err.message||err))}}pintarOpts();};return; }
+      b.onclick=e=>{e.stopPropagation();if(a==='del'){if(confirm('¿Quitar esta opción?')){P.opciones.splice(i,1);pintarOpts();}}
+        else if(a==='up'){[P.opciones[i-1],P.opciones[i]]=[P.opciones[i],P.opciones[i-1]];pintarOpts();}
+        else if(a==='dn'){[P.opciones[i+1],P.opciones[i]]=[P.opciones[i],P.opciones[i+1]];pintarOpts();}
+        else if(a==='fx'){o.fotos.splice(+b.dataset.k,1);pintarOpts();}};});
+    card.querySelectorAll('.fotos>div').forEach(d=>d.onclick=()=>{const k=+d.dataset.k;if(k>0){const [f]=o.fotos.splice(k,1);o.fotos.unshift(f);pintarOpts();}});
+  });
+}
+// Normaliza precios antes de guardar
+function normalizar(){P.cliente_nombre=$('#e-cliente').value.trim();P.titulo=$('#e-titulo').value.trim();P.subtitulo=$('#e-sub').value.trim();P.nota=$('#e-nota').value.trim();P.mercado_texto=$('#e-mercado').value.trim();
+  P.opciones.forEach(o=>{const card=document.querySelector('.opt[data-i="'+P.opciones.indexOf(o)+'"]');if(card){o.venta=num(card.querySelector('[data-f=precio]').value);o.renta=num(card.querySelector('[data-f=renta]').value);}
+    if(o.operacion==='renta'){o.venta=null;} if(o.operacion==='venta'){o.renta=o.renta||null;}
+    o.precio=o.venta||o.renta||null;});}
+async function guardar(){normalizar();if(!P.cliente_nombre){toast('Escribe el nombre del cliente');$('#e-cliente').focus();return false}
+  const row={cliente_nombre:P.cliente_nombre,titulo:P.titulo,subtitulo:P.subtitulo,nota:P.nota,mercado_texto:P.mercado_texto,opciones:P.opciones,asesor_nombre:ME.nombre||null,asesor_tel:ME.tel||null,updated_at:new Date().toISOString()};
+  let r; if(P.id) r=await sb.from('propuestas').update(row).eq('id',P.id).select().single(); else r=await sb.from('propuestas').insert({...row,advisor_id:ME.id,creado_por:session.user.email}).select().single();
+  if(r.error){toast('Error al guardar: '+r.error.message);return false} P.id=r.data.id;P.token=r.data.token;toast('Guardada ✅');return true;}
+$('#e-guardar').onclick=guardar;
+
+// Referencia de mercado automática: precio por m² de propiedades publicadas parecidas en la misma zona
+$('#e-calc').onclick=async()=>{normalizar();const o=P.opciones.find(x=>x.m2&&x.precio);if(!o){toast('Agrega primero una opción con precio y m²');return}
+  const op=o.renta&&!o.venta?'rental':'sale';const z=o.municipio||o.zona;
+  const {data}=await sb.from('properties').select('price_amount,construction_size,lot_size,location_name').eq('operation_type',op).ilike('location_name','%'+z+'%').limit(400);
+  const v=(data||[]).map(p=>p.price_amount/(p.construction_size||p.lot_size||0)).filter(x=>Number.isFinite(x)&&x>0).sort((a,b)=>a-b);
+  if(v.length<3){toast('Pocos datos en esa zona; escríbela a mano');return}
+  const q=f=>v[Math.floor((v.length-1)*f)];
+  $('#e-mercado').value='En '+z+' las propiedades en '+(op==='sale'?'venta':'renta')+' se publican hoy, en promedio, entre '+fmt(q(.25))+' y '+fmt(q(.75))+' por m²'+(op==='rental'?' al mes':'')+' (referencia de '+v.length+' propiedades).';};
+
+// ── IMÁGENES → JPEG (por proxy cuando vienen de otro sitio) ──
+function srcProxy(u){if(/^blob:|^data:/.test(u)||u.includes('.supabase.co/storage/'))return Promise.resolve(u);
+  // hyper-service = función "niva-img" (proxy de fotos de portales)
+  return fetch(cfg.url+'/functions/v1/hyper-service?u='+encodeURIComponent(u),{headers:{Authorization:'Bearer '+cfg.anon,apikey:cfg.anon,'x-niva-jwt':session.access_token}}).then(r=>r.ok?r.blob():Promise.reject(r.status)).then(b=>URL.createObjectURL(b));}
+async function aJpeg(src,max,asDataUrl){const s=await srcProxy(src);return new Promise((res,rej)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+  if(asDataUrl) res({d:c.toDataURL('image/jpeg',.85),w:c.width,h:c.height}); else c.toBlob(b=>res(b),'image/jpeg',.88);};im.onerror=()=>rej('img');im.src=s;});}
+
+// ── PDF con el diseño de la propuesta ──
+async function generarPDF(btn){
+  const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'letter'});const W=215.9,H=279.4,M=18;
+  {const _t=pdf.text.bind(pdf);const fx=x=>String(x).replace(/²/g,'2');pdf.text=(t,...r)=>_t(Array.isArray(t)?t.map(fx):fx(t),...r);}
+  const NAVY=[27,42,74],GOLD=[176,141,60],GR=[100,116,139],INK=[30,41,59];
+  const T=s=>limpiar(s);
+  const sp=(t,x,y,ls,al)=>{pdf.text(String(t).toUpperCase().split('').join(' '.repeat(ls)),x,y,al?{align:al}:undefined)};
+  const foto=async(u,max=1600)=>{try{return await aJpeg(u,max,true)}catch(_e){return null}};
+  const cover=(f,x,y,w,h)=>{if(!f){pdf.setFillColor(226,232,240);pdf.rect(x,y,w,h,'F');return}const ir=f.w/f.h,cr=w/h;let dw=w,dh=h,dx=x,dy=y;if(ir>cr){dw=h*ir;dx=x-(dw-w)/2}else{dh=w/ir;dy=y-(dh-h)/2}
+    pdf.saveGraphicsState();pdf.rect(x,y,w,h,null);pdf.clip();pdf.discardPath();pdf.addImage(f.d,'JPEG',dx,dy,dw,dh,undefined,'FAST');pdf.restoreGraphicsState();};
+  const pie=(n)=>{pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor(...GR);pdf.text('NIVA Inmobiliaria · Monterrey, N.L.',M,H-10);pdf.text(String(n),W-M,H-10,{align:'right'});};
+  const marca=(y,col)=>{pdf.setFont('times','bold');pdf.setFontSize(14);pdf.setTextColor(...col);pdf.text('NIVA',M,y);};
+  const mes=new Date().toLocaleDateString('es-MX',{month:'long',year:'numeric'});const mesC=mes.charAt(0).toUpperCase()+mes.slice(1);
+  const O=P.opciones;let pag=1;
+  // PORTADA
+  btn.textContent='⏳ Portada…';
+  const f0=O[0]&&O[0].fotos[0]?await foto(O[0].fotos[0],2000):null;cover(f0,0,0,W,H);
+  pdf.setGState(new pdf.GState({opacity:.55}));pdf.setFillColor(10,18,32);pdf.rect(0,H*0.52,W,H*0.48,'F');pdf.rect(0,0,W,24,'F');pdf.setGState(new pdf.GState({opacity:1}));
+  marca(15,[255,255,255]);pdf.setFont('helvetica','normal');pdf.setFontSize(9);pdf.setTextColor(255,255,255);pdf.text('Propuesta · '+mesC,W-M,15,{align:'right'});
+  pdf.setFontSize(8);pdf.setTextColor(232,201,106);sp('Selección para '+(P.cliente_nombre||'nuestro cliente'),M,H*0.62,1);
+  pdf.setFont('times','normal');pdf.setFontSize(32);pdf.setTextColor(255,255,255);const tl=pdf.splitTextToSize(T(P.titulo||'Opciones seleccionadas para ti'),W-2*M);pdf.text(tl.slice(0,3),M,H*0.62+14);
+  let y=H*0.62+14+tl.slice(0,3).length*12;
+  if(P.subtitulo){pdf.setFont('helvetica','normal');pdf.setFontSize(11);pdf.setTextColor(226,232,240);pdf.text(pdf.splitTextToSize(T(P.subtitulo),W-2*M-20).slice(0,4),M,y);}
+  // COMPARATIVO
+  pdf.addPage();pag++;marca(16,NAVY);pdf.setFontSize(8);pdf.setTextColor(...GOLD);pdf.setFont('helvetica','bold');sp('Resumen comparativo',W-M,16,1,'right');
+  pdf.setFont('times','normal');pdf.setFontSize(24);pdf.setTextColor(...INK);pdf.text('Opciones presentadas',M,36);
+  y=44;if(P.nota){pdf.setFont('helvetica','normal');pdf.setFontSize(10);pdf.setTextColor(...GR);const nl=pdf.splitTextToSize(T(P.nota),W-2*M);pdf.text(nl.slice(0,8),M,y);y+=nl.slice(0,8).length*4.6+4;}
+  const hayRenta=O.some(o=>o.renta);const cols=[['#',8],['Inmueble',hayRenta?50:62],['Zona',30],['m2',16],['Venta',30],['Por m²',22]];if(hayRenta)cols.push(['Renta/mes',26]);
+  y+=4;pdf.setDrawColor(...GOLD);pdf.setLineWidth(.5);pdf.line(M,y,W-M,y);y+=6;pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.setTextColor(...GR);let x=M;cols.forEach(([c,w])=>{pdf.text(c.toUpperCase(),x,y);x+=w});y+=3;pdf.setLineWidth(.2);pdf.setDrawColor(203,213,225);pdf.line(M,y,W-M,y);
+  O.forEach((o,i)=>{y+=7;if(y>H-40){pdf.addPage();pag++;y=30}x=M;const pm2=o.venta&&o.m2?o.venta/o.m2:(o.renta&&o.m2?o.renta/o.m2:null);
+    const vals=[String(i+1),T(o.titulo),T(o.zona),o.m2?Math.round(o.m2):'—',o.venta?fmt(o.venta):'—',pm2?fmt(pm2):'—'];if(hayRenta)vals.push(o.renta?fmt(o.renta):'—');
+    let maxL=1;vals.forEach((v,k)=>{const w=cols[k][1];pdf.setFont('helvetica',k===1?'bold':'normal');pdf.setFontSize(k===0?11:9);pdf.setTextColor(...(k===0?GOLD:INK));const ls=pdf.splitTextToSize(String(v),w-3).slice(0,2);pdf.text(ls,x,y);maxL=Math.max(maxL,ls.length);x+=w;});
+    y+=(maxL-1)*4+3;pdf.line(M,y,W-M,y);});
+  if(hayRenta){y+=5;pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor(...GR);pdf.text('Precios como los publica cada propietario. Revisa en cada opción si aplica IVA o mantenimiento.',M,y);}
+  if(P.mercado_texto){y+=8;const ml=pdf.splitTextToSize(T(P.mercado_texto),W-2*M-12);pdf.setFillColor(248,245,236);pdf.rect(M,y,W-2*M,ml.length*4.6+8,'F');pdf.setFillColor(...GOLD);pdf.rect(M,y,1.2,ml.length*4.6+8,'F');
+    pdf.setFont('helvetica','bold');pdf.setFontSize(9);pdf.setTextColor(...NAVY);pdf.text('Referencia de mercado.',M+6,y+6);pdf.setFont('helvetica','normal');pdf.setTextColor(...INK);pdf.text(ml,M+6,y+11);}
+  pie(pag);
+  // UNA HOJA POR OPCIÓN + GALERÍA
+  for(let i=0;i<O.length;i++){const o=O[i];btn.textContent='⏳ Opción '+(i+1)+' de '+O.length+'…';
+    pdf.addPage();pag++;const f=o.fotos[0]?await foto(o.fotos[0]):null;cover(f,0,0,W,H*0.38);y=H*0.38+12;
+    const opTxt=o.operacion==='ambas'?'Venta o renta':(o.operacion==='renta'?'Renta':'Venta');
+    pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.setTextColor(...GOLD);sp('Opción '+(i+1)+' · '+opTxt,M,y,1);
+    if(o.estado){pdf.setFontSize(7);const w=pdf.getTextWidth(o.estado.toUpperCase())+6;pdf.setDrawColor(...INK);pdf.setLineWidth(.3);pdf.rect(W-M-w,y-4,w,6);pdf.setTextColor(...INK);pdf.text(T(o.estado).toUpperCase(),W-M-w/2,y,{align:'center'});}
+    y+=10;pdf.setFont('times','normal');pdf.setFontSize(22);pdf.setTextColor(...INK);const tt=pdf.splitTextToSize(T(o.titulo||'Opción '+(i+1)),W-2*M);pdf.text(tt.slice(0,2),M,y);y+=tt.slice(0,2).length*8;
+    pdf.setFont('helvetica','normal');pdf.setFontSize(10);pdf.setTextColor(...GR);pdf.text(T([o.zona,o.municipio].filter(Boolean).join(', ')),M,y);y+=6;pdf.setDrawColor(...INK);pdf.setLineWidth(.4);pdf.line(M,y,W-M,y);y+=7;
+    const pm2=o.venta&&o.m2?o.venta/o.m2:(o.renta&&o.m2?o.renta/o.m2:null);
+    const kp=[['Superficie',o.m2?Math.round(o.m2)+' m²':'—'],[o.venta?'Venta':'Renta',o.venta?(o.venta>=1e6?'$'+(o.venta/1e6).toFixed(1)+' M':fmt(o.venta)):fmt(o.renta)],[(o.venta?'Venta':'Renta')+' por m²',pm2?fmt(pm2):'—'],[o.rec?'Recámaras':'Cajones',o.rec?String(o.rec):(o.estac||'—')]];
+    const kw=(W-2*M)/4;kp.forEach(([k,v],j)=>{pdf.setFont('helvetica','bold');pdf.setFontSize(7);pdf.setTextColor(...GR);pdf.text(k.toUpperCase(),M+j*kw,y);pdf.setFont('times','normal');pdf.setFontSize(18);pdf.setTextColor(...INK);pdf.text(String(v),M+j*kw,y+8);});
+    y+=18;const cw=(W-2*M-12)/2;let yl=y,yr=y;
+    const fila=(k,v,yy,bold)=>{pdf.setFont('helvetica',bold?'bold':'normal');pdf.setFontSize(9.5);pdf.setTextColor(...INK);pdf.text(k,M,yy);pdf.text(v,M+cw,yy,{align:'right'});pdf.setDrawColor(226,232,240);pdf.setLineWidth(.2);pdf.line(M,yy+2.5,M+cw,yy+2.5);};
+    const enc=(t,xx,yy)=>{pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.setTextColor(...GOLD);pdf.text(t.toUpperCase().split('').join(' '),xx,yy);};
+    if(o.venta){enc('Venta',M,yl);yl+=7;fila('Precio',fmt(o.venta),yl);yl+=7;if(pm2&&o.venta)fila('Precio por m²',fmt(o.venta/o.m2),yl),yl+=7;yl+=4;}
+    if(o.renta){enc('Renta mensual',M,yl);yl+=7;fila('Renta',fmt(o.renta),yl);yl+=7;if(o.m2)fila('Renta por m²',fmt(o.renta/o.m2),yl),yl+=7;yl+=4;}
+    const det=[];if(o.rec)det.push(['Recámaras',String(o.rec)]);if(o.banos)det.push(['Baños',String(o.banos)]);if(o.estac)det.push(['Estacionamientos',String(o.estac)]);
+    if(det.length){enc('Detalles',M,yl);yl+=7;det.forEach(([k,v])=>{fila(k,v,yl);yl+=7;});}
+    const xr=M+cw+12;if((o.caract||[]).length){enc('Características',xr,yr);yr+=7;pdf.setFont('helvetica','normal');pdf.setFontSize(9.5);pdf.setTextColor(...INK);
+      o.caract.slice(0,9).forEach(c=>{const ls=pdf.splitTextToSize(T(c),cw);pdf.text(ls,xr,yr);yr+=ls.length*4.4+1.5;pdf.setDrawColor(226,232,240);pdf.line(xr,yr-1,xr+cw,yr-1);yr+=2.5;});}
+    const yn=Math.max(yl,yr)+4;if(o.nota&&yn<H-30){const nl=pdf.splitTextToSize(T(o.nota),W-2*M-12);pdf.setFillColor(248,245,236);pdf.rect(M,yn,W-2*M,Math.min(nl.length,6)*4.6+10,'F');
+      pdf.setFont('helvetica','bold');pdf.setFontSize(8.5);pdf.setTextColor(...GOLD);pdf.text('POR QUÉ TE LA RECOMENDAMOS',M+6,yn+6);pdf.setFont('helvetica','normal');pdf.setFontSize(9.5);pdf.setTextColor(...INK);pdf.text(nl.slice(0,6),M+6,yn+11.5);}
+    pie(pag);
+    const resto=o.fotos.slice(1,7);if(resto.length){pdf.addPage();pag++;marca(16,NAVY);pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor(...GOLD);sp('Opción '+(i+1)+' · Galería',W-M,16,1,'right');
+      const gw=(W-2*M-6)/2,gh=gw*0.72;for(let k=0;k<resto.length;k++){btn.textContent='⏳ Opción '+(i+1)+' · foto '+(k+2)+'…';const g=await foto(resto[k],1200);cover(g,M+(k%2)*(gw+6),26+Math.floor(k/2)*(gh+6),gw,gh);}
+      pdf.setFont('helvetica','italic');pdf.setFontSize(8.5);pdf.setTextColor(...GR);pdf.text(pdf.splitTextToSize('Información proporcionada por el propietario; sujeta a cambios y disponibilidad. Agenda una visita con tu asesor NIVA.',W-2*M),M,26+3*(gh+6)+4);pie(pag);}
+  }
+  // CIERRE
+  pdf.addPage();pag++;pdf.setFillColor(...NAVY);pdf.rect(0,0,W,H,'F');pdf.setFont('times','bold');pdf.setFontSize(30);pdf.setTextColor(255,255,255);pdf.text('NIVA',W/2,H*0.36,{align:'center'});
+  pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor(232,201,106);sp('Inmobiliaria',W/2,H*0.36+8,1,'center');
+  pdf.setFont('times','normal');pdf.setFontSize(20);pdf.setTextColor(255,255,255);pdf.text('¿Te gustaría visitar alguna opción?',W/2,H*0.5,{align:'center'});
+  pdf.setFont('helvetica','normal');pdf.setFontSize(11);pdf.setTextColor(226,232,240);if(ME.nombre)pdf.text(T(ME.nombre),W/2,H*0.5+14,{align:'center'});if(ME.tel)pdf.text(ME.tel,W/2,H*0.5+21,{align:'center'});
+  const link=BASE+'propuesta.html?t='+P.token;pdf.setTextColor(232,201,106);pdf.setFontSize(10);pdf.textWithLink('Ver propuesta en línea y marcar tus favoritas',W/2,H*0.5+34,{align:'center',url:link});
+  return pdf.output('blob');
+}
+function nombrePDF(){return 'Propuesta NIVA '+String(P.cliente_nombre||'').replace(/[^\wáéíóúñÁÉÍÓÚÑ ]+/g,' ').trim().slice(0,40)+'.pdf'}
+$('#e-generar').onclick=async()=>{const btn=$('#e-generar');if(!P.opciones.length){toast('Agrega al menos una opción');return}
+  btn.disabled=true;try{if(!await guardar())return;const blob=await generarPDF(btn);btn.textContent='⏳ Subiendo…';
+    const ruta='propuestas/'+P.token+'-'+Date.now()+'.pdf';const up=await sb.storage.from('fichas').upload(ruta,blob,{contentType:'application/pdf',upsert:false});if(up.error)throw up.error;
+    P.pdf_url=sb.storage.from('fichas').getPublicUrl(ruta).data.publicUrl;await sb.from('propuestas').update({pdf_url:P.pdf_url}).eq('id',P.id);
+    menuEnviar(P,new File([blob],nombrePDF(),{type:'application/pdf'}));
+  }catch(e){console.error(e);toast('Error: '+(e.message||e))}finally{btn.disabled=false;btn.textContent='📄 Generar PDF y link';}};
+
+// ── ENVIAR (como en el CRM) ──
+function menuEnviar(p,archivo){const link=BASE+'propuesta.html?t='+p.token;let o=document.createElement('div');o.className='sheet';
+  o.innerHTML='<div><b style="font-size:15px">📑 Propuesta para '+esc(p.cliente_nombre)+'</b><button class="b" id="s-pdf" style="background:#25D366;color:#fff"'+(archivo?'':' disabled')+'>'+(archivo?'📤 Compartir PDF (WhatsApp, etc.)':'⏳ Preparando PDF…')+'</button>'
+   +'<button class="b" id="s-link" style="background:#fff;border:1px solid #C9A84C;color:#1B2A4A">🔗 Copiar link para el cliente</button><a class="b" href="'+link+'" target="_blank" style="background:#f1f5f9;color:#1B2A4A">👀 Ver como la verá el cliente</a><button class="b" id="s-x" style="background:#f1f5f9;color:#475569">Cerrar</button></div>';
+  document.body.appendChild(o);o.onclick=e=>{if(e.target===o)o.remove()};o.querySelector('#s-x').onclick=()=>o.remove();
+  const bp=o.querySelector('#s-pdf');
+  if(!archivo&&p.pdf_url){fetch(p.pdf_url).then(r=>r.blob()).then(b=>{archivo=new File([b],'Propuesta NIVA '+String(p.cliente_nombre||'').slice(0,40)+'.pdf',{type:'application/pdf'});bp.disabled=false;bp.textContent='📤 Compartir PDF (WhatsApp, etc.)';}).catch(()=>{bp.textContent='No se pudo preparar el PDF'});}
+  bp.onclick=async()=>{if(!archivo)return;if(navigator.canShare&&navigator.canShare({files:[archivo]})){try{await navigator.share({files:[archivo]})}catch(_e){}}else{const u=URL.createObjectURL(archivo);const a=document.createElement('a');a.href=u;a.download=archivo.name;a.click();setTimeout(()=>URL.revokeObjectURL(u),8000);}};
+  o.querySelector('#s-link').onclick=async()=>{const txt='Hola '+(p.cliente_nombre||'')+', te comparto las opciones que seleccioné para ti. Ahí puedes ver fotos, ubicación y marcar las que te interesen: '+link;
+    try{await navigator.clipboard.writeText(txt);toast('Mensaje con link copiado ✅')}catch(_e){prompt('Copia el link:',link)}};
+}
+cargarLista();
+</script>
+</body>
+</html>
