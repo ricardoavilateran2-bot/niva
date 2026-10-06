@@ -90,6 +90,8 @@ h+='<div class="tw"><table><tr><th>#</th><th>Inmueble</th><th>Zona</th><th>m²</
 const EST={interesa:['❤️','#fce7f3'],visitar:['📅','#dcfce7'],descartar:['✕','#f1f5f9']};
 h+='<div class="mini">'+O.map((o,i)=>{const e=EST[(R[i]||{}).r];return '<a href="#op'+i+'"><div class="th" style="'+bg(o.fotos&&o.fotos[0])+'"></div><div style="flex:1;min-width:0"><span class="n">'+(i+1)+'</span>'+(e?'<span class="est" style="background:'+e[1]+'">'+e[0]+'</span>':'')+'<b>'+esc(o.titulo)+'</b><small>'+esc(o.zona)+(o.m2?' · '+Math.round(o.m2)+' m²':'')+(o.rec?' · '+esc(o.rec)+' rec':'')+'</small><div class="pr">'+(o.venta?fmt(o.venta):fmt(o.renta)+'<small> /mes</small>')+'</div></div></a>'}).join('')+'</div>';
 if(P.mercado) h+='<div class="nota"><b>Referencia de mercado.</b> '+esc(P.mercado)+'</div>';
+// (2026-10-05) 25.6866,-100.3161 es el punto por omisión de EasyBroker (centro de Monterrey) cuando no hay ubicación real: no se muestra
+O.forEach(o=>{if(o.lat&&Math.abs(o.lat-25.6866)<0.0005&&Math.abs(o.lng+100.3161)<0.0005){o.lat=null;o.lng=null;}});
 const conMapa=O.filter(o=>o.lat&&o.lng);if(conMapa.length) h+='<div id="mapa"></div>';
 O.forEach((o,i)=>{const pm=o.venta&&o.m2?o.venta/o.m2:(o.renta&&o.m2?o.renta/o.m2:null);const op=o.operacion==='ambas'?'Venta o renta':(o.operacion==='renta'?'Renta':'Venta');const r=(R[i]||{}).r||'';
   h+='<section class="op" id="op'+i+'"><div class="ph" style="'+bg(o.fotos&&o.fotos[0])+'"></div><div style="margin-top:16px" class="kick">Opción '+(i+1)+' · '+op+(o.estado?' · '+esc(o.estado):'')+'</div><h3 class="serif">'+esc(o.titulo)+'</h3><div style="color:var(--gr)">'+esc([o.zona,o.municipio].filter(Boolean).join(', '))+'</div>'
