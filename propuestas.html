@@ -233,10 +233,10 @@ async function generarPDF(btn){
   pdf.addPage();pag++;marca(16,NAVY);pdf.setFontSize(8);pdf.setTextColor(...GOLD);pdf.setFont('helvetica','bold');sp('Resumen comparativo',W-M,16,1,'right');
   pdf.setFont('times','normal');pdf.setFontSize(24);pdf.setTextColor(...INK);pdf.text('Opciones presentadas',M,36);
   y=44;if(P.nota){pdf.setFont('helvetica','normal');pdf.setFontSize(10);pdf.setTextColor(...GR);const nl=pdf.splitTextToSize(T(P.nota),W-2*M);pdf.text(nl.slice(0,8),M,y);y+=nl.slice(0,8).length*4.6+4;}
-  const hayRenta=O.some(o=>o.renta);const cols=[['#',8],['Inmueble',hayRenta?50:62],['Zona',30],['m2',16],['Venta',30],['Por m²',22]];if(hayRenta)cols.push(['Renta/mes',26]);
+  const hayRenta=O.some(o=>o.renta),hayVenta=O.some(o=>o.venta);const cols=[['#',8],['Inmueble',(hayRenta&&hayVenta)?50:68],['Zona',hayRenta&&hayVenta?30:42],['m2',16]];if(hayVenta)cols.push(['Venta',30]);cols.push(['Por m²',22]);if(hayRenta)cols.push(['Renta/mes',26]);
   y+=4;pdf.setDrawColor(...GOLD);pdf.setLineWidth(.5);pdf.line(M,y,W-M,y);y+=6;pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.setTextColor(...GR);let x=M;cols.forEach(([c,w])=>{pdf.text(c.toUpperCase(),x,y);x+=w});y+=3;pdf.setLineWidth(.2);pdf.setDrawColor(203,213,225);pdf.line(M,y,W-M,y);
   O.forEach((o,i)=>{y+=7;if(y>H-40){pdf.addPage();pag++;y=30}x=M;const pm2=o.venta&&o.m2?o.venta/o.m2:(o.renta&&o.m2?o.renta/o.m2:null);
-    const vals=[String(i+1),T(o.titulo),T(o.zona),o.m2?Math.round(o.m2):'—',o.venta?fmt(o.venta):'—',pm2?fmt(pm2):'—'];if(hayRenta)vals.push(o.renta?fmt(o.renta):'—');
+    const vals=[String(i+1),T(o.titulo),T(o.zona),o.m2?Math.round(o.m2):'—'];if(hayVenta)vals.push(o.venta?fmt(o.venta):'—');vals.push(pm2?fmt(pm2):'—');if(hayRenta)vals.push(o.renta?fmt(o.renta):'—');
     let maxL=1;vals.forEach((v,k)=>{const w=cols[k][1];pdf.setFont('helvetica',k===1?'bold':'normal');pdf.setFontSize(k===0?11:9);pdf.setTextColor(...(k===0?GOLD:INK));const ls=pdf.splitTextToSize(String(v),w-3).slice(0,2);pdf.text(ls,x,y);maxL=Math.max(maxL,ls.length);x+=w;});
     y+=(maxL-1)*4+3;pdf.line(M,y,W-M,y);});
   if(hayRenta){y+=5;pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor(...GR);pdf.text('Precios como los publica cada propietario. Revisa en cada opción si aplica IVA o mantenimiento.',M,y);}
