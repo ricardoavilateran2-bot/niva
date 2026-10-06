@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Propuesta NIVA Inmobiliaria</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#1B2A4A;--gold:#B08D3C;--ink:#1e293b;--gr:#64748b;--cream:#f8f5ec}
+body{font-family:Inter,sans-serif;background:#fff;color:var(--ink)}
+.serif{font-family:'Playfair Display',Georgia,serif}
+.hero{position:relative;min-height:78vh;background:#0f1e36 center/cover;display:flex;flex-direction:column;justify-content:flex-end;color:#fff}
+.hero:before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,18,32,.55) 0%,rgba(10,18,32,0) 25%,rgba(10,18,32,.15) 45%,rgba(10,18,32,.85) 100%)}
+.hero>*{position:relative}
+.top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:18px 20px;font-size:13px}
+.top b{font-family:'Playfair Display',serif;font-size:20px;letter-spacing:1px}
+.hero .in{padding:0 20px 40px;max-width:900px}
+.kick{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#e8c96a;font-weight:700}
+.hero h1{font-size:clamp(30px,6vw,52px);font-weight:500;line-height:1.1;margin:10px 0}
+.hero p{color:#e2e8f0;max-width:600px;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:36px 20px}
+h2{font-size:28px;font-weight:500;margin-bottom:6px}
+.nota{background:var(--cream);border-left:3px solid var(--gold);padding:14px 16px;margin:16px 0;line-height:1.55;white-space:pre-line}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:14px}
+th{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--gr);text-align:left;padding:8px 6px;border-top:2px solid var(--gold);border-bottom:1px solid #cbd5e1}
+td{padding:10px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+td.n{color:var(--gold);font-weight:700}
+.tw{overflow-x:auto}
+#mapa{height:340px;border-radius:12px;margin-top:16px;z-index:0}
+.op{border-top:1px solid #e2e8f0;margin-top:40px;padding-top:30px}
+.op .ph{width:100%;aspect-ratio:16/9;background:#e2e8f0 center/cover;border-radius:12px}
+.op .kick{color:var(--gold)}
+.op h3{font-size:28px;font-weight:500;margin:6px 0 2px}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;border-top:1px solid var(--ink);margin-top:14px;padding-top:12px}
+.kp div span{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--gr);font-weight:700}
+.kp div b{font-family:'Playfair Display',serif;font-weight:500;font-size:22px}
+@media(max-width:600px){.kp{grid-template-columns:1fr 1fr}}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:18px}
+@media(max-width:600px){.cols{grid-template-columns:1fr}}
+.fila{display:flex;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding:7px 0;font-size:14px}
+.car li{list-style:none;border-bottom:1px solid #e2e8f0;padding:7px 0;font-size:14px}
+.gal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.gal div{aspect-ratio:4/3;background:#e2e8f0 center/cover;border-radius:8px;cursor:pointer}
+@media(max-width:600px){.gal{grid-template-columns:1fr 1fr}}
+.acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.acc button{flex:1;min-width:140px;padding:12px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-weight:700;font-size:14px;cursor:pointer}
+.acc button.on[data-r=interesa]{background:#fce7f3;border-color:#ec4899}
+.acc button.on[data-r=visitar]{background:#dcfce7;border-color:#16a34a}
+.acc button.on[data-r=descartar]{background:#f1f5f9;border-color:#64748b}
+.foot{background:var(--navy);color:#fff;text-align:center;padding:50px 20px}
+.foot a{display:inline-block;margin-top:14px;background:#25D366;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:800}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:99}
+.lb img{max-width:96vw;max-height:90vh}
+.msg{padding:80px 20px;text-align:center;color:var(--gr)}
+</style>
+</head>
+<body>
+<div id="app"><p class="msg">Cargando propuesta…</p></div>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>n?'$'+Math.round(n).toLocaleString('en-US'):'—';
+const bg=u=>"background-image:url('"+String(u||'').replace(/'/g,'%27')+"')";
+const token=new URLSearchParams(location.search).get('t')||'';
+const cfg=await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+const sb=createClient(cfg.url,cfg.anon);
+const {data:P}=await sb.rpc('propuesta_publica',{p_token:token});
+const app=document.getElementById('app');
+if(!P){app.innerHTML='<p class="msg">Esta propuesta no existe o ya no está disponible.</p>';throw 0;}
+const O=P.opciones||[];const R=P.respuestas||{};
+const mes=new Date(P.fecha).toLocaleDateString('es-MX',{month:'long',year:'numeric'});
+const hayRenta=O.some(o=>o.renta);
+let h='<section class="hero" style="'+bg(O[0]&&O[0].fotos&&O[0].fotos[0])+'"><div class="top"><b>NIVA</b><span>Propuesta · '+esc(mes)+'</span></div><div class="in"><div class="kick">Selección para '+esc(P.cliente||'ti')+'</div><h1 class="serif">'+esc(P.titulo||'Opciones seleccionadas para ti')+'</h1>'+(P.subtitulo?'<p>'+esc(P.subtitulo)+'</p>':'')+'</div></section>';
+h+='<div class="wrap"><h2 class="serif">Opciones presentadas</h2>'+(P.nota?'<div class="nota">'+esc(P.nota)+'</div>':'');
+h+='<div class="tw"><table><tr><th>#</th><th>Inmueble</th><th>Zona</th><th>m²</th><th>Venta</th><th>Por m²</th>'+(hayRenta?'<th>Renta/mes</th>':'')+'</tr>'+O.map((o,i)=>{const pm=o.venta&&o.m2?o.venta/o.m2:(o.renta&&o.m2?o.renta/o.m2:null);
+  return '<tr><td class="n">'+(i+1)+'</td><td><a href="#op'+i+'" style="color:inherit;font-weight:700">'+esc(o.titulo)+'</a></td><td>'+esc(o.zona)+'</td><td>'+(o.m2?Math.round(o.m2):'—')+'</td><td>'+fmt(o.venta)+'</td><td>'+(pm?fmt(pm):'—')+'</td>'+(hayRenta?'<td>'+fmt(o.renta)+'</td>':'')+'</tr>'}).join('')+'</table></div>';
+if(P.mercado) h+='<div class="nota"><b>Referencia de mercado.</b> '+esc(P.mercado)+'</div>';
+const conMapa=O.filter(o=>o.lat&&o.lng);if(conMapa.length) h+='<div id="mapa"></div>';
+O.forEach((o,i)=>{const pm=o.venta&&o.m2?o.venta/o.m2:(o.renta&&o.m2?o.renta/o.m2:null);const op=o.operacion==='ambas'?'Venta o renta':(o.operacion==='renta'?'Renta':'Venta');const r=(R[i]||{}).r||'';
+  h+='<section class="op" id="op'+i+'"><div class="ph" style="'+bg(o.fotos&&o.fotos[0])+'"></div><div style="margin-top:16px" class="kick">Opción '+(i+1)+' · '+op+(o.estado?' · '+esc(o.estado):'')+'</div><h3 class="serif">'+esc(o.titulo)+'</h3><div style="color:var(--gr)">'+esc([o.zona,o.municipio].filter(Boolean).join(', '))+'</div>'
+   +'<div class="kp"><div><span>Superficie</span><b>'+(o.m2?Math.round(o.m2)+' m²':'—')+'</b></div><div><span>'+(o.venta?'Venta':'Renta')+'</span><b>'+(o.venta?(o.venta>=1e6?'$'+(o.venta/1e6).toFixed(1)+' M':fmt(o.venta)):fmt(o.renta))+'</b></div><div><span>'+(o.venta?'Venta':'Renta')+' por m²</span><b>'+(pm?fmt(pm):'—')+'</b></div><div><span>'+(o.rec?'Recámaras':'Cajones')+'</span><b>'+esc(o.rec||o.estac||'—')+'</b></div></div>'
+   +'<div class="cols"><div>'+(o.venta?'<div class="fila"><span>Precio de venta</span><b>'+fmt(o.venta)+'</b></div>':'')+(o.renta?'<div class="fila"><span>Renta mensual</span><b>'+fmt(o.renta)+'</b></div>':'')+(o.rec?'<div class="fila"><span>Recámaras</span><b>'+esc(o.rec)+'</b></div>':'')+(o.banos?'<div class="fila"><span>Baños</span><b>'+esc(o.banos)+'</b></div>':'')+(o.estac?'<div class="fila"><span>Estacionamientos</span><b>'+esc(o.estac)+'</b></div>':'')+'</div>'
+   +'<ul class="car">'+(o.caract||[]).map(c=>'<li>'+esc(c)+'</li>').join('')+'</ul></div>'
+   +(o.nota?'<div class="nota"><b style="color:var(--gold)">Por qué te la recomendamos.</b> '+esc(o.nota)+'</div>':'')
+   +((o.fotos||[]).length>1?'<div class="gal">'+o.fotos.slice(1).map(u=>'<div data-u="'+esc(u)+'" style="'+bg(u)+'"></div>').join('')+'</div>':'')
+   +'<div class="acc" data-i="'+i+'"><button data-r="interesa" class="'+(r==='interesa'?'on':'')+'">❤️ Me interesa</button><button data-r="visitar" class="'+(r==='visitar'?'on':'')+'">📅 Quiero visitarla</button><button data-r="descartar" class="'+(r==='descartar'?'on':'')+'">✕ No me interesa</button></div></section>';});
+h+='</div><div class="foot"><div class="serif" style="font-size:30px">NIVA</div><div style="color:#e8c96a;letter-spacing:4px;font-size:11px;margin-top:4px">INMOBILIARIA</div><p class="serif" style="font-size:22px;margin-top:26px">¿Te gustaría visitar alguna opción?</p>'+(P.asesor?'<p style="margin-top:10px;color:#cbd5e1">'+esc(P.asesor)+'</p>':'')
+ +(P.tel?'<a href="https://wa.me/52'+String(P.tel).replace(/\D/g,'').slice(-10)+'?text='+encodeURIComponent('Hola, vi la propuesta de opciones que me enviaste.')+'">Escribir por WhatsApp</a>':'')+(P.pdf?'<div style="margin-top:14px"><a href="'+esc(P.pdf)+'" target="_blank" style="background:transparent;border:1px solid #e8c96a;color:#e8c96a">Descargar PDF</a></div>':'')+'<p style="margin-top:24px;font-size:12px;color:#94a3b8">Información proporcionada por los propietarios; sujeta a cambios y disponibilidad.</p></div>';
+app.innerHTML=h;
+if(conMapa.length&&window.L){const m=L.map('mapa',{scrollWheelZoom:false});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(m);const b=[];
+  O.forEach((o,i)=>{if(o.lat&&o.lng){L.marker([o.lat,o.lng]).addTo(m).bindPopup('<b>'+(i+1)+'. '+esc(o.titulo)+'</b><br>'+fmt(o.venta||o.renta));b.push([o.lat,o.lng]);}});m.fitBounds(b,{padding:[40,40],maxZoom:15});}
+document.querySelectorAll('.gal div').forEach(d=>d.onclick=()=>{const l=document.createElement('div');l.className='lb';l.innerHTML='<img src="'+d.dataset.u+'">';l.onclick=()=>l.remove();document.body.appendChild(l);});
+document.querySelectorAll('.acc button').forEach(b=>b.onclick=async()=>{const box=b.parentElement,i=+box.dataset.i;const nuevo=b.classList.contains('on')?'':b.dataset.r;
+  box.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b&&!!nuevo));await sb.rpc('propuesta_responder',{p_token:token,p_idx:i,p_resp:nuevo});});
+</script>
+</body>
+</html>
