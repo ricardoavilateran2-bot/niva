@@ -95,6 +95,9 @@ async function cargar(){
   return data||[];
 }
 let PROPS=await cargar();
+let CUST={}; try{ const {data}=await sb.from('ofrezco_textos').select('property_id,modo,texto'); (data||[]).forEach(r=>CUST[r.property_id+'|'+r.modo]=r.texto); }catch(_e){}
+const kOf=x=>x.id+'|'+(EMO?'emo':'sin');
+const msgOf=x=>CUST[kOf(x)]||genOf(x);
 let ALL=PROPS;
 if(ADMIN){$('#f-ver').classList.remove('hidden');$('#f-ver').onclick=async e=>{const b=e.target.closest('button');if(!b)return;$('#f-ver').querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');VER=b.dataset.v;$('#lista').innerHTML='<p class="muted">Cargando…</p>';PROPS=await cargar();ALL=PROPS;pintar();};}
 let fOp='',fTipo='',ORD='asc';
@@ -108,16 +111,22 @@ $('#q').oninput=()=>pintar();
 function pintar(){
   const q=$('#q').value.trim().toLowerCase();
   const L=ALL.slice().sort((a,b)=>ORD==='new'?0:(ORD==='asc'?1:-1)*((Number(a.price_amount)||9e15)-(Number(b.price_amount)||9e15))).filter(x=>(!fOp||x.operation_type===fOp)&&(!fTipo||x.property_type===fTipo)&&(!q||((x.title||'')+' '+(x.location_name||'')+' '+(x.eb_public_id||'')).toLowerCase().includes(q)));
-  $('#lista').innerHTML=L.length?L.slice(0,80).map(x=>'<div class="card" data-id="'+x.id+'"><div class="top"><img loading="lazy" src="'+esc(x.title_image_url||'')+'" alt=""><div class="t"><b>'+esc(x.title)+'</b><small>'+esc((x.location_name||'').split(',').slice(0,2).join(','))+'</small></div><span class="pr">'+(x.price_amount?'$'+Number(x.price_amount).toLocaleString('en-US'):'')+'</span></div><div class="det"><pre>'+esc(genOf(x))+'</pre><div class="acts"><button class="btn wa" data-a="wa">📲 Enviar por WhatsApp</button><button class="btn cp" data-a="cp">📋 Copiar</button></div></div></div>').join(''):'<p class="muted">'+(VER==='mias'&&!ALL.length?'No tienes propiedades asignadas todavía.':'No hay propiedades con ese filtro.')+'</p>';
+  $('#lista').innerHTML=L.length?L.slice(0,80).map(x=>'<div class="card" data-id="'+x.id+'"><div class="top"><img loading="lazy" src="'+esc(x.title_image_url||'')+'" alt=""><div class="t"><b>'+esc(x.title)+'</b><small>'+esc((x.location_name||'').split(',').slice(0,2).join(','))+'</small></div><span class="pr">'+(x.price_amount?'$'+Number(x.price_amount).toLocaleString('en-US'):'')+'</span></div><div class="det">'+(CUST[kOf(x)]?'<div style="font-size:11px;color:var(--gold2);margin-top:8px">✏️ Texto personalizado</div>':'')+'<pre>'+esc(msgOf(x))+'</pre><div class="ed hidden"><textarea rows="11" style="width:100%;background:#0b1424;border:1px solid var(--gold);color:#fff;border-radius:10px;padding:10px;font:inherit;font-size:14px;margin:8px 0"></textarea><div class="acts" style="margin-bottom:8px"><button class="btn wa" data-a="gu">💾 Guardar</button><button class="btn cp" data-a="au">↺ Automático</button><button class="btn cp" data-a="cx">Cancelar</button></div></div><div class="acts"><button class="btn wa" data-a="wa">📲 Enviar por WhatsApp</button><button class="btn cp" data-a="cp">📋 Copiar</button><button class="btn cp" data-a="ed" style="flex:0 0 auto">✏️</button></div></div></div>').join(''):'<p class="muted">'+(VER==='mias'&&!ALL.length?'No tienes propiedades asignadas todavía.':'No hay propiedades con ese filtro.')+'</p>';
 }
 pintar();
 
 $('#lista').onclick=async e=>{
   const c=e.target.closest('.card');if(!c)return;const x=ALL.find(p=>p.id===c.dataset.id);
   const a=e.target.closest('[data-a]');
+  if(e.target.closest('textarea'))return;
   if(!a){c.classList.toggle('open');return;}
-  if(a.dataset.a==='cp'){try{await navigator.clipboard.writeText(genOf(x));toast('Copiado ✓ Pégalo en tus grupos');}catch(_e){toast('No se pudo copiar');}}
-  if(a.dataset.a==='wa'){window.open('https://wa.me/?text='+encodeURIComponent(genOf(x)),'_blank');}
+  const ed=c.querySelector('.ed');
+  if(a.dataset.a==='ed'){ed.classList.remove('hidden');const ta=ed.querySelector('textarea');ta.value=msgOf(x);ta.focus();return;}
+  if(a.dataset.a==='cx'){ed.classList.add('hidden');return;}
+  if(a.dataset.a==='gu'){const t=ed.querySelector('textarea').value.trim();if(!t){toast('El texto está vacío');return;}const {error}=await sb.from('ofrezco_textos').upsert({property_id:x.id,modo:EMO?'emo':'sin',texto:t,updated_by:session.user.email,updated_at:new Date().toISOString()});if(error){toast('No se pudo guardar');return;}CUST[kOf(x)]=t;pintar();const nc=document.querySelector('.card[data-id="'+x.id+'"]');if(nc)nc.classList.add('open');toast('Guardado ✓ Quedó de cajón');return;}
+  if(a.dataset.a==='au'){await sb.from('ofrezco_textos').delete().eq('property_id',x.id).eq('modo',EMO?'emo':'sin');delete CUST[kOf(x)];pintar();const nc=document.querySelector('.card[data-id="'+x.id+'"]');if(nc)nc.classList.add('open');toast('Volvió al texto automático');return;}
+  if(a.dataset.a==='cp'){try{await navigator.clipboard.writeText(msgOf(x));toast('Copiado ✓ Pégalo en tus grupos');}catch(_e){toast('No se pudo copiar');}}
+  if(a.dataset.a==='wa'){window.open('https://wa.me/?text='+encodeURIComponent(msgOf(x)),'_blank');}
   try{ sb.from('ofrezcos_log').insert({property_id:x.id,advisor_id:MY,canal:a.dataset.a==='wa'?'whatsapp':'copiar',user_email:session.user.email}).then(()=>{},()=>{}); }catch(_e){}
 };
 </script>
