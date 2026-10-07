@@ -43,6 +43,8 @@ pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.5;back
   <input id="q" placeholder="Buscar por nombre, zona o clave EB…">
   <div class="chips" id="f-op"><button data-v="" class="on">Todas</button><button data-v="rental">Renta</button><button data-v="sale">Venta</button></div>
   <div class="chips" id="f-tipo" style="margin-top:-6px"></div>
+  <div class="chips" id="f-ord" style="margin-top:-6px"><button data-v="asc" class="on">Precio: menor a mayor</button><button data-v="desc">Precio: mayor a menor</button><button data-v="new">Más recientes</button></div>
+  <div class="chips" id="f-emo" style="margin-top:-6px"><button data-v="si" class="on">Con emojis</button><button data-v="no">Sin emojis</button></div>
   <div id="lista"><p class="muted">Cargando inventario…</p></div>
 </div>
 <div id="toast"></div>
@@ -59,6 +61,7 @@ try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){}
 let MY=null; try{ const {data}=await sb.rpc('my_advisor_id'); MY=data||null; }catch(_e){}
 
 const T={Casa:'CASA',Departamento:'DEPA','Local comercial':'LOCAL',Terreno:'TERRENO',Oficina:'OFICINA',Quinta:'QUINTA','Bodega comercial':'BODEGA','Terreno comercial':'TERRENO COMERCIAL',Edificio:'EDIFICIO'};
+let EMO=true; try{ EMO=localStorage.getItem('niva_ofz_emo')!=='no'; }catch(_e){}
 function genOf(x){
   const op=x.operation_type==='rental'?'RENTA':'VENTA';
   let n=(x.title||'').toUpperCase();
@@ -68,17 +71,18 @@ function genOf(x){
   const mun=(L[1]||'').replace('San Pedro Garza García','San Pedro').replace('San Nicolás de los Garza','San Nicolás');
   const zona=col&&mun&&!col.includes(mun)?col+', '+mun:(col||mun);
   const txt=((x.title||'')+' '+(x.description||'')).toLowerCase();
-  const o=['🔵🔵 OFREZCO '+(T[x.property_type]||String(x.property_type||'').toUpperCase())+' '+op+(n?' '+n:'')];
-  if(zona)o.push('📍 '+zona);
-  if(x.bedrooms)o.push('🛏 '+x.bedrooms+(x.bedrooms>1?' Recámaras':' Recámara'));
-  if(x.bathrooms){const b=+x.bathrooms+(x.half_bathrooms?0.5*x.half_bathrooms:0);o.push('🛁 '+String(b).replace('.5',' ½')+(b>1?' Baños':' Baño'));}
-  if(x.construction_size)o.push('📐 '+Math.round(x.construction_size)+' m² construcción');
-  if(x.lot_size&&['Terreno','Terreno comercial','Quinta','Casa','Bodega comercial'].includes(x.property_type))o.push('🌳 '+Math.round(x.lot_size)+' m² terreno');
-  if(/amueblad/.test(txt))o.push('🛋 Amueblado');
-  if(x.parking_spaces)o.push('🚗 '+x.parking_spaces+(x.parking_spaces>1?' cajones':' cajón'));
+  const e=(em,lb)=>EMO?em+' ':(lb||'- ');
+  const o=[(EMO?'🔵🔵 ':'')+'*OFREZCO '+(T[x.property_type]||String(x.property_type||'').toUpperCase())+' '+op+(n?' '+n:'')+'*'];
+  if(zona)o.push(e('📍','Zona: ')+zona);
+  if(x.bedrooms)o.push(e('🛏')+x.bedrooms+(x.bedrooms>1?' Recámaras':' Recámara'));
+  if(x.bathrooms){const b=+x.bathrooms+(x.half_bathrooms?0.5*x.half_bathrooms:0);o.push(e('🛁')+String(b).replace('.5',' ½')+(b>1?' Baños':' Baño'));}
+  if(x.construction_size)o.push(e('📐')+Math.round(x.construction_size)+' m² construcción');
+  if(x.lot_size&&['Terreno','Terreno comercial','Quinta','Casa','Bodega comercial'].includes(x.property_type))o.push(e('🌳')+Math.round(x.lot_size)+' m² terreno');
+  if(/amueblad/.test(txt))o.push(e('🛋')+'Amueblado');
+  if(x.parking_spaces)o.push(e('🚗')+x.parking_spaces+(x.parking_spaces>1?' cajones':' cajón'));
   const am=[];if(/alberca/.test(txt))am.push('alberca');if(/gimnasio|\bgym\b/.test(txt))am.push('gym');if(/roof|terraza/.test(txt))am.push('roof/terraza');if(/seguridad|vigilancia|caseta/.test(txt))am.push('seguridad 24/7');
-  if(am.length)o.push('✨ '+am.slice(0,3).join(', ').replace(/^./,c=>c.toUpperCase()));
-  const p=Number(x.price_amount);if(p)o.push('💵 $'+p.toLocaleString('en-US')+(x.price_currency&&x.price_currency!=='MXN'?' '+x.price_currency:'')+(x.operation_type==='rental'?' /mes':''));
+  if(am.length)o.push(e('✨','Amenidades: ')+am.slice(0,3).join(', ').replace(/^./,c=>c.toUpperCase()));
+  const p=Number(x.price_amount);if(p)o.push(e('💵','Precio: ')+'$'+p.toLocaleString('en-US')+(x.price_currency&&x.price_currency!=='MXN'?' '+x.price_currency:'')+(x.operation_type==='rental'?' /mes':''));
   return o.slice(0,12).join('\n');
 }
 
@@ -91,19 +95,20 @@ async function cargar(){
   return data||[];
 }
 let PROPS=await cargar();
-let ALL=PROPS.map(x=>({...x,msg:genOf(x)}));
-if(ADMIN){$('#f-ver').classList.remove('hidden');$('#f-ver').onclick=async e=>{const b=e.target.closest('button');if(!b)return;$('#f-ver').querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');VER=b.dataset.v;$('#lista').innerHTML='<p class="muted">Cargando…</p>';PROPS=await cargar();ALL=PROPS.map(x=>({...x,msg:genOf(x)}));pintar();};}
-let fOp='',fTipo='';
+let ALL=PROPS;
+if(ADMIN){$('#f-ver').classList.remove('hidden');$('#f-ver').onclick=async e=>{const b=e.target.closest('button');if(!b)return;$('#f-ver').querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');VER=b.dataset.v;$('#lista').innerHTML='<p class="muted">Cargando…</p>';PROPS=await cargar();ALL=PROPS;pintar();};}
+let fOp='',fTipo='',ORD='asc';
+if(!EMO){document.querySelectorAll('#f-emo button').forEach(b=>b.classList.toggle('on',b.dataset.v==='no'));}
 const tipos=[...new Set(ALL.map(x=>x.property_type).filter(Boolean))];
 $('#f-tipo').innerHTML='<button data-v="" class="on">Todo tipo</button>'+tipos.map(t=>'<button data-v="'+esc(t)+'">'+esc(t)+'</button>').join('');
 const chip=(id,set)=>$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;$(id).querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');set(b.dataset.v);pintar();};
-chip('#f-op',v=>fOp=v);chip('#f-tipo',v=>fTipo=v);
+chip('#f-op',v=>fOp=v);chip('#f-ord',v=>ORD=v);chip('#f-emo',v=>{EMO=v==='si';try{localStorage.setItem('niva_ofz_emo',v)}catch(_e){}});chip('#f-tipo',v=>fTipo=v);
 $('#q').oninput=()=>pintar();
 
 function pintar(){
   const q=$('#q').value.trim().toLowerCase();
-  const L=ALL.filter(x=>(!fOp||x.operation_type===fOp)&&(!fTipo||x.property_type===fTipo)&&(!q||((x.title||'')+' '+(x.location_name||'')+' '+(x.eb_public_id||'')).toLowerCase().includes(q)));
-  $('#lista').innerHTML=L.length?L.slice(0,80).map(x=>'<div class="card" data-id="'+x.id+'"><div class="top"><img loading="lazy" src="'+esc(x.title_image_url||'')+'" alt=""><div class="t"><b>'+esc(x.title)+'</b><small>'+esc((x.location_name||'').split(',').slice(0,2).join(','))+'</small></div><span class="pr">'+(x.price_amount?'$'+Number(x.price_amount).toLocaleString('en-US'):'')+'</span></div><div class="det"><pre>'+esc(x.msg)+'</pre><div class="acts"><button class="btn wa" data-a="wa">📲 Enviar por WhatsApp</button><button class="btn cp" data-a="cp">📋 Copiar</button></div></div></div>').join(''):'<p class="muted">'+(VER==='mias'&&!ALL.length?'No tienes propiedades asignadas todavía.':'No hay propiedades con ese filtro.')+'</p>';
+  const L=ALL.slice().sort((a,b)=>ORD==='new'?0:(ORD==='asc'?1:-1)*((Number(a.price_amount)||9e15)-(Number(b.price_amount)||9e15))).filter(x=>(!fOp||x.operation_type===fOp)&&(!fTipo||x.property_type===fTipo)&&(!q||((x.title||'')+' '+(x.location_name||'')+' '+(x.eb_public_id||'')).toLowerCase().includes(q)));
+  $('#lista').innerHTML=L.length?L.slice(0,80).map(x=>'<div class="card" data-id="'+x.id+'"><div class="top"><img loading="lazy" src="'+esc(x.title_image_url||'')+'" alt=""><div class="t"><b>'+esc(x.title)+'</b><small>'+esc((x.location_name||'').split(',').slice(0,2).join(','))+'</small></div><span class="pr">'+(x.price_amount?'$'+Number(x.price_amount).toLocaleString('en-US'):'')+'</span></div><div class="det"><pre>'+esc(genOf(x))+'</pre><div class="acts"><button class="btn wa" data-a="wa">📲 Enviar por WhatsApp</button><button class="btn cp" data-a="cp">📋 Copiar</button></div></div></div>').join(''):'<p class="muted">'+(VER==='mias'&&!ALL.length?'No tienes propiedades asignadas todavía.':'No hay propiedades con ese filtro.')+'</p>';
 }
 pintar();
 
@@ -111,8 +116,8 @@ $('#lista').onclick=async e=>{
   const c=e.target.closest('.card');if(!c)return;const x=ALL.find(p=>p.id===c.dataset.id);
   const a=e.target.closest('[data-a]');
   if(!a){c.classList.toggle('open');return;}
-  if(a.dataset.a==='cp'){try{await navigator.clipboard.writeText(x.msg);toast('Copiado ✓ Pégalo en tus grupos');}catch(_e){toast('No se pudo copiar');}}
-  if(a.dataset.a==='wa'){window.open('https://wa.me/?text='+encodeURIComponent(x.msg),'_blank');}
+  if(a.dataset.a==='cp'){try{await navigator.clipboard.writeText(genOf(x));toast('Copiado ✓ Pégalo en tus grupos');}catch(_e){toast('No se pudo copiar');}}
+  if(a.dataset.a==='wa'){window.open('https://wa.me/?text='+encodeURIComponent(genOf(x)),'_blank');}
   try{ sb.from('ofrezcos_log').insert({property_id:x.id,advisor_id:MY,canal:a.dataset.a==='wa'?'whatsapp':'copiar',user_email:session.user.email}).then(()=>{},()=>{}); }catch(_e){}
 };
 </script>
