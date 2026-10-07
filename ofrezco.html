@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Ofrezco WhatsApp</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#1B2A4A;--navy2:#0f1e36;--gold:#C9A84C;--gold2:#e8c96a;--line:rgba(255,255,255,.12);--muted:#94a3b8;--wa:#25D366}
+body{font-family:Inter,sans-serif;background:var(--navy2);color:#fff;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--navy2);z-index:5}
+header a{color:var(--gold);text-decoration:none;font-weight:700;font-size:14px}
+header h1{font-size:17px;font-weight:800;flex:1}
+.wrap{max-width:760px;margin:0 auto;padding:14px 16px 80px}
+.tip{font-size:13px;color:#cbd5e1;background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3);border-radius:12px;padding:10px 12px;margin-bottom:12px;line-height:1.45}
+input{width:100%;background:#0b1424;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px 12px;font:inherit;font-size:15px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px}
+.chips button{border:1px solid var(--line);background:transparent;color:#fff;border-radius:20px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.chips button.on{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+.top{display:flex;gap:10px;align-items:center;cursor:pointer}
+.top img{width:70px;height:54px;object-fit:cover;border-radius:8px;background:#223;flex-shrink:0}
+.top .t{flex:1;min-width:0}.top b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top small{color:var(--muted);font-size:12px}
+.top .pr{color:var(--gold2);font-weight:800;font-size:13px}
+pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.5;background:#0b1424;border-radius:10px;padding:10px 12px;margin:10px 0}
+.acts{display:flex;gap:8px}
+.btn{flex:1;border:0;border-radius:10px;padding:12px;font-weight:800;font-size:14px;cursor:pointer}
+.wa{background:var(--wa);color:#05290f}.cp{background:transparent;color:#fff;border:1px solid var(--line)}
+.det{display:none}.card.open .det{display:block}
+.muted{color:var(--muted);font-size:13px;text-align:center;padding:30px 0}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#fff;color:var(--navy);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header><a href="./index.html">← NIVA OS</a><h1>📣 Ofrezco WhatsApp</h1></header>
+<div class="wrap">
+  <div class="tip">1) Busca la propiedad y tócala. 2) Aprieta <b>Enviar por WhatsApp</b>. 3) En WhatsApp elige tus grupos (hasta 5 a la vez) y envía. Repite para más grupos. El mensaje ya va con el formato NIVA y en menos de 12 renglones.</div>
+  <input id="q" placeholder="Buscar por nombre, zona o clave EB…">
+  <div class="chips" id="f-op"><button data-v="" class="on">Todas</button><button data-v="rental">Renta</button><button data-v="sale">Venta</button></div>
+  <div class="chips" id="f-tipo" style="margin-top:-6px"></div>
+  <div id="lista"><p class="muted">Cargando inventario…</p></div>
+</div>
+<div id="toast"></div>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const $=s=>document.querySelector(s);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cfg=await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+const sb=createClient(cfg.url,cfg.anon);
+let {data:{session}}=await sb.auth.getSession();
+if(!session){ location.replace('./index.html'); }
+try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){}
+let MY=null; try{ const {data}=await sb.rpc('my_advisor_id'); MY=data||null; }catch(_e){}
+
+const T={Casa:'CASA',Departamento:'DEPA','Local comercial':'LOCAL',Terreno:'TERRENO',Oficina:'OFICINA',Quinta:'QUINTA','Bodega comercial':'BODEGA','Terreno comercial':'TERRENO COMERCIAL',Edificio:'EDIFICIO'};
+function genOf(x){
+  const op=x.operation_type==='rental'?'RENTA':'VENTA';
+  let n=(x.title||'').toUpperCase();
+  n=n.replace(/\b(DEPARTAMENTOS?|DEPAS?|CASAS?|LOCAL(ES)? COMERCIAL(ES)?|LOCAL|TERRENOS?( COMERCIAL)?|OFICINAS?|QUINTAS?|BODEGAS?( COMERCIAL)?|EDIFICIO|AMUEBLAD[OA]S?|EQUIPAD[OA]S?|NUEV[OA]S?|EN|DE|LA|EL|RENTA|VENTA|PRE ?VENTA|CON|Y)\b/g,' ').replace(/[,|·\-–]+/g,' ').replace(/\s+/g,' ').trim();
+  const ps=n.split(' ');if(ps.length>5)n=ps.slice(0,5).join(' ');
+  const L=(x.location_name||'').split(',').map(s=>s.trim());const col=L[0]||'';
+  const mun=(L[1]||'').replace('San Pedro Garza García','San Pedro').replace('San Nicolás de los Garza','San Nicolás');
+  const zona=col&&mun&&!col.includes(mun)?col+', '+mun:(col||mun);
+  const txt=((x.title||'')+' '+(x.description||'')).toLowerCase();
+  const o=['🔵🔵 OFREZCO '+(T[x.property_type]||String(x.property_type||'').toUpperCase())+' '+op+(n?' '+n:'')];
+  if(zona)o.push('📍 '+zona);
+  if(x.bedrooms)o.push('🛏 '+x.bedrooms+(x.bedrooms>1?' Recámaras':' Recámara'));
+  if(x.bathrooms){const b=+x.bathrooms+(x.half_bathrooms?0.5*x.half_bathrooms:0);o.push('🛁 '+String(b).replace('.5',' ½')+(b>1?' Baños':' Baño'));}
+  if(x.construction_size)o.push('📐 '+Math.round(x.construction_size)+' m² construcción');
+  if(x.lot_size&&['Terreno','Terreno comercial','Quinta','Casa','Bodega comercial'].includes(x.property_type))o.push('🌳 '+Math.round(x.lot_size)+' m² terreno');
+  if(/amueblad/.test(txt))o.push('🛋 Amueblado');
+  if(x.parking_spaces)o.push('🚗 '+x.parking_spaces+(x.parking_spaces>1?' cajones':' cajón'));
+  const am=[];if(/alberca/.test(txt))am.push('alberca');if(/gimnasio|\bgym\b/.test(txt))am.push('gym');if(/roof|terraza/.test(txt))am.push('roof/terraza');if(/seguridad|vigilancia|caseta/.test(txt))am.push('seguridad 24/7');
+  if(am.length)o.push('✨ '+am.slice(0,3).join(', ').replace(/^./,c=>c.toUpperCase()));
+  const p=Number(x.price_amount);if(p)o.push('💵 $'+p.toLocaleString('en-US')+(x.price_currency&&x.price_currency!=='MXN'?' '+x.price_currency:'')+(x.operation_type==='rental'?' /mes':''));
+  return o.slice(0,12).join('\n');
+}
+
+const {data:PROPS,error}=await sb.from('properties').select('id,eb_public_id,title,property_type,operation_type,price_amount,price_currency,location_name,bedrooms,bathrooms,half_bathrooms,parking_spaces,construction_size,lot_size,description,title_image_url,eb_published_at').eq('eb_status','published').is('cancelada_at',null).order('eb_published_at',{ascending:false}).limit(500);
+if(error){$('#lista').innerHTML='<p class="muted">No se pudo cargar el inventario.</p>';throw error;}
+const ALL=(PROPS||[]).map(x=>({...x,msg:genOf(x)}));
+let fOp='',fTipo='';
+const tipos=[...new Set(ALL.map(x=>x.property_type).filter(Boolean))];
+$('#f-tipo').innerHTML='<button data-v="" class="on">Todo tipo</button>'+tipos.map(t=>'<button data-v="'+esc(t)+'">'+esc(t)+'</button>').join('');
+const chip=(id,set)=>$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;$(id).querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');set(b.dataset.v);pintar();};
+chip('#f-op',v=>fOp=v);chip('#f-tipo',v=>fTipo=v);
+$('#q').oninput=()=>pintar();
+
+function pintar(){
+  const q=$('#q').value.trim().toLowerCase();
+  const L=ALL.filter(x=>(!fOp||x.operation_type===fOp)&&(!fTipo||x.property_type===fTipo)&&(!q||((x.title||'')+' '+(x.location_name||'')+' '+(x.eb_public_id||'')).toLowerCase().includes(q)));
+  $('#lista').innerHTML=L.length?L.slice(0,80).map(x=>'<div class="card" data-id="'+x.id+'"><div class="top"><img loading="lazy" src="'+esc(x.title_image_url||'')+'" alt=""><div class="t"><b>'+esc(x.title)+'</b><small>'+esc((x.location_name||'').split(',').slice(0,2).join(','))+'</small></div><span class="pr">'+(x.price_amount?'$'+Number(x.price_amount).toLocaleString('en-US'):'')+'</span></div><div class="det"><pre>'+esc(x.msg)+'</pre><div class="acts"><button class="btn wa" data-a="wa">📲 Enviar por WhatsApp</button><button class="btn cp" data-a="cp">📋 Copiar</button></div></div></div>').join(''):'<p class="muted">No hay propiedades con ese filtro.</p>';
+}
+pintar();
+
+$('#lista').onclick=async e=>{
+  const c=e.target.closest('.card');if(!c)return;const x=ALL.find(p=>p.id===c.dataset.id);
+  const a=e.target.closest('[data-a]');
+  if(!a){c.classList.toggle('open');return;}
+  if(a.dataset.a==='cp'){try{await navigator.clipboard.writeText(x.msg);toast('Copiado ✓ Pégalo en tus grupos');}catch(_e){toast('No se pudo copiar');}}
+  if(a.dataset.a==='wa'){window.open('https://wa.me/?text='+encodeURIComponent(x.msg),'_blank');}
+  try{ sb.from('ofrezcos_log').insert({property_id:x.id,advisor_id:MY,canal:a.dataset.a==='wa'?'whatsapp':'copiar',user_email:session.user.email}).then(()=>{},()=>{}); }catch(_e){}
+};
+</script>
+</body>
+</html>
