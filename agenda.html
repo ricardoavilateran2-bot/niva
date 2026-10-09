@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Mi agenda</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#1B2A4A;--navy2:#0f1e36;--gold:#C9A84C;--gold2:#e8c96a;--line:rgba(255,255,255,.12);--muted:#94a3b8;--wa:#25D366;--red:#f87171;--amber:#fbbf24;--green:#4ade80;--blue:#60a5fa}
+body{font-family:Inter,sans-serif;background:var(--navy2);color:#fff;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--navy2);z-index:5}
+header a{color:var(--gold);text-decoration:none;font-weight:700;font-size:14px}
+header h1{font-size:17px;font-weight:800;flex:1}
+.wrap{max-width:760px;margin:0 auto;padding:12px 16px 110px}
+.wk{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.wk .mes{flex:1;text-align:center;font-weight:800;font-size:15px;text-transform:capitalize}
+.nav{border:1px solid var(--line);background:transparent;color:#fff;border-radius:10px;width:38px;height:38px;font-size:18px;cursor:pointer}
+.hoybtn{border:1px solid var(--gold);background:transparent;color:var(--gold2);border-radius:10px;padding:0 10px;height:38px;font-weight:700;font-size:13px;cursor:pointer}
+.dias{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:8px 0 16px}
+.dia{border:1px solid var(--line);border-radius:12px;padding:8px 0 6px;text-align:center;cursor:pointer;background:rgba(255,255,255,.03)}
+.dia small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase}
+.dia b{display:block;font-size:18px;font-weight:800;margin:2px 0}
+.dia .pts{height:8px;display:flex;justify-content:center;gap:3px}
+.dia .pts i{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.dia.hoy{border-color:var(--gold)}
+.dia.sel{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+.dia.sel small{color:var(--navy)}.dia.sel .pts i{background:var(--navy)}
+.tit{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.tit h2{font-size:18px;font-weight:800}
+.tit span{color:var(--muted);font-size:13px}
+.ver{display:flex;gap:6px;margin-bottom:12px}
+.ver button{flex:1;border:1px solid var(--line);background:transparent;color:#fff;border-radius:20px;padding:7px;font-weight:700;font-size:12.5px;cursor:pointer}
+.ver button.on{background:rgba(201,168,76,.2);border-color:var(--gold);color:var(--gold2)}
+.cita{display:flex;gap:12px;margin-bottom:10px}
+.hr{width:54px;flex-shrink:0;text-align:right;padding-top:12px}
+.hr b{display:block;font-size:15px;font-weight:800}.hr small{color:var(--muted);font-size:11px}
+.cc{flex:1;min-width:0;background:rgba(255,255,255,.05);border:1px solid var(--line);border-left:4px solid var(--c,var(--gold));border-radius:14px;padding:11px 12px}
+.cc.hecha{opacity:.5}.cc.cancelada{opacity:.4;text-decoration:line-through}
+.cc .tp{font-size:12px;font-weight:800;color:var(--c,var(--gold2));text-transform:uppercase;letter-spacing:.3px}
+.cc .nm{font-size:15.5px;font-weight:800;margin:3px 0 2px}
+.cc .ln{font-size:13px;color:#cbd5e1;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc .nt{font-size:12.5px;color:var(--muted);margin-top:5px;white-space:pre-wrap}
+.cc .adv{font-size:11px;color:var(--blue);font-weight:700;margin-top:4px}
+.aviso{font-size:12px;font-weight:700;color:var(--amber);margin-top:6px}
+.acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.btn{flex:1;min-width:0;border-radius:10px;padding:9px 6px;font-weight:800;font-size:12.5px;cursor:pointer;text-decoration:none;text-align:center;color:#fff;background:transparent;border:1px solid var(--line);white-space:nowrap}
+.btn.wa{background:var(--wa);color:#05290f;border-color:var(--wa)}
+.cc .btn.wa{flex:1 1 100%}
+.btn.ok{background:rgba(74,222,128,.15);border-color:rgba(74,222,128,.5);color:var(--green)}
+.vacio{color:#cbd5e1;font-size:14px;text-align:center;padding:26px 16px;border:1px dashed var(--line);border-radius:14px;line-height:1.5}
+.vacio button{margin-top:12px}
+.fab{position:fixed;right:18px;bottom:22px;background:var(--gold);color:var(--navy);border:0;border-radius:30px;padding:15px 22px;font-weight:800;font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.4);cursor:pointer;z-index:6}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20;display:none}
+.ov.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:92vh;overflow:auto;background:#13233f;border-radius:20px 20px 0 0;padding:16px 16px 24px;z-index:21;transform:translateY(105%);transition:transform .25s}
+.sheet.show{transform:none}
+.sheet h3{font-size:17px;font-weight:800;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.sheet h3 button{background:transparent;border:0;color:var(--muted);font-size:22px;cursor:pointer}
+label{display:block;font-size:12.5px;color:var(--muted);font-weight:700;margin:12px 0 5px}
+input,textarea,select{width:100%;background:#0b1424;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px;font:inherit;font-size:15px}
+textarea{resize:vertical;min-height:60px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tipos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tipos button{border:1px solid var(--line);background:transparent;color:#fff;border-radius:12px;padding:10px 4px;font-size:12.5px;font-weight:700;cursor:pointer}
+.tipos button b{display:block;font-size:20px;margin-bottom:2px}
+.tipos button.on{border-color:var(--gold);background:rgba(201,168,76,.18)}
+.sug{border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:180px;overflow:auto;display:none}
+.sug div{padding:9px 11px;font-size:13.5px;border-bottom:1px solid var(--line);cursor:pointer}
+.sug div small{color:var(--muted)}
+.sel-chip{display:none;margin-top:6px;font-size:13px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);border-radius:10px;padding:8px 10px}
+.sel-chip button{float:right;background:transparent;border:0;color:var(--muted);cursor:pointer}
+.guardar{width:100%;margin-top:18px;background:var(--gold);color:var(--navy);border:0;border-radius:12px;padding:14px;font-weight:800;font-size:16px;cursor:pointer}
+.borrar{width:100%;margin-top:8px;background:transparent;color:var(--red);border:1px solid rgba(248,113,113,.4);border-radius:12px;padding:11px;font-weight:700;cursor:pointer;display:none}
+.muted{color:var(--muted);font-size:13px;text-align:center;padding:30px 0}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#fff;color:var(--navy);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:30}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header><a href="./index.html">← NIVA OS</a><h1>📅 Mi agenda</h1></header>
+<div class="wrap" id="app"><p class="muted">Cargando tu agenda…</p></div>
+<button class="fab" id="fab">＋ Agendar</button>
+<div class="ov" id="ov"></div>
+<div class="sheet" id="sheet">
+  <h3><span id="f-tit">Nueva cita</span><button id="f-x">✕</button></h3>
+  <label>¿Qué vas a hacer?</label>
+  <div class="tipos" id="f-tipos"></div>
+  <label>Cliente o persona <span style="font-weight:500">(escribe para buscar en tu CRM)</span></label>
+  <input id="f-cli" placeholder="Ej. Juan Pérez" autocomplete="off">
+  <div class="sug" id="f-cli-sug"></div>
+  <input id="f-tel" placeholder="Teléfono (opcional)" inputmode="tel" style="margin-top:6px">
+  <label>Propiedad <span style="font-weight:500">(opcional)</span></label>
+  <input id="f-prop" placeholder="Busca por nombre o zona" autocomplete="off">
+  <div class="sug" id="f-prop-sug"></div>
+  <div class="sel-chip" id="f-prop-chip"></div>
+  <div class="g2"><div><label>Día</label><input type="date" id="f-fecha"></div><div><label>Hora</label><input type="time" id="f-hora" step="900"></div></div>
+  <label>Duración</label>
+  <select id="f-dur"><option value="30">30 minutos</option><option value="60" selected>1 hora</option><option value="90">1 hora y media</option><option value="120">2 horas</option></select>
+  <label>Lugar <span style="font-weight:500">(dirección o punto de encuentro)</span></label>
+  <input id="f-lugar" placeholder="Ej. Torre Shiro, Av. Garza Sada">
+  <label>Notas</label>
+  <textarea id="f-notas" placeholder="Ej. Lleva llaves. El cliente busca 2 recámaras."></textarea>
+  <button class="guardar" id="f-ok">Guardar cita</button>
+  <button class="borrar" id="f-del">Borrar esta cita</button>
+</div>
+<div id="toast"></div>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const $=s=>document.querySelector(s);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cfg=await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+const sb=createClient(cfg.url,cfg.anon);
+let {data:{session}}=await sb.auth.getSession();
+if(!session){ location.replace('./index.html'); }
+try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){}
+let MY=null, NOMBRE='', ADMIN=false, ADVS={};
+try{ const {data}=await sb.rpc('my_advisor_id'); MY=data||null; }catch(_e){}
+try{ const {data}=await sb.rpc('my_is_admin'); ADMIN=!!data; }catch(_e){}
+try{ const {data}=await sb.from('advisors').select('id,first_name'); (data||[]).forEach(a=>ADVS[a.id]=a.first_name); NOMBRE=ADVS[MY]||''; }catch(_e){}
+
+const TIPOS=[['visita','🏠','Visita',' #C9A84C'],['llamada','📞','Llamada','#60a5fa'],['captacion','✍️','Captación','#a78bfa'],['firma','📝','Firma / Cierre','#4ade80'],['reunion','☕','Reunión','#f472b6'],['personal','⭐','Personal','#94a3b8']];
+const TP=Object.fromEntries(TIPOS.map(t=>[t[0],{e:t[1],n:t[2],c:t[3].trim()}]));
+const DIAS=['dom','lun','mar','mié','jue','vie','sáb'], DIASL=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'], MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const parse=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+const h12=h=>{if(!h)return 'Sin hora';const [H,M]=h.split(':').map(Number);return ((H%12)||12)+':'+String(M).padStart(2,'0')+' '+(H<12?'am':'pm');};
+const tel=s=>{let t=String(s||'').replace(/\D/g,''); if(t.length===10) t='52'+t; if(t.length===13&&t.startsWith('521')) t='52'+t.slice(3); return t;};
+const cap1=s=>{s=String(s||'').trim().split(' ')[0];return s?s.charAt(0).toUpperCase()+s.slice(1).toLowerCase():'';};
+const HOYS=ymd(new Date());
+let SEL=HOYS, VER='mias', CITAS=[], LEADS=[], PROPS=[], EDIT=null, F={};
+
+async function cargarCitas(){
+  const ini=parse(SEL); ini.setDate(ini.getDate()-ini.getDay()-7); const fin=new Date(ini); fin.setDate(fin.getDate()+28);
+  let q=sb.from('citas').select('*').gte('fecha',ymd(ini)).lte('fecha',ymd(fin)).order('fecha').order('hora',{nullsFirst:true}).limit(1000);
+  if(!(ADMIN&&VER==='equipo')) q=q.eq('advisor_id',MY||'00000000-0000-0000-0000-000000000000');
+  const {data,error}=await q; if(error){ $('#app').innerHTML='<p class="muted">No se pudo cargar tu agenda. Recarga la página.</p>'; throw error; }
+  CITAS=data||[];
+}
+async function cargarApoyo(){
+  try{ let q=sb.from('my_leads').select('id,full_name,phone_normalized,property_title,contact_type,archived_at').is('archived_at',null).order('happened_at',{ascending:false}).range(0,1499); if(MY) q=q.eq('advisor_id',MY); const {data}=await q; LEADS=(data||[]).filter(l=>l.contact_type!=='agent'); }catch(_e){}
+  try{ const {data}=await sb.from('properties').select('id,title,location_name,eb_public_id').eq('eb_status','published').limit(600); PROPS=data||[]; }catch(_e){}
+}
+
+function pintar(){
+  const s=parse(SEL); const ini=new Date(s); ini.setDate(s.getDate()-s.getDay());
+  const dias=[...Array(7)].map((_,i)=>{const d=new Date(ini);d.setDate(ini.getDate()+i);return d;});
+  const cnt={}; CITAS.forEach(c=>{if(c.estado!=='cancelada')cnt[c.fecha]=(cnt[c.fecha]||0)+1;});
+  const mesTxt=MESES[dias[0].getMonth()]+(dias[0].getMonth()!==dias[6].getMonth()?' – '+MESES[dias[6].getMonth()]:'')+' '+dias[6].getFullYear();
+  let h='<div class="wk"><button class="nav" data-nav="-7">‹</button><div class="mes">'+mesTxt+'</div>'+(SEL!==HOYS?'<button class="hoybtn" data-hoy="1">Hoy</button>':'')+'<button class="nav" data-nav="7">›</button></div>';
+  h+='<div class="dias">'+dias.map(d=>{const k=ymd(d);const n=cnt[k]||0;return '<div class="dia'+(k===HOYS?' hoy':'')+(k===SEL?' sel':'')+'" data-dia="'+k+'"><small>'+DIAS[d.getDay()]+'</small><b>'+d.getDate()+'</b><div class="pts">'+'<i></i>'.repeat(Math.min(n,3))+'</div></div>';}).join('')+'</div>';
+  if(ADMIN) h+='<div class="ver"><button data-ver="mias" class="'+(VER==='mias'?'on':'')+'">Mis citas</button><button data-ver="equipo" class="'+(VER==='equipo'?'on':'')+'">Todo el equipo</button></div>';
+  const lista=CITAS.filter(c=>c.fecha===SEL).sort((a,b)=>String(a.hora||'').localeCompare(String(b.hora||'')));
+  const titulo=(SEL===HOYS?'Hoy, ':'')+(SEL===HOYS?DIASL[s.getDay()]:DIASL[s.getDay()].charAt(0).toUpperCase()+DIASL[s.getDay()].slice(1))+' '+s.getDate()+' de '+MESES[s.getMonth()];
+  const pend=lista.filter(c=>c.estado==='pendiente').length;
+  h+='<div class="tit"><h2>'+titulo+'</h2><span>'+(lista.length?(pend+' pendiente'+(pend===1?'':'s')):'')+'</span></div>';
+  if(!lista.length) h+='<div class="vacio">'+(SEL===HOYS?'No tienes citas hoy.<br>¿Por qué no agendas una visita con alguno de tus clientes?':'Día libre, no hay nada agendado.')+'<br><button class="btn wa" data-nueva="1" style="display:inline-block;padding:11px 18px">＋ Agendar algo este día</button></div>';
+  const ahora=new Date();
+  h+=lista.map(c=>{
+    const t=TP[c.tipo]||TP.visita; const tl=tel(c.cliente_tel);
+    const pasada=c.estado==='pendiente'&&new Date(c.fecha+'T'+(c.hora||'23:59'))<ahora;
+    const msg='¡Hola'+(cap1(c.cliente_nombre)?' '+cap1(c.cliente_nombre):'')+'! Soy '+(ADVS[c.advisor_id]||NOMBRE||'tu asesor')+' de NIVA Inmobiliaria. Te confirmo nuestra cita'+(c.titulo?' para '+c.titulo:'')+' el '+DIASL[parse(c.fecha).getDay()]+' '+parse(c.fecha).getDate()+(c.hora?' a las '+h12(c.hora):'')+(c.lugar?' en '+c.lugar:'')+'. ¿Seguimos en pie? 🙂';
+    return '<div class="cita" data-id="'+c.id+'"><div class="hr"><b>'+(c.hora?h12(c.hora).replace(/ (am|pm)/,''):'—')+'</b><small>'+(c.hora?(Number(c.hora.slice(0,2))<12?'am':'pm'):'')+'</small></div>'
+     +'<div class="cc '+c.estado+'" style="--c:'+t.c+'"><div class="tp">'+t.e+' '+t.n+(c.estado==='hecha'?' · ✓ Hecha':c.estado==='cancelada'?' · Cancelada':'')+'</div>'
+     +'<div class="nm">'+esc(c.cliente_nombre||c.titulo||t.n)+'</div>'
+     +(c.titulo&&c.cliente_nombre?'<div class="ln">🏡 '+esc(c.titulo)+'</div>':'')
+     +(c.lugar?'<div class="ln">📍 '+esc(c.lugar)+'</div>':'')
+     +(c.notas?'<div class="nt">'+esc(c.notas)+'</div>':'')
+     +(VER==='equipo'?'<div class="adv">👤 '+esc(ADVS[c.advisor_id]||'—')+'</div>':'')
+     +(pasada?'<div class="aviso">⏰ Ya pasó la hora. ¿Cómo te fue? Márcala como hecha.</div>':'')
+     +'<div class="acts">'+(tl&&c.estado==='pendiente'?'<a class="btn wa" href="https://wa.me/'+tl+'?text='+encodeURIComponent(msg)+'" target="_blank">💬 Confirmar</a><a class="btn" href="tel:+'+tl+'">📞</a>':'')
+     +(c.lugar?'<a class="btn" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(c.lugar+', Nuevo León')+'" target="_blank">📍 Mapa</a>':'')
+     +(c.estado==='pendiente'?'<button class="btn ok" data-a="hecha">✓ Hecha</button>':'<button class="btn" data-a="reabrir">↺</button>')
+     +'<button class="btn" data-a="editar">✏️</button></div></div></div>';
+  }).join('');
+  $('#app').innerHTML=h;
+}
+
+/* ===== Formulario ===== */
+$('#f-tipos').innerHTML=TIPOS.map(t=>'<button data-t="'+t[0]+'"><b>'+t[1]+'</b>'+t[2]+'</button>').join('');
+function abrirForm(c){
+  EDIT=c||null; F={tipo:c?c.tipo:'visita',lead_id:c?c.lead_id:null,property_id:c?c.property_id:null};
+  $('#f-tit').textContent=c?'Editar cita':'Nueva cita';
+  $('#f-cli').value=c?(c.cliente_nombre||''):''; $('#f-tel').value=c?(c.cliente_tel||''):'';
+  $('#f-prop').value=''; $('#f-fecha').value=c?c.fecha:SEL; $('#f-hora').value=c&&c.hora?c.hora.slice(0,5):'';
+  $('#f-dur').value=String(c?c.duracion_min||60:60); $('#f-lugar').value=c?(c.lugar||''):''; $('#f-notas').value=c?(c.notas||''):'';
+  pintarTipo(); pintarProp(c?c.titulo:''); $('#f-del').style.display=c?'block':'none';
+  $('#ov').classList.add('show'); $('#sheet').classList.add('show');
+}
+function cerrarForm(){ $('#ov').classList.remove('show'); $('#sheet').classList.remove('show'); $('#f-cli-sug').style.display='none'; $('#f-prop-sug').style.display='none'; }
+function pintarTipo(){ document.querySelectorAll('#f-tipos button').forEach(b=>b.classList.toggle('on',b.dataset.t===F.tipo)); }
+function pintarProp(tit){ F.prop_titulo=tit||''; const ch=$('#f-prop-chip'); if(tit){ ch.style.display='block'; ch.innerHTML='🏡 '+esc(tit)+'<button id="f-prop-q">✕</button>'; $('#f-prop').style.display='none'; } else { ch.style.display='none'; $('#f-prop').style.display='block'; } }
+$('#f-tipos').onclick=e=>{const b=e.target.closest('button'); if(!b)return; F.tipo=b.dataset.t; pintarTipo();};
+$('#f-x').onclick=cerrarForm; $('#ov').onclick=cerrarForm;
+$('#fab').onclick=()=>abrirForm(null);
+const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+$('#f-cli').oninput=()=>{ const q=norm($('#f-cli').value); F.lead_id=null; const box=$('#f-cli-sug'); if(q.length<2){box.style.display='none';return;}
+  const r=LEADS.filter(l=>norm(l.full_name).includes(q)||String(l.phone_normalized||'').includes(q)).slice(0,8);
+  box.innerHTML=r.map(l=>'<div data-l="'+l.id+'">'+esc(l.full_name||'Sin nombre')+'<br><small>'+esc(l.property_title||'')+'</small></div>').join(''); box.style.display=r.length?'block':'none'; };
+$('#f-cli-sug').onclick=e=>{ const d=e.target.closest('[data-l]'); if(!d)return; const l=LEADS.find(x=>x.id===d.dataset.l); if(!l)return;
+  F.lead_id=l.id; $('#f-cli').value=l.full_name||''; $('#f-tel').value=String(l.phone_normalized||'').replace(/\D/g,'').slice(-10);
+  if(!F.prop_titulo&&l.property_title) pintarProp(l.property_title); $('#f-cli-sug').style.display='none'; };
+$('#f-prop').oninput=()=>{ const q=norm($('#f-prop').value); const box=$('#f-prop-sug'); if(q.length<2){box.style.display='none';return;}
+  const r=PROPS.filter(p=>norm(p.title+' '+p.location_name+' '+p.eb_public_id).includes(q)).slice(0,8);
+  box.innerHTML=r.map(p=>'<div data-p="'+p.id+'">'+esc(p.title)+'<br><small>'+esc((p.location_name||'').split(',').slice(0,2).join(','))+'</small></div>').join(''); box.style.display=r.length?'block':'none'; };
+$('#f-prop-sug').onclick=e=>{ const d=e.target.closest('[data-p]'); if(!d)return; const p=PROPS.find(x=>x.id===d.dataset.p); if(!p)return;
+  F.property_id=p.id; pintarProp(p.title); if(!$('#f-lugar').value) $('#f-lugar').value=(p.location_name||'').split(',').slice(0,2).join(','); $('#f-prop-sug').style.display='none'; };
+$('#f-prop-chip').onclick=e=>{ if(e.target.id==='f-prop-q'){ F.property_id=null; pintarProp(''); $('#f-prop').value=''; } };
+$('#f-ok').onclick=async()=>{
+  const fecha=$('#f-fecha').value; if(!fecha){toast('Elige el día');return;}
+  const nombre=$('#f-cli').value.trim(); if(!nombre&&!F.prop_titulo&&!$('#f-notas').value.trim()){toast('Escribe con quién o de qué es la cita');return;}
+  const row={tipo:F.tipo,fecha,hora:$('#f-hora').value||null,duracion_min:Number($('#f-dur').value)||60,cliente_nombre:nombre||null,cliente_tel:$('#f-tel').value.trim()||null,lead_id:F.lead_id,property_id:F.property_id,titulo:F.prop_titulo||null,lugar:$('#f-lugar').value.trim()||null,notas:$('#f-notas').value.trim()||null,updated_at:new Date().toISOString()};
+  $('#f-ok').disabled=true;
+  let r; if(EDIT) r=await sb.from('citas').update(row).eq('id',EDIT.id); else r=await sb.from('citas').insert({...row,advisor_id:MY,user_email:session.user.email,estado:'pendiente'});
+  $('#f-ok').disabled=false;
+  if(r.error){toast('No se pudo guardar');console.error(r.error);return;}
+  cerrarForm(); SEL=fecha; await cargarCitas(); pintar(); toast(EDIT?'Cita actualizada ✓':'¡Cita agendada! ✓');
+};
+$('#f-del').onclick=async()=>{ if(!EDIT)return; if(!confirm('¿Borrar esta cita?'))return; const {error}=await sb.from('citas').delete().eq('id',EDIT.id); if(error){toast('No se pudo borrar');return;} cerrarForm(); await cargarCitas(); pintar(); toast('Cita borrada'); };
+
+/* ===== Interacciones de la vista ===== */
+$('#app').onclick=async e=>{
+  const n=e.target.closest('[data-nav]'); if(n){ const d=parse(SEL); d.setDate(d.getDate()+Number(n.dataset.nav)); SEL=ymd(d); await cargarCitas(); pintar(); return; }
+  if(e.target.closest('[data-hoy]')){ SEL=HOYS; await cargarCitas(); pintar(); return; }
+  const dd=e.target.closest('[data-dia]'); if(dd){ SEL=dd.dataset.dia; pintar(); return; }
+  const v=e.target.closest('[data-ver]'); if(v){ VER=v.dataset.ver; await cargarCitas(); pintar(); return; }
+  if(e.target.closest('[data-nueva]')){ abrirForm(null); return; }
+  const a=e.target.closest('[data-a]'); if(!a) return; const id=a.closest('.cita').dataset.id; const c=CITAS.find(x=>x.id===id); if(!c) return;
+  if(a.dataset.a==='editar'){ abrirForm(c); return; }
+  const nuevo=a.dataset.a==='hecha'?'hecha':'pendiente';
+  const {error}=await sb.from('citas').update({estado:nuevo,updated_at:new Date().toISOString()}).eq('id',id); if(error){toast('No se pudo actualizar');return;}
+  c.estado=nuevo; pintar(); if(nuevo==='hecha') toast('¡Bien! Cita marcada como hecha ✓');
+};
+
+/* Abrir con datos desde otra página: agenda.html?nombre=..&tel=..&lead=.. */
+const QS=new URLSearchParams(location.search);
+await cargarCitas(); pintar(); cargarApoyo();
+if(QS.get('nombre')||QS.get('lead')){ abrirForm(null); $('#f-cli').value=QS.get('nombre')||''; $('#f-tel').value=QS.get('tel')||''; F.lead_id=QS.get('lead')||null; if(QS.get('prop')) pintarProp(QS.get('prop')); }
+</script>
+</body>
+</html>
