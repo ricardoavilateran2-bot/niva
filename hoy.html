@@ -192,7 +192,7 @@ function pintar(){
      body:(scoutHechos.length?scoutHechos.map(itemScout).join(''):'')+(scout.length?scout.map(itemScout).join(''):'')+(!scout.length&&!scoutHechos.length?'<div class="vacio">No hay dueños nuevos por ahora. Revisa Scouting más tarde.</div>':'')+'<a class="mas" href="./scouting.html">Ver más dueños en Scouting →</a>'},
     {id:'m5',n:5,t:'Hazte visible',d:'3 tareas rápidas',hecho:extraHechas===tareasExtra.length,prog:extraHechas+'/'+tareasExtra.length,
      por:'<b>¿Por qué?</b> Los clientes compran con quien ven seguido. 10 minutos al día en tu estado y redes te traen clientes sin pagar anuncios.',
-     body:tareasExtra.map(t=>'<label class="chk"><input type="checkbox" data-est="'+t[0]+'"'+(ST.est[t[0]]?' checked':'')+'><span>'+t[1]+'</span></label>').join('')+'<a class="mas" href="./studio.html">Abrir Content Studio →</a>'}
+     body:tareasExtra.map(t=>'<label class="chk"><input type="checkbox" data-est="'+t[0]+'"'+(ST.est[t[0]]?' checked':'')+'><span>'+t[1]+'</span></label>').join('')+'<a class="mas" href="./agenda.html">📅 Abrir mi agenda →</a><a class="mas" href="./studio.html">Abrir Content Studio →</a>'}
   ];
   const hechas=M.filter(m=>m.hecho).length; const pct=Math.round(hechas/M.length*100);
   const sig=M.find(m=>!m.hecho);
