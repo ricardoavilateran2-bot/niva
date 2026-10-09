@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ficha técnica · NIVA Inmobiliaria</title>
+<style>
+body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f1ea;color:#1c2a44}
+header{background:#1c2a44;color:#fff;padding:16px;text-align:center}
+header b{color:#c9a54b;letter-spacing:2px;font-size:20px}
+header div{font-size:13px;opacity:.85;margin-top:4px}
+.bar{display:flex;gap:8px;padding:12px;position:sticky;top:0;background:#f4f1ea;z-index:2}
+.bar button{flex:1;border:0;border-radius:12px;padding:14px 6px;font-size:15px;font-weight:700;color:#fff;background:#1c2a44}
+.bar .wa{background:#25d366}
+#v{padding:0 12px 24px}
+#v canvas{width:100%;display:block;margin:0 auto 10px;box-shadow:0 2px 8px rgba(0,0,0,.15);background:#fff}
+#m{text-align:center;padding:30px;color:#666}
+</style></head><body>
+<header><b>NIVA INMOBILIARIA</b><div>Ficha técnica</div></header>
+<div class="bar"><button class="wa" id="bwa">💬 Enviar</button><button id="bdl">⬇️ Descargar</button></div>
+<div id="v"><div id="m">Cargando ficha…</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+var BASE='https://gjyzdwsfdmdfhcspvxbz.supabase.co/storage/v1/object/public/fichas/';
+var f=new URLSearchParams(location.search).get('f')||'';
+if(/^https?:/.test(f)) f=f.split('/object/public/fichas/').pop();
+var URLPDF=BASE+f, NOMBRE='Ficha_NIVA_'+(f.split('/').pop().replace(/-\d+\.pdf$/,'').replace(/\.pdf$/,''))+'.pdf', BLOB=null;
+var m=document.getElementById('m');
+async function cargar(){
+  if(!f){m.textContent='Ficha no encontrada.';return;}
+  try{
+    var r=await fetch(URLPDF); if(!r.ok) throw 0; BLOB=await r.blob();
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    var doc=await pdfjsLib.getDocument({data:await BLOB.arrayBuffer()}).promise; m.remove();
+    for(var i=1;i<=doc.numPages;i++){var p=await doc.getPage(i),vp=p.getViewport({scale:2}),c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;document.getElementById('v').appendChild(c);await p.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;}
+  }catch(e){m.innerHTML='No se pudo mostrar aquí. <a href="'+URLPDF+'">Abrir PDF</a>';}
+}
+cargar();
+function archivo(){return BLOB?new File([BLOB],NOMBRE,{type:'application/pdf'}):null;}
+document.getElementById('bwa').onclick=async function(){
+  var fl=archivo();
+  if(fl&&navigator.canShare&&navigator.canShare({files:[fl]})){try{await navigator.share({files:[fl],title:'Ficha técnica NIVA'});return;}catch(e){if(e.name==='AbortError')return;}}
+  location.href='https://wa.me/?text='+encodeURIComponent('Te comparto la ficha técnica de la propiedad:\n'+location.href);
+};
+document.getElementById('bdl').onclick=async function(){
+  var fl=archivo();
+  if(fl&&/iPhone|iPad|Android/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[fl]})){try{await navigator.share({files:[fl]});return;}catch(e){if(e.name==='AbortError')return;}}
+  if(!BLOB){location.href=URLPDF;return;}
+  var a=document.createElement('a');a.href=URL.createObjectURL(BLOB);a.download=NOMBRE;document.body.appendChild(a);a.click();a.remove();
+};
+</script></body></html>
