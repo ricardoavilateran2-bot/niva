@@ -72,6 +72,25 @@ textarea{resize:vertical;min-height:60px}
 .sel-chip button{float:right;background:transparent;border:0;color:var(--muted);cursor:pointer}
 .guardar{width:100%;margin-top:18px;background:var(--gold);color:var(--navy);border:0;border-radius:12px;padding:14px;font-weight:800;font-size:16px;cursor:pointer}
 .borrar{width:100%;margin-top:8px;background:transparent;color:var(--red);border:1px solid rgba(248,113,113,.4);border-radius:12px;padding:11px;font-weight:700;cursor:pointer;display:none}
+.vista{display:flex;background:rgba(255,255,255,.06);border-radius:12px;padding:3px;margin-bottom:12px}
+.vista button{flex:1;border:0;background:transparent;color:#cbd5e1;border-radius:10px;padding:8px;font-weight:800;font-size:13px;cursor:pointer}
+.vista button.on{background:var(--gold);color:var(--navy)}
+.wg{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}
+.wh{display:grid;grid-template-columns:38px repeat(7,1fr);border-bottom:1px solid var(--line);position:sticky;top:57px;background:#13233f;z-index:3}
+.wh div{text-align:center;padding:6px 0;cursor:pointer}
+.wh small{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase}
+.wh b{display:inline-block;font-size:16px;font-weight:800;width:28px;height:28px;line-height:28px;border-radius:50%;margin-top:2px}
+.wh .hoy b{background:var(--gold);color:var(--navy)}
+.wb{position:relative;margin-top:10px}
+.wb .hl{position:absolute;left:0;right:0;border-top:1px solid rgba(255,255,255,.07)}
+.wb .hl span{position:absolute;left:2px;top:-7px;font-size:9.5px;color:var(--muted);background:var(--navy2);padding:0 2px}
+.wb .col{position:absolute;top:0;bottom:0;border-left:1px solid rgba(255,255,255,.06)}
+.wb .col.hoy{background:rgba(201,168,76,.05)}
+.blk{position:absolute;border-radius:6px;padding:3px 4px;font-size:10.5px;font-weight:800;line-height:1.15;overflow:hidden;color:#0b1424;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.blk.hecha{opacity:.45}.blk.cancelada{opacity:.3;text-decoration:line-through}
+.blk small{display:block;font-weight:600;font-size:9.5px;opacity:.85}
+.now{position:absolute;height:2px;background:#ef4444;z-index:2}
+.now:before{content:'';position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#ef4444}
 .muted{color:var(--muted);font-size:13px;text-align:center;padding:30px 0}
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#fff;color:var(--navy);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:30}
 #toast.show{opacity:1}
@@ -130,6 +149,8 @@ const tel=s=>{let t=String(s||'').replace(/\D/g,''); if(t.length===10) t='52'+t;
 const cap1=s=>{s=String(s||'').trim().split(' ')[0];return s?s.charAt(0).toUpperCase()+s.slice(1).toLowerCase():'';};
 const HOYS=ymd(new Date());
 let SEL=HOYS, VER='mias', CITAS=[], LEADS=[], PROPS=[], EDIT=null, F={};
+let VISTA='semana'; try{ VISTA=localStorage.getItem('niva_agenda_vista')||'semana'; }catch(_e){}
+const SH=7, EH=22, PX=52;
 
 async function cargarCitas(){
   const ini=parse(SEL); ini.setDate(ini.getDate()-ini.getDay()-7); const fin=new Date(ini); fin.setDate(fin.getDate()+28);
@@ -151,6 +172,8 @@ function pintar(){
   let h='<div class="wk"><button class="nav" data-nav="-7">‹</button><div class="mes">'+mesTxt+'</div>'+(SEL!==HOYS?'<button class="hoybtn" data-hoy="1">Hoy</button>':'')+'<button class="nav" data-nav="7">›</button></div>';
   h+='<div class="dias">'+dias.map(d=>{const k=ymd(d);const n=cnt[k]||0;return '<div class="dia'+(k===HOYS?' hoy':'')+(k===SEL?' sel':'')+'" data-dia="'+k+'"><small>'+DIAS[d.getDay()]+'</small><b>'+d.getDate()+'</b><div class="pts">'+'<i></i>'.repeat(Math.min(n,3))+'</div></div>';}).join('')+'</div>';
   if(ADMIN) h+='<div class="ver"><button data-ver="mias" class="'+(VER==='mias'?'on':'')+'">Mis citas</button><button data-ver="equipo" class="'+(VER==='equipo'?'on':'')+'">Todo el equipo</button></div>';
+  h+='<div class="vista"><button data-vista="semana" class="'+(VISTA==='semana'?'on':'')+'">🗓️ Semana</button><button data-vista="dia" class="'+(VISTA==='dia'?'on':'')+'">📋 Día</button></div>';
+  if(VISTA==='semana'){ h=h.replace(/<div class="dias">[\s\S]*?<\/div><\/div><\/div>(?=<div class="ver"|<div class="vista")/,''); h+=semana(dias); $('#app').innerHTML=h; return; }
   const lista=CITAS.filter(c=>c.fecha===SEL).sort((a,b)=>String(a.hora||'').localeCompare(String(b.hora||'')));
   const titulo=(SEL===HOYS?'Hoy, ':'')+(SEL===HOYS?DIASL[s.getDay()]:DIASL[s.getDay()].charAt(0).toUpperCase()+DIASL[s.getDay()].slice(1))+' '+s.getDate()+' de '+MESES[s.getMonth()];
   const pend=lista.filter(c=>c.estado==='pendiente').length;
@@ -179,6 +202,24 @@ function pintar(){
 
 /* ===== Formulario ===== */
 $('#f-tipos').innerHTML=TIPOS.map(t=>'<button data-t="'+t[0]+'"><b>'+t[1]+'</b>'+t[2]+'</button>').join('');
+function semana(dias){
+  const H=(EH-SH)*PX; let h='<div class="wg"><div class="wh"><div></div>'+dias.map(d=>{const k=ymd(d);return '<div class="'+(k===HOYS?'hoy':'')+'" data-diaver="'+k+'"><small>'+DIAS[d.getDay()]+'</small><b>'+d.getDate()+'</b></div>';}).join('')+'</div>';
+  h+='<div class="wb" id="wb" style="height:'+H+'px">';
+  for(let x=SH;x<EH;x++) h+='<div class="hl" style="top:'+((x-SH)*PX)+'px"><span>'+(((x%12)||12)+(x<12?'a':'p'))+'</span></div>';
+  const W='((100% - 38px)/7)';
+  dias.forEach((d,i)=>{
+    const k=ymd(d); h+='<div class="col'+(k===HOYS?' hoy':'')+'" data-col="'+k+'" style="left:calc(38px + '+W+' * '+i+');width:calc'+W+'">';
+    const cs=CITAS.filter(c=>c.fecha===k).map(c=>{const [hh,mm]=(c.hora||'09:00').split(':').map(Number);const ini=Math.max(SH*60,Math.min((EH-1)*60,hh*60+mm));return {c,ini,fin:ini+Math.max(30,c.duracion_min||60)};}).sort((a,b)=>a.ini-b.ini);
+    const lanes=[]; cs.forEach(o=>{let l=lanes.findIndex(e=>e<=o.ini); if(l<0){l=lanes.length;lanes.push(0);} lanes[l]=o.fin; o.l=l;});
+    const nl=Math.max(1,lanes.length);
+    cs.forEach(o=>{const t=TP[o.c.tipo]||TP.visita; const top=(o.ini-SH*60)/60*PX; const ht=Math.max(20,(o.fin-o.ini)/60*PX-2);
+      h+='<div class="blk '+o.c.estado+'" data-blk="'+o.c.id+'" style="top:'+top+'px;height:'+ht+'px;left:calc('+(100/nl*o.l)+'% + 1px);width:calc('+(100/nl)+'% - 2px);background:'+t.c+'">'+t.e+' '+esc(cap1(o.c.cliente_nombre)||o.c.titulo||t.n)+(ht>34?'<small>'+(o.c.hora?h12(o.c.hora):'')+'</small>':'')+'</div>';});
+    if(k===HOYS){const ah=new Date();const mins=ah.getHours()*60+ah.getMinutes(); if(mins>=SH*60&&mins<=EH*60) h+='<div class="now" style="top:'+((mins-SH*60)/60*PX)+'px;left:0;right:0"></div>';}
+    h+='</div>';
+  });
+  h+='</div></div><div class="sub" style="color:var(--muted);font-size:12px;text-align:center;margin-top:8px">Toca un espacio vacío para agendar a esa hora · Toca una cita para verla o editarla</div>';
+  return h;
+}
 function abrirForm(c){
   EDIT=c||null; F={tipo:c?c.tipo:'visita',lead_id:c?c.lead_id:null,property_id:c?c.property_id:null};
   $('#f-tit').textContent=c?'Editar cita':'Nueva cita';
@@ -223,6 +264,10 @@ $('#f-del').onclick=async()=>{ if(!EDIT)return; if(!confirm('¿Borrar esta cita?
 $('#app').onclick=async e=>{
   const n=e.target.closest('[data-nav]'); if(n){ const d=parse(SEL); d.setDate(d.getDate()+Number(n.dataset.nav)); SEL=ymd(d); await cargarCitas(); pintar(); return; }
   if(e.target.closest('[data-hoy]')){ SEL=HOYS; await cargarCitas(); pintar(); return; }
+  const vs=e.target.closest('[data-vista]'); if(vs){ VISTA=vs.dataset.vista; try{localStorage.setItem('niva_agenda_vista',VISTA);}catch(_e){} pintar(); return; }
+  const dv=e.target.closest('[data-diaver]'); if(dv){ SEL=dv.dataset.diaver; VISTA='dia'; pintar(); return; }
+  const bk=e.target.closest('[data-blk]'); if(bk){ const c=CITAS.find(x=>x.id===bk.dataset.blk); if(c){ SEL=c.fecha; abrirForm(c); } return; }
+  const col=e.target.closest('[data-col]'); if(col){ const r=col.getBoundingClientRect(); const mins=SH*60+Math.floor(((e.clientY-r.top)/PX*60)/30)*30; SEL=col.dataset.col; abrirForm(null); $('#f-hora').value=String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0'); return; }
   const dd=e.target.closest('[data-dia]'); if(dd){ SEL=dd.dataset.dia; pintar(); return; }
   const v=e.target.closest('[data-ver]'); if(v){ VER=v.dataset.ver; await cargarCitas(); pintar(); return; }
   if(e.target.closest('[data-nueva]')){ abrirForm(null); return; }
