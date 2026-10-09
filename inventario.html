@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Inventario</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#1B2A4A;--navy2:#0f1e36;--gold:#C9A84C;--gold2:#e8c96a;--line:rgba(255,255,255,.12);--muted:#94a3b8;--wa:#25D366}
+body{font-family:Inter,sans-serif;background:var(--navy2);color:#fff;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--navy2)}
+header a{color:var(--gold);text-decoration:none;font-weight:700;font-size:14px}
+header h1{font-size:17px;font-weight:800;flex:1}
+.bar{position:sticky;top:0;z-index:5;background:var(--navy2);padding:10px 16px 8px;border-bottom:1px solid var(--line)}
+.wrap{max-width:860px;margin:0 auto}
+input,select{background:#0b1424;border:1px solid var(--line);color:#fff;border-radius:10px;padding:10px 11px;font:inherit;font-size:14.5px}
+#q{width:100%}
+.fil{display:flex;gap:6px;margin-top:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.fil select{flex:0 0 auto;padding:8px 9px;font-size:13px}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:#fff;border-radius:20px;padding:7px 12px;font-size:13px;font-weight:700;cursor:pointer}
+.chip.on{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.res{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.res button{background:transparent;border:1px solid var(--line);color:#fff;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer}
+.res button.on{border-color:var(--gold);color:var(--gold2)}
+.list{padding:6px 16px 120px}
+.grp{display:flex;align-items:center;gap:8px;margin:16px 0 6px;font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--gold2);cursor:pointer}
+.grp span{background:rgba(201,168,76,.15);border-radius:20px;padding:2px 8px;font-size:11px}
+.grp:after{content:'';flex:1;height:1px;background:var(--line)}
+.row{display:flex;gap:10px;align-items:center;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}
+.row img{width:64px;height:48px;object-fit:cover;border-radius:7px;background:#223;flex-shrink:0}
+.row .t{flex:1;min-width:0}
+.row b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row small{display:block;color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.row .p{text-align:right;flex-shrink:0;max-width:34%}
+.row .p b{color:var(--gold2);font-size:13.5px}
+.row .p small{font-size:11px}
+.row .ck{width:20px;height:20px;accent-color:var(--gold);flex-shrink:0;display:none}
+.sel .row .ck{display:block}
+.row.on{background:rgba(201,168,76,.08)}
+.acc{display:none;gap:6px;padding:6px 4px 10px 78px;flex-wrap:wrap}
+.acc.show{display:flex}
+.acc a,.acc button{flex:1;min-width:90px;text-align:center;text-decoration:none;color:#fff;border:1px solid var(--line);background:transparent;border-radius:9px;padding:8px;font-size:12.5px;font-weight:800;cursor:pointer}
+.acc .wa{background:var(--wa);border-color:var(--wa);color:#05290f}
+.foot{position:fixed;left:0;right:0;bottom:0;background:rgba(15,30,54,.97);border-top:1px solid var(--line);padding:10px 16px 14px;z-index:6}
+.foot button{width:100%;max-width:860px;display:block;margin:0 auto;background:var(--gold);color:var(--navy);border:0;border-radius:12px;padding:14px;font-weight:800;font-size:15px;cursor:pointer}
+.foot button:disabled{opacity:.6}
+.muted{color:var(--muted);font-size:13px;text-align:center;padding:30px 0}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20;display:none;align-items:flex-end;justify-content:center}
+.ov.show{display:flex}
+.sh{background:#13233f;border-radius:20px 20px 0 0;padding:18px 16px 24px;width:100%;max-width:560px}
+.sh h3{font-size:17px;margin-bottom:4px}.sh p{color:var(--muted);font-size:13px;margin-bottom:14px}
+.sh button{display:block;width:100%;margin-top:8px;border-radius:12px;padding:13px;font-weight:800;font-size:14.5px;cursor:pointer;border:1px solid var(--line);background:transparent;color:#fff}
+.sh .wa{background:var(--wa);border-color:var(--wa);color:#05290f}
+.sh .gold{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#fff;color:var(--navy);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:30;white-space:nowrap}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header><a href="./index.html">← NIVA OS</a><h1>🏘️ Inventario NIVA</h1></header>
+<div class="bar"><div class="wrap">
+  <input id="q" placeholder="Buscar por nombre, zona, clave EB o asesor…">
+  <div class="fil">
+    <button class="chip on" data-op="">Todas</button><button class="chip" data-op="sale">Venta</button><button class="chip" data-op="rental">Renta</button>
+    <select id="f-tipo"><option value="">Todo tipo</option></select>
+    <select id="f-ase"><option value="">Todos los asesores</option></select>
+    <select id="f-ord"><option value="tipo">Agrupar por tipo</option><option value="asc">Precio menor a mayor</option><option value="desc">Precio mayor a menor</option><option value="new">Más recientes</option></select>
+  </div>
+  <div class="res"><span id="cnt">Cargando…</span><button id="b-sel">☑ Elegir propiedades</button></div>
+</div></div>
+<div class="wrap"><div class="list" id="list"><p class="muted">Cargando inventario…</p></div></div>
+<div class="foot"><button id="b-pdf">📄 Enviar inventario en PDF</button></div>
+<div class="ov" id="ov"><div class="sh" id="sh"></div></div>
+<div id="toast"></div>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const $=s=>document.querySelector(s);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cfg=await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+const sb=createClient(cfg.url,cfg.anon);
+let {data:{session}}=await sb.auth.getSession();
+if(!session){ location.replace('./index.html'); }
+try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){}
+let YO={nombre:'',tel:''};
+try{ const {data:aid}=await sb.rpc('my_advisor_id'); if(aid){ const {data:a}=await sb.from('advisors').select('first_name,last_name,phone').eq('id',aid).maybeSingle(); if(a) YO={nombre:((a.first_name||'')+' '+(a.last_name||'')).trim(),tel:a.phone||''}; } }catch(_e){}
+
+const TIPO_PL={Casa:'Casas',Departamento:'Departamentos','Local comercial':'Locales comerciales',Terreno:'Terrenos',Oficina:'Oficinas',Quinta:'Quintas','Bodega comercial':'Bodegas','Terreno comercial':'Terrenos comerciales',Edificio:'Edificios'};
+const OPN={sale:'Venta',rental:'Renta'};
+const money=(n,cur)=>n?'$'+Math.round(Number(n)).toLocaleString('en-US')+(cur&&cur!=='MXN'?' '+cur:''):'Consultar';
+const zona=x=>{const L=(x.location_name||'').split(',').map(s=>s.trim());const c=L[0]||'';const m=(L[1]||'').replace('San Pedro Garza García','San Pedro').replace('San Nicolás de los Garza','San Nicolás');return c&&m&&!c.includes(m)?c+', '+m:(c||m);};
+const specs=x=>{const a=[];if(x.bedrooms)a.push(x.bedrooms+' rec');if(x.bathrooms)a.push((+x.bathrooms+(x.half_bathrooms?0.5*x.half_bathrooms:0))+' baños');if(x.construction_size)a.push(Math.round(x.construction_size)+' m²');else if(x.lot_size)a.push(Math.round(x.lot_size)+' m² terreno');if(x.parking_spaces)a.push(x.parking_spaces+' cajón'+(x.parking_spaces>1?'es':''));return a.join(' · ');};
+const nom1=s=>String(s||'').split(' ')[0];
+const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+
+const {data,error}=await sb.rpc('inventario_niva');
+if(error){ $('#list').innerHTML='<p class="muted">No se pudo cargar el inventario. Recarga la página.</p>'; throw error; }
+const ALL=data||[];
+let OP='', SEL=new Set(), MODO_SEL=false, ABIERTO=null, CERR=new Set();
+[...new Set(ALL.map(x=>x.property_type).filter(Boolean))].sort().forEach(t=>$('#f-tipo').insertAdjacentHTML('beforeend','<option value="'+esc(t)+'">'+esc(TIPO_PL[t]||t)+'</option>'));
+[...new Set(ALL.map(x=>x.asesor).filter(Boolean))].sort().forEach(a=>$('#f-ase').insertAdjacentHTML('beforeend','<option value="'+esc(a)+'">'+esc(a)+'</option>'));
+
+function filtrados(){
+  const q=norm($('#q').value.trim()), tp=$('#f-tipo').value, as=$('#f-ase').value, ord=$('#f-ord').value;
+  let L=ALL.filter(x=>(!OP||x.operation_type===OP)&&(!tp||x.property_type===tp)&&(!as||x.asesor===as)&&(!q||norm(x.title+' '+x.location_name+' '+x.eb_public_id+' '+x.asesor).includes(q)));
+  const pr=x=>Number(x.price_amount)||0;
+  if(ord==='asc') L.sort((a,b)=>pr(a)-pr(b)); else if(ord==='desc') L.sort((a,b)=>pr(b)-pr(a)); else if(ord==='new') L.sort((a,b)=>new Date(b.eb_published_at||0)-new Date(a.eb_published_at||0));
+  else L.sort((a,b)=>(a.operation_type||'').localeCompare(b.operation_type||'')*-1||(a.property_type||'').localeCompare(b.property_type||'')||pr(a)-pr(b));
+  return L;
+}
+function grupos(L){
+  if($('#f-ord').value!=='tipo') return [{k:'todas',t:'Resultados',items:L}];
+  const g={}; L.forEach(x=>{const k=(x.operation_type||'')+'|'+(x.property_type||'Otro'); (g[k]=g[k]||{k,t:(OPN[x.operation_type]||'')+' · '+(TIPO_PL[x.property_type]||x.property_type||'Otros'),items:[]}).items.push(x);});
+  return Object.values(g);
+}
+function pintar(){
+  const L=filtrados(); const v=L.filter(x=>x.operation_type==='sale').length;
+  $('#cnt').textContent=L.length+' propiedades · '+v+' venta · '+(L.length-v)+' renta'+(SEL.size?' · '+SEL.size+' elegidas':'');
+  $('#list').classList.toggle('sel',MODO_SEL);
+  $('#b-pdf').textContent=SEL.size?'📄 Enviar '+SEL.size+' elegidas en PDF':'📄 Enviar estas '+L.length+' en PDF';
+  if(!L.length){ $('#list').innerHTML='<p class="muted">No hay propiedades con ese filtro.</p>'; return; }
+  $('#list').innerHTML=grupos(L).map(g=>'<div class="grp" data-g="'+esc(g.k)+'">'+(CERR.has(g.k)?'▸ ':'▾ ')+esc(g.t)+' <span>'+g.items.length+'</span></div>'+(CERR.has(g.k)?'':g.items.map(x=>
+    '<div class="row'+(SEL.has(x.id)?' on':'')+'" data-id="'+x.id+'"><input type="checkbox" class="ck"'+(SEL.has(x.id)?' checked':'')+'><img loading="lazy" src="'+esc(x.title_image_url||'')+'" alt=""><div class="t"><b>'+esc(x.title)+'</b><small>📍 '+esc(zona(x)||'—')+'</small><small>'+esc(specs(x))+'</small></div><div class="p"><b>'+money(x.price_amount,x.price_currency)+(x.operation_type==='rental'?'<span style="font-size:10px;font-weight:600">/mes</span>':'')+'</b><small>'+esc(nom1(x.asesor)||'Sin asesor')+'</small><small>'+esc(x.eb_public_id||'')+'</small></div></div>'
+    +'<div class="acc'+(ABIERTO===x.id?' show':'')+'" data-acc="'+x.id+'">'+(x.ficha_url?'<a href="'+esc(x.ficha_url)+'" target="_blank">📄 Ficha</a><a class="wa" href="https://wa.me/?text='+encodeURIComponent(x.title+' · '+money(x.price_amount,x.price_currency)+(x.operation_type==='rental'?' /mes':'')+'\nFicha técnica: '+x.ficha_url)+'" target="_blank">💬 Enviar ficha</a>':'')+(x.public_url?'<a href="'+esc(x.public_url)+'" target="_blank">🔗 Fotos</a>':'')+(x.asesor_tel?'<a href="https://wa.me/'+String(x.asesor_tel).replace(/\D/g,'').replace(/^(\d{10})$/,'52$1')+'" target="_blank">👤 '+esc(nom1(x.asesor))+'</a>':'')+'</div>').join(''))).join('');
+}
+pintar();
+$('#q').oninput=pintar; $('#f-tipo').onchange=pintar; $('#f-ase').onchange=pintar; $('#f-ord').onchange=pintar;
+document.querySelectorAll('[data-op]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-op]').forEach(x=>x.classList.remove('on'));b.classList.add('on');OP=b.dataset.op;pintar();});
+$('#b-sel').onclick=()=>{MODO_SEL=!MODO_SEL;if(!MODO_SEL)SEL.clear();$('#b-sel').classList.toggle('on',MODO_SEL);$('#b-sel').textContent=MODO_SEL?'✕ Cancelar selección':'☑ Elegir propiedades';pintar();};
+$('#list').onclick=e=>{
+  const g=e.target.closest('[data-g]'); if(g){const k=g.dataset.g; CERR.has(k)?CERR.delete(k):CERR.add(k); pintar(); return;}
+  const r=e.target.closest('.row'); if(!r) return; const id=r.dataset.id;
+  if(MODO_SEL){ SEL.has(id)?SEL.delete(id):SEL.add(id); pintar(); return; }
+  ABIERTO=ABIERTO===id?null:id; pintar();
+};
+
+/* ===== PDF ===== */
+function srcProxy(u){ if(!u) return Promise.reject('nourl'); if(/^blob:|^data:/.test(u)||u.includes('.supabase.co/storage/')) return Promise.resolve(u);
+  return fetch(cfg.url+'/functions/v1/hyper-service?u='+encodeURIComponent(u),{headers:{Authorization:'Bearer '+cfg.anon,apikey:cfg.anon,'x-niva-jwt':session.access_token}}).then(r=>r.ok?r.blob():Promise.reject(r.status)).then(b=>URL.createObjectURL(b)); }
+function miniatura(u){ return Promise.race([srcProxy(u).then(s=>new Promise((res,rej)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const W=240,H=180;const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');const k=Math.max(W/im.width,H/im.height);const w=im.width*k,h=im.height*k;g.drawImage(im,(W-w)/2,(H-h)/2,w,h);res(c.toDataURL('image/jpeg',.78));};im.onerror=()=>rej('img');im.src=s;})),new Promise((_,rej)=>setTimeout(()=>rej('timeout'),12000))]); }
+const pdfTxt=s=>String(s??'').replace(/²/g,'2').replace(/[^\x20-\x7E\xA0-\xFF]/g,'').replace(/\s+/g,' ').trim();
+
+async function hacerPDF(L){
+  const {jsPDF}=window.jspdf; const pdf=new jsPDF({unit:'mm',format:'letter'}); const PW=215.9, PH=279.4, M=12;
+  const imgs={}; let hechas=0; const cola=L.filter(x=>x.title_image_url); const btn=$('#b-pdf');
+  await Promise.all([...Array(6)].map(async()=>{ while(cola.length){ const x=cola.shift(); try{ imgs[x.id]=await miniatura(x.title_image_url); }catch(_e){} hechas++; btn.textContent='Preparando fotos '+hechas+'/'+L.length+'…'; } }));
+  const fecha=new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+  const navy=[27,42,74], gold=[201,168,76];
+  const cabecera=(primera)=>{ pdf.setFillColor(...navy); pdf.rect(0,0,PW,primera?34:16,'F');
+    pdf.setTextColor(...gold); pdf.setFont('helvetica','bold'); pdf.setFontSize(primera?20:11); pdf.text('NIVA INMOBILIARIA',M,primera?14:10.5);
+    pdf.setTextColor(255,255,255); pdf.setFont('helvetica','normal'); pdf.setFontSize(primera?11:8.5);
+    if(primera){ pdf.text('Inventario disponible  ·  '+L.length+' propiedades  ·  '+pdfTxt(fecha),M,22); const f=[OP?OPN[OP]:'',$('#f-tipo').value?TIPO_PL[$('#f-tipo').value]:'',$('#f-ase').value?'Asesor: '+$('#f-ase').value:''].filter(Boolean).join('  ·  '); if(f) pdf.text(pdfTxt(f),M,28.5); }
+    else pdf.text('Inventario disponible  ·  '+pdfTxt(fecha),PW-M,10.5,{align:'right'});
+    return primera?42:23; };
+  const pie=()=>{ const n=pdf.getNumberOfPages(); for(let i=1;i<=n;i++){ pdf.setPage(i); pdf.setDrawColor(220,220,220); pdf.line(M,PH-14,PW-M,PH-14); pdf.setFontSize(8.5); pdf.setTextColor(90,90,90); pdf.setFont('helvetica','normal');
+    pdf.text(pdfTxt('Contacto: '+(YO.nombre||'NIVA Inmobiliaria')+(YO.tel?'  ·  WhatsApp '+YO.tel:'')),M,PH-8.5); pdf.text(i+' / '+n,PW-M,PH-8.5,{align:'right'}); } };
+  let y=cabecera(true); const RH=21, GAP=4, CW=(PW-2*M-GAP)/2;
+  for(const g of grupos(L)){
+    if(y+9+RH>PH-18){ pdf.addPage(); y=cabecera(false); }
+    pdf.setFillColor(246,237,214); pdf.rect(M,y,PW-2*M,7,'F'); pdf.setTextColor(122,94,30); pdf.setFont('helvetica','bold'); pdf.setFontSize(9.5); pdf.text(pdfTxt(g.t.toUpperCase()+'  ('+g.items.length+')'),M+3,y+4.9); y+=9.5;
+    for(let k=0;k<g.items.length;k+=2){
+      if(y+RH>PH-18){ pdf.addPage(); y=cabecera(false); }
+      [g.items[k],g.items[k+1]].forEach((x,c)=>{ if(!x) return;
+        const cx=M+c*(CW+GAP), iw=25, ih=18.5;
+        if(imgs[x.id]) pdf.addImage(imgs[x.id],'JPEG',cx,y,iw,ih,undefined,'FAST'); else { pdf.setFillColor(230,230,230); pdf.rect(cx,y,iw,ih,'F'); }
+        const tx=cx+iw+2.5, tw=CW-iw-2.5;
+        pdf.setTextColor(27,42,74); pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.text(money(x.price_amount,x.price_currency)+(x.operation_type==='rental'?' /mes':''),tx,y+3.6);
+        pdf.setFontSize(7.6); const tl=pdf.splitTextToSize(pdfTxt(x.title),tw).slice(0,2); pdf.text(tl,tx,y+7.3);
+        let yy=y+7.3+tl.length*3.1; pdf.setFont('helvetica','normal'); pdf.setFontSize(6.9); pdf.setTextColor(85,85,85);
+        pdf.text(pdf.splitTextToSize(pdfTxt(zona(x)),tw)[0]||'',tx,yy); yy+=2.9; pdf.text(pdf.splitTextToSize(pdfTxt(specs(x)),tw)[0]||'',tx,yy); yy+=3.1;
+        pdf.setTextColor(30,90,200); let lx=tx;
+        if(x.ficha_url){ pdf.textWithLink('Ficha',lx,yy,{url:x.ficha_url}); lx+=10; }
+        if(x.public_url){ pdf.textWithLink('Fotos',lx,yy,{url:x.public_url}); lx+=10; }
+        pdf.setTextColor(130,130,130); pdf.text(pdfTxt((x.eb_public_id||'')+(x.asesor?'  ·  '+nom1(x.asesor):'')),cx+CW,yy,{align:'right'});
+      });
+      pdf.setDrawColor(235,235,235); pdf.line(M,y+RH-1.2,PW-M,y+RH-1.2); y+=RH;
+    }
+    y+=2;
+  }
+  pie();
+  return pdf.output('blob');
+}
+
+$('#b-pdf').onclick=async()=>{
+  const L=SEL.size?ALL.filter(x=>SEL.has(x.id)):filtrados(); if(!L.length){toast('No hay propiedades para enviar');return;}
+  const b=$('#b-pdf'); b.disabled=true; let blob;
+  try{ blob=await hacerPDF(L); }catch(e){ console.error(e); toast('No se pudo crear el PDF'); b.disabled=false; pintar(); return; }
+  b.disabled=false; pintar();
+  const nombre='Inventario_NIVA_'+new Date().toISOString().slice(0,10)+'.pdf'; const file=new File([blob],nombre,{type:'application/pdf'});
+  let link=''; try{ const ruta='inventarios/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.pdf'; const up=await sb.storage.from('fichas').upload(ruta,blob,{contentType:'application/pdf',upsert:false}); if(!up.error) link=sb.storage.from('fichas').getPublicUrl(ruta).data.publicUrl; }catch(_e){}
+  $('#sh').innerHTML='<h3>📄 Tu PDF está listo</h3><p>'+L.length+' propiedades, organizadas por tipo, con foto, precio y liga a la ficha técnica.</p>'
+    +'<button class="wa" id="s-share">📲 Compartir el PDF (WhatsApp)</button>'
+    +(link?'<button id="s-link">💬 Enviar como link por WhatsApp</button>':'')
+    +'<button class="gold" id="s-dl">⬇️ Descargar</button><button id="s-x">Cerrar</button>';
+  $('#ov').classList.add('show');
+  $('#s-share').onclick=async()=>{ if(navigator.canShare&&navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:'Inventario NIVA'}); }catch(_e){} } else { toast('Tu navegador no permite compartir archivos; usa Descargar o el link'); } };
+  if(link) $('#s-link').onclick=()=>window.open('https://wa.me/?text='+encodeURIComponent('Inventario disponible NIVA Inmobiliaria ('+L.length+' propiedades):\n'+link),'_blank');
+  $('#s-dl').onclick=()=>{ const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=nombre; a.click(); setTimeout(()=>URL.revokeObjectURL(u),8000); };
+  $('#s-x').onclick=()=>$('#ov').classList.remove('show');
+};
+$('#ov').onclick=e=>{ if(e.target.id==='ov') $('#ov').classList.remove('show'); };
+</script>
+</body>
+</html>
