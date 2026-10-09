@@ -61,9 +61,9 @@ label{display:block;font-size:12.5px;color:var(--muted);font-weight:700;margin:1
 input,textarea,select{width:100%;background:#0b1424;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px;font:inherit;font-size:15px}
 textarea{resize:vertical;min-height:60px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.tipos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.tipos button{border:1px solid var(--line);background:transparent;color:#fff;border-radius:12px;padding:10px 4px;font-size:12.5px;font-weight:700;cursor:pointer}
-.tipos button b{display:block;font-size:20px;margin-bottom:2px}
+.tipos{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}#f-mas summary{margin-top:12px;color:var(--gold);font-weight:700;font-size:14px;cursor:pointer;list-style:none}
+.tipos button{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:#fff;border-radius:20px;padding:7px 11px;font-size:12.5px;white-space:nowrap;font-weight:700;cursor:pointer}
+.tipos button b{font-size:15px;margin-right:4px}
 .tipos button.on{border-color:var(--gold);background:rgba(201,168,76,.18)}
 .sug{border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:180px;overflow:auto;display:none}
 .sug div{padding:9px 11px;font-size:13.5px;border-bottom:1px solid var(--line);cursor:pointer}
@@ -103,23 +103,23 @@ textarea{resize:vertical;min-height:60px}
 <div class="ov" id="ov"></div>
 <div class="sheet" id="sheet">
   <h3><span id="f-tit">Nueva cita</span><button id="f-x">✕</button></h3>
-  <label>¿Qué vas a hacer?</label>
   <div class="tipos" id="f-tipos"></div>
-  <label>Cliente o persona <span style="font-weight:500">(escribe para buscar en tu CRM)</span></label>
-  <input id="f-cli" placeholder="Ej. Juan Pérez" autocomplete="off">
+  <input id="f-cli" placeholder="¿Con quién? (busca en tu CRM)" autocomplete="off" style="margin-top:10px">
   <div class="sug" id="f-cli-sug"></div>
-  <input id="f-tel" placeholder="Teléfono (opcional)" inputmode="tel" style="margin-top:6px">
-  <label>Propiedad <span style="font-weight:500">(opcional)</span></label>
+  <div class="g2"><div><label>Día</label><input type="date" id="f-fecha"></div><div><label>Hora</label><input type="time" id="f-hora" step="900"></div></div>
+  <details id="f-mas"><summary>＋ Más detalles (opcional)</summary>
+  <input id="f-tel" placeholder="Teléfono" inputmode="tel" style="margin-top:6px">
+  <label>Propiedad</label>
   <input id="f-prop" placeholder="Busca por nombre o zona" autocomplete="off">
   <div class="sug" id="f-prop-sug"></div>
   <div class="sel-chip" id="f-prop-chip"></div>
-  <div class="g2"><div><label>Día</label><input type="date" id="f-fecha"></div><div><label>Hora</label><input type="time" id="f-hora" step="900"></div></div>
   <label>Duración</label>
   <select id="f-dur"><option value="30">30 minutos</option><option value="60" selected>1 hora</option><option value="90">1 hora y media</option><option value="120">2 horas</option></select>
   <label>Lugar <span style="font-weight:500">(dirección o punto de encuentro)</span></label>
   <input id="f-lugar" placeholder="Ej. Torre Shiro, Av. Garza Sada">
   <label>Notas</label>
   <textarea id="f-notas" placeholder="Ej. Lleva llaves. El cliente busca 2 recámaras."></textarea>
+  </details>
   <button class="guardar" id="f-ok">Guardar cita</button>
   <button class="borrar" id="f-del">Borrar esta cita</button>
 </div>
@@ -225,7 +225,7 @@ function abrirForm(c){
   $('#f-tit').textContent=c?'Editar cita':'Nueva cita';
   $('#f-cli').value=c?(c.cliente_nombre||''):''; $('#f-tel').value=c?(c.cliente_tel||''):'';
   $('#f-prop').value=''; $('#f-fecha').value=c?c.fecha:SEL; $('#f-hora').value=c&&c.hora?c.hora.slice(0,5):'';
-  $('#f-dur').value=String(c?c.duracion_min||60:60); $('#f-lugar').value=c?(c.lugar||''):''; $('#f-notas').value=c?(c.notas||''):'';
+  $('#f-dur').value=String(c?c.duracion_min||60:60); $('#f-lugar').value=c?(c.lugar||''):''; $('#f-notas').value=c?(c.notas||''):''; $('#f-mas').open=!!(c&&(c.cliente_tel||c.property_id||c.lugar||c.notas));
   pintarTipo(); pintarProp(c?c.titulo:''); $('#f-del').style.display=c?'block':'none';
   $('#ov').classList.add('show'); $('#sheet').classList.add('show');
 }
