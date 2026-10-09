@@ -628,7 +628,8 @@ function showPortal(email){
   const cardAdmin=$('#card-admin');
   if(cardAdmin) cardAdmin.classList.toggle('hidden', uname!=='admin');
   const cardMidia=$('#card-midia');
-  if(cardMidia) cardMidia.classList.toggle('hidden', uname!=='admin');
+  if(cardMidia) cardMidia.classList.add('hidden'); // (2026-10-09) Mi día vive dentro del panel de administrador
+  ['./hoy.html','./agenda.html','./ofrezco.html'].forEach(h=>{ const c=document.querySelector('a.card[href="'+h+'"]'); if(c) c.classList.toggle('hidden', uname==='admin'); }); // (2026-10-09) herramientas de asesor, ocultas para el administrador
 }
 function showLogin(){
   $('#portal').classList.add('hidden');
