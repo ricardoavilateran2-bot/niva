@@ -99,7 +99,7 @@ const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''
 
 const {data,error}=await sb.rpc('inventario_niva');
 if(error){ $('#list').innerHTML='<p class="muted">No se pudo cargar el inventario. Recarga la página.</p>'; throw error; }
-const ALL=data||[];
+const ALL=data||[]; ALL.forEach(x=>{ if(x.ficha_url&&x.ficha_url.indexOf('/object/public/fichas/')>0) x.ficha_url='https://os.nivainmobiliaria.com/ficha.html?f='+encodeURIComponent(x.ficha_url.split('/object/public/fichas/').pop()); }); // (2026-10-09) ficha con marca NIVA
 let OP='', SEL=new Set(), MODO_SEL=false, ABIERTO=null, CERR=new Set();
 [...new Set(ALL.map(x=>x.property_type).filter(Boolean))].sort().forEach(t=>$('#f-tipo').insertAdjacentHTML('beforeend','<option value="'+esc(t)+'">'+esc(TIPO_PL[t]||t)+'</option>'));
 [...new Set(ALL.map(x=>x.asesor).filter(Boolean))].sort().forEach(a=>$('#f-ase').insertAdjacentHTML('beforeend','<option value="'+esc(a)+'">'+esc(a)+'</option>'));
