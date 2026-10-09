@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NIVA — Qué hacer hoy</title>
+<title>NIVA — Arranca tu día</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -12,39 +12,55 @@ body{font-family:Inter,sans-serif;background:var(--navy2);color:#fff;min-height:
 header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--navy2);z-index:5}
 header a{color:var(--gold);text-decoration:none;font-weight:700;font-size:14px}
 header h1{font-size:17px;font-weight:800;flex:1}
-.wrap{max-width:760px;margin:0 auto;padding:14px 16px 80px}
-.hola{font-size:20px;font-weight:800;margin:4px 0 2px}
-.sub{color:var(--muted);font-size:13px;margin-bottom:14px}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-.kpi{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
-.kpi b{display:block;font-size:22px;font-weight:800}
-.kpi span{font-size:11px;color:var(--muted)}
-.sec{display:flex;align-items:center;gap:8px;margin:18px 0 8px;font-size:15px;font-weight:800}
-.sec small{font-weight:600;color:var(--muted);font-size:12px}
-.sec .n{background:rgba(255,255,255,.1);border-radius:20px;padding:2px 9px;font-size:12px}
-.hint{color:var(--muted);font-size:12.5px;margin:-4px 0 10px;line-height:1.4}
-.card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
-.card.urg{border-color:rgba(248,113,113,.55)}
+.wrap{max-width:760px;margin:0 auto;padding:14px 16px 90px}
+.hola{font-size:21px;font-weight:800;margin:4px 0 4px}
+.sub{color:#cbd5e1;font-size:14px;line-height:1.45;margin-bottom:14px}
+.meta{background:linear-gradient(135deg,rgba(201,168,76,.18),rgba(201,168,76,.05));border:1px solid rgba(201,168,76,.4);border-radius:16px;padding:14px;margin-bottom:16px}
+.meta .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.meta b{font-size:15px}.meta .pct{font-size:24px;font-weight:800;color:var(--gold2)}
+.bar{height:10px;background:rgba(255,255,255,.1);border-radius:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--green));border-radius:10px;transition:width .5s}
+.meta small{display:block;color:#cbd5e1;font-size:12.5px;margin-top:8px}
+.semana{background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.35);border-radius:14px;padding:12px 14px;margin-bottom:16px;font-size:13.5px;line-height:1.5}
+.semana b{display:block;font-size:14.5px;margin-bottom:4px}
+.mis{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden}
+.mis.done{border-color:rgba(74,222,128,.5)}
+.mh{display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer}
+.num{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;background:rgba(255,255,255,.1);flex-shrink:0}
+.mis.done .num{background:var(--green);color:#05290f}
+.mh .t{flex:1;min-width:0}.mh .t b{display:block;font-size:15.5px}.mh .t small{color:var(--muted);font-size:12.5px}
+.prog{font-size:12px;font-weight:800;padding:4px 9px;border-radius:20px;background:rgba(255,255,255,.08);white-space:nowrap}
+.mis.done .prog{background:rgba(74,222,128,.18);color:var(--green)}
+.mb{display:none;padding:0 14px 14px}
+.mis.open .mb{display:block}
+.por{font-size:13px;color:#cbd5e1;background:rgba(255,255,255,.04);border-left:3px solid var(--gold);border-radius:8px;padding:9px 11px;margin-bottom:10px;line-height:1.45}
+.it{background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px}
+.it.hecho{opacity:.45}
 .row{display:flex;gap:10px;align-items:center}
 .row .t{flex:1;min-width:0}
-.row b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row small{color:var(--muted);font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.age{font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.row img{width:54px;height:42px;object-fit:cover;border-radius:8px;background:#223;flex-shrink:0}
+.age{font-size:11px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap}
 .age.r{background:rgba(248,113,113,.18);color:var(--red)}.age.a{background:rgba(251,191,36,.16);color:var(--amber)}.age.g{background:rgba(74,222,128,.15);color:var(--green)}
-.acts{display:flex;gap:8px;margin-top:10px}
-.btn{flex:1;border:0;border-radius:10px;padding:11px;font-weight:800;font-size:13.5px;cursor:pointer;text-decoration:none;text-align:center;color:#fff;background:transparent;border:1px solid var(--line)}
+.acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.btn{flex:1;min-width:90px;border-radius:10px;padding:10px;font-weight:800;font-size:13px;cursor:pointer;text-decoration:none;text-align:center;color:#fff;background:transparent;border:1px solid var(--line)}
 .btn.wa{background:var(--wa);color:#05290f;border-color:var(--wa)}
-.btn.ok{flex:0 0 auto}
-.vacio{color:var(--muted);font-size:13px;text-align:center;padding:16px;border:1px dashed var(--line);border-radius:12px}
-.prop img{width:56px;height:44px;object-fit:cover;border-radius:8px;background:#223;flex-shrink:0}
+.btn.gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.btn.sm{flex:0 0 auto;min-width:0;font-size:12px;padding:8px 10px}
+.vacio{color:#cbd5e1;font-size:13.5px;text-align:center;padding:14px;border:1px dashed var(--line);border-radius:12px}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer;font-size:14px;line-height:1.4}
+.chk input{width:20px;height:20px;margin-top:1px;accent-color:var(--green);flex-shrink:0}
+.mas{display:block;text-align:center;color:var(--gold2);font-size:13px;font-weight:700;margin-top:6px;text-decoration:none}
 .muted{color:var(--muted);font-size:13px;text-align:center;padding:30px 0}
+.fin{text-align:center;padding:18px;border-radius:16px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.4);margin-top:14px;font-size:14px;line-height:1.5}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#fff;color:var(--navy);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9}
 #toast.show{opacity:1}
 </style>
 </head>
 <body>
-<header><a href="./index.html">← NIVA OS</a><h1>✅ Qué hacer hoy</h1></header>
-<div class="wrap" id="app"><p class="muted">Cargando tu día…</p></div>
+<header><a href="./index.html">← NIVA OS</a><h1>🚀 Arranca tu día</h1></header>
+<div class="wrap" id="app"><p class="muted">Armando tu plan del día…</p></div>
 <div id="toast"></div>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -60,72 +76,169 @@ let MY=null, NOMBRE='';
 try{ const {data}=await sb.rpc('my_advisor_id'); MY=data||null; if(MY){ const {data:a}=await sb.from('advisors').select('first_name').eq('id',MY).maybeSingle(); NOMBRE=(a&&a.first_name)||''; } }catch(_e){}
 
 const H=3600e3, D=24*H;
+const HOY=new Date(); HOY.setHours(0,0,0,0); const HOY_MS=HOY.getTime();
+const KEY='niva_arranca_'+HOY.toISOString().slice(0,10);
+let ST={seg:[],cap:[],ofr:[],est:{}}; try{ ST=Object.assign(ST,JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(_e){}
+const guardar=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(ST)); }catch(_e){} };
+let ABIERTA=null; try{ ABIERTA=sessionStorage.getItem('niva_arranca_open'); }catch(_e){}
+
 const hace=ms=>{const h=Math.floor(ms/H); if(h<1) return 'hace '+Math.max(1,Math.round(ms/60000))+' min'; if(h<24) return 'hace '+h+' h'; const d=Math.floor(ms/D); return 'hace '+d+(d===1?' día':' días');};
-const nom=l=>{const n=String(l.full_name||'').trim().split(' ')[0]; return n?n.charAt(0).toUpperCase()+n.slice(1).toLowerCase():'';};
-const tel=l=>String(l.phone_normalized||'').replace(/\D/g,'');
-const propTxt=l=>l.property_title?('la propiedad '+String(l.property_title).toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()).slice(0,60)):'la propiedad';
-const msgNuevo=l=>'¡Hola'+(nom(l)?' '+nom(l):'')+'! Soy '+(NOMBRE||'tu asesor')+' de NIVA Inmobiliaria 🙂 Vi que preguntaste por '+propTxt(l)+'. ¿Te gustaría verla esta semana o prefieres que te cuente más por aquí?';
-const msgSeg=l=>'¡Hola'+(nom(l)?' '+nom(l):'')+'! Soy '+(NOMBRE||'tu asesor')+' de NIVA Inmobiliaria. ¿Sigues buscando? Te quiero compartir algunas opciones que te pueden interesar, ¿te mando info?';
+const cap1=s=>{s=String(s||'').trim().split(' ')[0];return s?s.charAt(0).toUpperCase()+s.slice(1).toLowerCase():'';};
+const tel=s=>{let t=String(s||'').replace(/\D/g,''); if(t.length===10) t='52'+t; if(t.length===13&&t.startsWith('521')) t='52'+t.slice(3); return t;};
+const bonito=s=>String(s||'').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+const yo=()=>NOMBRE||'tu asesor';
 
-let LEADS=[], ULT={}, HOY=0, PROPS=[];
+/* ===== Mensajes listos ===== */
+const msgNuevo=l=>'¡Hola'+(cap1(l.full_name)?' '+cap1(l.full_name):'')+'! Soy '+yo()+' de NIVA Inmobiliaria 🙂 Vi que preguntaste por '+(l.property_title?bonito(l.property_title).slice(0,60):'una de nuestras propiedades')+'. ¿Te gustaría verla esta semana o prefieres que te cuente más por aquí?';
+const msgSeg=l=>'¡Hola'+(cap1(l.full_name)?' '+cap1(l.full_name):'')+'! Soy '+yo()+' de NIVA Inmobiliaria. ¿Sigues buscando'+(l.property_title?' algo como '+bonito(l.property_title).slice(0,45):'')+'? Tengo opciones nuevas que te pueden interesar, ¿te las comparto?';
+const msgCap=s=>'¡Hola'+(cap1(s.nombre_contacto)?' '+cap1(s.nombre_contacto):'')+'! Vi el anuncio de su propiedad'+(s.colonia?' en '+bonito(s.colonia).slice(0,40):'')+'. Soy '+yo()+' de NIVA Inmobiliaria; tenemos clientes buscando en esa zona. ¿Sigue disponible? Con gusto le ayudo a '+(s.operacion==='renta'?'rentarla':'venderla')+' más rápido.';
 
+/* ===== Texto Ofrezco (mismo formato que Ofrezco WhatsApp) ===== */
+const T={Casa:'CASA',Departamento:'DEPA','Local comercial':'LOCAL',Terreno:'TERRENO',Oficina:'OFICINA',Quinta:'QUINTA','Bodega comercial':'BODEGA','Terreno comercial':'TERRENO COMERCIAL',Edificio:'EDIFICIO'};
+let EMO=true; try{ EMO=localStorage.getItem('niva_ofz_emo')!=='no'; }catch(_e){}
+function genOf(x){
+  const op=x.operation_type==='rental'?'RENTA':'VENTA';
+  let n=(x.title||'').toUpperCase();
+  n=n.replace(/\b(DEPARTAMENTOS?|DEPAS?|CASAS?|LOCAL(ES)? COMERCIAL(ES)?|LOCAL|TERRENOS?( COMERCIAL)?|OFICINAS?|QUINTAS?|BODEGAS?( COMERCIAL)?|EDIFICIO|AMUEBLAD[OA]S?|EQUIPAD[OA]S?|NUEV[OA]S?|EN|DE|LA|EL|RENTA|VENTA|PRE ?VENTA|CON|Y)\b/g,' ').replace(/[,|·\-–]+/g,' ').replace(/\s+/g,' ').trim();
+  const ps=n.split(' ');if(ps.length>5)n=ps.slice(0,5).join(' ');
+  const L=(x.location_name||'').split(',').map(s=>s.trim());const col=L[0]||'';
+  const mun=(L[1]||'').replace('San Pedro Garza García','San Pedro').replace('San Nicolás de los Garza','San Nicolás');
+  const zona=col&&mun&&!col.includes(mun)?col+', '+mun:(col||mun);
+  const txt=((x.title||'')+' '+(x.description||'')).toLowerCase();
+  const e=(em,lb)=>EMO?em+' ':(lb||'- ');
+  const o=[(EMO?'🔵🔵 ':'')+'*OFREZCO '+(T[x.property_type]||String(x.property_type||'').toUpperCase())+' '+op+(n?' '+n:'')+'*'];
+  if(zona)o.push(e('📍','Zona: ')+zona);
+  if(x.bedrooms)o.push(e('🛏')+x.bedrooms+(x.bedrooms>1?' Recámaras':' Recámara'));
+  if(x.bathrooms){const b=+x.bathrooms+(x.half_bathrooms?0.5*x.half_bathrooms:0);o.push(e('🛁')+String(b).replace('.5',' ½')+(b>1?' Baños':' Baño'));}
+  if(x.construction_size)o.push(e('📐')+Math.round(x.construction_size)+' m² construcción');
+  if(x.lot_size&&['Terreno','Terreno comercial','Quinta','Casa','Bodega comercial'].includes(x.property_type))o.push(e('🌳')+Math.round(x.lot_size)+' m² terreno');
+  if(/amueblad/.test(txt))o.push(e('🛋')+'Amueblado');
+  if(x.parking_spaces)o.push(e('🚗')+x.parking_spaces+(x.parking_spaces>1?' cajones':' cajón'));
+  const am=[];if(/alberca/.test(txt))am.push('alberca');if(/gimnasio|\bgym\b/.test(txt))am.push('gym');if(/roof|terraza/.test(txt))am.push('roof/terraza');if(/seguridad|vigilancia|caseta/.test(txt))am.push('seguridad 24/7');
+  if(am.length)o.push(e('✨','Amenidades: ')+am.slice(0,3).join(', ').replace(/^./,c=>c.toUpperCase()));
+  const p=Number(x.price_amount);if(p)o.push(e('💵','Precio: ')+'$'+p.toLocaleString('en-US')+(x.price_currency&&x.price_currency!=='MXN'?' '+x.price_currency:'')+(x.operation_type==='rental'?' /mes':''));
+  return o.slice(0,12).join('\n');
+}
+let CUST={};
+const msgOf=x=>CUST[x.id+'|'+(EMO?'emo':'sin')]||genOf(x);
+
+/* ===== Datos ===== */
+let LEADS=[], ULT={}, PROPS=[], SCOUT=[], OFR_HOY=0;
 async function cargar(){
   if(!MY){ $('#app').innerHTML='<p class="muted">Tu usuario no está ligado a un asesor. Pídele a Ricardo que lo revise.</p>'; return false; }
-  const {data,error}=await sb.from('my_leads').select('id,status,full_name,phone_normalized,contact_type,property_title,happened_at,created_at,archived_at,advisor_id').eq('advisor_id',MY).is('archived_at',null).order('happened_at',{ascending:true}).range(0,1999);
-  if(error){ $('#app').innerHTML='<p class="muted">No se pudo cargar tu información.</p>'; throw error; }
+  const {data,error}=await sb.from('my_leads').select('id,status,full_name,phone_normalized,contact_type,property_title,happened_at,created_at,archived_at,advisor_id').eq('advisor_id',MY).is('archived_at',null).range(0,1999);
+  if(error){ $('#app').innerHTML='<p class="muted">No se pudo cargar tu información. Recarga la página.</p>'; throw error; }
   LEADS=(data||[]).filter(l=>l.contact_type!=='agent'&&l.status!=='cancelled');
-  ULT={}; HOY=0;
-  const ids=LEADS.map(l=>l.id); const hoy0=new Date(); hoy0.setHours(0,0,0,0);
+  ULT={};
+  const ids=LEADS.map(l=>l.id);
   for(let i=0;i<ids.length;i+=150){
-    try{ const {data:it}=await sb.from('lead_interactions').select('lead_id,type,created_at').in('lead_id',ids.slice(i,i+150)).in('type',['whatsapp_click','call_click','status_change']).order('created_at',{ascending:false}).range(0,4999);
-      (it||[]).forEach(r=>{const t=new Date(r.created_at).getTime(); if(!ULT[r.lead_id]||t>ULT[r.lead_id])ULT[r.lead_id]=t; if(t>=hoy0.getTime())HOY++;}); }catch(_e){}
+    try{ const {data:it}=await sb.from('lead_interactions').select('lead_id,created_at').in('lead_id',ids.slice(i,i+150)).in('type',['whatsapp_click','call_click','status_change']).order('created_at',{ascending:false}).range(0,4999);
+      (it||[]).forEach(r=>{const t=new Date(r.created_at).getTime(); if(!ULT[r.lead_id]||t>ULT[r.lead_id])ULT[r.lead_id]=t;}); }catch(_e){}
   }
-  try{ const {data:pr}=await sb.from('my_properties').select('id,title,title_image_url,price_amount,eb_status,advisor_id').eq('advisor_id',MY).eq('eb_status','published').limit(300); PROPS=pr||[];
-    if(PROPS.length){ const {data:lg}=await sb.from('ofrezcos_log').select('property_id,created_at').in('property_id',PROPS.map(p=>p.id)).order('created_at',{ascending:false}).limit(2000); const u={}; (lg||[]).forEach(r=>{if(!u[r.property_id])u[r.property_id]=new Date(r.created_at).getTime();}); PROPS.forEach(p=>p._ult=u[p.id]||0); PROPS.sort((a,b)=>a._ult-b._ult); } }catch(_e){ PROPS=[]; }
+  try{ const {data:pr}=await sb.from('my_properties').select('id,title,title_image_url,price_amount,price_currency,property_type,operation_type,location_name,bedrooms,bathrooms,half_bathrooms,parking_spaces,construction_size,lot_size,description,eb_status,advisor_id').eq('advisor_id',MY).eq('eb_status','published').limit(300); PROPS=pr||[];
+    if(PROPS.length){ const pids=PROPS.map(p=>p.id);
+      const {data:lg}=await sb.from('ofrezcos_log').select('property_id,created_at,user_email').in('property_id',pids).order('created_at',{ascending:false}).limit(3000); const u={}; OFR_HOY=0; const vistos={};
+      (lg||[]).forEach(r=>{const t=new Date(r.created_at).getTime(); if(!u[r.property_id])u[r.property_id]=t; if(t>=HOY_MS&&r.user_email===session.user.email&&!vistos[r.property_id]){vistos[r.property_id]=1;OFR_HOY++;}});
+      PROPS.forEach(p=>p._ult=u[p.id]||0); PROPS.sort((a,b)=>a._ult-b._ult);
+      try{ const {data:ct}=await sb.from('ofrezco_textos').select('property_id,modo,texto').in('property_id',pids); (ct||[]).forEach(r=>CUST[r.property_id+'|'+r.modo]=r.texto); }catch(_e){}
+    } }catch(_e){ PROPS=[]; }
+  try{ const {data:sc}=await sb.from('scouting_leads').select('id,titulo,precio,operacion,tipo_propiedad,colonia,zona,telefono,telefono_normalizado,nombre_contacto,portal,url,detectado_at').eq('lead_status','DISPONIBLE').eq('visible_para_asesores',true).not('telefono_normalizado','is',null).order('detectado_at',{ascending:false}).limit(40); SCOUT=(sc||[]).filter(s=>tel(s.telefono_normalizado||s.telefono).length>=12); if(SCOUT.length){ let hsh=0; for(const ch of String(MY)) hsh=(hsh*31+ch.charCodeAt(0))%9973; const k=hsh%SCOUT.length; SCOUT=SCOUT.slice(k).concat(SCOUT.slice(0,k)); } }catch(_e){ SCOUT=[]; }
   return true;
 }
 
-function card(l,tipo){
+/* ===== Pantalla ===== */
+function itemLead(l,tipo){
   const base=new Date(l.happened_at||l.created_at).getTime(); const ref=tipo==='nuevo'?base:(ULT[l.id]||base); const ms=Date.now()-ref;
   const cls=tipo==='nuevo'?(ms>D?'r':ms>2*H?'a':'g'):(ms>7*D?'r':'a');
-  const t=tel(l); const msg=tipo==='nuevo'?msgNuevo(l):msgSeg(l);
-  return '<div class="card'+(cls==='r'?' urg':'')+'" data-id="'+l.id+'"><div class="row"><div class="t"><b>'+esc(l.full_name||'Cliente sin nombre')+'</b><small>'+esc(l.property_title||'Propiedad no identificada')+'</small></div><span class="age '+cls+'">'+(tipo==='nuevo'?'Llegó ':'Último contacto ')+hace(ms)+'</span></div>'
-    +'<div class="acts">'+(t?'<a class="btn wa" data-a="wa" href="https://wa.me/'+t+'?text='+encodeURIComponent(msg)+'" target="_blank">💬 WhatsApp</a><a class="btn" data-a="call" href="tel:+'+t+'">📞 Llamar</a>':'<span class="btn" style="opacity:.6">Sin teléfono</span>')
-    +(tipo==='nuevo'?'<button class="btn ok" data-a="ok">✓ Ya lo contacté</button>':'')+'</div></div>';
+  const t=tel(l.phone_normalized); const msg=tipo==='nuevo'?msgNuevo(l):msgSeg(l); const hecho=tipo==='seg'&&ST.seg.includes(l.id);
+  return '<div class="it'+(hecho?' hecho':'')+'" data-k="'+tipo+'" data-id="'+l.id+'"><div class="row"><div class="t"><b>'+(hecho?'✅ ':'')+esc(l.full_name||'Cliente sin nombre')+'</b><small>'+esc(l.property_title||'Propiedad no identificada')+'</small></div><span class="age '+cls+'">'+(tipo==='nuevo'?'Llegó ':'')+hace(ms)+'</span></div>'
+   +'<div class="acts">'+(t?'<a class="btn wa" data-a="wa" href="https://wa.me/'+t+'?text='+encodeURIComponent(msg)+'" target="_blank">💬 Mandar WhatsApp</a><a class="btn sm" data-a="call" href="tel:+'+t+'">📞</a>':'<span class="btn" style="opacity:.6">Sin teléfono</span>')
+   +(tipo==='nuevo'?'<button class="btn sm" data-a="ok">✓ Ya</button>':'')+'</div></div>';
+}
+function itemProp(p){
+  const hecho=ST.ofr.includes(p.id);
+  return '<div class="it'+(hecho?' hecho':'')+'" data-k="ofr" data-id="'+p.id+'"><div class="row"><img src="'+esc(p.title_image_url||'')+'" alt=""><div class="t"><b>'+(hecho?'✅ ':'')+esc(p.title)+'</b><small>'+(p._ult?'Última vez ofrecida '+hace(Date.now()-p._ult):'Nunca la has ofrecido')+'</small></div></div>'
+   +'<div class="acts"><a class="btn wa" data-a="ofr" href="https://wa.me/?text='+encodeURIComponent(msgOf(p))+'" target="_blank">📣 Ofrecer en mis grupos</a><button class="btn sm" data-a="copiar">📋</button></div></div>';
+}
+function itemScout(s){
+  const hecho=ST.cap.includes(s.id); const t=tel(s.telefono_normalizado||s.telefono);
+  return '<div class="it'+(hecho?' hecho':'')+'" data-k="cap" data-id="'+s.id+'"><div class="row"><div class="t"><b>'+(hecho?'✅ ':'')+esc(s.titulo||'Propiedad de dueño')+'</b><small>'+esc([s.colonia,s.zona].filter(Boolean).join(', ')||'Monterrey')+' · '+(s.precio?'$'+Number(s.precio).toLocaleString('en-US'):'')+' · '+esc(s.operacion||'')+'</small></div>'+(s.url?'<a class="btn sm" href="'+esc(s.url)+'" target="_blank">Ver</a>':'')+'</div>'
+   +'<div class="acts"><a class="btn wa" data-a="capwa" href="https://wa.me/'+t+'?text='+encodeURIComponent(msgCap(s))+'" target="_blank">💬 Escribir al dueño</a><a class="btn sm" data-a="capcall" href="tel:+'+t+'">📞</a></div>'
+   +(hecho?'<div class="acts"><button class="btn sm gold" data-a="mio">🏠 Aceptó, me la quedo</button><button class="btn sm" data-a="esasesor">Es asesor</button><button class="btn sm" data-a="nodisp">Ya no está</button></div>':'')+'</div>';
 }
 
 function pintar(){
   const nuevos=LEADS.filter(l=>l.status==='new').sort((x,y)=>new Date(y.happened_at||y.created_at)-new Date(x.happened_at||x.created_at));
-  const seg=LEADS.filter(l=>l.status!=='new'&&(Date.now()-(ULT[l.id]||new Date(l.happened_at||l.created_at).getTime()))>3*D).sort((a,b)=>(ULT[a.id]||0)-(ULT[b.id]||0)).slice(0,15);
-  const prop=PROPS.slice(0,3);
+  const contestadosHoy=LEADS.filter(l=>l.status!=='new'&&(ULT[l.id]||0)>=HOY_MS&&new Date(l.happened_at||l.created_at).getTime()>=HOY_MS-7*D).length;
+  const segAll=LEADS.filter(l=>l.status!=='new'&&(ST.seg.includes(l.id)||(Date.now()-(ULT[l.id]||new Date(l.happened_at||l.created_at).getTime()))>3*D)).sort((a,b)=>(ULT[a.id]||0)-(ULT[b.id]||0));
+  const seg=segAll.slice(0,5); const segMeta=Math.min(5,segAll.length); const segHechos=ST.seg.length;
+  const props=PROPS.slice(0,3); const ofrMeta=Math.min(3,PROPS.length); const ofrHechos=Math.max(ST.ofr.length,OFR_HOY);
+  const scout=SCOUT.filter(s=>!ST.cap.includes(s.id)).slice(0,5-Math.min(5,ST.cap.length)); const scoutHechos=SCOUT.filter(s=>ST.cap.includes(s.id)); const capMeta=Math.min(5,SCOUT.length+ST.cap.length); const capHechos=ST.cap.length;
+  const tareasExtra=[['estado','Sube 1 propiedad a tu estado de WhatsApp (foto + precio + "pregúntame").'],['redes','Comparte 1 publicación en tus redes (Facebook, Instagram o Marketplace) desde Content Studio.'],['agenda','Revisa tu agenda: confirma por WhatsApp las visitas de hoy y mañana.']];
+  const extraHechas=tareasExtra.filter(t=>ST.est[t[0]]).length;
+
+  const M=[
+    {id:'m1',n:1,t:'Contesta a tus clientes nuevos',d:'Lo más importante del día',hecho:nuevos.length===0,prog:nuevos.length?nuevos.length+' esperando':'✓ Al día',
+     por:'<b>¿Por qué primero?</b> Un cliente que recibe respuesta en menos de 1 hora tiene muchas más probabilidades de agendar visita. Toca <b>Mandar WhatsApp</b>: el mensaje ya va escrito, solo envíalo. El cliente pasa solo a ACTIVO.',
+     body:nuevos.length?nuevos.slice(0,10).map(l=>itemLead(l,'nuevo')).join('')+(nuevos.length>10?'<div class="vacio">Y '+(nuevos.length-10)+' más. Termina estos y aparecerán los siguientes.</div>':''):'<div class="vacio">🎉 No tienes clientes nuevos esperando'+(contestadosHoy?' · Hoy contestaste '+contestadosHoy:'')+'.</div>'},
+    {id:'m2',n:2,t:'Dale seguimiento a 5 clientes',d:'Que ninguno se te enfríe',hecho:segMeta===0||segHechos>=segMeta,prog:segMeta?Math.min(segHechos,segMeta)+'/'+segMeta:'✓ Al día',
+     por:'<b>¿Por qué?</b> La mayoría de los clientes no compra en el primer mensaje. Los que tienen más de 3 días sin noticias tuyas se van con otra inmobiliaria. Un mensaje corto los mantiene contigo.',
+     body:seg.length?seg.map(l=>itemLead(l,'seg')).join(''):'<div class="vacio">👌 Estás al día con tus seguimientos.</div>'},
+    {id:'m3',n:3,t:'Ofrece 3 propiedades en tus grupos',d:'Que los demás asesores te traigan clientes',hecho:ofrMeta===0||ofrHechos>=ofrMeta,prog:ofrMeta?Math.min(ofrHechos,ofrMeta)+'/'+ofrMeta:'—',
+     por:'<b>¿Cómo?</b> Toca <b>Ofrecer en mis grupos</b>: se abre WhatsApp con el "Ofrezco" listo. Elige hasta 5 grupos a la vez y envía; repite con otros grupos. Te ponemos primero las que menos has ofrecido.',
+     body:props.length?props.map(itemProp).join('')+'<a class="mas" href="./ofrezco.html">Ver todas mis propiedades →</a>':'<div class="vacio">Aún no tienes propiedades asignadas. ¡Por eso el paso 4 es clave!</div>'},
+    {id:'m4',n:4,t:'Capta: escríbele a 5 dueños',d:'Más propiedades = más comisiones',hecho:capMeta===0||capHechos>=capMeta,prog:capMeta?Math.min(capHechos,capMeta)+'/'+capMeta:'—',
+     por:'<b>¿Cómo?</b> Son dueños directos que publicaron su propiedad hace poco (sin inmobiliaria). Toca <b>Escribir al dueño</b>: el mensaje ya va listo. Si acepta trabajar contigo, toca <b>Aceptó, me la quedo</b> y queda a tu nombre en Scouting.',
+     body:(scoutHechos.length?scoutHechos.map(itemScout).join(''):'')+(scout.length?scout.map(itemScout).join(''):'')+(!scout.length&&!scoutHechos.length?'<div class="vacio">No hay dueños nuevos por ahora. Revisa Scouting más tarde.</div>':'')+'<a class="mas" href="./scouting.html">Ver más dueños en Scouting →</a>'},
+    {id:'m5',n:5,t:'Hazte visible',d:'3 tareas rápidas',hecho:extraHechas===tareasExtra.length,prog:extraHechas+'/'+tareasExtra.length,
+     por:'<b>¿Por qué?</b> Los clientes compran con quien ven seguido. 10 minutos al día en tu estado y redes te traen clientes sin pagar anuncios.',
+     body:tareasExtra.map(t=>'<label class="chk"><input type="checkbox" data-est="'+t[0]+'"'+(ST.est[t[0]]?' checked':'')+'><span>'+t[1]+'</span></label>').join('')+'<a class="mas" href="./studio.html">Abrir Content Studio →</a>'}
+  ];
+  const hechas=M.filter(m=>m.hecho).length; const pct=Math.round(hechas/M.length*100);
+  const sig=M.find(m=>!m.hecho);
+  if(!ABIERTA||!M.find(m=>m.id===ABIERTA)) ABIERTA=sig?sig.id:null;
+
   const hr=new Date().getHours(); const sal=hr<12?'Buenos días':hr<19?'Buenas tardes':'Buenas noches';
-  let h='<div class="hola">'+sal+(NOMBRE?', '+esc(NOMBRE):'')+' 👋</div><div class="sub">Esto es lo que te toca hoy, en orden de importancia.</div>'
-   +'<div class="kpis"><div class="kpi"><b style="color:var(--red)">'+nuevos.length+'</b><span>Nuevos por contestar</span></div><div class="kpi"><b style="color:var(--amber)">'+seg.length+'</b><span>Seguimientos</span></div><div class="kpi"><b style="color:var(--green)">'+HOY+'</b><span>Acciones hoy</span></div></div>';
-  h+='<div class="sec">1. Contesta a tus clientes nuevos <span class="n">'+nuevos.length+'</span></div><div class="hint">Primero los más recientes: son los más calientes. Un cliente que recibe respuesta en menos de 1 hora tiene muchas más probabilidades de cerrar.</div>';
-  h+=nuevos.length?nuevos.slice(0,20).map(l=>card(l,'nuevo')).join('')+(nuevos.length>20?'<div class="vacio">Y '+(nuevos.length-20)+' más. Atiende primero estos y aparecerán los siguientes.</div>':''):'<div class="vacio">🎉 No tienes clientes nuevos esperando.</div>';
-  h+='<div class="sec">2. Dale seguimiento <span class="n">'+seg.length+'</span></div><div class="hint">Clientes con los que no has tenido contacto en más de 3 días. Un mensaje corto basta para que no se enfríen.</div>';
-  h+=seg.length?seg.map(l=>card(l,'seg')).join(''):'<div class="vacio">👌 Estás al día con tus seguimientos.</div>';
-  h+='<div class="sec">3. Ofrece tus propiedades <small>(las que menos has ofrecido)</small></div>';
-  h+=prop.length?prop.map(p=>'<div class="card prop"><div class="row"><img src="'+esc(p.title_image_url||'')+'" alt=""><div class="t"><b>'+esc(p.title)+'</b><small>'+(p._ult?'Ofrecida '+hace(Date.now()-p._ult):'Nunca la has ofrecido')+'</small></div></div></div>').join('')+'<a class="btn wa" style="display:block" href="./ofrezco.html">📣 Ir a Ofrezco WhatsApp</a>':'<div class="vacio">No tienes propiedades asignadas publicadas.</div>';
+  const dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado']; const dia=new Date().getDay();
+  let h='<div class="hola">'+sal+(NOMBRE?', '+esc(NOMBRE):'')+' 👋</div>'
+   +'<div class="sub">No tienes que pensar qué hacer: sigue estos 5 pasos en orden. Cada uno ya trae los mensajes listos, solo toca y envía.</div>'
+   +'<div class="meta"><div class="top"><b>Tu avance de hoy</b><span class="pct">'+pct+'%</span></div><div class="bar"><i style="width:'+pct+'%"></i></div><small>'+(sig?'👉 Ahora sigue: <b>Paso '+sig.n+' · '+sig.t+'</b>':'🏆 ¡Terminaste tu plan de hoy!')+'</small></div>';
+  if(dia===1) h+='<div class="semana"><b>📅 Arranque de semana (lunes)</b>1) Escribe a los dueños de tus propiedades: ¿siguen disponibles?, ¿mismo precio?<br>2) Pide fotos o datos que falten en tus captaciones.<br>3) Agenda tus visitas de la semana con los clientes ACTIVOS.</div>';
+  else if(dia===5) h+='<div class="semana"><b>📅 Cierre de semana (viernes)</b>Confirma las visitas del fin de semana y manda un último seguimiento a los clientes que vieron propiedades esta semana.</div>';
+  h+=M.map(m=>'<div class="mis'+(m.hecho?' done':'')+(ABIERTA===m.id?' open':'')+'" id="'+m.id+'"><div class="mh" data-tog="'+m.id+'"><div class="num">'+(m.hecho?'✓':m.n)+'</div><div class="t"><b>'+m.t+'</b><small>'+m.d+'</small></div><span class="prog">'+m.prog+'</span></div><div class="mb"><div class="por">'+m.por+'</div>'+m.body+'</div></div>').join('');
+  if(!sig) h+='<div class="fin">🏆 <b>¡Excelente trabajo'+(NOMBRE?', '+esc(NOMBRE):'')+'!</b><br>Completaste tu plan de hoy. Si te sobra tiempo, vuelve al paso 4 y escríbele a más dueños.</div>';
+  h+='<div class="sub" style="margin-top:14px;font-size:12px;color:var(--muted)">Hoy es '+dias[dia]+'. El plan se reinicia cada día.</div>';
   $('#app').innerHTML=h;
 }
 
 if(await cargar()) pintar();
 
+const abrir=id=>{ABIERTA=id; try{sessionStorage.setItem('niva_arranca_open',id);}catch(_e){}};
 $('#app').onclick=async e=>{
-  const a=e.target.closest('[data-a]'); if(!a) return; const c=a.closest('.card'); if(!c) return; const id=c.dataset.id; const l=LEADS.find(x=>x.id===id); if(!l) return;
-  if(a.dataset.a==='wa'||a.dataset.a==='call'){
-    try{ sb.from('lead_interactions').insert({lead_id:id,type:a.dataset.a==='wa'?'whatsapp_click':'call_click',actor:'advisor',payload:{desde:'hoy'}}).then(()=>{},()=>{}); }catch(_e){}
-    ULT[id]=Date.now(); HOY++;
-    if(l.status==='new'){ const {error}=await sb.from('leads').update({status:'contacted'}).eq('id',id); if(!error){ l.status='contacted'; try{ sb.from('lead_interactions').insert({lead_id:id,type:'status_change',actor:'advisor',payload:{de:'new',a:'contacted'}}).then(()=>{},()=>{}); }catch(_e){} } }
-    setTimeout(pintar,600); return;
+  const tg=e.target.closest('[data-tog]'); if(tg){ const id=tg.dataset.tog; abrir(ABIERTA===id?'':id); pintar(); return; }
+  const a=e.target.closest('[data-a]'); if(!a) return; const it=a.closest('.it'); if(!it) return; const id=it.dataset.id; const k=it.dataset.k;
+  if(k==='nuevo'||k==='seg'){
+    const l=LEADS.find(x=>x.id===id); if(!l) return;
+    if(a.dataset.a==='wa'||a.dataset.a==='call'){ try{ sb.from('lead_interactions').insert({lead_id:id,type:a.dataset.a==='wa'?'whatsapp_click':'call_click',actor:'advisor',payload:{desde:'arranca'}}).then(()=>{},()=>{}); }catch(_e){} ULT[id]=Date.now(); if(k==='seg'&&!ST.seg.includes(id)){ST.seg.push(id);guardar();} }
+    if((a.dataset.a==='wa'||a.dataset.a==='call'||a.dataset.a==='ok')&&l.status==='new'){ const {error}=await sb.from('leads').update({status:'contacted'}).eq('id',id); if(!error){ l.status='contacted'; ULT[id]=Date.now(); try{ sb.from('lead_interactions').insert({lead_id:id,type:'status_change',actor:'advisor',payload:{de:'new',a:'contacted',desde:'arranca'}}).then(()=>{},()=>{}); }catch(_e){} if(a.dataset.a==='ok')toast('Listo ✓ Pasó a ACTIVO'); } else toast('No se pudo actualizar'); }
+    setTimeout(pintar,500); return;
   }
-  if(a.dataset.a==='ok'){
-    const {error}=await sb.from('leads').update({status:'contacted'}).eq('id',id); if(error){toast('No se pudo actualizar');return;}
-    try{ sb.from('lead_interactions').insert({lead_id:id,type:'status_change',actor:'advisor',payload:{de:'new',a:'contacted',desde:'hoy'}}).then(()=>{},()=>{}); }catch(_e){}
-    l.status='contacted'; ULT[id]=Date.now(); HOY++; pintar(); toast('Listo ✓ Pasó a ACTIVO');
+  if(k==='ofr'){
+    const p=PROPS.find(x=>x.id===id); if(!p) return;
+    if(a.dataset.a==='copiar'){ try{ await navigator.clipboard.writeText(msgOf(p)); toast('Copiado ✓ Pégalo en tus grupos'); }catch(_e){ toast('No se pudo copiar'); } }
+    try{ sb.from('ofrezcos_log').insert({property_id:id,advisor_id:MY,canal:a.dataset.a==='ofr'?'whatsapp':'copiar',user_email:session.user.email}).then(()=>{},()=>{}); }catch(_e){}
+    if(!ST.ofr.includes(id)){ST.ofr.push(id);guardar();} p._ult=Date.now(); setTimeout(pintar,500); return;
+  }
+  if(k==='cap'){
+    const s=SCOUT.find(x=>x.id===id); if(!s) return;
+    if(a.dataset.a==='capwa'||a.dataset.a==='capcall'){ if(!ST.cap.includes(id)){ST.cap.push(id);guardar();} setTimeout(pintar,500); return; }
+    const rpc={mio:['scouting_capturar_lead',{p_lead_id:id,p_asesor:MY},'🏠 ¡Captada! Quedó a tu nombre en Scouting'],esasesor:['scouting_marcar_asesor',{p_lead_id:id,p_marcado_por:MY,p_motivo:'desde Arranca tu día'},'Marcado como asesor. Gracias'],nodisp:['scouting_marcar_no_disponible',{p_lead_id:id,p_marcado_por:MY,p_motivo:'desde Arranca tu día'},'Marcada como no disponible']}[a.dataset.a];
+    if(!rpc) return;
+    const {data,error}=await sb.rpc(rpc[0],rpc[1]); if(error||(data&&data.success===false)){ toast(data&&data.reason==='ya_capturado'?'🔒 Otro asesor ya la captó':'No se pudo guardar'); return; }
+    SCOUT=SCOUT.filter(x=>x.id!==id); toast(rpc[2]); pintar(); return;
   }
 };
+$('#app').onchange=e=>{ const c=e.target.closest('[data-est]'); if(!c) return; ST.est[c.dataset.est]=c.checked; guardar(); pintar(); };
 </script>
 </body>
 </html>
