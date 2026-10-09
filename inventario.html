@@ -93,6 +93,8 @@ const money=(n,cur)=>n?'$'+Math.round(Number(n)).toLocaleString('en-US')+(cur&&c
 const zona=x=>{const L=(x.location_name||'').split(',').map(s=>s.trim());const c=L[0]||'';const m=(L[1]||'').replace('San Pedro Garza García','San Pedro').replace('San Nicolás de los Garza','San Nicolás');return c&&m&&!c.includes(m)?c+', '+m:(c||m);};
 const specs=x=>{const a=[];if(x.bedrooms)a.push(x.bedrooms+' rec');if(x.bathrooms)a.push((+x.bathrooms+(x.half_bathrooms?0.5*x.half_bathrooms:0))+' baños');if(x.construction_size)a.push(Math.round(x.construction_size)+' m²');else if(x.lot_size)a.push(Math.round(x.lot_size)+' m² terreno');if(x.parking_spaces)a.push(x.parking_spaces+' cajón'+(x.parking_spaces>1?'es':''));return a.join(' · ');};
 const nom1=s=>String(s||'').split(' ')[0];
+const tel10=t=>String(t||'').replace(/\D/g,'').slice(-10);
+const telFmt=t=>{const d=tel10(t);return d.length===10?d.slice(0,2)+' '+d.slice(2,6)+' '+d.slice(6):'';};
 const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 
 const {data,error}=await sb.rpc('inventario_niva');
@@ -156,14 +158,14 @@ async function hacerPDF(L){
     return primera?42:23; };
   const pie=()=>{ const n=pdf.getNumberOfPages(); for(let i=1;i<=n;i++){ pdf.setPage(i); pdf.setDrawColor(220,220,220); pdf.line(M,PH-14,PW-M,PH-14); pdf.setFontSize(8.5); pdf.setTextColor(90,90,90); pdf.setFont('helvetica','normal');
     pdf.text(pdfTxt('Contacto: '+(YO.nombre||'NIVA Inmobiliaria')+(YO.tel?'  ·  WhatsApp '+YO.tel:'')),M,PH-8.5); pdf.text(i+' / '+n,PW-M,PH-8.5,{align:'right'}); } };
-  let y=cabecera(true); const RH=21, GAP=4, CW=(PW-2*M-GAP)/2;
+  let y=cabecera(true); const RH=26, GAP=4, CW=(PW-2*M-GAP)/2;
   for(const g of grupos(L)){
     if(y+9+RH>PH-18){ pdf.addPage(); y=cabecera(false); }
     pdf.setFillColor(246,237,214); pdf.rect(M,y,PW-2*M,7,'F'); pdf.setTextColor(122,94,30); pdf.setFont('helvetica','bold'); pdf.setFontSize(9.5); pdf.text(pdfTxt(g.t.toUpperCase()+'  ('+g.items.length+')'),M+3,y+4.9); y+=9.5;
     for(let k=0;k<g.items.length;k+=2){
       if(y+RH>PH-18){ pdf.addPage(); y=cabecera(false); }
       [g.items[k],g.items[k+1]].forEach((x,c)=>{ if(!x) return;
-        const cx=M+c*(CW+GAP), iw=25, ih=18.5;
+        const cx=M+c*(CW+GAP), iw=27, ih=21;
         if(imgs[x.id]) pdf.addImage(imgs[x.id],'JPEG',cx,y,iw,ih,undefined,'FAST'); else { pdf.setFillColor(230,230,230); pdf.rect(cx,y,iw,ih,'F'); }
         const tx=cx+iw+2.5, tw=CW-iw-2.5;
         pdf.setTextColor(27,42,74); pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.text(money(x.price_amount,x.price_currency)+(x.operation_type==='rental'?' /mes':''),tx,y+3.6);
@@ -173,7 +175,10 @@ async function hacerPDF(L){
         pdf.setTextColor(30,90,200); let lx=tx;
         if(x.ficha_url){ pdf.textWithLink('Ficha',lx,yy,{url:x.ficha_url}); lx+=10; }
         if(x.public_url){ pdf.textWithLink('Fotos',lx,yy,{url:x.public_url}); lx+=10; }
-        pdf.setTextColor(130,130,130); pdf.text(pdfTxt((x.eb_public_id||'')+(x.asesor?'  ·  '+nom1(x.asesor):'')),cx+CW,yy,{align:'right'});
+        pdf.setTextColor(150,150,150); pdf.text(pdfTxt(x.eb_public_id||''),cx+CW,yy,{align:'right'}); yy+=3.6;
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(122,94,30);
+        const at='Asesor: '+pdfTxt(x.asesor||'NIVA Inmobiliaria')+(telFmt(x.asesor_tel)?'  ·  WhatsApp '+telFmt(x.asesor_tel):'');
+        if(telFmt(x.asesor_tel)) pdf.textWithLink(at,tx,yy,{url:'https://wa.me/52'+tel10(x.asesor_tel)}); else pdf.text(at,tx,yy);
       });
       pdf.setDrawColor(235,235,235); pdf.line(M,y+RH-1.2,PW-M,y+RH-1.2); y+=RH;
     }
@@ -190,12 +195,14 @@ $('#b-pdf').onclick=async()=>{
   b.disabled=false; pintar();
   const nombre='Inventario_NIVA_'+new Date().toISOString().slice(0,10)+'.pdf'; const file=new File([blob],nombre,{type:'application/pdf'});
   let link=''; try{ const ruta='inventarios/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.pdf'; const up=await sb.storage.from('fichas').upload(ruta,blob,{contentType:'application/pdf',upsert:false}); if(!up.error) link=sb.storage.from('fichas').getPublicUrl(ruta).data.publicUrl; }catch(_e){}
-  $('#sh').innerHTML='<h3>📄 Tu PDF está listo</h3><p>'+L.length+' propiedades, organizadas por tipo, con foto, precio y liga a la ficha técnica.</p>'
-    +'<button class="wa" id="s-share">📲 Compartir el PDF (WhatsApp)</button>'
-    +(link?'<button id="s-link">💬 Enviar como link por WhatsApp</button>':'')
+  const puedeArchivo=!!(navigator.canShare&&navigator.canShare({files:[file]}));
+  $('#sh').innerHTML='<h3>📄 Tu PDF está listo</h3><p>'+L.length+' propiedades con foto, precio, ficha y el nombre y WhatsApp del asesor de cada una.</p>'
+    +(puedeArchivo?'<button class="wa" id="s-share">📲 Enviar el PDF por WhatsApp</button>':'')
+    +(link?'<button class="'+(puedeArchivo?'':'wa')+'" id="s-link">💬 Enviar por WhatsApp (link al PDF)</button>':'')
     +'<button class="gold" id="s-dl">⬇️ Descargar</button><button id="s-x">Cerrar</button>';
   $('#ov').classList.add('show');
-  $('#s-share').onclick=async()=>{ if(navigator.canShare&&navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:'Inventario NIVA'}); }catch(_e){} } else { toast('Tu navegador no permite compartir archivos; usa Descargar o el link'); } };
+  if(puedeArchivo) $('#s-share').onclick=async()=>{ try{ await navigator.share({files:[file]}); }catch(e){ if(e&&e.name!=='AbortError'){ if(link) window.open('https://wa.me/?text='+encodeURIComponent('Inventario disponible NIVA Inmobiliaria ('+L.length+' propiedades):\n'+link),'_blank'); else toast('No se pudo compartir; usa Descargar'); } } };
+  if(!puedeArchivo&&!link) toast('Descarga el PDF y adjúntalo en WhatsApp');
   if(link) $('#s-link').onclick=()=>window.open('https://wa.me/?text='+encodeURIComponent('Inventario disponible NIVA Inmobiliaria ('+L.length+' propiedades):\n'+link),'_blank');
   $('#s-dl').onclick=()=>{ const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=nombre; a.click(); setTimeout(()=>URL.revokeObjectURL(u),8000); };
   $('#s-x').onclick=()=>$('#ov').classList.remove('show');
