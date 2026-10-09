@@ -647,6 +647,8 @@ function showPortal(email){
   const cardMidia=$('#card-midia');
   if(cardMidia) cardMidia.classList.add('hidden'); // (2026-10-09) Mi día vive dentro del panel de administrador
   ['./hoy.html','./agenda.html','./ofrezco.html'].forEach(h=>{ const c=document.querySelector('a.card[href="'+h+'"]'); if(c) c.classList.toggle('hidden', uname==='admin'); }); // (2026-10-09) herramientas de asesor, ocultas para el administrador
+  // (2026-10-09) Orden fijo: 1 Arranca tu día, 2 Captaciones, 3 CRM, 4 Inventario, luego los demás
+  ['./inventario.html','./crm.html','./captaciones.html','./hoy.html'].forEach(h=>{ const c=document.querySelector('a.card[href="'+h+'"]'); if(c&&c.parentNode) c.parentNode.insertBefore(c,c.parentNode.querySelector('a.card')); });
 }
 function showLogin(){
   $('#portal').classList.add('hidden');
