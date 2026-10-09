@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIVA — Qué hacer hoy</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#1B2A4A;--navy2:#0f1e36;--gold:#C9A84C;--gold2:#e8c96a;--line:rgba(255,255,255,.12);--muted:#94a3b8;--wa:#25D366;--red:#f87171;--amber:#fbbf24;--green:#4ade80}
+body{font-family:Inter,sans-serif;background:var(--navy2);color:#fff;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--navy2);z-index:5}
+header a{color:var(--gold);text-decoration:none;font-weight:700;font-size:14px}
+header h1{font-size:17px;font-weight:800;flex:1}
+.wrap{max-width:760px;margin:0 auto;padding:14px 16px 80px}
+.hola{font-size:20px;font-weight:800;margin:4px 0 2px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:14px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.kpi{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.kpi b{display:block;font-size:22px;font-weight:800}
+.kpi span{font-size:11px;color:var(--muted)}
+.sec{display:flex;align-items:center;gap:8px;margin:18px 0 8px;font-size:15px;font-weight:800}
+.sec small{font-weight:600;color:var(--muted);font-size:12px}
+.sec .n{background:rgba(255,255,255,.1);border-radius:20px;padding:2px 9px;font-size:12px}
+.hint{color:var(--muted);font-size:12.5px;margin:-4px 0 10px;line-height:1.4}
+.card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.card.urg{border-color:rgba(248,113,113,.55)}
+.row{display:flex;gap:10px;align-items:center}
+.row .t{flex:1;min-width:0}
+.row b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row small{color:var(--muted);font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.age{font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.age.r{background:rgba(248,113,113,.18);color:var(--red)}.age.a{background:rgba(251,191,36,.16);color:var(--amber)}.age.g{background:rgba(74,222,128,.15);color:var(--green)}
+.acts{display:flex;gap:8px;margin-top:10px}
+.btn{flex:1;border:0;border-radius:10px;padding:11px;font-weight:800;font-size:13.5px;cursor:pointer;text-decoration:none;text-align:center;color:#fff;background:transparent;border:1px solid var(--line)}
+.btn.wa{background:var(--wa);color:#05290f;border-color:var(--wa)}
+.btn.ok{flex:0 0 auto}
+.vacio{color:var(--muted);font-size:13px;text-align:center;padding:16px;border:1px dashed var(--line);border-radius:12px}
+.prop img{width:56px;height:44px;object-fit:cover;border-radius:8px;background:#223;flex-shrink:0}
+.muted{color:var(--muted);font-size:13px;text-align:center;padding:30px 0}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#fff;color:var(--navy);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:9}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header><a href="./index.html">← NIVA OS</a><h1>✅ Qué hacer hoy</h1></header>
+<div class="wrap" id="app"><p class="muted">Cargando tu día…</p></div>
+<div id="toast"></div>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const $=s=>document.querySelector(s);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cfg=await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
+const sb=createClient(cfg.url,cfg.anon);
+let {data:{session}}=await sb.auth.getSession();
+if(!session){ location.replace('./index.html'); }
+try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){}
+let MY=null, NOMBRE='';
+try{ const {data}=await sb.rpc('my_advisor_id'); MY=data||null; if(MY){ const {data:a}=await sb.from('advisors').select('first_name').eq('id',MY).maybeSingle(); NOMBRE=(a&&a.first_name)||''; } }catch(_e){}
+
+const H=3600e3, D=24*H;
+const hace=ms=>{const h=Math.floor(ms/H); if(h<1) return 'hace '+Math.max(1,Math.round(ms/60000))+' min'; if(h<24) return 'hace '+h+' h'; const d=Math.floor(ms/D); return 'hace '+d+(d===1?' día':' días');};
+const nom=l=>{const n=String(l.full_name||'').trim().split(' ')[0]; return n?n.charAt(0).toUpperCase()+n.slice(1).toLowerCase():'';};
+const tel=l=>String(l.phone_normalized||'').replace(/\D/g,'');
+const propTxt=l=>l.property_title?('la propiedad '+String(l.property_title).toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()).slice(0,60)):'la propiedad';
+const msgNuevo=l=>'¡Hola'+(nom(l)?' '+nom(l):'')+'! Soy '+(NOMBRE||'tu asesor')+' de NIVA Inmobiliaria 🙂 Vi que preguntaste por '+propTxt(l)+'. ¿Te gustaría verla esta semana o prefieres que te cuente más por aquí?';
+const msgSeg=l=>'¡Hola'+(nom(l)?' '+nom(l):'')+'! Soy '+(NOMBRE||'tu asesor')+' de NIVA Inmobiliaria. ¿Sigues buscando? Te quiero compartir algunas opciones que te pueden interesar, ¿te mando info?';
+
+let LEADS=[], ULT={}, HOY=0, PROPS=[];
+
+async function cargar(){
+  if(!MY){ $('#app').innerHTML='<p class="muted">Tu usuario no está ligado a un asesor. Pídele a Ricardo que lo revise.</p>'; return false; }
+  const {data,error}=await sb.from('my_leads').select('id,status,full_name,phone_normalized,contact_type,property_title,happened_at,created_at,archived_at,advisor_id').eq('advisor_id',MY).is('archived_at',null).order('happened_at',{ascending:true}).range(0,1999);
+  if(error){ $('#app').innerHTML='<p class="muted">No se pudo cargar tu información.</p>'; throw error; }
+  LEADS=(data||[]).filter(l=>l.contact_type!=='agent'&&l.status!=='cancelled');
+  ULT={}; HOY=0;
+  const ids=LEADS.map(l=>l.id); const hoy0=new Date(); hoy0.setHours(0,0,0,0);
+  for(let i=0;i<ids.length;i+=150){
+    try{ const {data:it}=await sb.from('lead_interactions').select('lead_id,type,created_at').in('lead_id',ids.slice(i,i+150)).in('type',['whatsapp_click','call_click','status_change']).order('created_at',{ascending:false}).range(0,4999);
+      (it||[]).forEach(r=>{const t=new Date(r.created_at).getTime(); if(!ULT[r.lead_id]||t>ULT[r.lead_id])ULT[r.lead_id]=t; if(t>=hoy0.getTime())HOY++;}); }catch(_e){}
+  }
+  try{ const {data:pr}=await sb.from('my_properties').select('id,title,title_image_url,price_amount,eb_status,advisor_id').eq('advisor_id',MY).eq('eb_status','published').limit(300); PROPS=pr||[];
+    if(PROPS.length){ const {data:lg}=await sb.from('ofrezcos_log').select('property_id,created_at').in('property_id',PROPS.map(p=>p.id)).order('created_at',{ascending:false}).limit(2000); const u={}; (lg||[]).forEach(r=>{if(!u[r.property_id])u[r.property_id]=new Date(r.created_at).getTime();}); PROPS.forEach(p=>p._ult=u[p.id]||0); PROPS.sort((a,b)=>a._ult-b._ult); } }catch(_e){ PROPS=[]; }
+  return true;
+}
+
+function card(l,tipo){
+  const base=new Date(l.happened_at||l.created_at).getTime(); const ref=tipo==='nuevo'?base:(ULT[l.id]||base); const ms=Date.now()-ref;
+  const cls=tipo==='nuevo'?(ms>D?'r':ms>2*H?'a':'g'):(ms>7*D?'r':'a');
+  const t=tel(l); const msg=tipo==='nuevo'?msgNuevo(l):msgSeg(l);
+  return '<div class="card'+(cls==='r'?' urg':'')+'" data-id="'+l.id+'"><div class="row"><div class="t"><b>'+esc(l.full_name||'Cliente sin nombre')+'</b><small>'+esc(l.property_title||'Propiedad no identificada')+'</small></div><span class="age '+cls+'">'+(tipo==='nuevo'?'Llegó ':'Último contacto ')+hace(ms)+'</span></div>'
+    +'<div class="acts">'+(t?'<a class="btn wa" data-a="wa" href="https://wa.me/'+t+'?text='+encodeURIComponent(msg)+'" target="_blank">💬 WhatsApp</a><a class="btn" data-a="call" href="tel:+'+t+'">📞 Llamar</a>':'<span class="btn" style="opacity:.6">Sin teléfono</span>')
+    +(tipo==='nuevo'?'<button class="btn ok" data-a="ok">✓ Ya lo contacté</button>':'')+'</div></div>';
+}
+
+function pintar(){
+  const nuevos=LEADS.filter(l=>l.status==='new').sort((x,y)=>new Date(y.happened_at||y.created_at)-new Date(x.happened_at||x.created_at));
+  const seg=LEADS.filter(l=>l.status!=='new'&&(Date.now()-(ULT[l.id]||new Date(l.happened_at||l.created_at).getTime()))>3*D).sort((a,b)=>(ULT[a.id]||0)-(ULT[b.id]||0)).slice(0,15);
+  const prop=PROPS.slice(0,3);
+  const hr=new Date().getHours(); const sal=hr<12?'Buenos días':hr<19?'Buenas tardes':'Buenas noches';
+  let h='<div class="hola">'+sal+(NOMBRE?', '+esc(NOMBRE):'')+' 👋</div><div class="sub">Esto es lo que te toca hoy, en orden de importancia.</div>'
+   +'<div class="kpis"><div class="kpi"><b style="color:var(--red)">'+nuevos.length+'</b><span>Nuevos por contestar</span></div><div class="kpi"><b style="color:var(--amber)">'+seg.length+'</b><span>Seguimientos</span></div><div class="kpi"><b style="color:var(--green)">'+HOY+'</b><span>Acciones hoy</span></div></div>';
+  h+='<div class="sec">1. Contesta a tus clientes nuevos <span class="n">'+nuevos.length+'</span></div><div class="hint">Primero los más recientes: son los más calientes. Un cliente que recibe respuesta en menos de 1 hora tiene muchas más probabilidades de cerrar.</div>';
+  h+=nuevos.length?nuevos.slice(0,20).map(l=>card(l,'nuevo')).join('')+(nuevos.length>20?'<div class="vacio">Y '+(nuevos.length-20)+' más. Atiende primero estos y aparecerán los siguientes.</div>':''):'<div class="vacio">🎉 No tienes clientes nuevos esperando.</div>';
+  h+='<div class="sec">2. Dale seguimiento <span class="n">'+seg.length+'</span></div><div class="hint">Clientes con los que no has tenido contacto en más de 3 días. Un mensaje corto basta para que no se enfríen.</div>';
+  h+=seg.length?seg.map(l=>card(l,'seg')).join(''):'<div class="vacio">👌 Estás al día con tus seguimientos.</div>';
+  h+='<div class="sec">3. Ofrece tus propiedades <small>(las que menos has ofrecido)</small></div>';
+  h+=prop.length?prop.map(p=>'<div class="card prop"><div class="row"><img src="'+esc(p.title_image_url||'')+'" alt=""><div class="t"><b>'+esc(p.title)+'</b><small>'+(p._ult?'Ofrecida '+hace(Date.now()-p._ult):'Nunca la has ofrecido')+'</small></div></div></div>').join('')+'<a class="btn wa" style="display:block" href="./ofrezco.html">📣 Ir a Ofrezco WhatsApp</a>':'<div class="vacio">No tienes propiedades asignadas publicadas.</div>';
+  $('#app').innerHTML=h;
+}
+
+if(await cargar()) pintar();
+
+$('#app').onclick=async e=>{
+  const a=e.target.closest('[data-a]'); if(!a) return; const c=a.closest('.card'); if(!c) return; const id=c.dataset.id; const l=LEADS.find(x=>x.id===id); if(!l) return;
+  if(a.dataset.a==='wa'||a.dataset.a==='call'){
+    try{ sb.from('lead_interactions').insert({lead_id:id,type:a.dataset.a==='wa'?'whatsapp_click':'call_click',actor:'advisor',payload:{desde:'hoy'}}).then(()=>{},()=>{}); }catch(_e){}
+    ULT[id]=Date.now(); HOY++;
+    if(l.status==='new'){ const {error}=await sb.from('leads').update({status:'contacted'}).eq('id',id); if(!error){ l.status='contacted'; try{ sb.from('lead_interactions').insert({lead_id:id,type:'status_change',actor:'advisor',payload:{de:'new',a:'contacted'}}).then(()=>{},()=>{}); }catch(_e){} } }
+    setTimeout(pintar,600); return;
+  }
+  if(a.dataset.a==='ok'){
+    const {error}=await sb.from('leads').update({status:'contacted'}).eq('id',id); if(error){toast('No se pudo actualizar');return;}
+    try{ sb.from('lead_interactions').insert({lead_id:id,type:'status_change',actor:'advisor',payload:{de:'new',a:'contacted',desde:'hoy'}}).then(()=>{},()=>{}); }catch(_e){}
+    l.status='contacted'; ULT[id]=Date.now(); HOY++; pintar(); toast('Listo ✓ Pasó a ACTIVO');
+  }
+};
+</script>
+</body>
+</html>
