@@ -19,7 +19,7 @@ header h1{font-size:17px;font-weight:800;flex:1}
 .hoybtn{border:1px solid var(--gold);background:transparent;color:var(--gold2);border-radius:10px;padding:0 10px;height:38px;font-weight:700;font-size:13px;cursor:pointer}
 .dias{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:8px 0 16px}
 .dia{border:1px solid var(--line);border-radius:12px;padding:8px 0 6px;text-align:center;cursor:pointer;background:rgba(255,255,255,.03)}
-.dia small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase}
+.dia small{display:block;font-size:12px;color:var(--muted);text-transform:uppercase}
 .dia b{display:block;font-size:18px;font-weight:800;margin:2px 0}
 .dia .pts{height:8px;display:flex;justify-content:center;gap:3px}
 .dia .pts i{width:6px;height:6px;border-radius:50%;background:var(--gold)}
@@ -34,14 +34,14 @@ header h1{font-size:17px;font-weight:800;flex:1}
 .ver button.on{background:rgba(201,168,76,.2);border-color:var(--gold);color:var(--gold2)}
 .cita{display:flex;gap:12px;margin-bottom:10px}
 .hr{width:54px;flex-shrink:0;text-align:right;padding-top:12px}
-.hr b{display:block;font-size:15px;font-weight:800}.hr small{color:var(--muted);font-size:11px}
+.hr b{display:block;font-size:15px;font-weight:800}.hr small{color:var(--muted);font-size:12px}
 .cc{flex:1;min-width:0;background:rgba(255,255,255,.05);border:1px solid var(--line);border-left:4px solid var(--c,var(--gold));border-radius:14px;padding:11px 12px}
 .cc.hecha{opacity:.5}.cc.cancelada{opacity:.4;text-decoration:line-through}
 .cc .tp{font-size:12px;font-weight:800;color:var(--c,var(--gold2));text-transform:uppercase;letter-spacing:.3px}
 .cc .nm{font-size:15.5px;font-weight:800;margin:3px 0 2px}
 .cc .ln{font-size:13px;color:#cbd5e1;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cc .nt{font-size:12.5px;color:var(--muted);margin-top:5px;white-space:pre-wrap}
-.cc .adv{font-size:11px;color:var(--blue);font-weight:700;margin-top:4px}
+.cc .adv{font-size:12px;color:var(--blue);font-weight:700;margin-top:4px}
 .aviso{font-size:12px;font-weight:700;color:var(--amber);margin-top:6px}
 .acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
 .btn{flex:1;min-width:0;border-radius:10px;padding:9px 6px;font-weight:800;font-size:12.5px;cursor:pointer;text-decoration:none;text-align:center;color:#fff;background:transparent;border:1px solid var(--line);white-space:nowrap}
@@ -78,23 +78,24 @@ textarea{resize:vertical;min-height:60px}
 .wg{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}
 .wh{display:grid;grid-template-columns:38px repeat(7,1fr);border-bottom:1px solid var(--line);position:sticky;top:57px;background:#13233f;z-index:3}
 .wh div{text-align:center;padding:6px 0;cursor:pointer}
-.wh small{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase}
+.wh small{display:block;font-size:12px;color:var(--muted);text-transform:uppercase}
 .wh b{display:inline-block;font-size:16px;font-weight:800;width:28px;height:28px;line-height:28px;border-radius:50%;margin-top:2px}
 .wh .hoy b{background:var(--gold);color:var(--navy)}
 .wb{position:relative;margin-top:10px}
 .wb .hl{position:absolute;left:0;right:0;border-top:1px solid rgba(255,255,255,.07)}
-.wb .hl span{position:absolute;left:2px;top:-7px;font-size:9.5px;color:var(--muted);background:var(--navy2);padding:0 2px}
+.wb .hl span{position:absolute;left:2px;top:-7px;font-size:12px;color:var(--muted);background:var(--navy2);padding:0 2px}
 .wb .col{position:absolute;top:0;bottom:0;border-left:1px solid rgba(255,255,255,.06)}
 .wb .col.hoy{background:rgba(201,168,76,.05)}
-.blk{position:absolute;border-radius:6px;padding:3px 4px;font-size:10.5px;font-weight:800;line-height:1.15;overflow:hidden;color:#0b1424;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.blk{position:absolute;border-radius:6px;padding:3px 4px;font-size:12px;font-weight:800;line-height:1.15;overflow:hidden;color:#0b1424;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 .blk.hecha{opacity:.45}.blk.cancelada{opacity:.3;text-decoration:line-through}
-.blk small{display:block;font-weight:600;font-size:9.5px;opacity:.85}
+.blk small{display:block;font-weight:600;font-size:12px;opacity:.85}
 .now{position:absolute;height:2px;background:#ef4444;z-index:2}
 .now:before{content:'';position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#ef4444}
 .muted{color:var(--muted);font-size:13px;text-align:center;padding:30px 0}
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#fff;color:var(--navy);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:30}
 #toast.show{opacity:1}
 </style>
+<link rel="manifest" href="./manifest.webmanifest"><meta name="theme-color" content="#0f1e36"><link rel="apple-touch-icon" href="./icon-180.png"><link rel="icon" type="image/png" href="./icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="NIVA OS"><style>/* (2026-10-10) evita el zoom automatico del iPhone al escribir */@media (max-width:820px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}</style>
 </head>
 <body>
 <header><a href="./index.html">← NIVA OS</a><h1>📅 Mi agenda</h1></header>
