@@ -26,16 +26,16 @@ input,select{background:#0b1424;border:1px solid var(--line);color:#fff;border-r
 .res button.on{border-color:var(--gold);color:var(--gold2)}
 .list{padding:6px 16px 120px}
 .grp{display:flex;align-items:center;gap:8px;margin:16px 0 6px;font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--gold2);cursor:pointer}
-.grp span{background:rgba(201,168,76,.15);border-radius:20px;padding:2px 8px;font-size:11px}
+.grp span{background:rgba(201,168,76,.15);border-radius:20px;padding:2px 8px;font-size:12px}
 .grp:after{content:'';flex:1;height:1px;background:var(--line)}
 .row{display:flex;gap:10px;align-items:center;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}
 .row img{width:64px;height:48px;object-fit:cover;border-radius:7px;background:#223;flex-shrink:0}
 .row .t{flex:1;min-width:0}
 .row b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row small{display:block;color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.row small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .row .p{text-align:right;flex-shrink:0;max-width:34%}
 .row .p b{color:var(--gold2);font-size:13.5px}
-.row .p small{font-size:11px}
+.row .p small{font-size:12px}
 .row .ck{width:20px;height:20px;accent-color:var(--gold);flex-shrink:0;display:none}
 .sel .row .ck{display:block}
 .row.on{background:rgba(201,168,76,.08)}
@@ -57,6 +57,7 @@ input,select{background:#0b1424;border:1px solid var(--line);color:#fff;border-r
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#fff;color:var(--navy);padding:10px 16px;border-radius:10px;font-weight:700;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:30;white-space:nowrap}
 #toast.show{opacity:1}
 </style>
+<link rel="manifest" href="./manifest.webmanifest"><meta name="theme-color" content="#0f1e36"><link rel="apple-touch-icon" href="./icon-180.png"><link rel="icon" type="image/png" href="./icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="NIVA OS"><style>/* (2026-10-10) evita el zoom automatico del iPhone al escribir */@media (max-width:820px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}</style>
 </head>
 <body>
 <header><a href="./index.html">← NIVA OS</a><h1>🏘️ Inventario NIVA</h1></header>
@@ -127,7 +128,7 @@ function pintar(){
   $('#b-pdf').textContent=SEL.size?'📄 Enviar '+SEL.size+' elegidas en PDF':'📄 Enviar estas '+L.length+' en PDF';
   if(!L.length){ $('#list').innerHTML='<p class="muted">No hay propiedades con ese filtro.</p>'; return; }
   $('#list').innerHTML=grupos(L).map(g=>'<div class="grp" data-g="'+esc(g.k)+'">'+(CERR.has(g.k)?'▸ ':'▾ ')+esc(g.t)+' <span>'+g.items.length+'</span></div>'+(CERR.has(g.k)?'':g.items.map(x=>
-    '<div class="row'+(SEL.has(x.id)?' on':'')+'" data-id="'+x.id+'"><input type="checkbox" class="ck"'+(SEL.has(x.id)?' checked':'')+'><img loading="lazy" src="'+esc(x.title_image_url||'')+'" alt=""><div class="t"><b>'+esc(x.title)+'</b><small>📍 '+esc(zona(x)||'—')+'</small><small>'+esc(specs(x))+'</small></div><div class="p"><b>'+money(x.price_amount,x.price_currency)+(x.operation_type==='rental'?'<span style="font-size:10px;font-weight:600">/mes</span>':'')+'</b><small>'+esc(nom1(x.asesor)||'Sin asesor')+'</small><small>'+esc(x.eb_public_id||'')+'</small></div></div>'
+    '<div class="row'+(SEL.has(x.id)?' on':'')+'" data-id="'+x.id+'"><input type="checkbox" class="ck"'+(SEL.has(x.id)?' checked':'')+'><img loading="lazy" src="'+esc(x.title_image_url||'')+'" alt=""><div class="t"><b>'+esc(x.title)+'</b><small>📍 '+esc(zona(x)||'—')+'</small><small>'+esc(specs(x))+'</small></div><div class="p"><b>'+money(x.price_amount,x.price_currency)+(x.operation_type==='rental'?'<span style="font-size:12px;font-weight:600">/mes</span>':'')+'</b><small>'+esc(nom1(x.asesor)||'Sin asesor')+'</small><small>'+esc(x.eb_public_id||'')+'</small></div></div>'
     +'<div class="acc'+(ABIERTO===x.id?' show':'')+'" data-acc="'+x.id+'">'+(x.ficha_url?'<a href="'+esc(x.ficha_url)+'" target="_blank">📄 Ficha</a><a class="wa" href="https://wa.me/?text='+encodeURIComponent(x.title+' · '+money(x.price_amount,x.price_currency)+(x.operation_type==='rental'?' /mes':'')+'\nFicha técnica: '+x.ficha_url)+'" target="_blank">💬 Enviar ficha</a>':'')+(x.public_url?'<a href="'+esc(x.public_url)+'" target="_blank">🔗 Fotos</a>':'')+(x.asesor_tel?'<a href="https://wa.me/'+String(x.asesor_tel).replace(/\D/g,'').replace(/^(\d{10})$/,'52$1')+'" target="_blank">👤 '+esc(nom1(x.asesor))+'</a>':'')+'</div>').join(''))).join('');
 }
 pintar();
