@@ -99,6 +99,9 @@ const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''
 
 const {data,error}=await sb.rpc('inventario_niva');
 if(error){ $('#list').innerHTML='<p class="muted">No se pudo cargar el inventario. Recarga la página.</p>'; throw error; }
+const CARGA=new Date(); // (2026-10-10) se recarga sola al volver a la pantalla si pasaron 3+ min
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&Date.now()-CARGA>180000&&!SEL.size) location.reload(); });
+setInterval(()=>{ if(document.visibilityState==='visible'&&Date.now()-CARGA>600000&&!SEL.size&&!document.querySelector('.ov.show,.sheet.show')) location.reload(); },60000);
 const ALL=data||[]; ALL.forEach(x=>{ if(x.ficha_url&&x.ficha_url.indexOf('/object/public/fichas/')>0) x.ficha_url='https://os.nivainmobiliaria.com/ficha.html?f='+encodeURIComponent(x.ficha_url.split('/object/public/fichas/').pop()); }); // (2026-10-09) ficha con marca NIVA
 let OP='', SEL=new Set(), MODO_SEL=false, ABIERTO=null, CERR=new Set();
 [...new Set(ALL.map(x=>x.property_type).filter(Boolean))].sort().forEach(t=>$('#f-tipo').insertAdjacentHTML('beforeend','<option value="'+esc(t)+'">'+esc(TIPO_PL[t]||t)+'</option>'));
@@ -119,7 +122,7 @@ function grupos(L){
 }
 function pintar(){
   const L=filtrados(); const v=L.filter(x=>x.operation_type==='sale').length;
-  $('#cnt').textContent=L.length+' propiedades · '+v+' venta · '+(L.length-v)+' renta'+(SEL.size?' · '+SEL.size+' elegidas':'');
+  $('#cnt').textContent=L.length+' propiedades · '+v+' venta · '+(L.length-v)+' renta'+(SEL.size?' · '+SEL.size+' elegidas':'')+' · al '+CARGA.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
   $('#list').classList.toggle('sel',MODO_SEL);
   $('#b-pdf').textContent=SEL.size?'📄 Enviar '+SEL.size+' elegidas en PDF':'📄 Enviar estas '+L.length+' en PDF';
   if(!L.length){ $('#list').innerHTML='<p class="muted">No hay propiedades con ese filtro.</p>'; return; }
