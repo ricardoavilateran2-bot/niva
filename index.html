@@ -68,7 +68,7 @@
   .lbox .logo-niva { font-size: 34px; font-weight: 900; letter-spacing: -.02em; color: var(--white); line-height: 1; }
   .lbox .logo-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; margin-bottom: 5px; }
   .lbox .logo-sub {
-    text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .18em;
+    text-align: center; font-size: 12px; font-weight: 600; letter-spacing: .18em;
     color: rgba(201,168,76,.7); text-transform: uppercase; margin: 4px 0 26px;
   }
   .lbox label { font-size: 12px; color: rgba(255,255,255,.5); display: block; margin: 14px 0 6px; }
@@ -130,7 +130,7 @@
     display: inline-flex; align-items: center; gap: 8px;
     background: rgba(201,168,76,.12); border: 1px solid rgba(201,168,76,.25);
     border-radius: 40px; padding: 6px 18px;
-    font-size: 11px; font-weight: 700; letter-spacing: .1em;
+    font-size: 12px; font-weight: 700; letter-spacing: .1em;
     color: var(--gold); text-transform: uppercase;
     margin-bottom: 24px;
   }
@@ -155,7 +155,7 @@
   }
   .divider-line { flex: 1; height: 1px; background: rgba(255,255,255,.08); }
   .divider-label {
-    font-size: 10px; font-weight: 700; letter-spacing: .14em;
+    font-size: 12px; font-weight: 700; letter-spacing: .14em;
     color: rgba(255,255,255,.3); text-transform: uppercase;
   }
 
@@ -201,7 +201,7 @@
 
   .card-tag {
     display: inline-flex; align-items: center; gap: 6px;
-    font-size: 10px; font-weight: 800; letter-spacing: .12em;
+    font-size: 12px; font-weight: 800; letter-spacing: .12em;
     text-transform: uppercase; color: var(--gold);
     margin-bottom: 10px;
   }
@@ -225,6 +225,26 @@
     letter-spacing: .01em;
   }
   .card:hover .card-btn { opacity: .9; box-shadow: 0 6px 24px rgba(201,168,76,.35); }
+  /* (2026-10-10) celular: tarjetas compactas en 2 columnas + numerito de pendientes */
+  .card-badge { position:absolute; top:12px; right:12px; z-index:1; background:#e5484d; color:#fff; font-weight:800; font-size:12px; line-height:1; border-radius:999px; padding:5px 9px; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+  .card-badge.gold { background:var(--gold); color:var(--navy); }
+  @media (max-width: 560px) {
+    .cards { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .card { padding: 18px 14px 16px; }
+    .card-icon { width: 46px; height: 46px; margin-bottom: 12px; }
+    .card h2 { font-size: 16.5px; margin-bottom: 4px; }
+    .card p { font-size: 12.5px; line-height: 1.4; margin-bottom: 0; color: rgba(255,255,255,.62); }
+    .card-tag, .card-btn { display: none; }
+    .card p { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+    .hero { margin-bottom: 8px; }
+    .hero h1 { font-size: 26px; }
+    .hero p { display: none; }
+    .card:active { transform: scale(.97); background: rgba(255,255,255,.08); }
+  }
+  #instalar { display:none; max-width:1100px; width:100%; margin:0 0 16px; padding:12px 14px; border-radius:14px; background:rgba(201,168,76,.12); border:1px solid rgba(201,168,76,.35); color:#fff; font-size:14px; line-height:1.45; align-items:center; gap:10px; }
+  #instalar b { color: var(--gold); }
+  #instalar button { margin-left:auto; flex:0 0 auto; border:0; border-radius:10px; padding:9px 12px; font-weight:800; font-size:13px; background:var(--gold); color:var(--navy); cursor:pointer; }
+  #instalar .x { background:transparent; color:rgba(255,255,255,.6); padding:6px; font-size:18px; margin-left:4px; }
 
   /* ── FOOTER ── */
   footer {
@@ -237,7 +257,7 @@
   }
   .footer-logo { font-size: 16px; font-weight: 900; color: rgba(255,255,255,.25); }
   .footer-logo span { color: rgba(201,168,76,.5); }
-  .footer-copy { font-size: 11px; color: rgba(255,255,255,.2); }
+  .footer-copy { font-size: 12px; color: rgba(255,255,255,.2); }
 
   /* ── ANIMACIONES ── */
   @keyframes fadeUp {
@@ -253,6 +273,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (max-width:820px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}
 img,video,canvas{max-width:100%}
 </style>
+<link rel="manifest" href="./manifest.webmanifest"><meta name="theme-color" content="#0f1e36"><link rel="apple-touch-icon" href="./icon-180.png"><link rel="icon" type="image/png" href="./icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="NIVA OS"><style>/* (2026-10-10) evita el zoom automatico del iPhone al escribir */@media (max-width:820px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}</style>
 </head>
 <body>
 
@@ -305,6 +326,7 @@ img,video,canvas{max-width:100%}
     <div class="divider-line"></div>
   </div>
 
+  <div id="instalar"><span>📲 <b>Instala NIVA OS</b> en tu celular y ábrela como app.<br><small id="inst-txt">En iPhone: toca Compartir ⬆️ y luego «Agregar a pantalla de inicio».</small></span><button id="inst-btn" style="display:none">Instalar</button><button class="x" id="inst-x" aria-label="Cerrar">✕</button></div>
   <div class="cards">
 
     <!-- CAPTACIONES -->
@@ -673,6 +695,28 @@ $('#lbtn').onclick = async ()=>{
 $('#lp').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#lbtn').click(); });
 
 $('#hout').onclick = async ()=>{ await sb.auth.signOut(); location.reload(); };
+
+/* (2026-10-10) App instalable + numeritos de pendientes en las tarjetas */
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+(function(){
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  let cerrado=false; try{ cerrado = localStorage.getItem('niva_inst_x')==='1'; }catch(e){}
+  const movil = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  const box = document.getElementById('instalar'); if(!box) return;
+  document.getElementById('inst-x').onclick=()=>{ box.style.display='none'; try{localStorage.setItem('niva_inst_x','1');}catch(e){} };
+  if(standalone || cerrado || !movil) return;
+  let evt=null;
+  window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); evt=e; document.getElementById('inst-txt').textContent='Se agrega a tu pantalla de inicio con el logo de NIVA.'; const b=document.getElementById('inst-btn'); b.style.display='inline-block'; b.onclick=async()=>{ evt.prompt(); try{ await evt.userChoice; }catch(_){} box.style.display='none'; }; });
+  if(/Android/i.test(navigator.userAgent)) document.getElementById('inst-txt').textContent='En Android: menú ⋮ y luego «Instalar app» o «Agregar a pantalla principal».';
+  box.style.display='flex';
+})();
+async function cargarBadges(){
+  const poner=(href,n,txt,gold)=>{ const c=document.querySelector('a.card[href="'+href+'"]'); if(!c) return; let b=c.querySelector('.card-badge'); if(!n){ if(b) b.remove(); return; } if(!b){ b=document.createElement('span'); b.className='card-badge'; c.appendChild(b); } b.classList.toggle('gold',!!gold); b.textContent=txt; };
+  try{ const r=await sb.from('my_leads').select('id',{count:'exact',head:true}).eq('status','new').is('archived_at',null); if(!r.error) poner('./crm.html',r.count,r.count+(r.count===1?' nuevo':' nuevos')); }catch(e){}
+  try{ const d=new Date(), hoy=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); const r=await sb.from('citas').select('id',{count:'exact',head:true}).eq('fecha',hoy).eq('estado','pendiente'); if(!r.error) poner('./agenda.html',r.count,r.count+(r.count===1?' cita hoy':' citas hoy'),true); }catch(e){}
+}
+sb.auth.getSession().then(({data})=>{ if(data&&data.session) cargarBadges(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') sb.auth.getSession().then(({data})=>{ if(data&&data.session) cargarBadges(); }); });
 </script>
 
 </body>
