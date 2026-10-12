@@ -287,6 +287,13 @@ img,video,canvas{max-width:100%}
   // Filtro TRATO DIRECTO: oculta cuentas con nombre de inmobiliaria (Inmuebles24, Vivanuncios, Mercado Libre, Avisos de Ocasion, Propiedades.com)
   const AGENCIA_KW = ["inmobiliaria","inmobiliar","inmueble","bienes raices","bien raiz","raices","realty","real estate","realestate","realtor","propiedades","grupo ","asesor","asesoria","broker","corredor","corretaje","remax","re/max","century","coldwell","banker","keller","engel","volkers","tecnocasa","lahaus","la haus","easybroker","desarrolladora","desarrollos","desarrollo inmob","constructora","promotora","urbaniza","arrendadora","arrendamiento","agencia","negocios inmob","servicios inmob","soluciones inmob","patrimonio","inversiones","asociados","habitat","abitat","viviendas","inmobiliari","properties","property","cbre"," jll","spaces","& ","s.a. de c.v","sa de cv","s. de r.l","sapi","srl"];
   function normaliza(s){ s=(s||"").toString().toLowerCase().normalize("NFD"); let o=""; for(let i=0;i<s.length;i++){ const cc=s.charCodeAt(i); if(cc<0x300||cc>0x36f) o+=s[i]; } return o; }
+  // (2026-10-12) El backend pone zona="Monterrey" cuando no detecta municipio (detectMunicipio).
+  // Solo se muestra Monterrey si el texto del anuncio lo respalda; los demás municipios ya vienen de una coincidencia.
+  function zonaConEvidencia(l){
+    if (!l.zona) return null;
+    if (normaliza(l.zona) !== "monterrey") return l.zona;
+    return /\b(monterrey|mty)\b/.test(normaliza([l.titulo, l.descripcion, l.colonia].join(" "))) ? l.zona : null;
+  }
   function esAgencia(l){
     const nombre=(l.nombre_contacto||"").trim(); if(!nombre) return false;
     const n=normaliza(nombre);
@@ -299,8 +306,13 @@ img,video,canvas{max-width:100%}
 
   function ownerChip(s){
     if (s >= 6) return '<span class="chip owner-hi">Muy probable due&ntilde;o</span>';
-    return '<span class="chip owner">Posible due&ntilde;o</span>';
+    if (s > 0) return '<span class="chip owner">Posible due&ntilde;o</span>';
+    return '<span class="chip">Sin clasificar</span>'; // (2026-10-12) sin evidencia a favor del dueño no se concluye nada
   }
+  // (2026-10-12) Un lead ya marcado ASESOR se muestra solo con su estado (leadStatusChip): sin etiqueta de dueño
+  // por puntaje y sin repetir "Es asesor/agencia" desde estatus.
+  function ownerChipLead(l){ return l.lead_status === "ASESOR" ? "" : ownerChip(l.score); }
+  function estChipLead(l){ return (l.lead_status === "ASESOR" && l.estatus === "agencia") ? "" : estChip(l.estatus); }
 
   function estChip(e){
     const v = e || "nuevo";
@@ -332,11 +344,19 @@ img,video,canvas{max-width:100%}
     return '<span class="chip ' + (ok ? "url-ok" : "url-warn") + '">Verificado ' + hace + (ok ? "" : " · " + esc(l.url_status)) + '</span>';
   }
 
+  // (2026-10-12) Alineado con la política RLS propuesta (fail-closed): solo disponibilidad demostrada.
   function esVisibleParaAsesor(l){
+    return l.visible_para_asesores === true && l.lead_status === "DISPONIBLE" &&
+      ["nuevo","contactado","asignado","revisar_asesor"].includes(l.estatus);
+  }
+  // (2026-10-12) Criterio anterior, solo para la vista del administrador: no se recorta su historial.
+  function esVisibleVistaAdmin(l){
     if (l.visible_para_asesores === false) return false;
     const v = l.lead_status || "DISPONIBLE";
     return v === "DISPONIBLE" || v === "EN_REVISION";
   }
+  // Lista de cada usuario: criterio estricto para asesores, el anterior para el admin.
+  function visibleEnMiLista(l){ return isAdmin ? esVisibleVistaAdmin(l) : esVisibleParaAsesor(l); }
 
   function inicioDeHoy(){ const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
   function esDeHoy(l){ return l.detectado_at && new Date(l.detectado_at).getTime() >= inicioDeHoy(); }
@@ -356,7 +376,7 @@ img,video,canvas{max-width:100%}
       // El admin también deja de ver lo captado / asesor / no disponible, salvo que lo pida en el filtro.
       const LS = { capturado: "CAPTADO", agencia: "ASESOR", descartado: "DESCARTADO" };
       if (st && LS[st]) { if ((l.lead_status || "DISPONIBLE") !== LS[st]) return false; }
-      else if (!esVisibleParaAsesor(l)) return false;
+      else if (!visibleEnMiLista(l)) return false;
 
       const v = l.estatus || "nuevo";
       // Los leads ya captados, marcados como asesor/agencia, o descartados
@@ -383,7 +403,7 @@ img,video,canvas{max-width:100%}
     if (!host) return;
     host.innerHTML = "";
     for (const [key, label] of PORTALES){
-      const vv = LEADS.filter(esVisibleParaAsesor); const n = key ? vv.filter(l => (l.portal || "inmuebles24") === key).length : vv.length;
+      const vv = LEADS.filter(visibleEnMiLista); const n = key ? vv.filter(l => (l.portal || "inmuebles24") === key).length : vv.length;
       const b = document.createElement("button");
       b.className = "ptab" + (portalSel === key ? " on" : "");
       b.innerHTML = esc(label) + '<span class="cnt">' + n + '</span>';
@@ -399,7 +419,7 @@ img,video,canvas{max-width:100%}
     for (const l of rows){
       const el = document.createElement("article");
       el.className = "lead" + ((l.estatus === "descartado") ? " descartado" : "");
-      const locTxt = [l.colonia, l.zona].filter(Boolean).join(", ");
+      const locTxt = [l.colonia, zonaConEvidencia(l)].filter(Boolean).join(", ");
       el.innerHTML =
         '<div class="lead-top">' +
           '<div class="lead-tit">' + (l.titulo ? esc(l.titulo) : '<span style="color:rgba(255,180,120,.85);font-style:italic">(sin título — revisar anuncio)</span>') + '</div>' +
@@ -409,12 +429,12 @@ img,video,canvas{max-width:100%}
         (locTxt
           ? '<div class="lead-loc"><span class="pin">&#128205;</span>' + esc(locTxt) + '</div>'
           : '<div class="lead-loc sin-datos"><span class="pin">&#128205;</span>Ubicación no detectada — revisar anuncio</div>') +
-        '<div class="lead-meta">' + ownerChip(l.score) + estChip(l.estatus) +
+        '<div class="lead-meta">' + ownerChipLead(l) + estChipLead(l) +
           calidadChip(l) + leadStatusChip(l) + urlStatusChip(l) +
           '<span class="chip">' + esc(l.operacion) + '</span>' +
           '<span class="chip">' + esc(TIPO[l.tipo_propiedad] || l.tipo_propiedad) + '</span>' +
           '<span class="chip portal">' + esc(portalLabel(l.portal)) + '</span>' +
-          '<span>Contacto: <b style="color:rgba(255,255,255,.8)">' + esc(l.nombre_contacto || "—") + '</b></span>' +
+          '<span>Contacto: <b style="color:rgba(255,255,255,.8)">' + esc(l.nombre_contacto || "desconocido") + '</b></span>' +
           (isAdmin && l.asesor_asignado ? '<span>&rarr; Asesor: <b style="color:#4ade80">' + esc(advisorName(l.asesor_asignado)) + '</b></span>' : '') +
         '</div>' +
         (l.descripcion ? '<div class="lead-desc">' + esc(l.descripcion) + '</div>' : '') +
@@ -430,7 +450,7 @@ img,video,canvas{max-width:100%}
       // Estos dos botones van en su propia fila, separados del resto de
       // acciones (Ver anuncio / teléfono / WhatsApp), para que no se den
       // clics por accidente al usar los otros enlaces.
-      if (esVisibleParaAsesor(l)){
+      if (visibleEnMiLista(l)){
         const danger = document.createElement("div");
         danger.className = "lead-danger";
 
@@ -514,7 +534,7 @@ img,video,canvas{max-width:100%}
     $("vacio").classList.toggle("hidden", rows.length > 0);
     // KPIs: respetan el portal seleccionado (pestaña activa), no el resto de los filtros
     // (búsqueda/operación/tipo/estatus/hoy) para que sigan siendo un resumen general de ese portal.
-    const vivos = LEADS.filter(esVisibleParaAsesor);
+    const vivos = LEADS.filter(visibleEnMiLista);
     const base = portalSel ? vivos.filter(l => (l.portal || "inmuebles24") === portalSel) : vivos;
     $("k-total").textContent = base.length;
     $("k-nuevos").textContent = base.filter(l => !l.estatus || l.estatus === "nuevo").length;
@@ -620,14 +640,61 @@ img,video,canvas{max-width:100%}
     URL.revokeObjectURL(a.href);
   }
 
-  async function cargar(){
-    const sb = window.__nivaSb;
-    const { data, error } = await sb
-      .from("scouting_leads")
-      .select("id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at, portal, telefono, calidad_status, campos_faltantes, telefono_status, url_status, url_checked_at, lead_status, visible_para_asesores, captado_por, captado_at, consecutive_misses, last_verified_at")
+  // ---- SYNC INICIO (2026-10-12) Sincronización periódica de la lista del asesor ----
+  // Cada 60 s con la pestaña visible, y al volver a ella: retira lo que dejó de ser elegible e incorpora lo nuevo.
+  // Solo lee (select); nunca escribe. Un error de consulta conserva la lista. El admin queda fuera: su lista
+  // muestra todos los estados y no debe perder registros por cambios de estado (sigue con el tiempo real).
+  const LEAD_COLS = "id, url, titulo, descripcion, precio, operacion, tipo_propiedad, nombre_contacto, score, estatus, asesor_asignado, detectado_at, portal, telefono, calidad_status, campos_faltantes, telefono_status, url_status, url_checked_at, lead_status, visible_para_asesores, captado_por, captado_at, consecutive_misses, last_verified_at, colonia, zona";
+  const SYNC_MS = 60000, SYNC_LOTE = 200;
+  let syncEnCurso = false, cargaVersion = 0;
+  function consultaBase(sb, columnas){
+    return sb.from("scouting_leads").select(columnas)
       .or("score.gte.3,portal.neq.inmuebles24")
       .order("detectado_at", { ascending: false })
       .limit(3000);
+  }
+  async function sincronizar(){
+    if (isAdmin || document.hidden || syncEnCurso) return;
+    const sb = window.__nivaSb; if (!sb) return;
+    syncEnCurso = true;
+    const version = cargaVersion;
+    try {
+      const { data, error } = await consultaBase(sb, "id, lead_status, visible_para_asesores, estatus, nombre_contacto");
+      if (error || !Array.isArray(data)) return;
+      const elegibles = new Set(data.filter(r => esVisibleParaAsesor(r) && !esAgencia(r)).map(r => r.id));
+      const porId = new Map(LEADS.map(l => [l.id, l]));
+      const pedir = [...elegibles].filter(id => !porId.has(id) || !esVisibleParaAsesor(porId.get(id)));
+      const frescos = [];
+      for (let i = 0; i < pedir.length; i += SYNC_LOTE){
+        const { data: lote, error: e2 } = await sb.from("scouting_leads").select(LEAD_COLS).in("id", pedir.slice(i, i + SYNC_LOTE));
+        if (e2 || !Array.isArray(lote)) return;
+        frescos.push(...lote);
+      }
+      if (version !== cargaVersion) return; // hubo una carga completa mientras tanto: prevalece la carga
+      const huella = (arr) => arr.filter(esVisibleParaAsesor).map(l => l.id).sort((a, b) => a - b).join(",");
+      const antes = huella(LEADS);
+      const nuevos = new Map(frescos.filter(l => elegibles.has(l.id) && esVisibleParaAsesor(l) && !esAgencia(l)).map(l => [l.id, l]));
+      const siguiente = LEADS.filter(l => elegibles.has(l.id) && !nuevos.has(l.id)).concat([...nuevos.values()])
+        .sort((a, b) => String(b.detectado_at || "").localeCompare(String(a.detectado_at || "")));
+      LEADS = siguiente;
+      if (huella(siguiente) === antes) return; // sin cambios visibles: no se redibuja
+      const y = window.scrollY; render(); window.scrollTo(0, y);
+    } catch (_e) {
+      // red caída u otro error: se conserva la lista tal como está
+    } finally {
+      syncEnCurso = false;
+    }
+  }
+  function iniciarSincronizacion(){
+    setInterval(sincronizar, SYNC_MS);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) sincronizar(); });
+  }
+  // ---- SYNC FIN
+
+  async function cargar(){
+    const sb = window.__nivaSb;
+    cargaVersion++;
+    const { data, error } = await consultaBase(sb, LEAD_COLS);
     if (error){
       $("lista").innerHTML = '<div class="vacio"><span class="vi">&#9888;&#65039;</span>No se pudieron cargar los leads: ' + esc(error.message) + '</div>';
       return;
@@ -649,11 +716,11 @@ img,video,canvas{max-width:100%}
         if (idx === -1){
           // No lo teníamos cargado (p.ej. estaba oculto): si ahora es visible
           // para el asesor, lo agregamos a la lista local.
-          if (esVisibleParaAsesor(row) && !esAgencia(row)) { LEADS.push(row); render(); }
+          if (visibleEnMiLista(row) && !esAgencia(row)) { LEADS.push(row); render(); }
           return;
         }
         LEADS[idx] = Object.assign({}, LEADS[idx], row);
-        if (!esVisibleParaAsesor(LEADS[idx]) && !($("f-est") && ["capturado","agencia","descartado"].includes($("f-est").value))){
+        if (!visibleEnMiLista(LEADS[idx]) && !($("f-est") && ["capturado","agencia","descartado"].includes($("f-est").value))){
           // Dejó de estar disponible (lo captó/marcó otro asesor, etc.):
           // se quita de la lista local sin necesidad de recargar la página.
           LEADS.splice(idx, 1);
@@ -717,6 +784,7 @@ img,video,canvas{max-width:100%}
     });
     cargar();
     iniciarRealtime();
+    iniciarSincronizacion();
   }
   arrancar();
 })();
