@@ -388,6 +388,7 @@ let SUBSA='leads'; // dentro de "Sin asignar": leads | props
 let SHOWN=60; // paginación incremental
 const tipoLead=(l)=>l.contact_type||'unidentified';
 const esArchivado=(l)=>!!l.archived_at;
+const codI24=(l)=>{const m=String(l&&l.first_message||'').match(/COD:([^\s]+)/);return m&&!/^s\/c$/i.test(m[1])?m[1]:'';}; // (2026-10-13) código del aviso de Inmuebles24
 let VISTA='tablero'; // tablero | lista
 const EST={new:'NUEVO',contacted:'ACTIVO',attended:'TIBIO',cancelled:'CERRADO'};
 const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa',facebook_messenger:'Messenger',whatsapp_meta:'WhatsApp Meta',meta_lead_form:'Formulario Meta',web:'Sitio web'};
@@ -1026,7 +1027,7 @@ function cardLead(l){
     +'<div class="cname"><span class="cnametxt">'+esc(nombre)+'</span> <button type="button" class="editnombre" title="Editar nombre">✏️</button> <span class="badge b-'+esc(l.status)+'">'+(EST[l.status]||esc(l.status))+'</span>'
     +(tipoLead(l)==='agent'?' <span class="badge b-agent">👔 ASESOR</span>':tipoLead(l)==='client'?' <span class="badge b-client">👤 CLIENTE</span>':' <span class="badge b-unid">❓ SIN IDENTIFICAR</span>')+'</div>'
     +'<div class="nombrebox hidden"><input type="text" class="ninput" placeholder="Nombre completo" value="'+esc((l.full_name||'').trim())+'"><button type="button" class="nguardar">Guardar</button><button type="button" class="ncancelar">Cancelar</button></div>'
-        +'<div class="cprop">'+(l.property_title?esc(l.property_title):((l.zone_text||l.budget_text)?'🔎 '+esc([l.zone_text,l.budget_text].filter(Boolean).join(' · ')):(l.source==='manual_asesor'||l.source==='manual_admin'?'🔎 Sin propiedad asignada':'⚠️ Propiedad no identificada')))+'</div>'
+        +'<div class="cprop">'+(l.property_title?esc(l.property_title):((l.zone_text||l.budget_text)?'🔎 '+esc([l.zone_text,l.budget_text].filter(Boolean).join(' · ')):(l.source==='manual_asesor'||l.source==='manual_admin'?'🔎 Sin propiedad asignada':(codI24(l)?'⚠️ Aviso Inmuebles24 '+esc(codI24(l))+' (código sin registrar)':'⚠️ Propiedad no identificada'))))+'</div>'
     +'<div class="cmeta"><span class="cprice">'+fmt(l.price_amount)+(l.operation_type==='rental'?' /mes':'')+'</span>'+(l.location_name?' · '+esc(l.location_name):'')+'</div>'
     +(metaSpecs?'<div class="cmeta">'+metaSpecs+'</div>':'')
     +telVisible
