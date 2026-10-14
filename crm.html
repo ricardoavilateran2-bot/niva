@@ -318,6 +318,25 @@ img,video,canvas{max-width:100%}
 </div>
 </div>
 
+<script>
+// (2026-10-14) WhatsApp sin dejar una pestaña en blanco: en celular se abre la app directo
+// (whatsapp://) y NIVA OS se queda en el CRM. Si WhatsApp no está instalado, se usa wa.me como antes.
+window.abrirWA=function(tel,texto){
+  tel=String(tel||'').replace(/\D/g,'');
+  var q=texto?('&text='+encodeURIComponent(texto)):'';
+  var web='https://wa.me/'+tel+(texto?('?text='+encodeURIComponent(texto)):'');
+  var movil=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if(!movil){ window.open(web,'_blank'); return; }
+  var salio=false, marca=function(){ if(document.hidden) salio=true; };
+  document.addEventListener('visibilitychange',marca);
+  location.href='whatsapp://send?phone='+tel+q;
+  setTimeout(function(){ document.removeEventListener('visibilitychange',marca); if(!salio && !document.hidden) window.open(web,'_blank'); },1800);
+};
+document.addEventListener('click',function(e){
+  var a=e.target.closest&&e.target.closest('a[href^="https://wa.me/"]'); if(!a) return;
+  e.preventDefault(); var u=new URL(a.href); window.abrirWA(u.pathname.slice(1),u.searchParams.get('text')||'');
+},true);
+</script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
@@ -1169,7 +1188,7 @@ function cardLead(l){
   const go=d.querySelector('.go');
   if(go)go.onclick=async()=>{
     let msg=wab.querySelector('textarea').value;
-    window.open('https://wa.me/'+l.phone_normalized.replace('+','')+'?text='+encodeURIComponent(msg),'_blank');
+    abrirWA(l.phone_normalized,msg);
     await sb.from('lead_interactions').insert({lead_id:l.id,type:'whatsapp_click',actor:'advisor',payload:{message:msg}});
     if(l.status==='new'){await sb.from('leads').update({status:'contacted'}).eq('id',l.id);l.status='contacted';toast('Lead marcado como ACTIVO');pintar();cargarContadores()}
   };
@@ -1186,7 +1205,7 @@ function cardLead(l){
     }catch(e){ if(e&&e.name==='AbortError') return; }
     // Computadora sin "Compartir": se descarga el PDF y se abre el chat para arrastrarlo
     const u=URL.createObjectURL(f); const a=document.createElement('a'); a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),5000);
-    window.open('https://wa.me/'+l.phone_normalized.replace('+',''),'_blank');
+    abrirWA(l.phone_normalized,'');
     toast('PDF descargado: arrástralo al chat de WhatsApp que se abrió');
   };
   const telA=d.querySelector('.tel');
