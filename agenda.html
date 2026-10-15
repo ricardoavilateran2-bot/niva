@@ -111,15 +111,16 @@ input::-webkit-date-and-time-value{text-align:left}
 <div class="sheet" id="sheet">
   <h3><span id="f-tit">Nueva cita</span><button id="f-x">✕</button></h3>
   <div class="tipos" id="f-tipos"></div>
-  <input id="f-cli" placeholder="¿Con quién? (busca en tu CRM)" autocomplete="off" style="margin-top:10px">
+  <label>¿Con quién? <span style="font-weight:500">(cliente, dueño, asesor… no tiene que estar en el CRM)</span></label>
+  <input id="f-cli" placeholder="Escribe un nombre o búscalo en tu CRM" autocomplete="off">
   <div class="sug" id="f-cli-sug"></div>
-  <div class="g2"><div><label>Día</label><input type="date" id="f-fecha"></div><div><label>Hora</label><input type="time" id="f-hora" step="900"></div></div>
-  <details id="f-mas"><summary>＋ Más detalles (opcional)</summary>
-  <input id="f-tel" placeholder="Teléfono" inputmode="tel" style="margin-top:6px">
-  <label>Propiedad</label>
-  <input id="f-prop" placeholder="Busca por nombre o zona" autocomplete="off">
+  <input id="f-tel" placeholder="Teléfono (opcional)" inputmode="tel" style="margin-top:6px">
+  <label>🏠 Propiedad <span style="font-weight:500">(opcional — de tu inventario o escríbela)</span></label>
+  <input id="f-prop" placeholder="Busca por nombre o zona, o escribe la dirección" autocomplete="off">
   <div class="sug" id="f-prop-sug"></div>
   <div class="sel-chip" id="f-prop-chip"></div>
+  <div class="g2"><div><label>Día</label><input type="date" id="f-fecha"></div><div><label>Hora</label><input type="time" id="f-hora" step="900"></div></div>
+  <details id="f-mas"><summary>＋ Más detalles (opcional)</summary>
   <label>Duración</label>
   <select id="f-dur"><option value="30">30 minutos</option><option value="60" selected>1 hora</option><option value="90">1 hora y media</option><option value="120">2 horas</option></select>
   <label>Lugar <span style="font-weight:500">(dirección o punto de encuentro)</span></label>
@@ -248,8 +249,8 @@ $('#fab').onclick=()=>abrirForm(null);
 const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 $('#f-cli').oninput=()=>{ const q=norm($('#f-cli').value); F.lead_id=null; const box=$('#f-cli-sug'); if(q.length<2){box.style.display='none';return;}
   const r=LEADS.filter(l=>norm(l.full_name).includes(q)||String(l.phone_normalized||'').includes(q)).slice(0,8);
-  box.innerHTML=r.map(l=>'<div data-l="'+l.id+'">'+esc(l.full_name||'Sin nombre')+'<br><small>'+esc(l.property_title||'')+'</small></div>').join(''); box.style.display=r.length?'block':'none'; };
-$('#f-cli-sug').onclick=e=>{ const d=e.target.closest('[data-l]'); if(!d)return; const l=LEADS.find(x=>x.id===d.dataset.l); if(!l)return;
+  box.innerHTML='<div data-libre="1">➕ Usar «'+esc($('#f-cli').value.trim())+'» <small>(no está en el CRM)</small></div>'+r.map(l=>'<div data-l="'+l.id+'">'+esc(l.full_name||'Sin nombre')+'<br><small>'+esc(l.property_title||'')+'</small></div>').join(''); box.style.display='block'; };
+$('#f-cli-sug').onclick=e=>{ if(e.target.closest('[data-libre]')){ F.lead_id=null; $('#f-cli-sug').style.display='none'; $('#f-tel').focus(); return; } const d=e.target.closest('[data-l]'); if(!d)return; const l=LEADS.find(x=>x.id===d.dataset.l); if(!l)return;
   F.lead_id=l.id; $('#f-cli').value=l.full_name||''; $('#f-tel').value=String(l.phone_normalized||'').replace(/\D/g,'').slice(-10);
   if(!F.prop_titulo&&l.property_title) pintarProp(l.property_title); $('#f-cli-sug').style.display='none'; };
 $('#f-prop').oninput=()=>{ const q=norm($('#f-prop').value); const box=$('#f-prop-sug'); if(q.length<2){box.style.display='none';return;}
@@ -261,7 +262,8 @@ $('#f-prop-chip').onclick=e=>{ if(e.target.id==='f-prop-q'){ F.property_id=null;
 $('#f-ok').onclick=async()=>{
   $('#f-err').classList.remove('show'); const fecha=$('#f-fecha').value; if(!fecha){errForm('Elige el día de la cita.');return;}
   if(!$('#f-hora').value){errForm('Elige la hora de la cita.');return;}
-  const nombre=$('#f-cli').value.trim(); if(!nombre&&!F.prop_titulo&&!$('#f-notas').value.trim()){errForm('Escribe con quién es la cita (o elige un lead de tu CRM).'); $('#f-cli').focus(); return;}
+  const nombre=$('#f-cli').value.trim(); if(!F.prop_titulo&&$('#f-prop').value.trim()){ F.property_id=null; F.prop_titulo=$('#f-prop').value.trim(); }
+  if(!nombre&&!F.prop_titulo&&!$('#f-notas').value.trim()){errForm('Escribe con quién es la cita o qué propiedad (no tiene que estar en el CRM).'); $('#f-cli').focus(); return;}
   const row={tipo:F.tipo,fecha,hora:$('#f-hora').value||null,duracion_min:Number($('#f-dur').value)||60,cliente_nombre:nombre||null,cliente_tel:$('#f-tel').value.trim()||null,lead_id:F.lead_id,property_id:F.property_id,titulo:F.prop_titulo||null,lugar:$('#f-lugar').value.trim()||null,notas:$('#f-notas').value.trim()||null,updated_at:new Date().toISOString()};
   $('#f-ok').disabled=true; $('#f-ok').textContent='Guardando…';
   let r; if(EDIT) r=await sb.from('citas').update(row).eq('id',EDIT.id); else r=await sb.from('citas').insert({...row,advisor_id:MY,user_email:session.user.email,estado:'pendiente'});
