@@ -53,14 +53,20 @@ header h1{font-size:17px;font-weight:800;flex:1}
 .fab{position:fixed;right:18px;bottom:22px;background:var(--gold);color:var(--navy);border:0;border-radius:30px;padding:15px 22px;font-weight:800;font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.4);cursor:pointer;z-index:6}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20;display:none}
 .ov.show{display:block}
-.sheet{position:fixed;left:0;right:0;bottom:0;max-height:92vh;overflow:auto;background:#13233f;border-radius:20px 20px 0 0;padding:16px 16px 24px;z-index:21;transform:translateY(105%);transition:transform .25s}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:92vh;overflow:auto;background:#13233f;border-radius:20px 20px 0 0;padding:16px 16px calc(24px + env(safe-area-inset-bottom));z-index:21;transform:translateY(105%);transition:transform .25s}
 .sheet.show{transform:none}
 .sheet h3{font-size:17px;font-weight:800;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
 .sheet h3 button{background:transparent;border:0;color:var(--muted);font-size:22px;cursor:pointer}
 label{display:block;font-size:12.5px;color:var(--muted);font-weight:700;margin:12px 0 5px}
 input,textarea,select{width:100%;background:#0b1424;border:1px solid var(--line);color:#fff;border-radius:10px;padding:11px;font:inherit;font-size:15px}
 textarea{resize:vertical;min-height:60px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+/* (2026-10-14) iPhone: los campos de fecha/hora tienen un ancho mínimo propio y se salían de la pantalla (la Hora quedaba cortada) */
+.g2>div{min-width:0}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;min-height:46px;display:block;text-align:left}
+input::-webkit-date-and-time-value{text-align:left}
+.ferr{display:none;margin-top:12px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.5);color:#fecaca;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600}
+.ferr.show{display:block}
 .tipos{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}#f-mas summary{margin-top:12px;color:var(--gold);font-weight:700;font-size:14px;cursor:pointer;list-style:none}
 .tipos button{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:#fff;border-radius:20px;padding:7px 11px;font-size:12.5px;white-space:nowrap;font-weight:700;cursor:pointer}
 .tipos button b{font-size:15px;margin-right:4px}
@@ -121,6 +127,7 @@ textarea{resize:vertical;min-height:60px}
   <label>Notas</label>
   <textarea id="f-notas" placeholder="Ej. Lleva llaves. El cliente busca 2 recámaras."></textarea>
   </details>
+  <div class="ferr" id="f-err"></div>
   <button class="guardar" id="f-ok">Guardar cita</button>
   <button class="borrar" id="f-del">Borrar esta cita</button>
 </div>
@@ -221,11 +228,13 @@ function semana(dias){
   h+='</div></div><div class="sub" style="color:var(--muted);font-size:12px;text-align:center;margin-top:8px">Toca un espacio vacío para agendar a esa hora · Toca una cita para verla o editarla</div>';
   return h;
 }
+function horaSugerida(f){ const n=new Date(); if(f===HOYS && n.getHours()<20) return String(n.getHours()+1).padStart(2,'0')+':00'; return '10:00'; }
+function errForm(m){ const e=$('#f-err'); e.textContent=m; e.classList.add('show'); e.scrollIntoView({block:'nearest',behavior:'smooth'}); }
 function abrirForm(c){
   EDIT=c||null; F={tipo:c?c.tipo:'visita',lead_id:c?c.lead_id:null,property_id:c?c.property_id:null};
   $('#f-tit').textContent=c?'Editar cita':'Nueva cita';
   $('#f-cli').value=c?(c.cliente_nombre||''):''; $('#f-tel').value=c?(c.cliente_tel||''):'';
-  $('#f-prop').value=''; $('#f-fecha').value=c?c.fecha:SEL; $('#f-hora').value=c&&c.hora?c.hora.slice(0,5):'';
+  $('#f-prop').value=''; $('#f-fecha').value=c?c.fecha:SEL; $('#f-hora').value=c&&c.hora?c.hora.slice(0,5):horaSugerida(c?c.fecha:SEL); $('#f-err').classList.remove('show');
   $('#f-dur').value=String(c?c.duracion_min||60:60); $('#f-lugar').value=c?(c.lugar||''):''; $('#f-notas').value=c?(c.notas||''):''; $('#f-mas').open=!!(c&&(c.cliente_tel||c.property_id||c.lugar||c.notas));
   pintarTipo(); pintarProp(c?c.titulo:''); $('#f-del').style.display=c?'block':'none';
   $('#ov').classList.add('show'); $('#sheet').classList.add('show');
@@ -250,13 +259,14 @@ $('#f-prop-sug').onclick=e=>{ const d=e.target.closest('[data-p]'); if(!d)return
   F.property_id=p.id; pintarProp(p.title); if(!$('#f-lugar').value) $('#f-lugar').value=(p.location_name||'').split(',').slice(0,2).join(','); $('#f-prop-sug').style.display='none'; };
 $('#f-prop-chip').onclick=e=>{ if(e.target.id==='f-prop-q'){ F.property_id=null; pintarProp(''); $('#f-prop').value=''; } };
 $('#f-ok').onclick=async()=>{
-  const fecha=$('#f-fecha').value; if(!fecha){toast('Elige el día');return;}
-  const nombre=$('#f-cli').value.trim(); if(!nombre&&!F.prop_titulo&&!$('#f-notas').value.trim()){toast('Escribe con quién o de qué es la cita');return;}
+  $('#f-err').classList.remove('show'); const fecha=$('#f-fecha').value; if(!fecha){errForm('Elige el día de la cita.');return;}
+  if(!$('#f-hora').value){errForm('Elige la hora de la cita.');return;}
+  const nombre=$('#f-cli').value.trim(); if(!nombre&&!F.prop_titulo&&!$('#f-notas').value.trim()){errForm('Escribe con quién es la cita (o elige un lead de tu CRM).'); $('#f-cli').focus(); return;}
   const row={tipo:F.tipo,fecha,hora:$('#f-hora').value||null,duracion_min:Number($('#f-dur').value)||60,cliente_nombre:nombre||null,cliente_tel:$('#f-tel').value.trim()||null,lead_id:F.lead_id,property_id:F.property_id,titulo:F.prop_titulo||null,lugar:$('#f-lugar').value.trim()||null,notas:$('#f-notas').value.trim()||null,updated_at:new Date().toISOString()};
-  $('#f-ok').disabled=true;
+  $('#f-ok').disabled=true; $('#f-ok').textContent='Guardando…';
   let r; if(EDIT) r=await sb.from('citas').update(row).eq('id',EDIT.id); else r=await sb.from('citas').insert({...row,advisor_id:MY,user_email:session.user.email,estado:'pendiente'});
-  $('#f-ok').disabled=false;
-  if(r.error){toast('No se pudo guardar');console.error(r.error);return;}
+  $('#f-ok').disabled=false; $('#f-ok').textContent='Guardar cita';
+  if(r.error){console.error(r.error); errForm('No se pudo guardar: '+(r.error.message||'revisa tu conexión')+'. Intenta de nuevo.');return;}
   cerrarForm(); SEL=fecha; await cargarCitas(); pintar(); toast(EDIT?'Cita actualizada ✓':'¡Cita agendada! ✓');
 };
 $('#f-del').onclick=async()=>{ if(!EDIT)return; if(!confirm('¿Borrar esta cita?'))return; const {error}=await sb.from('citas').delete().eq('id',EDIT.id); if(error){toast('No se pudo borrar');return;} cerrarForm(); await cargarCitas(); pintar(); toast('Cita borrada'); };
