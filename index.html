@@ -274,6 +274,47 @@
   .hero { animation: fadeUp .7s ease both; }
   .cards { animation: fadeUp .7s .15s ease both; }
   footer { animation: fadeUp .7s .38s ease both; }
+
+  /* ── PANTALLA PRINCIPAL (2026-10-16): constelación, título y cuadros-botón ── */
+  #cons{position:fixed; inset:0; z-index:0; width:100%; height:100%; pointer-events:none;
+    background:radial-gradient(70% 60% at 50% 30%, #0F2242, #060D1A 85%)}
+  #portal > *:not(#cons){position:relative; z-index:1}
+  .hero{text-align:left; padding:56px 0 8px}
+  .hero-ceja{display:block; font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--gold2); font-weight:600}
+  .hero h1{margin:12px 0 8px; font-size:clamp(32px,5vw,56px); font-weight:800; letter-spacing:-.04em; line-height:1.02}
+  .hero h1 span{background:linear-gradient(90deg,#F3D98E,#C9A84C); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero p{margin:0; max-width:none; font-size:clamp(15px,1.6vw,17px); color:rgba(255,255,255,.62); line-height:1.5}
+  .mods-tit{width:100%; max-width:1100px; margin:30px 0 14px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.45)}
+  .cards{gap:14px}
+  .card{aspect-ratio:1/1; padding:22px; gap:8px; display:grid; grid-template-rows:auto 1fr auto auto; border-radius:18px;
+    background:linear-gradient(165deg, rgba(30,50,86,.82), rgba(15,30,54,.72));
+    border:1px solid rgba(201,168,76,.28);
+    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 14px 30px -18px rgba(0,0,0,.85), 0 0 0 1px rgba(0,0,0,.25)}
+  .card::before{inset:0 0 auto 0; height:3px; background:linear-gradient(90deg, transparent, var(--gold), transparent); opacity:.55}
+  .card:hover{transform:translateY(-4px); background:linear-gradient(165deg, rgba(34,56,96,.88), rgba(15,30,54,.78)); border-color:rgba(232,201,106,.75);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 24px 44px -20px rgba(0,0,0,.9), 0 0 28px -6px rgba(201,168,76,.35)}
+  .card:active{transform:translateY(-1px) scale(.985)}
+  .card:focus-visible{outline:2px solid var(--gold2); outline-offset:3px}
+  .card-icon{width:44px; height:44px; border-radius:12px; margin:0; background:rgba(201,168,76,.18); border:1px solid rgba(201,168,76,.35)}
+  .card-icon svg{width:22px; height:22px}
+  .card h2{font-size:18px; font-weight:700; letter-spacing:-.01em; margin:0; align-self:end}
+  .card p{margin:0; flex:none; font-size:13.5px; line-height:1.45; color:rgba(255,255,255,.62); padding-right:34px; height:calc(1.45em * 3);
+    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+  .card .va{position:absolute; right:18px; bottom:18px; width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
+    color:var(--gold2); border:1px solid rgba(201,168,76,.5); background:rgba(201,168,76,.1); transition:all .25s}
+  .card .va svg{width:14px; height:14px}
+  .card:hover .va{color:var(--navy2); background:var(--gold); border-color:var(--gold)}
+  .card-badge{top:12px; right:12px; min-width:24px; height:24px; padding:0 7px; display:grid; place-items:center; font-size:12.5px; background:#e5484d; color:#fff; box-shadow:0 0 0 3px rgba(15,30,54,.9), 0 4px 10px rgba(229,72,77,.45)}
+  @media (max-width:980px){ .cards{grid-template-columns:repeat(3,1fr)} }
+  @media (max-width:720px){ .cards{grid-template-columns:1fr 1fr; gap:10px} }
+  @media (max-width:560px){
+    .hero{padding-top:28px; margin-bottom:0} .hero h1{font-size:30px} .hero p{display:block; font-size:14.5px}
+    .mods-tit{margin:22px 0 10px}
+    .card{padding:14px; gap:6px} .card h2{font-size:15px; margin:0} .card p{font-size:12px; padding-right:0}
+    .card .va{display:none} .card-icon{width:36px; height:36px; margin:0} .card-icon svg{width:18px; height:18px}
+  }
+  @media (prefers-reduced-motion:reduce){ .hero, .cards, footer{animation:none} }
 </style>
 <style>/* NIVA-COMPAT-2026-09-29: iPhone/Android/Safari/Chrome/Windows */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -322,17 +363,15 @@ img,video,canvas{max-width:100%}
     </div>
   </header>
 
+  <canvas id="cons" aria-hidden="true"></canvas>
+
   <div class="hero">
-    <div class="hero-badge">NIVA OS</div>
-    <h1>Todo lo que necesitas<br>para <span>cerrar más</span></h1>
-    <p>CRM, marketing, valuaciones y documentación — todo en un solo lugar, diseñado para el equipo NIVA.</p>
+    <small class="hero-ceja">Portal de asesores NIVA</small>
+    <h1>Todo para captar,<br>vender y <span>cerrar.</span></h1>
+    <p>Tus clientes, propiedades y herramientas, a un clic.</p>
   </div>
 
-  <div class="divider">
-    <div class="divider-line"></div>
-    <span class="divider-label">Módulos</span>
-    <div class="divider-line"></div>
-  </div>
+  <div class="mods-tit">Módulos</div>
 
   <div id="instalar"><span>📲 <b>Instala NIVA OS</b> en tu celular y ábrela como app.<br><small id="inst-txt">En iPhone: toca Compartir ⬆️ y luego «Agregar a pantalla de inicio».</small></span><button id="inst-btn" style="display:none">Instalar</button><button class="x" id="inst-x" aria-label="Cerrar">✕</button></div>
   <div class="cards">
@@ -343,16 +382,9 @@ img,video,canvas{max-width:100%}
       <div class="card-icon">
         <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="5" width="18" height="18" rx="3" stroke="#C9A84C" stroke-width="1.8"/><path d="M9.5 14.5l3 3 6-7" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#4ade80"/></svg>
-        Nuevo
-      </div>
-      <h2>🚀 Arranca tu día</h2>
-      <p>¿No sabes por dónde empezar? Sigue 5 pasos con los mensajes ya escritos: contesta, da seguimiento, ofrece y capta.</p>
-      <span class="card-btn">
-        Empezar ahora
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <h2>Arranca tu día</h2>
+      <p>Tu rutina en 5 pasos, con los mensajes ya escritos.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- MI AGENDA (2026-10-09) -->
@@ -360,16 +392,9 @@ img,video,canvas{max-width:100%}
       <div class="card-icon">
         <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4.5" y="6" width="19" height="17" rx="2.5" stroke="#C9A84C" stroke-width="1.8"/><path d="M4.5 11h19M9.5 4v4M18.5 4v4" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="16" r="1.4" fill="#C9A84C"/><circle cx="14" cy="16" r="1.4" fill="#C9A84C"/></svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#4ade80"/></svg>
-        Nuevo
-      </div>
-      <h2>📅 Mi agenda</h2>
-      <p>Organiza tus visitas, llamadas y firmas por día. Confirma citas por WhatsApp con un toque.</p>
-      <span class="card-btn">
-        Abrir agenda
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <h2>Mi agenda</h2>
+      <p>Visitas, llamadas y firmas del día. Confírmalas por WhatsApp.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- INVENTARIO NIVA (2026-10-09) -->
@@ -377,16 +402,9 @@ img,video,canvas{max-width:100%}
       <div class="card-icon">
         <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 13l10-8 10 8" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 11.5V23h14V11.5" stroke="#C9A84C" stroke-width="1.8" stroke-linejoin="round"/><path d="M11 17h6M11 20h6" stroke="#C9A84C" stroke-width="1.6" stroke-linecap="round"/></svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#4ade80"/></svg>
-        Nuevo
-      </div>
-      <h2>🏘️ Inventario NIVA</h2>
-      <p>Todas las propiedades del equipo en una lista: busca, filtra y manda el inventario en PDF por WhatsApp.</p>
-      <span class="card-btn">
-        Ver inventario
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <h2>Inventario NIVA</h2>
+      <p>Todas las propiedades del equipo. Filtra y manda el PDF por WhatsApp.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <a href="./captaciones.html" class="card">
@@ -397,16 +415,9 @@ img,video,canvas{max-width:100%}
           <path d="M10 6l1.5-2.5h5L18 6" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
-        Disponible ahora
-      </div>
       <h2>Captaciones</h2>
-      <p>Da de alta propiedades nuevas — se publican solas en EasyBroker.</p>
-      <span class="card-btn">
-        Nueva captación
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <p>Da de alta una propiedad y se publica sola en EasyBroker.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- CRM -->
@@ -417,16 +428,9 @@ img,video,canvas{max-width:100%}
           <path d="M5 24c0-4.5 4-8 9-8s9 3.5 9 8" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
-        Disponible ahora
-      </div>
       <h2>CRM</h2>
-      <p>Leads, clientes, asesores y propiedades.</p>
-      <span class="card-btn">
-        Entrar al CRM
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <p>Tus leads, clientes y propiedades en un solo lugar.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- CIERRES -->
@@ -438,16 +442,9 @@ img,video,canvas{max-width:100%}
           <path d="M11 14h6" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
-        Disponible ahora
-      </div>
       <h2>Cierres</h2>
-      <p>Registra tus cierres con cliente, propiedad y comisión.</p>
-      <span class="card-btn">
-        Registrar cierre
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <p>Registra cada cierre con cliente, propiedad y comisión.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- CONTENT STUDIO -->
@@ -460,16 +457,9 @@ img,video,canvas{max-width:100%}
           <path d="M19.5 21l1 1 1.5-1.5" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
-        Disponible ahora
-      </div>
       <h2>Content Studio</h2>
-      <p>Flyers, historias, videos con voz IA y textos para redes.</p>
-      <span class="card-btn">
-        Abrir Studio
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <p>Flyers, historias y videos con voz IA para tus redes.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- SCOUTING -->
@@ -481,16 +471,9 @@ img,video,canvas{max-width:100%}
           <path d="M9 12l2 2 4-4" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
-        Disponible ahora
-      </div>
       <h2>Scouting</h2>
-      <p>Propiedades de dueño directo detectadas en Inmuebles24 — contáctalos antes que nadie.</p>
-      <span class="card-btn">
-        Ver leads
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <p>Dueños directos de Inmuebles24, antes que nadie.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- VALUACIÓN — Opinión de Valor (nuevo, 2026-09-24) -->
@@ -504,16 +487,9 @@ img,video,canvas{max-width:100%}
           <circle cx="19" cy="11" r="1.5" fill="#C9A84C"/>
         </svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#4ade80"/></svg>
-        Nuevo
-      </div>
       <h2>Opinión de Valor</h2>
-      <p>Captura la propiedad y el sistema investiga solo: comparables en portales, entorno y precio con método de avalúo. PDF listo para el dueño.</p>
-      <span class="card-btn">
-        Valuar propiedad
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <p>Valúa con comparables reales y entrega un PDF al dueño.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- BUSCADOR (nuevo, 2026-09-25) -->
@@ -525,16 +501,9 @@ img,video,canvas{max-width:100%}
           <path d="M9 12l2.5 2.5L16 10" stroke="#C9A84C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#4ade80"/></svg>
-        Nuevo
-      </div>
       <h2>Buscador</h2>
-      <p>Lo que pide tu cliente → opciones de la bolsa EasyBroker, NIVA, dueños directos y todos los portales, ordenadas por cercanía y fecha. Se repite sola y te avisa novedades.</p>
-      <span class="card-btn">
-        Buscar para un cliente
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <p>Lo que pide tu cliente, en todos los portales a la vez.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- PROPUESTAS (2026-10-05) -->
@@ -542,16 +511,9 @@ img,video,canvas{max-width:100%}
       <div class="card-icon">
         <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="4" width="18" height="20" rx="2" stroke="#C9A84C" stroke-width="1.8"/><rect x="8.5" y="8" width="11" height="6" rx="1" stroke="#C9A84C" stroke-width="1.5"/><path d="M8.5 17.5h11M8.5 20.5h7" stroke="#C9A84C" stroke-width="1.5" stroke-linecap="round"/></svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#4ade80"/></svg>
-        Nuevo
-      </div>
       <h2>Propuestas</h2>
       <p>Arma una selección de opciones para tu cliente (inventario NIVA, Buscador o a mano) y mándala como PDF elegante y link donde marca sus favoritas.</p>
-      <span class="card-btn">
-        Armar propuesta
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- OFREZCO WHATSAPP (2026-10-07) -->
@@ -559,16 +521,9 @@ img,video,canvas{max-width:100%}
       <div class="card-icon">
         <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12v4l13 5V7L5 12z" stroke="#C9A84C" stroke-width="1.8" stroke-linejoin="round"/><path d="M18 10.5c1.8.4 3 1.8 3 3.5s-1.2 3.1-3 3.5M8 16.5l1.5 5h3l-1.2-4" stroke="#C9A84C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#4ade80"/></svg>
-        Nuevo
-      </div>
       <h2>Ofrezco WhatsApp</h2>
-      <p>Elige una propiedad y mándala a tus grupos de WhatsApp con el formato NIVA, listo en un toque desde tu celular.</p>
-      <span class="card-btn">
-        Ofrecer propiedad
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <p>Manda una propiedad a tus grupos en un toque.</p>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- DOCUMENTOS -->
@@ -580,16 +535,9 @@ img,video,canvas{max-width:100%}
           <path d="M9 13h10M9 17h10M9 21h6" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
-        Disponible ahora
-      </div>
       <h2>Documentos</h2>
       <p>Contratos, ofertas y separaciones listos para firmar.</p>
-      <span class="card-btn">
-        Abrir módulo
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <!-- ADMINISTRADOR -->
@@ -600,16 +548,9 @@ img,video,canvas{max-width:100%}
           <path d="M14 8v6l4 2" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
-        Nuevo
-      </div>
       <h2>Mi día</h2>
       <p>Dónde se va el dinero hoy, qué decidir, cómo va cada asesor y qué mejorar esta semana.</p>
-      <span class="card-btn">
-        Ver mi día
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
     <a href="./admin.html" class="card hidden" id="card-admin">
@@ -619,16 +560,9 @@ img,video,canvas{max-width:100%}
           <path d="M10.5 14l2.5 2.5 5-5" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="card-tag">
-        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#C9A84C"/></svg>
-        Disponible ahora
-      </div>
       <h2>Administrador</h2>
       <p>Propiedades y sus dueños, asesores, reportes con explicación y descargas a Excel.</p>
-      <span class="card-btn">
-        Entrar al portal
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
+      <span class="va" aria-hidden="true"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </a>
 
   </div>
@@ -740,10 +674,29 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').cat
   if(/Android/i.test(navigator.userAgent)) document.getElementById('inst-txt').textContent='En Android: menú ⋮ y luego «Instalar app» o «Agregar a pantalla principal».';
   box.style.display='flex';
 })();
+
+// (2026-10-16) Fondo de constelación del portal: puntos dorados y azules que se mueven y se unen.
+(function(){
+  const cv=document.getElementById('cons'); if(!cv) return; const c=cv.getContext('2d'); let P=[], W=0, H=0, d=1;
+  const quieto=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function arma(){ d=Math.min(2,devicePixelRatio||1); W=cv.width=Math.round(innerWidth*d); H=cv.height=Math.round(innerHeight*d);
+    const n=innerWidth<700?40:70; P=Array.from({length:n},()=>({x:Math.random()*W, y:Math.random()*H, vx:(Math.random()-.5)*.25*d, vy:(Math.random()-.5)*.25*d, oro:Math.random()<.3})); }
+  function pinta(){
+    if($('#portal').classList.contains('hidden')){ requestAnimationFrame(pinta); return; } // no dibuja mientras está el inicio de sesión
+    if(Math.abs(W-innerWidth*d)>2 || Math.abs(H-innerHeight*d)>2) arma();
+    c.clearRect(0,0,W,H); const lim=130*d;
+    for(const p of P){ if(!quieto){ p.x+=p.vx; p.y+=p.vy; } if(p.x<0||p.x>W) p.vx*=-1; if(p.y<0||p.y>H) p.vy*=-1; }
+    for(let i=0;i<P.length;i++) for(let j=i+1;j<P.length;j++){ const a=P[i], b=P[j], dx=a.x-b.x, dy=a.y-b.y, dd=Math.sqrt(dx*dx+dy*dy);
+      if(dd<lim){ c.strokeStyle='rgba('+(a.oro||b.oro?'201,168,76':'120,160,230')+','+(.28*(1-dd/lim)).toFixed(3)+')'; c.lineWidth=d; c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); } }
+    for(const p of P){ c.fillStyle=p.oro?'#E8C96A':'rgba(170,200,255,.8)'; c.beginPath(); c.arc(p.x,p.y,(p.oro?2.4:1.6)*d,0,7); c.fill(); }
+    if(!quieto || !pinta.una){ pinta.una=true; requestAnimationFrame(pinta); }
+  }
+  arma(); requestAnimationFrame(pinta);
+})();
 async function cargarBadges(){
   const poner=(href,n,txt,gold)=>{ const c=document.querySelector('a.card[href="'+href+'"]'); if(!c) return; let b=c.querySelector('.card-badge'); if(!n){ if(b) b.remove(); return; } if(!b){ b=document.createElement('span'); b.className='card-badge'; c.appendChild(b); } b.classList.toggle('gold',!!gold); b.textContent=txt; };
-  try{ const r=await sb.from('my_leads').select('id',{count:'exact',head:true}).eq('status','new').is('archived_at',null); if(!r.error) poner('./crm.html',r.count,r.count+(r.count===1?' nuevo':' nuevos')); }catch(e){}
-  try{ const d=new Date(), hoy=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); const r=await sb.from('citas').select('id',{count:'exact',head:true}).eq('fecha',hoy).eq('estado','pendiente'); if(!r.error) poner('./agenda.html',r.count,r.count+(r.count===1?' cita hoy':' citas hoy'),true); }catch(e){}
+  try{ const r=await sb.from('my_leads').select('id',{count:'exact',head:true}).eq('status','new').is('archived_at',null); if(!r.error) poner('./crm.html',r.count,String(r.count)); }catch(e){}
+  try{ const d=new Date(), hoy=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); const r=await sb.from('citas').select('id',{count:'exact',head:true}).eq('fecha',hoy).eq('estado','pendiente'); if(!r.error) poner('./agenda.html',r.count,String(r.count)); }catch(e){}
 }
 sb.auth.getSession().then(({data})=>{ if(data&&data.session) cargarBadges(); });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') sb.auth.getSession().then(({data})=>{ if(data&&data.session) cargarBadges(); }); });
