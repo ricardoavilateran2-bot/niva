@@ -315,6 +315,31 @@
     .card .va{display:none} .card-icon{width:36px; height:36px; margin:0} .card-icon svg{width:18px; height:18px}
   }
   @media (prefers-reduced-motion:reduce){ .hero, .cards, footer{animation:none} }
+
+  /* ── INICIO DE SESIÓN CON CONSTELACIÓN (2026-10-16): mismo fondo que el portal ── */
+  #login{background:transparent; color:#fff}
+  #login.abre{background:transparent}
+  #login .l-orb{filter:blur(60px); background:radial-gradient(closest-side, rgba(70,120,210,.30) 0%, rgba(50,95,180,.16) 45%, rgba(15,30,54,0) 100%)}
+  #login.abre .l-k{transform:scale(var(--k,1)); opacity:0; transition:opacity .7s}
+  #login.abre .l-orb{animation:none; background:radial-gradient(closest-side, rgba(70,120,210,.30) 0%, rgba(15,30,54,0) 100%)}
+  #login.abre .l-centro, #login.abre .l-pie{opacity:0; transform:translateY(-12px) scale(.98); transition:opacity .6s, transform .6s}
+  #login h1 span{background:linear-gradient(180deg,#fff 40%,#C9D6EE); -webkit-background-clip:text; background-clip:text; color:transparent}
+  #login .l-sub{color:rgba(255,255,255,.62)}
+  #login .l-grupo{background:linear-gradient(165deg, rgba(30,50,86,.82), rgba(15,30,54,.72)); border:1px solid rgba(201,168,76,.35);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 18px 40px -20px rgba(0,0,0,.9)}
+  #login .l-grupo:focus-within{border-color:rgba(232,201,106,.8); box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 4px rgba(201,168,76,.15), 0 18px 40px -20px rgba(0,0,0,.9)}
+  #login .l-caja + .l-caja{border-top-color:rgba(255,255,255,.1)}
+  #login .l-caja label, #login .l-ver{color:rgba(255,255,255,.5)}
+  #login .l-caja input{color:#fff; caret-color:#E8C96A}
+  #login .l-caja input:-webkit-autofill{-webkit-box-shadow:0 0 0 40px #18294A inset; -webkit-text-fill-color:#fff}
+  #login #lbtn{border-color:rgba(201,168,76,.55); color:#E8C96A}
+  #login .l-grupo.lista #lbtn{border-color:#C9A84C; background:#C9A84C; color:#0F1E36; box-shadow:0 0 18px -2px rgba(201,168,76,.55)}
+  #login .l-spin{border-color:rgba(15,30,54,.35); border-top-color:#0F1E36}
+  #lerr{color:#FF8A8A}
+  #lerr.info{color:rgba(255,255,255,.6)}
+  #login .l-olv{color:#E8C96A}
+  #login .l-pie{color:rgba(255,255,255,.4)}
+  #portal:not(.hidden){animation:fadeUp .7s ease both}
 </style>
 <style>/* NIVA-COMPAT-2026-09-29: iPhone/Android/Safari/Chrome/Windows */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -327,6 +352,7 @@ img,video,canvas{max-width:100%}
 
 <div class="bg-pattern"></div>
 <div class="bg-grid"></div>
+<canvas id="cons" aria-hidden="true"></canvas>
 
 <!-- LOGIN (2026-10-16): fondo marfil con luz azul NIVA; al entrar el azul llena la pantalla -->
 <div id="login">
@@ -362,8 +388,6 @@ img,video,canvas{max-width:100%}
       <button id="hout">Salir</button>
     </div>
   </header>
-
-  <canvas id="cons" aria-hidden="true"></canvas>
 
   <div class="hero">
     <small class="hero-ceja">Portal de asesores NIVA</small>
@@ -601,7 +625,7 @@ async function resolveAdvisorDisplayName(uname){
 }
 function showPortal(email){
   // (2026-10-16) Recién entró desde el formulario: primero el azul llena la pantalla y luego aparece el portal.
-  if(window.__lEntrando){ window.__lEntrando=false; $('#login').classList.add('abre'); setTimeout(()=>showPortal(email), 1500); return; }
+  if(window.__lEntrando){ window.__lEntrando=false; $('#login').classList.add('abre'); setTimeout(()=>showPortal(email), 800); return; }
   try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){} // (2026-10-03) registra cuándo entró el asesor
   $('#login').classList.add('hidden');
   $('#portal').classList.remove('hidden');
@@ -682,7 +706,6 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').cat
   function arma(){ d=Math.min(2,devicePixelRatio||1); W=cv.width=Math.round(innerWidth*d); H=cv.height=Math.round(innerHeight*d);
     const n=innerWidth<700?40:70; P=Array.from({length:n},()=>({x:Math.random()*W, y:Math.random()*H, vx:(Math.random()-.5)*.25*d, vy:(Math.random()-.5)*.25*d, oro:Math.random()<.3})); }
   function pinta(){
-    if($('#portal').classList.contains('hidden')){ requestAnimationFrame(pinta); return; } // no dibuja mientras está el inicio de sesión
     if(Math.abs(W-innerWidth*d)>2 || Math.abs(H-innerHeight*d)>2) arma();
     c.clearRect(0,0,W,H); const lim=130*d;
     for(const p of P){ if(!quieto){ p.x+=p.vx; p.y+=p.vy; } if(p.x<0||p.x>W) p.vx*=-1; if(p.y<0||p.y>H) p.vy*=-1; }
