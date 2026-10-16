@@ -48,41 +48,62 @@
     background-size: 60px 60px;
   }
 
-  /* ── LOGIN ── */
-  #login {
-    position: relative; z-index: 1;
-    min-height:100vh;min-height:100dvh;
-    display: flex; align-items: center; justify-content: center;
-    padding: 24px;
-  }
-  .lbox {
-    width: 100%; max-width: 360px;
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: var(--radius);
-    padding: 34px 28px;
-    box-shadow: 0 20px 60px rgba(0,0,0,.4);
-    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-  }
-  .lbox .logo-block { display: flex; align-items: flex-end; gap: 4px; justify-content: center; }
-  .lbox .logo-niva { font-size: 34px; font-weight: 900; letter-spacing: -.02em; color: var(--white); line-height: 1; }
-  .lbox .logo-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; margin-bottom: 5px; }
-  .lbox .logo-sub {
-    text-align: center; font-size: 12px; font-weight: 600; letter-spacing: .18em;
-    color: rgba(201,168,76,.7); text-transform: uppercase; margin: 4px 0 26px;
-  }
-  .lbox label { font-size: 12px; color: rgba(255,255,255,.5); display: block; margin: 14px 0 6px; }
-  .lbox input {
-    width: 100%; padding: 12px 14px; border-radius: 10px; font-size: 15px;
-    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); color: var(--white);
-  }
-  .lbox input:focus { outline: none; border-color: rgba(201,168,76,.5); }
-  .lbox button {
-    width: 100%; margin-top: 22px; padding: 13px;
-    background: linear-gradient(135deg, var(--gold), #b8922e);
-    color: var(--navy2); border: 0; border-radius: 10px; font-size: 15px; font-weight: 800; cursor: pointer;
-  }
-  #lerr { color: #f87171; font-size: 12.5px; margin-top: 12px; text-align: center; min-height: 16px; }
+  /* ── LOGIN (2026-10-16): estilo Apple, crema de día y azul NIVA de noche ── */
+  #login{position:relative; z-index:2; min-height:100vh; min-height:100dvh; display:grid; place-items:center; padding:24px; overflow:hidden; text-align:center;
+    background:#FBFBFD; color:#1D1D1F; transition:background .6s ease, color .6s ease}
+  #login.azul{background:radial-gradient(120% 90% at 50% 0%, #1B2A4A 0%, #0F1E36 55%, #0B1628 100%); color:#fff}
+  #login .l-orb{position:absolute; width:min(900px,140vw); aspect-ratio:1; left:50%; top:46%; transform:translate(-50%,-50%); pointer-events:none; filter:blur(30px);
+    background:radial-gradient(closest-side, rgba(227,198,163,.55), rgba(150,113,76,.18) 45%, rgba(251,251,253,0) 72%); animation:lRespira 9s ease-in-out infinite alternate}
+  #login.azul .l-orb{background:radial-gradient(closest-side, rgba(232,201,106,.30), rgba(201,168,76,.12) 45%, rgba(15,30,54,0) 72%)}
+  @keyframes lRespira{from{transform:translate(-50%,-50%) scale(.92)}to{transform:translate(-50%,-52%) scale(1.06)}}
+  #login .l-modo{position:absolute; top:max(18px, env(safe-area-inset-top)); right:20px; z-index:3; display:inline-flex; padding:3px; border-radius:999px; background:rgba(0,0,0,.05); border:1px solid rgba(0,0,0,.06)}
+  #login .l-modo button{width:34px; height:30px; border:0; border-radius:999px; background:transparent; color:#86868B; display:grid; place-items:center; cursor:pointer; transition:background .25s, color .25s}
+  #login .l-modo svg{width:16px; height:16px}
+  #login .l-modo button[aria-pressed="true"]{background:#fff; color:#1D1D1F; box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  #login.azul .l-modo{background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.1)}
+  #login.azul .l-modo button{color:rgba(255,255,255,.5)}
+  #login.azul .l-modo button[aria-pressed="true"]{background:rgba(201,168,76,.18); color:#E8C96A; box-shadow:none}
+  #login .l-centro{position:relative; z-index:2; width:min(440px,100%); display:grid; gap:14px; justify-items:center}
+  #login h1{font-weight:700; font-size:clamp(54px,14vw,104px); letter-spacing:-.045em; line-height:.95; animation:lSube .9s cubic-bezier(.2,.7,.2,1) both}
+  #login h1 span{background:linear-gradient(180deg,#1D1D1F 30%,#5A4632); -webkit-background-clip:text; background-clip:text; color:transparent}
+  #login.azul h1 span{background:linear-gradient(180deg,#fff 35%,#C9D3E6); -webkit-background-clip:text; background-clip:text}
+  #login h1 em{font-style:normal; color:#96714C} #login.azul h1 em{color:#C9A84C}
+  #login .l-sub{margin:0 0 18px; font-size:clamp(17px,4.4vw,21px); color:#6E6E73; letter-spacing:-.01em; animation:lSube .9s .12s cubic-bezier(.2,.7,.2,1) both}
+  #login.azul .l-sub{color:rgba(255,255,255,.62)}
+  #login form{width:100%; display:grid; gap:10px; animation:lSube .9s .24s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes lSube{from{opacity:0; transform:translateY(18px)}to{opacity:1; transform:none}}
+  #login .l-grupo{width:100%; border-radius:16px; background:rgba(255,255,255,.85); border:1px solid #D2D2D7; box-shadow:0 1px 2px rgba(0,0,0,.04); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); transition:border-color .2s, box-shadow .25s, background .6s}
+  #login .l-grupo:focus-within{border-color:#1D1D1F; box-shadow:0 0 0 4px rgba(150,113,76,.18)}
+  #login.azul .l-grupo{background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.14); box-shadow:0 20px 50px -24px rgba(0,0,0,.6)}
+  #login.azul .l-grupo:focus-within{border-color:rgba(201,168,76,.7); box-shadow:0 0 0 4px rgba(201,168,76,.18), 0 20px 50px -24px rgba(0,0,0,.6)}
+  #login .l-caja{position:relative; height:58px}
+  #login .l-caja + .l-caja{border-top:1px solid #D2D2D7} #login.azul .l-caja + .l-caja{border-top-color:rgba(255,255,255,.12)}
+  #login .l-caja input{position:absolute; inset:0; width:100%; height:100%; border:0; outline:none; background:transparent; padding:22px 100px 6px 18px; font-size:17px; color:inherit; border-radius:16px; font-family:inherit}
+  #login.azul .l-caja input{caret-color:#E8C96A}
+  #login .l-caja label{position:absolute; left:18px; top:18px; font-size:17px; color:#86868B; pointer-events:none; transition:all .2s cubic-bezier(.2,.7,.2,1); margin:0}
+  #login.azul .l-caja label{color:rgba(255,255,255,.5)}
+  #login .l-caja input:focus + label, #login .l-caja input:not(:placeholder-shown) + label{top:8px; font-size:11.5px}
+  #login.azul .l-caja input:focus + label, #login.azul .l-caja input:not(:placeholder-shown) + label{color:#E8C96A}
+  #login .l-ver{position:absolute; right:56px; top:50%; transform:translateY(-50%); border:0; background:none; color:#86868B; font-size:13px; padding:6px; cursor:pointer; font-family:inherit}
+  #login.azul .l-ver{color:rgba(255,255,255,.5)}
+  #login #lbtn{position:absolute; right:10px; top:50%; transform:translateY(-50%); width:38px; height:38px; margin:0; padding:0; border-radius:50%; border:1.5px solid #86868B; background:transparent; color:#86868B; display:grid; place-items:center; cursor:pointer; transition:all .25s cubic-bezier(.2,.7,.2,1)}
+  #login #lbtn svg{width:16px; height:16px}
+  #login .l-grupo.lista #lbtn{border-color:#1D1D1F; background:#1D1D1F; color:#fff}
+  #login.azul #lbtn{border-color:rgba(255,255,255,.35); color:rgba(255,255,255,.6)}
+  #login.azul .l-grupo.lista #lbtn{border-color:transparent; background:linear-gradient(135deg,#C9A84C,#B8922E); color:#0F1E36; box-shadow:0 6px 18px -6px rgba(201,168,76,.7)}
+  #login .l-spin{width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; animation:lGira .8s linear infinite}
+  #login.azul .l-spin{border-color:rgba(15,30,54,.3); border-top-color:#0F1E36}
+  @keyframes lGira{to{transform:rotate(360deg)}}
+  #lerr{color:#D70015; font-size:13px; min-height:18px; text-align:center}
+  #login.azul #lerr{color:#F87171}
+  #lerr.info{color:#6E6E73} #login.azul #lerr.info{color:rgba(255,255,255,.62)}
+  #login .l-olv{border:0; background:none; color:#7F5F40; font-size:14px; cursor:pointer; font-family:inherit; padding:0}
+  #login.azul .l-olv{color:#E8C96A}
+  #login .l-pie{position:absolute; bottom:max(20px, env(safe-area-inset-bottom)); left:0; right:0; font-size:12px; color:#86868B; z-index:2}
+  #login.azul .l-pie{color:rgba(255,255,255,.4)}
+  #login .l-sacude{animation:lTiembla .4s}
+  @keyframes lTiembla{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  @media (prefers-reduced-motion:reduce){ #login .l-orb, #login h1, #login .l-sub, #login form{animation:none} }
 
   /* ── WRAPPER ── */
   .page {
@@ -280,21 +301,28 @@ img,video,canvas{max-width:100%}
 <div class="bg-pattern"></div>
 <div class="bg-grid"></div>
 
-<!-- LOGIN -->
+<!-- LOGIN (2026-10-16): crema de día, azul NIVA de noche o con modo oscuro -->
 <div id="login">
-  <div class="lbox">
-    <div class="logo-block">
-      <span class="logo-niva">NIVA</span>
-      <div class="logo-dot"></div>
-    </div>
-    <div class="logo-sub">Inmobiliaria · OS</div>
-    <label>Usuario</label>
-    <input id="lu" autocapitalize="none" autocomplete="username">
-    <label>Contraseña</label>
-    <input id="lp" type="password" autocomplete="current-password">
-    <button id="lbtn">Entrar</button>
-    <div id="lerr"></div>
+  <script>(function(){try{var m=localStorage.getItem('nivaos:modo')||'auto',h=new Date().getHours(),n=h>=19||h<7||matchMedia('(prefers-color-scheme: dark)').matches;if(m==='azul'||(m==='auto'&&n))document.getElementById('login').classList.add('azul');}catch(e){}})();</script>
+  <div class="l-orb" aria-hidden="true"></div>
+  <div class="l-modo" role="group" aria-label="Apariencia">
+    <button type="button" data-m="claro" aria-label="Modo de día" title="Día"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+    <button type="button" data-m="auto" aria-label="Automático según la hora" title="Automático"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor"/></svg></button>
+    <button type="button" data-m="azul" aria-label="Modo de noche" title="Noche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg></button>
   </div>
+  <div class="l-centro">
+    <h1><span>NIVA OS</span><em>.</em></h1>
+    <p class="l-sub" id="lsaludo">Inicia sesión con tu cuenta de asesor.</p>
+    <form id="lform" novalidate>
+      <div class="l-grupo" id="lgrupo">
+        <div class="l-caja"><input id="lu" autocapitalize="none" autocomplete="username" spellcheck="false" placeholder=" "><label for="lu">Usuario</label></div>
+        <div class="l-caja"><input id="lp" type="password" autocomplete="current-password" placeholder=" "><label for="lp">Contraseña</label><button type="button" class="l-ver" id="lver" aria-pressed="false">Ver</button><button id="lbtn" type="submit" aria-label="Entrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+      </div>
+      <div id="lerr" role="alert"></div>
+      <div><button type="button" class="l-olv" id="lolv">¿Olvidaste tu contraseña?</button></div>
+    </form>
+  </div>
+  <div class="l-pie">NIVA Inmobiliaria · Monterrey, N.L.</div>
 </div>
 
 <!-- PORTAL -->
@@ -683,16 +711,41 @@ else{ showLogin(); }
 
 sb.auth.onAuthStateChange((_e,s)=>{ if(s) showPortal(s.user?.email||''); else showLogin(); });
 
-$('#lbtn').onclick = async ()=>{
+// (2026-10-16) Inicio de sesión nuevo: formulario real (Enter y gestor de contraseñas), día/noche, ver contraseña.
+const lFlecha = $('#lbtn').innerHTML;
+const lErr = (msg, info) => { $('#lerr').textContent = msg; $('#lerr').classList.toggle('info', !!info); };
+const lSacude = () => { const g = $('#lgrupo'); g.classList.remove('l-sacude'); void g.offsetWidth; g.classList.add('l-sacude'); };
+(function(){
+  const h = new Date().getHours();
+  $('#lsaludo').textContent = (h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches') + '. Inicia sesión con tu cuenta de asesor.';
+  const login = $('#login');
+  const esNoche = () => { const hh = new Date().getHours(); return hh >= 19 || hh < 7 || matchMedia('(prefers-color-scheme: dark)').matches; };
+  const aplica = m => {
+    try{ localStorage.setItem('nivaos:modo', m); }catch(e){}
+    login.classList.toggle('azul', m === 'azul' || (m === 'auto' && esNoche()));
+    login.querySelectorAll('[data-m]').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === m));
+  };
+  let modo = 'auto'; try{ modo = localStorage.getItem('nivaos:modo') || 'auto'; }catch(e){}
+  login.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => aplica(b.dataset.m)));
+  aplica(modo);
+  const lista = () => $('#lgrupo').classList.toggle('lista', !!($('#lu').value.trim() && $('#lp').value));
+  ['#lu','#lp'].forEach(s => $(s).addEventListener('input', () => { lErr(''); lista(); }));
+  $('#lp').addEventListener('keyup', e => { if(e.getModifierState && e.getModifierState('CapsLock')) lErr('Bloq Mayús está activado.', true); else if($('#lerr').classList.contains('info')) lErr(''); });
+  $('#lver').addEventListener('click', function(){ const v = $('#lp').type === 'password'; $('#lp').type = v ? 'text' : 'password'; this.textContent = v ? 'Ocultar' : 'Ver'; this.setAttribute('aria-pressed', v); $('#lp').focus(); });
+  $('#lolv').addEventListener('click', () => lErr('Pídele a administración que te restablezca la contraseña.', true));
+})();
+$('#lform').addEventListener('submit', async e=>{
+  e.preventDefault();
   const u = $('#lu').value.trim();
   const p = $('#lp').value;
-  $('#lerr').textContent='';
-  if(!u || !p){ $('#lerr').textContent='Completa usuario y contraseña'; return; }
+  lErr('');
+  if(!u || !p){ lErr('Completa usuario y contraseña'); lSacude(); $(!u ? '#lu' : '#lp').focus(); return; }
   const email = u.includes('@') ? u : (u + '@niva.internal');
+  const btn = $('#lbtn'); btn.disabled = true; btn.innerHTML = '<span class="l-spin" aria-hidden="true"></span>';
   const {error} = await sb.auth.signInWithPassword({email, password:p});
-  if(error){ $('#lerr').textContent='Usuario o contraseña incorrectos'; return; }
-};
-$('#lp').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#lbtn').click(); });
+  btn.disabled = false; btn.innerHTML = lFlecha;
+  if(error){ lErr('Usuario o contraseña incorrectos'); lSacude(); $('#lp').select(); return; }
+});
 
 $('#hout').onclick = async ()=>{ await sb.auth.signOut(); location.reload(); };
 
