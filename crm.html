@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es"><head>
+<html lang="es" class="oscuro"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NIVA CRM</title>
@@ -644,6 +644,7 @@ body[data-vista="bandeja"] #filtros{flex:1 1 auto}
   #vistas .f.v{padding:7px 10px}
 }
 </style>
+<script src="./niva-fondo.js" defer></script>
 </head><body>
 <a href="./index.html" id="niva-backfab" class="niva-backfab">&larr; NIVA OS</a>
 
@@ -2266,4 +2267,28 @@ if(session){iniciar(); try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(
   upd();
 })();
 </script>
+<style>/* ===== Tema oscuro con constelación (2026-10-16): mismo fondo que el inicio y la pantalla principal ===== */
+html.oscuro{--bg:transparent; --card:rgba(22,40,72,.80); --txt:#F2F5FA; --mut:rgba(255,255,255,.6); --border:rgba(255,255,255,.12)}
+#sbar{background:rgba(8,17,32,.78); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px)}
+.phead h1{color:#fff}
+#filtros .f:not(.v).on, body[data-vista="bandeja"] #filtros .f:not(.v).on, #filtros .f.on .fc{color:var(--gold2)}
+body[data-vista="bandeja"] #filtros .f:not(.v).on{border-bottom-color:var(--gold)}
+.bj-lista, .card, .repsec, .sagrupo, .skel{-webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px)}
+/* superficies que estaban en blanco fijo */
+#modalNuevo .mbox{background:#13233f; border:1px solid rgba(201,168,76,.3)}
+#modalNuevo h3, .lsec, .cprice, .sat, .kbt, .kbm b, .kbn, .addtel{color:#fff}
+.cprice{color:var(--gold2)}
+#modalNuevo input, #modalNuevo select, .tipofix button, .tipofix select, .f, #buscar, .saacc select, .estado select,
+.repbtn, .nombrebox .ncancelar, .telbox .tcancelar, .vermas, .sagrupo, .repsec, .kbcard, .kbn{background-color:rgba(255,255,255,.05); color:var(--txt)}
+.kbcard, .sagrupo, .repsec{background-color:var(--card)}
+#modalNuevo .mcancel, .tipofix button:hover, details p, .sanombres span{background:rgba(255,255,255,.08)}
+.interes{background:rgba(255,255,255,.04)}
+.cimg{background:#1a2b48}
+.kbcol{background:rgba(255,255,255,.03)}
+.errbox{background:rgba(240,80,70,.14); border-color:rgba(240,80,70,.4)}
+.saacc button.elimg{background:rgba(240,110,70,.16); color:#FFB39A}
+.b-agent{background:rgba(150,120,240,.2); color:#C7B6FF}
+select option{background:#13233f; color:#F2F5FA}
+#login{background:transparent !important}
+</style>
 </body></html>

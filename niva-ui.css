@@ -46,3 +46,25 @@
 .ui-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .ui-ico{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* 4 · tema oscuro con constelación (2026-10-16): mismo fondo que el inicio y la pantalla principal.
+   Se activa con <html class="oscuro"> junto con niva-fondo.js. Superficies de vidrio azul con borde sutil. */
+html.oscuro{
+  --s-0:rgba(22,40,72,.80); --s-25:rgba(255,255,255,.05); --s-50:transparent; --s-100:rgba(0,0,0,.22);
+  --s-200:rgba(255,255,255,.12); --s-300:rgba(255,255,255,.22);
+  --s-500:rgba(255,255,255,.55); --s-600:rgba(255,255,255,.72); --s-700:rgba(255,255,255,.82); --s-900:#F2F5FA;
+  --g-100:rgba(201,168,76,.14);
+  --ui-brand:#4F78CC; --ui-focus:#E8C96A;
+  --st-new:#8FB0FF;    --st-new-bg:rgba(90,130,230,.18);
+  --st-active:#5FD39A; --st-active-bg:rgba(60,190,120,.16);
+  --st-warm:#F2C46B;   --st-warm-bg:rgba(230,170,60,.16);
+  --st-closed:#B4BCCB; --st-closed-bg:rgba(255,255,255,.08);
+  --danger:#FF8A80;    --danger-bg:rgba(240,80,70,.16);
+  --wa:#3DDC84;        --wa-bg:rgba(37,211,102,.14);
+  --sh-1:0 1px 0 rgba(255,255,255,.05) inset, 0 10px 24px -16px rgba(0,0,0,.8);
+  --sh-2:0 1px 0 rgba(255,255,255,.06) inset, 0 16px 34px -18px rgba(0,0,0,.85);
+  color-scheme:dark;
+}
+html.oscuro input, html.oscuro select, html.oscuro textarea{color:#F2F5FA}
+html.oscuro input::placeholder, html.oscuro textarea::placeholder{color:rgba(255,255,255,.4)}
+html.oscuro select option{background:#13233f; color:#F2F5FA}
