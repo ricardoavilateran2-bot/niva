@@ -2317,6 +2317,19 @@ select option{background:#13233f; color:#F2F5FA}
 .kbacc .kbwa:hover, .kbacc .kbllamar:hover, .kbacc .kbarch:hover, .card .acc.wa:hover, .card .acc.tel:hover, .card .acc.arch:hover{filter:brightness(1.1);transform:translateY(-1px)}
 .kbacc .ui-ico, .card .acc .ui-ico{width:15px;height:15px;flex:none}
 .wa-logo{fill:currentColor;stroke:none}
+/* (2026-10-18) pestañas (Mis clientes, Asesores, Todo, Archivados) como botones que se notan */
+#sbar .snav{gap:8px}
+#sbar .tab{padding:11px 14px;font-size:14px;font-weight:600;color:#fff;border-radius:11px;
+  background:linear-gradient(165deg,rgba(30,50,86,.85),rgba(15,30,54,.75));border:1px solid rgba(201,168,76,.32);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 18px -12px rgba(0,0,0,.9)}
+#sbar .tab .ui-ico{opacity:1;color:#E8C96A}
+#sbar .tab:hover{border-color:rgba(232,201,106,.8);background:linear-gradient(165deg,rgba(36,60,102,.9),rgba(15,30,54,.8))}
+#sbar .tab.on{background:linear-gradient(135deg,#E8C96A,#C9A84C);color:#0F1E36;border-color:#E8C96A;box-shadow:0 0 22px -6px rgba(201,168,76,.6)}
+#sbar .tab.on::before{display:none}
+#sbar .tab.on .ui-ico{color:#0F1E36}
+#sbar .tab .n{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
+#sbar .tab.on .n{background:rgba(15,30,54,.2);color:#0F1E36}
+#sbar .tab .n.hot{background:#e5484d;color:#fff}
 .kbacc{flex-wrap:wrap}
 .kbacc .kbwa, .kbacc .kbllamar, .kbacc .kbarch{flex:1 1 auto;padding:9px 10px;white-space:nowrap}
 /* (2026-10-18) ficha: la etapa resalta como sección importante */
