@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro"){document.documentElement.classList.add("claro");document.addEventListener("DOMContentLoaded",function(){var m=document.querySelector("meta[name=theme-color]");if(m)m.content="#FBF9F6"})}}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NIVA OS — Portal de Herramientas</title>
@@ -832,6 +832,7 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').cat
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrar(); });
   conf.querySelectorAll('.conf-op').forEach(b=>b.onclick=()=>{
     const t=b.dataset.tema; html.classList.toggle('claro',t==='claro');
+    const mt=document.querySelector('meta[name=theme-color]'); if(mt) mt.content=t==='claro'?'#FBF9F6':'#0f1e36';
     try{ localStorage.setItem('niva_tema',t); }catch(_e){}
     marca();
   });
