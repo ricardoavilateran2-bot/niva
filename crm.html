@@ -1412,10 +1412,16 @@ function kbCard(l,colsVisibles){
         +'<div class="kbp">'+(l.property_title?esc(l.property_title):((l.zone_text||l.budget_text)?'<i style="color:#8a94a6">'+esc([l.zone_text,l.budget_text].filter(Boolean).join(' · '))+'</i>':'<i style="color:#8a94a6">Sin propiedad</i>'))+'</div>'
     +'<div class="kbm"><b>'+(l.price_amount?fmt(l.price_amount)+(l.operation_type==='rental'?'/mes':''):'')+'</b>'+etiquetaTiempo(l,fecha)+'</div>'
     +(ESADMIN?'<div class="kbm"><span>'+(l.advisor_name?'👔 '+esc(l.advisor_name):'⚠️ Sin asesor')+'</span></div>':'')
+    // (2026-10-18) datos rápidos: operación, número y por dónde llegó
+    +'<div class="kbdatos">'
+    +(l.operation_type?'<span class="kbop '+(l.operation_type==='rental'?'renta':'venta')+'">'+(l.operation_type==='rental'?'Renta':'Venta')+'</span>':'')
+    +(l.phone_normalized?'<span class="kbtel">'+esc(ftel(l.phone_normalized))+'</span>':'')
+    +(l.source?'<span class="kbsrc">vía '+esc(srcLabel(l.source))+'</span>':'')
+    +'</div>'
     +'<div class="kbacc">'
-    +(l.phone_normalized?'<button type="button" class="wa kbwa">WhatsApp</button>':'<span class="kbsintel">Sin teléfono</span>')
+    +(l.phone_normalized?'<button type="button" class="wa kbwa">WhatsApp</button><a class="tel kbllamar" href="tel:'+esc(l.phone_normalized)+'">Llamar</a>':'<span class="kbsintel">Sin teléfono</span>')
+    +'<button type="button" class="kbarch">Archivar</button>'
     +'<details class="kbmas"><summary aria-label="Más acciones">•••</summary><div class="kbmenu">'
-    +(l.phone_normalized?'<a class="tel" href="tel:'+esc(l.phone_normalized)+'"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>Llamar</a>':'')
     +'<label>Mover a otra etapa<select class="kbmover">'+moverOpts+'</select></label>'
     +'</div></details>'
     +'</div>';
@@ -1423,6 +1429,7 @@ function kbCard(l,colsVisibles){
   d.querySelector('.kbmas').addEventListener('click',e=>e.stopPropagation());
   const kw=d.querySelector('.kbwa'); if(kw) kw.onclick=(e)=>{e.stopPropagation();abrirContestar(l)};
   d.querySelectorAll('.kbacc a').forEach(a=>a.addEventListener('click',e=>e.stopPropagation()));
+  const ka=d.querySelector('.kbarch'); ka.onclick=async(e)=>{e.stopPropagation();ka.disabled=true;ka.textContent='Archivando…';if(!await archivarLead(l,true)){ka.disabled=false;ka.textContent='Archivar'}};
   const sel=d.querySelector('.kbmover');
   sel.addEventListener('click',e=>e.stopPropagation());
   sel.addEventListener('change',e=>{e.stopPropagation();if(sel.value)moverEtapa(l.id,sel.value)});
@@ -1430,6 +1437,20 @@ function kbCard(l,colsVisibles){
   d.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',l.id);d.classList.add('arrastrando')});
   d.addEventListener('dragend',()=>d.classList.remove('arrastrando'));
   return d;
+}
+async function archivarLead(l,archivando){
+  const cambio=archivando
+    ? {archived_at:new Date().toISOString(), archived_by:USUARIO}
+    : {archived_at:null, archived_by:null};
+  const {error}=await sb.from('leads').update(cambio).eq('id',l.id);
+  if(error){ toast('No se pudo '+(archivando?'archivar':'restaurar')); return false; }
+  l.archived_at=cambio.archived_at;l.archived_by=cambio.archived_by;
+  sb.from('lead_interactions').insert({lead_id:l.id,type:archivando?'archived':'unarchived',actor:'advisor',payload:{}}).then(()=>{});
+  // Al archivar/restaurar se cierra el detalle del lead (asesor o cliente)
+  const mfA=document.getElementById('modalFicha'); if(mfA){mfA.remove();document.body.classList.remove('ficha-abierta');}
+  toast(archivando?'Lead archivado':'Lead restaurado');
+  pintar();cargarContadores();
+  return true;
 }
 async function moverEtapa(id,nuevo){
   const l=LEADS.find(x=>x.id===id);
@@ -1599,12 +1620,12 @@ function cardLead(l){
     +(esArchivado(l)?'<button class="acc desarch"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Restaurar</button>':'<button class="acc arch"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8M10 12h4"/></svg>Archivar</button>')
     +'</div></div>'
     +'<div class="wabox hidden"><textarea></textarea><button type="button" class="wficha hidden" style="margin:6px 0;padding:9px 12px;border:1px solid #16a34a;border-radius:8px;background:#fff;color:#15803d;font-weight:700;font-size:13px;cursor:pointer">📄 Enviar ficha técnica en PDF</button><button class="go">Abrir WhatsApp con este mensaje</button></div>'
-    +bloqueInteres(l)
-    +'<div class="estado"><span>Etapa</span><div class="etchips" role="group" aria-label="Etapa del cliente">'
-    +Object.entries(EST).map(([k,v])=>'<button type="button" data-st="'+k+'" class="etchip et-'+k+(k===l.status?' on':'')+'" aria-pressed="'+(k===l.status)+'">'+v.charAt(0)+v.slice(1).toLowerCase()+'</button>').join('')
+    +'<div class="estado"><span>¿En qué etapa va este cliente?</span><div class="etchips" role="group" aria-label="Etapa del cliente">'
+    +Object.entries(EST).map(([k,v])=>'<button type="button" data-st="'+k+'" class="etchip et-'+k+(k===l.status?' on':'')+'" aria-pressed="'+(k===l.status)+'"><i></i>'+v.charAt(0)+v.slice(1).toLowerCase()+'</button>').join('')
     +'</div><select hidden aria-hidden="true">'
     +Object.entries(EST).map(([k,v])=>'<option value="'+k+'"'+(k===l.status?' selected':'')+'>'+v+'</option>').join('')
     +'</select></div>'
+    +bloqueInteres(l)
     +'<details class="masop"><summary>Más opciones</summary>'
     +'<div class="tipofix"><span>Tipo:</span><select class="tpsel">'
     +'<option value="client"'+(tipoLead(l)==='client'?' selected':'')+'>Cliente</option>'
@@ -1801,20 +1822,7 @@ function cardLead(l){
   async function archivar(archivando){
     const btn=d.querySelector(archivando?'.arch':'.desarch');
     if(btn){btn.disabled=true;btn.textContent=archivando?'Archivando...':'Restaurando...'}
-    const cambio=archivando
-      ? {archived_at:new Date().toISOString(), archived_by:USUARIO}
-      : {archived_at:null, archived_by:null};
-    const {error}=await sb.from('leads').update(cambio).eq('id',l.id);
-    if(error){
-      if(btn){btn.disabled=false;btn.textContent=archivando?'Archivar':'Restaurar'}
-      toast('No se pudo '+(archivando?'archivar':'restaurar'));return;
-    }
-    l.archived_at=cambio.archived_at;l.archived_by=cambio.archived_by;
-        sb.from('lead_interactions').insert({lead_id:l.id,type:archivando?'archived':'unarchived',actor:'advisor',payload:{}}).then(()=>{});
-    // Al archivar/restaurar se cierra el detalle del lead (asesor o cliente)
-    const mfA=document.getElementById('modalFicha'); if(mfA){mfA.remove();document.body.classList.remove('ficha-abierta');}
-    toast(archivando?'Lead archivado':'Lead restaurado');
-    pintar();cargarContadores();
+    if(!await archivarLead(l,archivando)&&btn){btn.disabled=false;btn.textContent=archivando?'Archivar':'Restaurar'}
   }
   const btnElim=d.querySelector('.elim');
   if(btnElim)btnElim.onclick=async()=>{
@@ -2290,5 +2298,31 @@ body[data-vista="bandeja"] #filtros .f:not(.v).on{border-bottom-color:var(--gold
 .b-agent{background:rgba(150,120,240,.2); color:#C7B6FF}
 select option{background:#13233f; color:#F2F5FA}
 #login{background:transparent !important}
+/* (2026-10-18) carta del tablero: datos rápidos y 3 botones */
+.kbdatos{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:12px;color:rgba(255,255,255,.72)}
+.kbop{font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+.kbop.venta{background:rgba(201,168,76,.18);color:#F0D27A}
+.kbop.renta{background:rgba(90,130,230,.2);color:#A9C2FF}
+.kbtel{font-variant-numeric:tabular-nums;color:#fff;font-weight:600}
+.kbsrc{color:rgba(255,255,255,.55)}
+.kbacc .kbllamar{background:rgba(90,130,230,.18);color:#BFD0FF;border:1px solid rgba(90,130,230,.35)}
+.kbacc .kbarch{background:rgba(255,255,255,.06);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.14);border-radius:8px;font:600 12.5px Inter,sans-serif;cursor:pointer;padding:9px 4px}
+.kbacc .kbarch:hover{background:rgba(255,255,255,.12)}
+.kbacc .kbwa{border:1px solid rgba(61,220,132,.35)}
+/* (2026-10-18) ficha: la etapa resalta como sección importante */
+.card .estado{display:block;margin:4px 14px 14px;padding:14px;border-radius:14px;background:linear-gradient(165deg,rgba(201,168,76,.16),rgba(201,168,76,.05));border:1px solid rgba(232,201,106,.55);box-shadow:0 0 24px -10px rgba(201,168,76,.45)}
+.card .estado>span{display:block;margin:0 0 10px;font-size:14px;font-weight:700;color:#F0D27A;letter-spacing:-.005em}
+.card .etchips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.card .etchip{display:flex;align-items:center;justify-content:center;gap:7px;min-height:46px;padding:10px 6px;border-radius:12px;font:700 14px Inter,sans-serif;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.16);color:#fff;transition:all .15s}
+.card .etchip i{width:9px;height:9px;border-radius:50%;flex:none}
+.card .etchip.et-new i{background:var(--st-new)}.card .etchip.et-contacted i{background:var(--st-active)}.card .etchip.et-attended i{background:var(--st-warm)}.card .etchip.et-cancelled i{background:var(--st-closed)}
+.card .etchip:hover{border-color:rgba(232,201,106,.7);background:rgba(255,255,255,.1)}
+.card .etchip.on{color:#0F1E36;box-shadow:0 6px 18px -8px rgba(0,0,0,.8)}
+.card .etchip.on i{background:#0F1E36}
+.card .etchip.on.et-new{background:var(--st-new);border-color:var(--st-new);color:#0F1E36}
+.card .etchip.on.et-contacted{background:var(--st-active);border-color:var(--st-active);color:#0F1E36}
+.card .etchip.on.et-attended{background:var(--st-warm);border-color:var(--st-warm);color:#0F1E36}
+.card .etchip.on.et-cancelled{background:var(--st-closed);border-color:var(--st-closed);color:#0F1E36}
+@media (max-width:520px){.card .etchips{grid-template-columns:repeat(2,1fr)}}
 </style>
 </body></html>
