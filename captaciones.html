@@ -126,15 +126,13 @@ textarea { resize: vertical; min-height: 90px; }
 .pfbar input{flex:1;min-width:180px}
 .psecs{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start;margin-top:18px}
 /* (2026-10-18) botón grande Renta | Venta */
-.pf-op{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px;padding:6px;border-radius:16px;background:linear-gradient(165deg,rgba(30,50,86,.85),rgba(15,30,54,.75));border:1px solid rgba(201,168,76,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 14px 30px -18px rgba(0,0,0,.85)}
-.pf-op .pf{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border:0;border-radius:12px;background:transparent;color:rgba(255,255,255,.75);font:800 16px Inter,sans-serif;letter-spacing:.02em;cursor:pointer;transition:all .2s}
+.pf-op{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:13px;padding:5px;border-radius:14px;background:linear-gradient(165deg,rgba(30,50,86,.85),rgba(15,30,54,.75));border:1px solid rgba(201,168,76,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 14px 30px -18px rgba(0,0,0,.85)}
+.pf-op .pf{display:flex;align-items:center;justify-content:center;gap:8px;min-height:47px;border:0;border-radius:11px;background:transparent;color:rgba(255,255,255,.75);font:800 14.5px Inter,sans-serif;letter-spacing:.02em;cursor:pointer;transition:all .2s}
 .pf-op .pf:hover{color:#fff;background:rgba(255,255,255,.06)}
 .pf-op .pf.on{background:linear-gradient(135deg,#E8C96A,#C9A84C);color:#0F1E36;box-shadow:0 0 22px -6px rgba(201,168,76,.6)}
-.pf-op .pf span{min-width:26px;padding:2px 8px;border-radius:999px;font-size:13px;background:rgba(255,255,255,.12)}
+.pf-op .pf span{min-width:23px;padding:2px 7px;border-radius:999px;font-size:12px;background:rgba(255,255,255,.12)}
 .pf-op .pf.on span{background:rgba(15,30,54,.2)}
 @media(max-width:760px){.psecs{grid-template-columns:1fr}}
-.psec-h{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--gold);padding:6px 2px;border-bottom:2px solid rgba(201,168,76,.4);margin-bottom:8px;display:flex;align-items:center;gap:8px;text-transform:uppercase}
-.psec-h span{background:var(--gold);color:var(--navy2);border-radius:999px;padding:1px 9px;font-size:12px}
 .ptabla{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;overflow:hidden}
 .prow{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid rgba(255,255,255,.07);text-decoration:none;color:inherit}
 .prow:last-child{border-bottom:0}
@@ -600,11 +598,10 @@ function renderProps(){
   host.innerHTML='';
   const secciones=[['rental','RENTA'],['sale','VENTA']];
   const wrapper=document.createElement('div');wrapper.className='psecs';
-  for(const [op,titulo] of secciones){
+  for(const [op] of secciones){
     const grupo=ps.filter(p=>p.operation_type===op);
     if(!grupo.length)continue;
     const sec=document.createElement('div');
-    sec.innerHTML='<div class="psec-h">'+titulo+' <span>'+grupo.length+'</span></div>';
     const tabla=document.createElement('div');tabla.className='ptabla';
     for(const p of grupo){
       const fila=document.createElement('a');fila.className='prow';
