@@ -34,9 +34,43 @@
       'box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 18px 36px -18px rgba(0,0,0,.9),0 0 22px -6px rgba(201,168,76,.35)}' +
     (pag==='inventario' ? 'html .row{margin-bottom:8px;padding:9px 10px}' : '') +
     (pag==='captaciones' ? 'html .ptabla{background:none;border:0;overflow:visible}html .prow{margin-bottom:8px}html .prow:last-child{border-bottom:1px solid rgba(201,168,76,.28)}' : '');
+  // Encabezado único (2026-10-18): "← NIVA OS" siempre a la izquierda y el nombre del módulo grande a su lado.
+  // Se esconden los encabezados viejos de cada página y los botones de acción de arriba bajan como botón flotante.
+  var MOD = {
+    admin:['Administrador','#niva-backfab,.asidebar .alogo'], agenda:['Mi agenda','body>header:not(.niva-top)'], buscador:['Buscador','body>.top'],
+    captaciones:['Captaciones','.niva-backfab,.page>header'], cierres:['Cierres','.niva-backfab,.page>header'],
+    crm:['CRM','#niva-backfab,#sbar .slogo'], docs:['Documentos','#niva-backfab,body>.top-bar'], hoy:['Arranca tu día','body>header:not(.niva-top)'],
+    inventario:['Inventario NIVA','body>header:not(.niva-top)'], ofrezco:['Ofrezco WhatsApp','body>header:not(.niva-top)'], propuestas:['Propuestas','body>header:not(.niva-top)'],
+    renovaciones:['Renovaciones','.niva-backfab,.page>header',['./admin.html','Administrador']],
+    scouting:['Scouting','.page>header'], valuacion:['Opinión de Valor','body>.top']
+  }[pag];
+  var BAJAR = { crm:'#btn-nuevo', propuestas:'#nueva' }[pag];
+  if(MOD) st.textContent += MOD[1]+'{display:none !important}' +
+    '.niva-top{position:relative !important;z-index:20;display:flex !important;align-items:center !important;justify-content:flex-start !important;gap:14px !important;width:100% !important;max-width:none !important;margin:0 !important;padding:calc(14px + env(safe-area-inset-top)) 18px 14px !important;box-sizing:border-box;' +
+      'background:rgba(8,17,32,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid rgba(201,168,76,.22)}' +
+    '.niva-atras{flex:none;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:12px;text-decoration:none;' +
+      'font:700 14px Inter,system-ui,sans-serif;color:#E8C96A;background:linear-gradient(165deg,rgba(30,50,86,.9),rgba(15,30,54,.8));border:1px solid rgba(201,168,76,.45)}' +
+    '.niva-atras:hover{border-color:#E8C96A;color:#F3D98E}' +
+    '.niva-titulo{margin:0;min-width:0;font:800 clamp(20px,5vw,26px)/1.1 Inter,system-ui,sans-serif;letter-spacing:-.02em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.niva-fab{position:fixed !important;left:auto !important;top:auto !important;right:18px !important;bottom:calc(18px + env(safe-area-inset-bottom)) !important;z-index:60 !important;' +
+      'width:auto !important;height:auto !important;margin:0 !important;display:inline-flex !important;align-items:center;gap:8px;padding:14px 20px !important;border-radius:999px !important;' +
+      'font:800 15px Inter,system-ui,sans-serif !important;color:#0F1E36 !important;background:linear-gradient(135deg,#E8C96A,#C9A84C) !important;border:0 !important;' +
+      'box-shadow:0 12px 28px -8px rgba(0,0,0,.7),0 0 22px -6px rgba(201,168,76,.6) !important;cursor:pointer}' +
+    '.niva-fab::after{content:none !important;display:none !important}';
   document.head.appendChild(st);
 
+  function encabezado(){
+    if(!MOD || document.querySelector('.niva-top')) return;
+    var atras = MOD[2] || ['./index.html','NIVA OS'];
+    var h = document.createElement('header'); h.className = 'niva-top';
+    h.innerHTML = '<a class="niva-atras" href="'+atras[0]+'"><span aria-hidden="true">←</span> '+atras[1]+'</a><h1 class="niva-titulo"></h1>';
+    h.querySelector('h1').textContent = MOD[0];
+    document.body.insertBefore(h, document.body.firstChild);
+    if(BAJAR){ var b = document.querySelector(BAJAR); if(b){ document.body.appendChild(b); b.classList.add('niva-fab'); } }
+  }
+
   function inicia(){
+    encabezado();
     var cv = document.createElement('canvas'); cv.id = 'niva-cons'; cv.setAttribute('aria-hidden','true');
     document.body.insertBefore(cv, document.body.firstChild);
     var c = cv.getContext('2d'), P = [], W = 0, H = 0, d = 1;
