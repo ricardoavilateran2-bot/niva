@@ -124,7 +124,14 @@ textarea { resize: vertical; min-height: 90px; }
 .pfbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .pfbar select,.pfbar input{flex:0 0 auto}
 .pfbar input{flex:1;min-width:180px}
-.psecs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-top:18px}
+.psecs{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start;margin-top:18px}
+/* (2026-10-18) botón grande Renta | Venta */
+.pf-op{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px;padding:6px;border-radius:16px;background:linear-gradient(165deg,rgba(30,50,86,.85),rgba(15,30,54,.75));border:1px solid rgba(201,168,76,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 14px 30px -18px rgba(0,0,0,.85)}
+.pf-op .pf{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border:0;border-radius:12px;background:transparent;color:rgba(255,255,255,.75);font:800 16px Inter,sans-serif;letter-spacing:.02em;cursor:pointer;transition:all .2s}
+.pf-op .pf:hover{color:#fff;background:rgba(255,255,255,.06)}
+.pf-op .pf.on{background:linear-gradient(135deg,#E8C96A,#C9A84C);color:#0F1E36;box-shadow:0 0 22px -6px rgba(201,168,76,.6)}
+.pf-op .pf span{min-width:26px;padding:2px 8px;border-radius:999px;font-size:13px;background:rgba(255,255,255,.12)}
+.pf-op .pf.on span{background:rgba(15,30,54,.2)}
 @media(max-width:760px){.psecs{grid-template-columns:1fr}}
 .psec-h{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--gold);padding:6px 2px;border-bottom:2px solid rgba(201,168,76,.4);margin-bottom:8px;display:flex;align-items:center;gap:8px;text-transform:uppercase}
 .psec-h span{background:var(--gold);color:var(--navy2);border-radius:999px;padding:1px 9px;font-size:12px}
@@ -321,11 +328,6 @@ img,video,canvas{max-width:100%}
       <button class="pf on" data-e="activas">🏠 Activas</button>
       <button class="pf" data-e="canceladas">🚫 Archivadas</button>
     </div>
-    <div class="pfiltros" id="pf-op">
-      <button class="pf on" data-f="todo">Renta y venta</button>
-      <button class="pf" data-f="rental">Renta</button>
-      <button class="pf" data-f="sale">Venta</button>
-    </div>
     <div class="pfbar">
       <select id="pf-sort">
         <option value="pmin">Precio: menor a mayor</option>
@@ -334,6 +336,10 @@ img,video,canvas{max-width:100%}
         <option value="za">Ordenar: Z → A</option>
       </select>
       <input id="pbuscar" placeholder="Buscar por nombre, folio, zona...">
+    </div>
+    <div class="pf-op" id="pf-op" role="tablist" aria-label="Renta o venta">
+      <button class="pf on" data-f="rental" role="tab" aria-selected="true">🔑 Renta <span id="pf-n-rental"></span></button>
+      <button class="pf" data-f="sale" role="tab" aria-selected="false">🏡 Venta <span id="pf-n-sale"></span></button>
     </div>
     <div id="props-lista"></div>
   </div>
@@ -533,7 +539,7 @@ async function guardarEdicion(){
 
 let FICHAS={}, PROPS=[], PROPSC=[], ESADMIN=false, CAP_FOTOS=[], MI_ADVISOR_ID=null;
 try{ const {data:advId}=await sb.rpc('my_advisor_id'); MI_ADVISOR_ID=advId||null; }catch(_e){}
-let PT='todas', PO='todo', PS='pmin', PQ='', PE='activas';
+let PT='todas', PO='rental', PS='pmin', PQ='', PE='activas';
 
 function tipoDe(p){
   const t=(p.property_type||'').toLowerCase();
@@ -582,8 +588,9 @@ function renderProps(){
   if(!base.length){host.innerHTML=vacioHTML(canc?'No hay propiedades archivadas.':'No tienes propiedades activas asignadas.',canc?'🚫':'🏠');return}
   let ps=base.slice();
   if(PT!=='todas')ps=ps.filter(p=>tipoDe(p)===PT);
-  if(PO!=='todo')ps=ps.filter(p=>p.operation_type===PO);
   if(PQ){const q=PQ.toLowerCase();ps=ps.filter(p=>[p.title,p.eb_public_id,p.location_name,p.property_type].join(' ').toLowerCase().includes(q))}
+  for(const op of ['rental','sale']){const n=$('#pf-n-'+op); if(n) n.textContent=ps.filter(p=>p.operation_type===op).length;}
+  ps=ps.filter(p=>p.operation_type===PO);
   const tt=(p)=>(p.title||p.eb_public_id||'').toLowerCase();
   if(PS==='az')ps.sort((a,b)=>tt(a).localeCompare(tt(b)));
   else if(PS==='za')ps.sort((a,b)=>tt(b).localeCompare(tt(a)));
@@ -1022,7 +1029,7 @@ document.querySelectorAll('#pf-estado .pf').forEach(b=>b.onclick=()=>{
   PE=b.dataset.e;renderProps();
 });
 document.querySelectorAll('#pf-op .pf').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#pf-op .pf').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  document.querySelectorAll('#pf-op .pf').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-selected',x===b)});
   PO=b.dataset.f;renderProps();
 });
 $('#pf-sort').onchange=(e)=>{PS=e.target.value;renderProps()};
