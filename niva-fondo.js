@@ -83,26 +83,80 @@
     if(BAJAR){ var b = document.querySelector(BAJAR); if(b){ document.body.appendChild(b); b.classList.add('niva-fab'); } }
   }
 
-  // Pantalla de carga (2026-10-18): "NIVA OS." con el fondo elegido, hasta que el módulo esté listo.
+  // Pantalla de carga (2026-10-18): "NIVA OS." animado con el fondo elegido, hasta que el módulo esté listo.
+  // Crema: las letras aparecen una por una y luego ondean. Constelación: las letras se arman con estrellas unidas por líneas.
   // Los módulos que cargan su sesión aparte (CRM) avisan con nivaListo(); los demás se quitan al terminar de cargar.
   var ESPERA = { crm:1 }[pag];
+  var MINIMO = 900; // ms: deja ver la animación aunque el módulo cargue muy rápido
   st.textContent +=
-    '#niva-carga{position:fixed;inset:0;z-index:100;display:grid;place-items:center;transition:opacity .35s ease;' + (claro ? 'background:#FBF9F6' : 'background:radial-gradient(70% 60% at 50% 30%,rgba(15,34,66,.9),rgba(6,13,26,.92) 85%)') + '}' +
+    '#niva-carga{position:fixed;inset:0;z-index:100;display:grid;place-items:center;transition:opacity .4s ease;' + (claro ? 'background:radial-gradient(70% 45% at 50% 0%,rgba(150,113,76,.07),rgba(251,249,246,0) 70%),#FBF9F6' : 'background:radial-gradient(70% 60% at 50% 40%,rgba(15,34,66,.95),rgba(6,13,26,.98) 85%)') + '}' +
     '#niva-carga.fuera{opacity:0;pointer-events:none}' +
-    '#niva-carga b{font:700 clamp(44px,12vw,72px)/1 Inter,system-ui,sans-serif;letter-spacing:-.045em;color:' + (claro ? '#1D1D1F' : '#fff') + ';animation:nivaLate 1.6s ease-in-out infinite}' +
-    '#niva-carga b i{font-style:normal;color:' + (claro ? '#96714C' : '#E8C96A') + '}' +
-    '#niva-carga span{display:block;width:120px;height:3px;margin:18px auto 0;border-radius:3px;overflow:hidden;background:' + (claro ? 'rgba(60,45,30,.10)' : 'rgba(255,255,255,.12)') + '}' +
-    '#niva-carga span:after{content:"";display:block;width:40%;height:100%;border-radius:3px;background:' + (claro ? '#B8946A' : '#E8C96A') + ';animation:nivaBarra 1.1s ease-in-out infinite}' +
-    '@keyframes nivaLate{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(.985)}}' +
-    '@keyframes nivaBarra{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}' +
-    '@media (prefers-reduced-motion:reduce){#niva-carga b,#niva-carga span:after{animation:none}}';
+    '#niva-carga canvas{position:absolute;inset:0;width:100%;height:100%}' +
+    '#niva-carga .nc-txt{position:relative;font:700 clamp(46px,13vw,84px)/1 Inter,system-ui,sans-serif;letter-spacing:-.045em;color:#1D1D1F;white-space:pre}' +
+    '#niva-carga .nc-txt span{display:inline-block;animation:ncLetra .7s cubic-bezier(.2,.7,.2,1) both,ncOla 2.6s ease-in-out infinite;animation-delay:var(--d),calc(var(--d) + .9s)}' +
+    '#niva-carga .nc-txt .nc-punto{color:#96714C;animation:ncPunto .7s cubic-bezier(.3,1.6,.5,1) both;animation-delay:var(--d)}' +
+    '#niva-carga .nc-barra{display:block;width:120px;height:3px;margin:22px auto 0;border-radius:3px;overflow:hidden;background:' + (claro ? 'rgba(60,45,30,.10)' : 'rgba(255,255,255,.12)') + '}' +
+    '#niva-carga .nc-barra:after{content:"";display:block;width:40%;height:100%;border-radius:3px;background:' + (claro ? '#B8946A' : '#E8C96A') + ';animation:ncBarra 1.1s ease-in-out infinite}' +
+    '#niva-carga .nc-abajo{position:absolute;left:0;right:0;top:calc(50% + clamp(46px,13vw,84px) * .75)}' +
+    '@keyframes ncLetra{from{opacity:0;transform:translateY(26px) scale(.96);filter:blur(10px)}to{opacity:1;transform:none;filter:none}}' +
+    '@keyframes ncOla{0%,100%{transform:none}50%{transform:translateY(-4px)}}' +
+    '@keyframes ncPunto{from{opacity:0;transform:translateY(-40px) scale(.2)}to{opacity:1;transform:none}}' +
+    '@keyframes ncBarra{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}' +
+    '@media (prefers-reduced-motion:reduce){#niva-carga .nc-txt span,#niva-carga .nc-barra:after{animation:none}}';
+
+  // Constelación: puntos que vuelan desde toda la pantalla y forman "NIVA OS." unidos con líneas
+  function letrasEstrella(c){
+    var cv = document.createElement('canvas'); c.appendChild(cv);
+    var g = cv.getContext('2d'), d = Math.min(2, window.devicePixelRatio || 1), W, H, P = [], t0 = performance.now(), vivo = true;
+    var quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function arma(){
+      W = cv.width = Math.round(innerWidth*d); H = cv.height = Math.round(innerHeight*d);
+      var fs = Math.min(innerWidth*0.15, 120)*d, o = document.createElement('canvas'), og = o.getContext('2d');
+      o.width = W; o.height = H; og.font = '800 '+fs+'px Inter,system-ui,sans-serif'; og.textAlign = 'center'; og.textBaseline = 'middle';
+      var txt = 'NIVA OS', ancho = og.measureText(txt+'.').width, x0 = W/2 - ancho/2;
+      og.textAlign = 'left'; og.fillStyle = '#fff'; og.fillText(txt, x0, H/2); var finTxt = x0 + og.measureText(txt).width; og.fillText('.', finTxt, H/2);
+      var paso = Math.max(4, Math.round(fs/22)), dat = og.getImageData(0, 0, W, H).data, pts = [];
+      for(var y = 0; y < H; y += paso) for(var x = 0; x < W; x += paso) if(dat[(y*W+x)*4+3] > 140) pts.push([x, y]);
+      while(pts.length > 650){ paso++; pts = pts.filter(function(_, i){ return i % 2 === 0; }); }
+      P = pts.map(function(q){ var punto = q[0] > finTxt;
+        return { tx:q[0], ty:q[1], x:Math.random()*W, y:Math.random()*H, k:Math.random()*0.35, oro:punto || Math.random() < .22, punto:punto, f:Math.random()*6.28 }; });
+      arma.lim = paso*2.3;
+    }
+    function pinta(ahora){
+      if(!vivo) return;
+      var t = quieto ? 2 : (ahora - t0)/1100, lim = arma.lim, i, j, a, b, dx, dy, dd;
+      for(i = 0; i < P.length; i++){ a = P[i]; var e = Math.max(0, Math.min(1, (t - a.k)/(1 - .35))); e = 1 - Math.pow(1 - e, 3);
+        var tw = e >= 1 ? Math.sin(ahora/600 + a.f)*0.6*d : 0;
+        a.cx = a.x + (a.tx - a.x)*e + tw; a.cy = a.y + (a.ty - a.y)*e + tw; a.e = e; }
+      g.clearRect(0, 0, W, H); g.lineWidth = d*.8;
+      for(i = 0; i < P.length; i++) for(j = i+1; j < P.length; j++){ a = P[i]; b = P[j]; dx = a.cx-b.cx; if(dx > lim || dx < -lim) continue; dy = a.cy-b.cy; if(dy > lim || dy < -lim) continue;
+        dd = Math.sqrt(dx*dx+dy*dy); if(dd < lim){ g.strokeStyle = 'rgba('+(a.oro&&b.oro ? '232,201,106' : '150,185,245')+','+(.45*(1-dd/lim)*Math.min(a.e,b.e)).toFixed(3)+')'; g.beginPath(); g.moveTo(a.cx,a.cy); g.lineTo(b.cx,b.cy); g.stroke(); } }
+      for(i = 0; i < P.length; i++){ a = P[i]; g.fillStyle = a.punto ? '#E8C96A' : a.oro ? 'rgba(232,201,106,.95)' : 'rgba(225,235,255,.95)'; g.beginPath(); g.arc(a.cx, a.cy, (a.punto ? 1.9 : 1.4)*d, 0, 7); g.fill(); }
+      requestAnimationFrame(pinta);
+    }
+    arma(); requestAnimationFrame(pinta);
+    return function(){ vivo = false; };
+  }
+
   function carga(){
     if(!MOD) return;
-    var c = document.createElement('div'); c.id = 'niva-carga'; c.setAttribute('role','status'); c.setAttribute('aria-label','Cargando');
-    c.innerHTML = '<div><b>NIVA OS<i>.</i></b><span></span></div>';
+    var c = document.createElement('div'); c.id = 'niva-carga'; c.setAttribute('role','status'); c.setAttribute('aria-label','Cargando NIVA OS');
+    var para = null;
+    if(claro){
+      var html = '', letras = 'NIVA OS';
+      for(var i = 0; i < letras.length; i++) html += '<span style="--d:'+(i*0.07).toFixed(2)+'s">'+(letras[i] === ' ' ? '&nbsp;' : letras[i])+'</span>';
+      html += '<span class="nc-punto" style="--d:.62s">.</span>';
+      c.innerHTML = '<div><div class="nc-txt" aria-hidden="true">'+html+'</div><span class="nc-barra"></span></div>';
+    } else {
+      c.innerHTML = '<div class="nc-abajo"><span class="nc-barra"></span></div>';
+    }
     document.body.appendChild(c);
-    var hecho = false;
-    window.nivaListo = function(){ if(hecho) return; hecho = true; c.classList.add('fuera'); setTimeout(function(){ c.remove(); }, 400); };
+    if(!claro) para = letrasEstrella(c);
+    var hecho = false, inicio = Date.now();
+    window.nivaListo = function(){
+      if(hecho) return; hecho = true;
+      setTimeout(function(){ c.classList.add('fuera'); setTimeout(function(){ if(para) para(); c.remove(); }, 450); }, Math.max(0, MINIMO - (Date.now() - inicio)));
+    };
     if(!ESPERA){ if(document.readyState === 'complete') window.nivaListo(); else window.addEventListener('load', window.nivaListo); }
     setTimeout(window.nivaListo, 8000); // por si algo falla, nunca se queda pegada
   }
