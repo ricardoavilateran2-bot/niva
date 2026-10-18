@@ -679,7 +679,7 @@ body[data-vista="bandeja"] #filtros{flex:1 1 auto}
 </aside>
 <div id="contenido">
 <main>
-<div class="phead"><h1 id="ph-t">Mis clientes</h1><p id="ph-s"></p><div class="phead-der"><div class="vistas" id="vistas" role="group" aria-label="Cómo ver tus clientes"><span class="vistas-l">Ver como</span><button class="f v on" data-v="tablero" aria-label="Ver como tablero"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/></svg>Tablero</button><button class="f v" data-v="bandeja" aria-label="Ver como bandeja"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="9" height="16" rx="1.5"/></svg>Bandeja</button><button class="f v" data-v="lista" aria-label="Ver como lista"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Lista</button></div><button type="button" class="ayudabtn" id="ayudabtn">¿Cómo funciona?</button></div></div>
+<div class="phead"><h1 id="ph-t">Mis clientes</h1><p id="ph-s"></p><div class="phead-der"><button type="button" class="ayudabtn" id="ayudabtn">¿Cómo funciona?</button></div></div>
 <div class="bienvenida hidden" id="bienvenida" role="region" aria-label="Cómo funciona tu CRM"></div>
 <div id="barra" class="">
   <div class="filtros" id="filtros">
@@ -806,8 +806,7 @@ let SHOWN=60; // paginación incremental
 const tipoLead=(l)=>l.contact_type||'unidentified';
 const esArchivado=(l)=>!!l.archived_at;
 const codI24=(l)=>{const m=String(l&&l.first_message||'').match(/COD:([^\s]+)/);return m&&!/^s\/c$/i.test(m[1])?m[1]:'';}; // (2026-10-13) código del aviso de Inmuebles24
-let VISTA='tablero'; // tablero | bandeja | lista (se recuerda por asesor en este equipo)
-try{ const vg=localStorage.getItem('niva_crm_vista'); if(vg==='tablero'||vg==='bandeja'||vg==='lista') VISTA=vg; }catch(_e){}
+const VISTA='tablero'; // (2026-10-18) solo tablero: se quitaron Bandeja y Lista
 let SEL_ID=null; // cliente abierto en la bandeja
 const EST={new:'NUEVO',contacted:'ACTIVO',attended:'TIBIO',cancelled:'CERRADO'};
 const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa',facebook_messenger:'Messenger',whatsapp_meta:'WhatsApp Meta',meta_lead_form:'Formulario Meta',web:'Sitio web'};
@@ -2229,16 +2228,6 @@ document.querySelectorAll('#filtros .f:not(.v)').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#filtros .f:not(.v)').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   FIL=b.dataset.f;SHOWN=60;pintar();
 });
-document.querySelectorAll('#vistas .f.v').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#vistas .f.v').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  VISTA=b.dataset.v;SHOWN=60; try{ localStorage.setItem('niva_crm_vista',VISTA); }catch(_e){}
-  if(VISTA==='tablero'){ // el tablero ya separa por etapa: vuelve a "Todos"
-    FIL='todos';
-    document.querySelectorAll('#filtros .f:not(.v)').forEach(x=>x.classList.toggle('on',x.dataset.f==='todos'));
-  }
-  pintar();
-});
-document.querySelectorAll('#vistas .f.v').forEach(x=>x.classList.toggle('on',x.dataset.v===VISTA));
 // Bienvenida: explica la pantalla la primera vez (y con el botón «¿Cómo funciona?»)
 function mostrarBienvenida(){
   const b=$('#bienvenida');
