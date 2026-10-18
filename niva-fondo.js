@@ -12,6 +12,27 @@
     'body>header,body>.bar,.wrap>.bar{background:rgba(8,17,32,.72) !important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}' +
     '#niva-cons{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}' +
     '@media print{#niva-cons{display:none}html{background:#fff !important}}';
+  // Secciones y botones de cada módulo con el mismo vidrio azul y borde dorado de la pantalla principal.
+  // Los selectores llevan "html " delante para ganarle a los estilos de la página sin pisar sus estados (.sel, .on…).
+  var pag = (location.pathname.split('/').pop() || 'index.html').replace('.html','');
+  var SECCIONES = {
+    crm:'.bj-lista,.bj-detalle,.repsec,.sagrupo,.bienvenida', hoy:'.panel,.meta,.guia,.mis', scouting:'.dkpi',
+    captaciones:'.form-card', cierres:'.form-card,.repsec', renovaciones:'.dkpi,.chart-card,.repsec',
+    admin:'.stat,.sagrupo,.repsec,.dkpi,.chart-card', buscador:'.card', valuacion:'.card,.kpi', propuestas:'.card'
+  }[pag];
+  var BOTONES = {
+    crm:'.card,.kbcard,.lfila,.vermas', hoy:'.it,.atajos a,.proxcita', scouting:'.lead', agenda:'.dia,.cc,.vista',
+    inventario:'.row', ofrezco:'.card', captaciones:'.caprow', cierres:'.cierrerow,.cierrepend',
+    admin:'.caprow,.proprow,.aserow,.leadrow,.cierrow', buscador:'.r'
+  }[pag];
+  var pre = function(s){ return s.split(',').map(function(x){ return 'html '+x; }).join(','); };
+  var vidrio = 'background:linear-gradient(165deg,rgba(30,50,86,.82),rgba(15,30,54,.72));border:1px solid rgba(201,168,76,.28);' +
+    'box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 14px 30px -18px rgba(0,0,0,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-radius:14px}';
+  if(SECCIONES) st.textContent += pre(SECCIONES)+'{'+vidrio;
+  if(BOTONES) st.textContent += pre(BOTONES)+'{'+vidrio.replace('}',';cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s}') +
+    pre(BOTONES.split(',').map(function(x){ return x+':hover'; }).join(','))+'{border-color:rgba(232,201,106,.75);transform:translateY(-2px);' +
+      'box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 18px 36px -18px rgba(0,0,0,.9),0 0 22px -6px rgba(201,168,76,.35)}' +
+    (pag==='inventario' ? 'html .row{margin-bottom:8px;padding:9px 10px}' : '');
   document.head.appendChild(st);
 
   function inicia(){
