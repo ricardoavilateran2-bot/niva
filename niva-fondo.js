@@ -83,8 +83,33 @@
     if(BAJAR){ var b = document.querySelector(BAJAR); if(b){ document.body.appendChild(b); b.classList.add('niva-fab'); } }
   }
 
+  // Pantalla de carga (2026-10-18): "NIVA OS." con el fondo elegido, hasta que el módulo esté listo.
+  // Los módulos que cargan su sesión aparte (CRM) avisan con nivaListo(); los demás se quitan al terminar de cargar.
+  var ESPERA = { crm:1 }[pag];
+  st.textContent +=
+    '#niva-carga{position:fixed;inset:0;z-index:100;display:grid;place-items:center;transition:opacity .35s ease;' + (claro ? 'background:#FBF9F6' : 'background:radial-gradient(70% 60% at 50% 30%,rgba(15,34,66,.9),rgba(6,13,26,.92) 85%)') + '}' +
+    '#niva-carga.fuera{opacity:0;pointer-events:none}' +
+    '#niva-carga b{font:700 clamp(44px,12vw,72px)/1 Inter,system-ui,sans-serif;letter-spacing:-.045em;color:' + (claro ? '#1D1D1F' : '#fff') + ';animation:nivaLate 1.6s ease-in-out infinite}' +
+    '#niva-carga b i{font-style:normal;color:' + (claro ? '#96714C' : '#E8C96A') + '}' +
+    '#niva-carga span{display:block;width:120px;height:3px;margin:18px auto 0;border-radius:3px;overflow:hidden;background:' + (claro ? 'rgba(60,45,30,.10)' : 'rgba(255,255,255,.12)') + '}' +
+    '#niva-carga span:after{content:"";display:block;width:40%;height:100%;border-radius:3px;background:' + (claro ? '#B8946A' : '#E8C96A') + ';animation:nivaBarra 1.1s ease-in-out infinite}' +
+    '@keyframes nivaLate{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(.985)}}' +
+    '@keyframes nivaBarra{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}' +
+    '@media (prefers-reduced-motion:reduce){#niva-carga b,#niva-carga span:after{animation:none}}';
+  function carga(){
+    if(!MOD) return;
+    var c = document.createElement('div'); c.id = 'niva-carga'; c.setAttribute('role','status'); c.setAttribute('aria-label','Cargando');
+    c.innerHTML = '<div><b>NIVA OS<i>.</i></b><span></span></div>';
+    document.body.appendChild(c);
+    var hecho = false;
+    window.nivaListo = function(){ if(hecho) return; hecho = true; c.classList.add('fuera'); setTimeout(function(){ c.remove(); }, 400); };
+    if(!ESPERA){ if(document.readyState === 'complete') window.nivaListo(); else window.addEventListener('load', window.nivaListo); }
+    setTimeout(window.nivaListo, 8000); // por si algo falla, nunca se queda pegada
+  }
+
   function inicia(){
     encabezado();
+    carga();
     if(claro) return; // en blanco no se dibuja la constelación
     var cv = document.createElement('canvas'); cv.id = 'niva-cons'; cv.setAttribute('aria-hidden','true');
     document.body.insertBefore(cv, document.body.firstChild);

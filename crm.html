@@ -957,6 +957,7 @@ $('#hout').onclick=async()=>{await sb.auth.signOut();location.reload()};
 
 async function iniciar(){
   $('#login').classList.add('hidden');$('#app').classList.remove('hidden');
+  if(window.nivaListo) window.nivaListo();
   const {data:{user}}=await sb.auth.getUser();
   const uname=(user?.email??'').split('@')[0];
   $('#hname').textContent=uname; // placeholder inmediato mientras resuelve el nombre
@@ -2386,7 +2387,9 @@ let _dq=null;
 $('#buscar').oninput=(e)=>{clearTimeout(_dq);_dq=setTimeout(()=>{Q=e.target.value;SHOWN=60;pintar()},180)};
 // sesion existente
 const {data:{session}}=await sb.auth.getSession();
+// (2026-10-18) un solo inicio de sesión: sin sesión se va al de NIVA OS (antes se veía un instante el login propio del CRM)
 if(session){iniciar(); try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){} }
+else location.replace('./index.html');
 
 (function(){
   var btn=document.getElementById('niva-backfab');
@@ -2422,6 +2425,7 @@ html:not(.claro) .saacc button.elimg{background:rgba(240,110,70,.16); color:#FFB
 html:not(.claro) .b-agent{background:rgba(150,120,240,.2); color:#C7B6FF}
 html:not(.claro) select option{background:#13233f; color:#F2F5FA}
 html:not(.claro) #login{background:transparent !important}
+#login{display:none !important} /* (2026-10-18) el CRM ya no usa su propio login */
 /* (2026-10-18) carta del tablero: datos rápidos y 3 botones */
 .kbdatos{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:12px;color:rgba(255,255,255,.72)}
 .kbop{font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
