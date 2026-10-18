@@ -22,7 +22,7 @@
   }[pag];
   var BOTONES = {
     crm:'.card,.kbcard,.lfila,.vermas', hoy:'.it,.atajos a,.proxcita', scouting:'.lead', agenda:'.dia,.cc,.vista',
-    inventario:'.row', ofrezco:'.card', captaciones:'.caprow', cierres:'.cierrerow,.cierrepend',
+    inventario:'.row', ofrezco:'.card', captaciones:'.caprow,.prow', cierres:'.cierrerow,.cierrepend',
     admin:'.caprow,.proprow,.aserow,.leadrow,.cierrow', buscador:'.r'
   }[pag];
   var pre = function(s){ return s.split(',').map(function(x){ return 'html '+x; }).join(','); };
@@ -30,9 +30,10 @@
     'box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 14px 30px -18px rgba(0,0,0,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-radius:14px}';
   if(SECCIONES) st.textContent += pre(SECCIONES)+'{'+vidrio;
   if(BOTONES) st.textContent += pre(BOTONES)+'{'+vidrio.replace('}',';cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s}') +
-    pre(BOTONES.split(',').map(function(x){ return x+':hover'; }).join(','))+'{border-color:rgba(232,201,106,.75);transform:translateY(-2px);' +
+    pre(BOTONES.split(',').map(function(x){ return x+':hover'; }).join(','))+'{background:linear-gradient(165deg,rgba(36,60,102,.88),rgba(15,30,54,.78));border-color:rgba(232,201,106,.75);transform:translateY(-2px);' +
       'box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 18px 36px -18px rgba(0,0,0,.9),0 0 22px -6px rgba(201,168,76,.35)}' +
-    (pag==='inventario' ? 'html .row{margin-bottom:8px;padding:9px 10px}' : '');
+    (pag==='inventario' ? 'html .row{margin-bottom:8px;padding:9px 10px}' : '') +
+    (pag==='captaciones' ? 'html .ptabla{background:none;border:0;overflow:visible}html .prow{margin-bottom:8px}html .prow:last-child{border-bottom:1px solid rgba(201,168,76,.28)}' : '');
   document.head.appendChild(st);
 
   function inicia(){
