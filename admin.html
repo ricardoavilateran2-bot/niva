@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 (async()=>{
@@ -1557,5 +1557,86 @@ $('#anav').addEventListener('click', e=>{
 })();
 </script>
 
+<style id="claro-auto">/* tema blanco: colores convertidos */
+html.claro{--white:#1D1D1F;--line:rgba(60,45,30,.12);--muted:#5E5E63;--border:rgba(60,45,30,.12)}
+html.claro body{color:#1D1D1F}
+html.claro,html.claro body{background:#fff;color:#1D1D1F}
+html.claro .bg-pattern{background:#fff}
+html.claro .logo-niva{color:#1D1D1F}
+html.claro .page-hero p{color:#5E5E63}
+html.claro .stat{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .stat .sl{color:#5E5E63}
+html.claro .caprow{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .cap-t{color:#1D1D1F}
+html.claro .cap-m{color:#5E5E63}
+html.claro .sagrupo{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .sam{color:#5E5E63}
+html.claro .saacc select{background:rgba(60,45,30,0.048);border:1px solid rgba(60,45,30,0.13);color:#1D1D1F}
+html.claro .saacc select option{background:#fff;color:#1D1D1F}
+html.claro .repnote{color:#5E5E63}
+html.claro .vacio{color:#5E5E63}
+html.claro .toast{background:#fff;color:#1D1D1F;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .skel{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .skel .l{background:rgba(60,45,30,0.064)}
+html.claro .repsec{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .reph{color:#5E5E63}
+html.claro .repbtn{border:1px solid rgba(60,45,30,0.13);background:rgba(60,45,30,0.040);color:#1D1D1F}
+html.claro .reptable th{border-bottom:2px solid rgba(60,45,30,0.13);color:#5E5E63}
+html.claro .reptable td{border-bottom:1px solid rgba(60,45,30,0.09);color:#1D1D1F}
+html.claro .repnote{color:#5E5E63}
+html.claro .filtros2 button{border:1px solid rgba(60,45,30,0.13);background:rgba(60,45,30,0.040);color:#3A3A3C}
+html.claro .proprow{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .proprow .pt{color:#1D1D1F}
+html.claro .proprow .pm{color:#5E5E63}
+html.claro .proprow .pown-sel{border:1px solid rgba(60,45,30,0.17);background:rgba(60,45,30,0.048);color:#1D1D1F}
+html.claro .proprow .pown-sel option{background:#fff;color:#1D1D1F}
+html.claro .searchbox{border:1px solid rgba(60,45,30,0.13);background:rgba(60,45,30,0.048);color:#1D1D1F}
+html.claro .searchbox::placeholder{color:#5E5E63}
+html.claro .dkpi{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .dkpi.clickable:hover{background:rgba(60,45,30,0.064)}
+html.claro .dkpi .dl{color:#5E5E63}
+html.claro .dkpi .dv{color:#1D1D1F}
+html.claro .dkpi .dd.flat{color:#5E5E63}
+html.claro .chart-card{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .chart-card .ch-t{color:#5E5E63}
+html.claro .barchart .bc-lbl{color:#5E5E63}
+html.claro .donutlegend .dli{color:#3A3A3C}
+html.claro .donutlegend .dli b{color:#1D1D1F}
+html.claro .hbars .hb-top{color:#3A3A3C}
+html.claro .hbars .hb-top b{color:#1D1D1F}
+html.claro .hbars .hb-track{background:rgba(60,45,30,0.064)}
+html.claro .asidebar{border-right:1px solid rgba(60,45,30,0.09)}
+html.claro .anav-item{color:#5E5E63}
+html.claro .anav-item:hover{background:rgba(60,45,30,0.040);color:#1D1D1F}
+html.claro .back-btn2{color:#5E5E63}
+html.claro .niva-backfab{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .niva-backfab:hover{background:#fff}
+@media (max-width:820px){html.claro .asidebar{border-bottom:1px solid rgba(60,45,30,0.09)}}
+html.claro .scomodal{box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .scomodal-head{border-bottom:1px solid rgba(60,45,30,0.11)}
+html.claro .scomodal-sub{color:#5E5E63}
+html.claro .scomodal-close{background:rgba(60,45,30,0.064);color:#1D1D1F}
+html.claro .scomodal-close:hover{background:rgba(60,45,30,0.080)}
+html.claro .scotabla th{border-bottom:2px solid rgba(60,45,30,0.13);color:#5E5E63}
+html.claro .scotabla td{border-bottom:1px solid rgba(60,45,30,0.09);color:#1D1D1F}
+html.claro .anav-group{color:#5E5E63}
+html.claro .anav-badge{color:#1D1D1F}
+html.claro .subtabs button{border:1px solid rgba(60,45,30,0.18);background:rgba(60,45,30,0.048);color:#1D1D1F}
+html.claro .explain{color:#5E5E63}
+html.claro .aserow{background:rgba(60,45,30,0.040);border:1px solid rgba(60,45,30,0.11)}
+html.claro .aserow .am{color:#5E5E63}
+html.claro .aserow .ak{color:#3A3A3C}
+html.claro .aserow .ak b{color:#1D1D1F}
+html.claro .aserow select,html.claro .aserow button{border:1px solid rgba(60,45,30,0.18);background:#fff;color:#1D1D1F}
+html.claro .pillst{background:rgba(60,45,30,0.080)}
+html.claro .repdesc{color:#5E5E63}
+html.claro .leadrow{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .leadrow .lm{color:#5E5E63}
+html.claro .leadrow select,html.claro .leadrow a.lbtn{border:1px solid rgba(60,45,30,0.18);background:#fff;color:#1D1D1F}
+html.claro .cierrow{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .cierrow .cm{color:#5E5E63}
+html.claro .cierrow button{border:1px solid rgba(60,45,30,0.18);background:#fff;color:#1D1D1F}
+html.claro .sysrow{border-bottom:1px solid rgba(60,45,30,0.09)}
+</style>
 </body>
 </html>

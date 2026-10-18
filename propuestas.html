@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -300,5 +300,21 @@ function menuEnviar(p,archivo){const link=BASE+'propuesta.html?t='+p.token;let o
 }
 cargarLista();
 </script>
+<style id="claro-auto">/* tema blanco: colores convertidos */
+html.claro{--white:#1D1D1F;--line:rgba(60,45,30,.12);--muted:#5E5E63;--border:rgba(60,45,30,.12)}
+html.claro body{color:#1D1D1F}
+html.claro body{background:#fff;color:#1D1D1F}
+html.claro header{background:#fff}
+html.claro .btn.sec{color:#1D1D1F}
+html.claro .card{background:rgba(60,45,30,0.032)}
+html.claro label{color:#5E5E63}
+html.claro input,html.claro textarea,html.claro select{background:#fff;color:#1D1D1F}
+html.claro .tabs button{color:#1D1D1F}
+html.claro .res img{background:#fff}
+html.claro .fotos div{background:#fff}
+html.claro .fotos div button{background:#fff;color:#1D1D1F}
+html.claro .muted{color:#5E5E63}
+html.claro .sheet{background:#fff}
+</style>
 </body>
 </html>

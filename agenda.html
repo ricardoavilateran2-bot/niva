@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NIVA — Mi agenda</title>
@@ -297,5 +297,42 @@ const QS=new URLSearchParams(location.search);
 await cargarCitas(); pintar(); cargarApoyo();
 if(QS.get('nombre')||QS.get('lead')){ abrirForm(null); $('#f-cli').value=QS.get('nombre')||''; $('#f-tel').value=QS.get('tel')||''; F.lead_id=QS.get('lead')||null; if(QS.get('prop')) pintarProp(QS.get('prop')); }
 </script>
+<style id="claro-auto">/* tema blanco: colores convertidos */
+html.claro{--white:#1D1D1F;--line:rgba(60,45,30,.12);--muted:#5E5E63;--border:rgba(60,45,30,.12)}
+html.claro body{color:#1D1D1F}
+html.claro body{background:#fff;color:#1D1D1F}
+html.claro header{background:#fff}
+html.claro .nav{color:#1D1D1F}
+html.claro .dia{background:rgba(60,45,30,0.030)}
+html.claro .dia small{color:#5E5E63}
+html.claro .dia.sel .pts i{background:#fff}
+html.claro .tit span{color:#5E5E63}
+html.claro .ver button{color:#1D1D1F}
+html.claro .hr small{color:#5E5E63}
+html.claro .cc{background:rgba(60,45,30,0.040)}
+html.claro .cc .ln{color:#5E5E63}
+html.claro .cc .nt{color:#5E5E63}
+html.claro .btn{color:#1D1D1F}
+html.claro .vacio{color:#5E5E63}
+html.claro .fab{box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .ov{background:#fff}
+html.claro .sheet{background:#fff}
+html.claro .sheet h3 button{color:#5E5E63}
+html.claro label{color:#5E5E63}
+html.claro input,html.claro textarea,html.claro select{background:#fff;color:#1D1D1F}
+html.claro .tipos button{color:#1D1D1F}
+html.claro .sug div small{color:#5E5E63}
+html.claro .sel-chip button{color:#5E5E63}
+html.claro .vista{background:rgba(60,45,30,0.048)}
+html.claro .vista button{color:#5E5E63}
+html.claro .wg{background:rgba(60,45,30,0.030)}
+html.claro .wh{background:#fff}
+html.claro .wh small{color:#5E5E63}
+html.claro .wb .hl{border-top:1px solid rgba(60,45,30,0.08)}
+html.claro .wb .hl span{color:#5E5E63;background:#fff}
+html.claro .wb .col{border-left:1px solid rgba(60,45,30,0.08)}
+html.claro .blk{box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .muted{color:#5E5E63}
+</style>
 </body>
 </html>

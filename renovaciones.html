@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 (async()=>{
@@ -297,5 +297,34 @@ function esperarSesion(){
 }
 esperarSesion();
 </script>
+<style id="claro-auto">/* tema blanco: colores convertidos */
+html.claro{--white:#1D1D1F;--line:rgba(60,45,30,.12);--muted:#5E5E63;--border:rgba(60,45,30,.12)}
+html.claro body{color:#1D1D1F}
+html.claro,html.claro body{background:#fff;color:#1D1D1F}
+html.claro .bg-pattern{background:#fff}
+html.claro .logo-niva{color:#1D1D1F}
+html.claro .page-hero p{color:#5E5E63}
+html.claro .dkpi{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .dkpi .dl{color:#5E5E63}
+html.claro .dkpi .dv{color:#1D1D1F}
+html.claro .pill.idle{background:rgba(60,45,30,0.064);color:#5E5E63}
+html.claro .chart-card{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .chart-card .ch-t{color:#5E5E63}
+html.claro .barchart .bc-lbl{color:#5E5E63}
+html.claro .donutlegend .dli{color:#3A3A3C}
+html.claro .donutlegend .dli b{color:#1D1D1F}
+html.claro .hbars .hb-top{color:#3A3A3C}
+html.claro .hbars .hb-top b{color:#1D1D1F}
+html.claro .hbars .hb-track{background:rgba(60,45,30,0.064)}
+html.claro .reptable th{border-bottom:2px solid rgba(60,45,30,0.13);color:#5E5E63}
+html.claro .reptable td{border-bottom:1px solid rgba(60,45,30,0.09);color:#1D1D1F}
+html.claro .repsec{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .vacio{color:#5E5E63}
+html.claro .skel{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .skel .l{background:rgba(60,45,30,0.064)}
+html.claro .repnote{color:#5E5E63}
+html.claro .niva-backfab{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .niva-backfab:hover{background:#fff}
+</style>
 </body>
 </html>

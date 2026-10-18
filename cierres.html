@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 (async()=>{
@@ -797,5 +797,44 @@ cargar();
 })();
 </script>
 
+<style id="claro-auto">/* tema blanco: colores convertidos */
+html.claro{--white:#1D1D1F;--line:rgba(60,45,30,.12);--muted:#5E5E63;--border:rgba(60,45,30,.12)}
+html.claro body{color:#1D1D1F}
+html.claro,html.claro body{background:#fff;color:#1D1D1F}
+html.claro .bg-pattern{background:#fff}
+html.claro .logo-niva{color:#1D1D1F}
+html.claro .niva-backfab{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .niva-backfab:hover{background:#fff}
+html.claro .page-hero p{color:#5E5E63}
+html.claro .form-card{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro label{color:#5E5E63}
+html.claro input,html.claro select,html.claro textarea{background:rgba(60,45,30,0.048);border:1px solid rgba(60,45,30,0.13);color:#1D1D1F}
+html.claro input:focus,html.claro select:focus,html.claro textarea:focus{background:rgba(60,45,30,0.072)}
+html.claro input::placeholder,html.claro textarea::placeholder{color:#5E5E63}
+html.claro select option{background:#fff;color:#1D1D1F}
+html.claro .filtros2 button{border:1px solid rgba(60,45,30,0.13);background:rgba(60,45,30,0.040);color:#3A3A3C}
+html.claro .vacio{color:#5E5E63}
+html.claro .toast{background:#fff;color:#1D1D1F;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .cierrerow{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .cierrerow .ct{color:#1D1D1F}
+html.claro .cierrerow .cm{color:#5E5E63}
+html.claro .pctrow{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .pctrow .pn{color:#1D1D1F}
+html.claro .pctrow input.pctinput{border:1px solid rgba(60,45,30,0.17);background:rgba(60,45,30,0.048);color:#1D1D1F}
+html.claro .cierrepend{background:rgba(60,45,30,0.032)}
+html.claro .repsec{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .reph{color:#1D1D1F}
+html.claro .reptable th{border-bottom:2px solid rgba(60,45,30,0.13);color:#5E5E63}
+html.claro .reptable td{border-bottom:1px solid rgba(60,45,30,0.09);color:#1D1D1F}
+html.claro .reptable.hoja{border:1px solid rgba(60,45,30,0.18)}
+html.claro .reptable.hoja th{border:1px solid rgba(60,45,30,0.17)}
+html.claro .reptable.hoja td{border:1px solid rgba(60,45,30,0.11)}
+html.claro .reptable.hoja tbody tr:nth-child(odd){background:rgba(60,45,30,0.030)}
+html.claro .edit-btn{background:rgba(60,45,30,0.064);border:1px solid rgba(60,45,30,0.17);color:#3A3A3C}
+html.claro .modalbox{border:1px solid rgba(60,45,30,0.13)}
+html.claro .modalhead{color:#1D1D1F}
+html.claro .modalx{color:#5E5E63}
+html.claro .modalx:hover{color:#1D1D1F}
+</style>
 </body>
 </html>

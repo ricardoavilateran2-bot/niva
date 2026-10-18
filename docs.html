@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 (async()=>{
@@ -301,10 +301,10 @@ img,video,canvas{max-width:100%}
 </style>
 <link rel="manifest" href="./manifest.webmanifest"><meta name="theme-color" content="#0f1e36"><link rel="apple-touch-icon" href="./icon-180.png"><link rel="icon" type="image/png" href="./icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="NIVA OS"><style>/* (2026-10-10) evita el zoom automatico del iPhone al escribir */@media (max-width:820px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}</style>
 <script src="./niva-fondo.js" defer></script>
-<style>/* (2026-10-16) constelación detrás de la hoja; la hoja sigue blanca */
-.preview-col{background:transparent}
-.doc-tabs{background:rgba(8,17,32,.6);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
-@media print{.preview-col{background:#fff}}
+<style>html:not(.claro) .preview-col{background:transparent}
+html:not(.claro) .doc-tabs{background:rgba(8,17,32,.6);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+@media print{html:not(.claro) .preview-col{background:#fff}}
+
 </style>
 </head>
 <body>
@@ -3193,5 +3193,34 @@ async function nivaDownloadWord(){
   upd();
 })();
 </script>
+<style id="claro-auto">/* tema blanco: colores convertidos */
+html.claro{--white:#1D1D1F;--line:rgba(60,45,30,.12);--muted:#5E5E63;--border:rgba(60,45,30,.12)}
+html.claro body{color:#1D1D1F}
+html.claro body{background:#fff;color:#5E5E63}
+html.claro .top-bar{background:#fff}
+html.claro .top-bar .logo{color:#1D1D1F}
+html.claro .niva-backfab{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .niva-backfab:hover{background:#fff}
+html.claro .top-bar h1{color:#5E5E63}
+html.claro .doc-tabs{background:#fff}
+html.claro .preview-col .preview-actions button{box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .btn-print{background:#fff;color:#1D1D1F}
+html.claro .btn-word{color:#1D1D1F}
+html.claro .btn-edit{color:#1D1D1F}
+html.claro .btn-fullscreen{color:#1D1D1F}
+html.claro .btn-hojas{color:#1D1D1F}
+html.claro #docPages .niva-print-page{box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .form-col{background:#fff}
+html.claro #docPreview{box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .fsec-head{background:#fff}
+html.claro .frow input,html.claro .frow select,html.claro .frow textarea{background:#fff;color:#1D1D1F}
+html.claro .frow select option{background:#fff}
+html.claro .toggle-row{background:#fff}
+html.claro .toggle-row label{color:#5E5E63}
+html.claro .ine-upload{background:#fff}
+html.claro .form-actions-bottom{background:#fff}
+html.claro .btn-clr{background:#fff;color:#1D1D1F}
+html.claro:not(.claro) .doc-tabs{background:#fff}
+</style>
 </body>
 </html>

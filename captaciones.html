@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -1069,5 +1069,55 @@ cargar();
 })();
 </script>
 
+<style id="claro-auto">/* tema blanco: colores convertidos */
+html.claro{--white:#1D1D1F;--line:rgba(60,45,30,.12);--muted:#5E5E63;--border:rgba(60,45,30,.12)}
+html.claro body{color:#1D1D1F}
+html.claro,html.claro body{background:#fff;color:#1D1D1F}
+html.claro .bg-pattern{background:#fff}
+html.claro .logo-niva{color:#1D1D1F}
+html.claro .niva-backfab{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .niva-backfab:hover{background:#fff}
+html.claro .page-hero p{color:#5E5E63}
+html.claro .form-card{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro label{color:#5E5E63}
+html.claro input,html.claro select,html.claro textarea{background:rgba(60,45,30,0.048);border:1px solid rgba(60,45,30,0.13);color:#1D1D1F}
+html.claro input:focus,html.claro select:focus,html.claro textarea:focus{background:rgba(60,45,30,0.072)}
+html.claro input::placeholder,html.claro textarea::placeholder{color:#5E5E63}
+html.claro select option{background:#fff;color:#1D1D1F}
+html.claro .cap-thumb img{border:1px solid rgba(60,45,30,0.13)}
+html.claro .cap-thumb .cap-x{color:#1D1D1F}
+html.claro .cap-mv{background:rgba(60,45,30,0.064);border:1px solid rgba(60,45,30,0.15);color:#1D1D1F}
+html.claro .cap-fotos-hint{color:#5E5E63}
+html.claro .caprow{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .caprow:hover{background:rgba(60,45,30,0.056)}
+html.claro .caprow img{background:rgba(60,45,30,0.064)}
+html.claro .cap-t{color:#1D1D1F}
+html.claro .cap-m{color:#5E5E63}
+html.claro .vacio{color:#5E5E63}
+html.claro .toast{background:#fff;color:#1D1D1F;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .modetab{background:rgba(60,45,30,0.030);color:#5E5E63}
+html.claro .modetab:hover:not(.on){color:#1D1D1F}
+html.claro .pf{border:1px solid rgba(60,45,30,0.13);background:rgba(60,45,30,0.032);color:#5E5E63}
+html.claro .pf-op{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 24px -14px rgba(60,45,30,.22)}
+html.claro .pf-op .pf{color:#3A3A3C}
+html.claro .pf-op .pf:hover{color:#1D1D1F;background:rgba(60,45,30,0.048)}
+html.claro .pf-op .pf span{background:rgba(60,45,30,0.080)}
+html.claro .pf-op .pf.on span{background:#fff}
+html.claro .ptabla{background:rgba(60,45,30,0.032);border:1px solid rgba(60,45,30,0.10)}
+html.claro .prow{border-bottom:1px solid rgba(60,45,30,0.08)}
+html.claro .prow:hover{background:rgba(60,45,30,0.040)}
+html.claro .prow img{background:rgba(60,45,30,0.064)}
+html.claro .pr-t{color:#1D1D1F}
+html.claro .pr-m{color:#5E5E63}
+html.claro .pr-precio small{color:#5E5E63}
+html.claro .pedit-overlay{background:#fff}
+html.claro .pedit-box{background:#fff}
+html.claro .pedit-sub{color:#5E5E63}
+html.claro .pe-f{background:#fff}
+html.claro .pe-f .pe-bt button{background:#fff;color:#1D1D1F}
+html.claro .pedit-cancel{background:rgba(60,45,30,0.056);color:#1D1D1F}
+html.claro .pedit-cancel:hover{background:rgba(60,45,30,0.080)}
+html.claro .cap-am{color:#1D1D1F}
+</style>
 </body>
 </html>

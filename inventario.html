@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NIVA — Inventario</title>
@@ -214,5 +214,26 @@ $('#b-pdf').onclick=async()=>{
 };
 $('#ov').onclick=e=>{ if(e.target.id==='ov') $('#ov').classList.remove('show'); };
 </script>
+<style id="claro-auto">/* tema blanco: colores convertidos */
+html.claro{--white:#1D1D1F;--line:rgba(60,45,30,.12);--muted:#5E5E63;--border:rgba(60,45,30,.12)}
+html.claro body{color:#1D1D1F}
+html.claro body{background:#fff;color:#1D1D1F}
+html.claro header{background:#fff}
+html.claro .bar{background:#fff}
+html.claro input,html.claro select{background:#fff;color:#1D1D1F}
+html.claro .chip{color:#1D1D1F}
+html.claro .res{color:#5E5E63}
+html.claro .res button{color:#1D1D1F}
+html.claro .row{border-bottom:1px solid rgba(60,45,30,0.08)}
+html.claro .row img{background:#fff}
+html.claro .row small{color:#5E5E63}
+html.claro .acc a,html.claro .acc button{color:#1D1D1F}
+html.claro .foot{background:#fff}
+html.claro .muted{color:#5E5E63}
+html.claro .ov{background:#fff}
+html.claro .sh{background:#fff}
+html.claro .sh p{color:#5E5E63}
+html.claro .sh button{color:#1D1D1F}
+</style>
 </body>
 </html>

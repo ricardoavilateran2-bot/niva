@@ -4,6 +4,7 @@
    Pinta un canvas fijo detrás de todo (z-index:-1) y deja transparente el fondo del body. */
 (function(){
   if(window.__nivaFondo) return; window.__nivaFondo = true;
+  var claro = document.documentElement.classList.contains('claro'); // tema blanco elegido en Configuración
   var st = document.createElement('style');
   st.textContent =
     'html{background:radial-gradient(70% 60% at 50% 30%,#0F2242,#060D1A 85%) fixed #060D1A !important;min-height:100%}' +
@@ -57,6 +58,19 @@
       'font:800 15px Inter,system-ui,sans-serif !important;color:#0F1E36 !important;background:linear-gradient(135deg,#E8C96A,#C9A84C) !important;border:0 !important;' +
       'box-shadow:0 12px 28px -8px rgba(0,0,0,.7),0 0 22px -6px rgba(201,168,76,.6) !important;cursor:pointer}' +
     '.niva-fab::after{content:none !important;display:none !important}';
+  if(claro){
+    var c = pre((SECCIONES||'')+(SECCIONES&&BOTONES?',':'')+(BOTONES||'')).replace(/html /g,'html.claro ');
+    st.textContent +=
+      'html{background:radial-gradient(70% 45% at 50% -5%,rgba(150,113,76,.07),rgba(251,249,246,0) 70%) fixed,#FBF9F6 !important;color-scheme:light}' +
+      'body>header,body>.bar,.wrap>.bar{background:rgba(251,249,246,.82) !important;border-color:rgba(29,29,31,.08) !important}' +
+      '.niva-top{background:rgba(251,249,246,.8) !important;border-bottom:1px solid rgba(29,29,31,.08) !important}' +
+      '.niva-atras{color:#1D1D1F !important;background:#fff !important;border:1px solid rgba(60,45,30,.14) !important;box-shadow:0 1px 2px rgba(0,0,0,.05)}' +
+      '.niva-atras:hover{border-color:#96714C !important}' +
+      '.niva-titulo{color:#1D1D1F !important}' + 'html.claro :focus-visible{outline:2px solid #96714C;outline-offset:2px}' +
+      (c ? c+'{background:#fff !important;border:1px solid rgba(60,45,30,.10) !important;box-shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.05);-webkit-backdrop-filter:none;backdrop-filter:none}' : '') +
+      (BOTONES ? pre(BOTONES.split(',').map(function(x){ return x+':hover'; }).join(',')).replace(/html /g,'html.claro ')+'{background:#fff !important;border-color:rgba(150,113,76,.75) !important;box-shadow:0 2px 4px rgba(0,0,0,.04),0 14px 32px rgba(0,0,0,.08)}' : '');
+    st.textContent += 'html.claro{--gold:#B8946A;--gold2:#7A5A3A;--g-500:#B8946A;--g-400:#B08A62;--g-600:#7A5A3A;--g-100:rgba(150,113,76,.12);--ui-brand:#5A4632;--ui-accent:#B8946A;--ui-focus:#96714C;--n-950:#1D1D1F;--n-900:#2A2420;--n-800:#3B322B;--n-700:#5A4632;--navy:#2A2420;--navy2:#1D1D1F}' + '.niva-fab{background:#B8946A !important;color:#1D1D1F !important;box-shadow:0 12px 28px -10px rgba(60,45,30,.45) !important}';
+  }
   document.head.appendChild(st);
 
   function encabezado(){
@@ -71,6 +85,7 @@
 
   function inicia(){
     encabezado();
+    if(claro) return; // en blanco no se dibuja la constelación
     var cv = document.createElement('canvas'); cv.id = 'niva-cons'; cv.setAttribute('aria-hidden','true');
     document.body.insertBefore(cv, document.body.firstChild);
     var c = cv.getContext('2d'), P = [], W = 0, H = 0, d = 1;

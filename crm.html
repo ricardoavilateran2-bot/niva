@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" class="oscuro"><head>
+<html lang="es" class="oscuro"><head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NIVA CRM</title>
@@ -2402,29 +2402,26 @@ if(session){iniciar(); try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(
   upd();
 })();
 </script>
-<style>/* ===== Tema oscuro con constelación (2026-10-16): mismo fondo que el inicio y la pantalla principal ===== */
-html.oscuro{--bg:transparent; --card:rgba(22,40,72,.80); --txt:#F2F5FA; --mut:rgba(255,255,255,.6); --border:rgba(255,255,255,.12)}
-#sbar{background:rgba(8,17,32,.78); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px)}
-.phead h1{color:#fff}
-#filtros .f:not(.v).on, body[data-vista="bandeja"] #filtros .f:not(.v).on, #filtros .f.on .fc{color:var(--gold2)}
-body[data-vista="bandeja"] #filtros .f:not(.v).on{border-bottom-color:var(--gold)}
-.bj-lista, .card, .repsec, .sagrupo, .skel{-webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px)}
-/* superficies que estaban en blanco fijo */
-#modalNuevo .mbox{background:#13233f; border:1px solid rgba(201,168,76,.3)}
-#modalNuevo h3, .lsec, .cprice, .sat, .kbt, .kbm b, .kbn, .addtel{color:#fff}
-.cprice{color:var(--gold2)}
-#modalNuevo input, #modalNuevo select, .tipofix button, .tipofix select, .f, #buscar, .saacc select, .estado select,
-.repbtn, .nombrebox .ncancelar, .telbox .tcancelar, .vermas, .sagrupo, .repsec, .kbcard, .kbn{background-color:rgba(255,255,255,.05); color:var(--txt)}
-.kbcard, .sagrupo, .repsec{background-color:var(--card)}
-#modalNuevo .mcancel, .tipofix button:hover, details p, .sanombres span{background:rgba(255,255,255,.08)}
-.interes{background:rgba(255,255,255,.04)}
-.cimg{background:#1a2b48}
-.kbcol{background:rgba(255,255,255,.03)}
-.errbox{background:rgba(240,80,70,.14); border-color:rgba(240,80,70,.4)}
-.saacc button.elimg{background:rgba(240,110,70,.16); color:#FFB39A}
-.b-agent{background:rgba(150,120,240,.2); color:#C7B6FF}
-select option{background:#13233f; color:#F2F5FA}
-#login{background:transparent !important}
+<style>html.oscuro:not(.claro){--bg:transparent; --card:rgba(22,40,72,.80); --txt:#F2F5FA; --mut:rgba(255,255,255,.6); --border:rgba(255,255,255,.12)}
+html:not(.claro) #sbar{background:rgba(8,17,32,.78); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px)}
+html:not(.claro) .phead h1{color:#fff}
+html:not(.claro) #filtros .f:not(.v).on,html:not(.claro) body[data-vista="bandeja"] #filtros .f:not(.v).on,html:not(.claro) #filtros .f.on .fc{color:var(--gold2)}
+html:not(.claro) body[data-vista="bandeja"] #filtros .f:not(.v).on{border-bottom-color:var(--gold)}
+html:not(.claro) .bj-lista,html:not(.claro) .card,html:not(.claro) .repsec,html:not(.claro) .sagrupo,html:not(.claro) .skel{-webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px)}
+html:not(.claro) #modalNuevo .mbox{background:#13233f; border:1px solid rgba(201,168,76,.3)}
+html:not(.claro) #modalNuevo h3,html:not(.claro) .lsec,html:not(.claro) .cprice,html:not(.claro) .sat,html:not(.claro) .kbt,html:not(.claro) .kbm b,html:not(.claro) .kbn,html:not(.claro) .addtel{color:#fff}
+html:not(.claro) .cprice{color:var(--gold2)}
+html:not(.claro) #modalNuevo input,html:not(.claro) #modalNuevo select,html:not(.claro) .tipofix button,html:not(.claro) .tipofix select,html:not(.claro) .f,html:not(.claro) #buscar,html:not(.claro) .saacc select,html:not(.claro) .estado select,html:not(.claro) .repbtn,html:not(.claro) .nombrebox .ncancelar,html:not(.claro) .telbox .tcancelar,html:not(.claro) .vermas,html:not(.claro) .sagrupo,html:not(.claro) .repsec,html:not(.claro) .kbcard,html:not(.claro) .kbn{background-color:rgba(255,255,255,.05); color:var(--txt)}
+html:not(.claro) .kbcard,html:not(.claro) .sagrupo,html:not(.claro) .repsec{background-color:var(--card)}
+html:not(.claro) #modalNuevo .mcancel,html:not(.claro) .tipofix button:hover,html:not(.claro) details p,html:not(.claro) .sanombres span{background:rgba(255,255,255,.08)}
+html:not(.claro) .interes{background:rgba(255,255,255,.04)}
+html:not(.claro) .cimg{background:#1a2b48}
+html:not(.claro) .kbcol{background:rgba(255,255,255,.03)}
+html:not(.claro) .errbox{background:rgba(240,80,70,.14); border-color:rgba(240,80,70,.4)}
+html:not(.claro) .saacc button.elimg{background:rgba(240,110,70,.16); color:#FFB39A}
+html:not(.claro) .b-agent{background:rgba(150,120,240,.2); color:#C7B6FF}
+html:not(.claro) select option{background:#13233f; color:#F2F5FA}
+html:not(.claro) #login{background:transparent !important}
 /* (2026-10-18) carta del tablero: datos rápidos y 3 botones */
 .kbdatos{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:12px;color:rgba(255,255,255,.72)}
 .kbop{font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
@@ -2474,5 +2471,34 @@ select option{background:#13233f; color:#F2F5FA}
 .card .etchip.on.et-attended{background:var(--st-warm);border-color:var(--st-warm);color:#0F1E36}
 .card .etchip.on.et-cancelled{background:var(--st-closed);border-color:var(--st-closed);color:#0F1E36}
 @media (max-width:520px){.card .etchips{grid-template-columns:repeat(2,1fr)}}
+</style>
+<style id="claro-crm">/* tema blanco: CRM */
+html.claro #sbar{background:#fff;border-right:1px solid rgba(60,45,30,.08);-webkit-backdrop-filter:none;backdrop-filter:none}
+html.claro #sbar .tab{color:#1D1D1F;background:#fff;border:1px solid rgba(60,45,30,.12);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+html.claro #sbar .tab .ui-ico{color:#7A5A3A}
+html.claro #sbar .tab:hover{background:#fff;border-color:rgba(150,113,76,.75)}
+html.claro #sbar .tab.on{background:#B8946A;color:#1D1D1F;border-color:#96714C}
+html.claro #sbar .tab.on .ui-ico{color:#1D1D1F}
+html.claro #sbar .tab .n{background:rgba(60,45,30,.08);color:#1D1D1F}
+html.claro #sbar .tab.on .n{background:rgba(15,30,54,.15);color:#1D1D1F}
+html.claro #sbar .tab .n.hot{background:#e5484d;color:#fff}
+html.claro .hname{color:#5E5E63} html.claro .hout{color:#1D1D1F;border-color:rgba(60,45,30,.2)}
+html.claro .kbdatos{color:#5E5E63}
+html.claro .kbtel{color:#1D1D1F}
+html.claro .kbsrc{color:#5E5E63}
+html.claro .kbop.venta{background:rgba(150,113,76,.16);color:#7A5A3A}
+html.claro .kbop.renta{background:rgba(43,86,199,.10);color:#2B56C7}
+html.claro .card .estado{background:linear-gradient(165deg,rgba(150,113,76,.14),rgba(150,113,76,.04));border-color:rgba(150,113,76,.6);box-shadow:0 8px 22px -14px rgba(150,113,76,.6)}
+html.claro .card .estado>span{color:#7A5A3A}
+html.claro .card .etchip{background:#fff;border-color:rgba(60,45,30,.14);color:#1D1D1F}
+html.claro .card .etchip:hover{background:#fff;border-color:rgba(150,113,76,.75)}
+html.claro .card .etchip.on, html.claro .card .etchip.on.et-new, html.claro .card .etchip.on.et-contacted, html.claro .card .etchip.on.et-attended, html.claro .card .etchip.on.et-cancelled{color:#fff}
+html.claro .card .etchip.on i{background:#fff}
+
+html.claro .kbacc .kbllamar, html.claro .card .acc.tel{background:#7A5A3A !important;border-color:#7A5A3A !important;color:#fff !important}
+html.claro .kbop.renta{background:rgba(60,45,30,.08);color:#5A4632}
+html.claro .snuevo, html.claro .niva-fab{color:#1D1D1F !important}
+html.claro .kbacc .kbarch, html.claro .card .acc.arch{background:#6B635A !important;border-color:#6B635A !important}
+html.claro .cimg-ph{background:linear-gradient(135deg,#B8946A,#7A5A3A) !important;color:#fff !important}
 </style>
 </body></html>

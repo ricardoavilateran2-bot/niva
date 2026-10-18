@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es" class="oscuro">
-<head>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro")document.documentElement.classList.add("claro")}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NIVA — Arranca tu día</title>
@@ -179,10 +179,10 @@ header .hfecha{font-size:13px;color:rgba(255,255,255,.6)}
 </style>
 <link rel="manifest" href="./manifest.webmanifest"><meta name="theme-color" content="#0f1e36"><link rel="apple-touch-icon" href="./icon-180.png"><link rel="icon" type="image/png" href="./icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="NIVA OS"><style>/* (2026-10-10) evita el zoom automatico del iPhone al escribir */@media (max-width:820px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}</style>
 <script src="./niva-fondo.js" defer></script>
-<style>/* tema oscuro con constelación (2026-10-16) */
-header{background:rgba(8,17,32,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08)}
-.hero{background:transparent;border-bottom:1px solid rgba(255,255,255,.08)}
-.panel{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+<style>html:not(.claro) header{background:rgba(8,17,32,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08)}
+html:not(.claro) .hero{background:transparent;border-bottom:1px solid rgba(255,255,255,.08)}
+html:not(.claro) .panel{-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+
 </style>
 </head>
 <body>
@@ -445,5 +445,17 @@ $('#app').onclick=async e=>{
 $('#app').addEventListener('keydown',e=>{ const tg=e.target.closest('.mh[data-tog]'); if(tg&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); tg.click(); } });
 $('#app').onchange=e=>{ const c=e.target.closest('[data-est]'); if(!c) return; ST.est[c.dataset.est]=c.checked; guardar(); pintar(); };
 </script>
+<style id="claro-hoy">/* tema crema: encabezado del día claro */
+html.claro .hero{background:transparent;color:#1D1D1F;border-bottom:1px solid rgba(60,45,30,.10)}
+html.claro .hola{color:#1D1D1F}
+html.claro .hero .sub{color:#5E5E63} html.claro .hero .sub b{color:#1D1D1F}
+html.claro .hoyres div{color:#5E5E63} html.claro .hoyres b{color:#1D1D1F} html.claro .hoyres .alerta b{color:#7A5A3A}
+html.claro .meta b{color:#1D1D1F} html.claro .meta .pct{color:#7A5A3A}
+html.claro .meta small{color:#5E5E63}
+html.claro .bar{background:rgba(60,45,30,.10)} html.claro .bar i{background:#B8946A}
+html.claro .meta .sigbtn{background:#B8946A;color:#1D1D1F} html.claro .meta .sigbtn:hover{background:#A8845A}
+html.claro .guia-tag{background:#F0E8DC;color:#7A5A3A}
+html.claro #toast{background:#1D1D1F}
+</style>
 </body>
 </html>

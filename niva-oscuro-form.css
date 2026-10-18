@@ -1,42 +1,40 @@
-/* NIVA OS — tema oscuro con constelación para Buscador y Opinión de Valor (2026-10-16).
-   Se carga después de los estilos de la página; convierte el tema claro en vidrio azul. */
-:root{--ink:#F2F5FA; --muted:rgba(255,255,255,.58); --line:rgba(255,255,255,.13)}
-html{color-scheme:dark}
-html, body{color:var(--ink)}
-.top{background:rgba(8,17,32,.72) !important; -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid rgba(255,255,255,.08); box-shadow:none !important}
-.card{background:linear-gradient(165deg, rgba(30,50,86,.80), rgba(15,30,54,.72)); border:1px solid rgba(201,168,76,.22);
+:root:not(.claro){--ink:#F2F5FA; --muted:rgba(255,255,255,.58); --line:rgba(255,255,255,.13)}
+html:not(.claro){color-scheme:dark}
+html:not(.claro),html:not(.claro) body{color:var(--ink)}
+html:not(.claro) .top{background:rgba(8,17,32,.72) !important; -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid rgba(255,255,255,.08); box-shadow:none !important}
+html:not(.claro) .card{background:linear-gradient(165deg, rgba(30,50,86,.80), rgba(15,30,54,.72)); border:1px solid rgba(201,168,76,.22);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 16px 34px -20px rgba(0,0,0,.85); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px)}
-.card h2, .hist-h, .ent h4{color:#fff}
-label.f{color:rgba(255,255,255,.62)}
-input, select, textarea{background:rgba(0,0,0,.25); color:var(--ink); border-color:var(--line)}
-input::placeholder, textarea::placeholder{color:rgba(255,255,255,.38)}
-select option{background:#13233f; color:#F2F5FA}
-.bad{background:rgba(240,80,70,.12) !important}
-.req:invalid{background:rgba(0,0,0,.25) !important}
-.grid input.auto, .grid select.auto, textarea.auto{background:rgba(201,168,76,.16) !important}
-.chip{background:rgba(255,255,255,.05); color:var(--ink)}
-.btn.sec{background:rgba(255,255,255,.06); color:#fff; border-color:var(--line)}
-.r{background:linear-gradient(165deg, rgba(30,50,86,.85), rgba(15,30,54,.78)); border-color:rgba(255,255,255,.12)}
-.r .ph{background-color:#1a2b48}
-.r .pr{color:var(--gold2)}
-.r .ac a, .hist a{color:var(--gold2)}
-.r .ac a{border-color:var(--line)}
-.badge, .tag{background:rgba(255,255,255,.1); color:#E3E8F0}
-.badge.new, .tag.v, .b-alta{background:rgba(60,190,120,.18); color:#7BE0A8}
-.b-media{background:rgba(230,170,60,.18); color:#F2C46B}
-.err{background:rgba(240,80,70,.16); color:#FFB4AE}
-.spin{border-color:rgba(255,255,255,.18); border-top-color:var(--gold)}
-.step{background:rgba(255,255,255,.05)}
-.step.run{background:rgba(201,168,76,.14); color:#fff}
-.step .dot{background:rgba(255,255,255,.3)}
-.hero{background:linear-gradient(135deg, rgba(13,24,40,.85), rgba(27,42,74,.85)); border:1px solid rgba(201,168,76,.3)}
-.esc div{border-color:var(--line)}
-.esc b{color:var(--gold2)}
-th{background:rgba(255,255,255,.06); color:rgba(255,255,255,.7)}
-td{border-color:var(--line)}
-#mapa{border-color:var(--line)}
-.chip.on{background:var(--gold) !important; color:#0F1E36 !important; border-color:var(--gold) !important}
-/* estilos escritos directo en el HTML que arma el JS */
-[style*="background:#fffbea"], [style*="background:#f8f5ea"]{background:rgba(201,168,76,.16) !important}
-[style*="background:#eef2f7"]{background:rgba(255,255,255,.06) !important}
-[style*="color:#475569"]{color:rgba(255,255,255,.7) !important}
+html:not(.claro) .card h2,html:not(.claro) .hist-h,html:not(.claro) .ent h4{color:#fff}
+html:not(.claro) label.f{color:rgba(255,255,255,.62)}
+html:not(.claro) input,html:not(.claro) select,html:not(.claro) textarea{background:rgba(0,0,0,.25); color:var(--ink); border-color:var(--line)}
+html:not(.claro) input::placeholder,html:not(.claro) textarea::placeholder{color:rgba(255,255,255,.38)}
+html:not(.claro) select option{background:#13233f; color:#F2F5FA}
+html:not(.claro) .bad{background:rgba(240,80,70,.12) !important}
+html:not(.claro) .req:invalid{background:rgba(0,0,0,.25) !important}
+html:not(.claro) .grid input.auto,html:not(.claro) .grid select.auto,html:not(.claro) textarea.auto{background:rgba(201,168,76,.16) !important}
+html:not(.claro) .chip{background:rgba(255,255,255,.05); color:var(--ink)}
+html:not(.claro) .btn.sec{background:rgba(255,255,255,.06); color:#fff; border-color:var(--line)}
+html:not(.claro) .r{background:linear-gradient(165deg, rgba(30,50,86,.85), rgba(15,30,54,.78)); border-color:rgba(255,255,255,.12)}
+html:not(.claro) .r .ph{background-color:#1a2b48}
+html:not(.claro) .r .pr{color:var(--gold2)}
+html:not(.claro) .r .ac a,html:not(.claro) .hist a{color:var(--gold2)}
+html:not(.claro) .r .ac a{border-color:var(--line)}
+html:not(.claro) .badge,html:not(.claro) .tag{background:rgba(255,255,255,.1); color:#E3E8F0}
+html:not(.claro) .badge.new,html:not(.claro) .tag.v,html:not(.claro) .b-alta{background:rgba(60,190,120,.18); color:#7BE0A8}
+html:not(.claro) .b-media{background:rgba(230,170,60,.18); color:#F2C46B}
+html:not(.claro) .err{background:rgba(240,80,70,.16); color:#FFB4AE}
+html:not(.claro) .spin{border-color:rgba(255,255,255,.18); border-top-color:var(--gold)}
+html:not(.claro) .step{background:rgba(255,255,255,.05)}
+html:not(.claro) .step.run{background:rgba(201,168,76,.14); color:#fff}
+html:not(.claro) .step .dot{background:rgba(255,255,255,.3)}
+html:not(.claro) .hero{background:linear-gradient(135deg, rgba(13,24,40,.85), rgba(27,42,74,.85)); border:1px solid rgba(201,168,76,.3)}
+html:not(.claro) .esc div{border-color:var(--line)}
+html:not(.claro) .esc b{color:var(--gold2)}
+html:not(.claro) th{background:rgba(255,255,255,.06); color:rgba(255,255,255,.7)}
+html:not(.claro) td{border-color:var(--line)}
+html:not(.claro) #mapa{border-color:var(--line)}
+html:not(.claro) .chip.on{background:var(--gold) !important; color:#0F1E36 !important; border-color:var(--gold) !important}
+html:not(.claro) [style*="background:#fffbea"],html:not(.claro) [style*="background:#f8f5ea"]{background:rgba(201,168,76,.16) !important}
+html:not(.claro) [style*="background:#eef2f7"]{background:rgba(255,255,255,.06) !important}
+html:not(.claro) [style*="color:#475569"]{color:rgba(255,255,255,.7) !important}
+
