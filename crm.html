@@ -405,6 +405,20 @@ body[data-vista="tablero"] #buscar{max-width:420px}
 .kbacc .kbwa{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* columnas con ancho mínimo legible; si no caben, el tablero se desliza de lado */
 @media(min-width:720px){.kb{overflow-x:auto}.kbcol{min-width:230px}.kbcol.plegada{min-width:120px}}
+/* — fase 5 CRM: filtros, próxima acción, por resolver — */
+.intv-res{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.intv-chip{font-size:12.5px;padding:6px 10px;border-radius:999px;background:var(--ui-surface);border:1px solid var(--ui-line);color:var(--ui-text-2)}
+.intv-chip.mal{border-color:#f0c4bf;color:var(--danger)}
+.intv-mot{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tagprov.mal{background:var(--danger-bg);color:var(--danger)}
+.filtros2{order:3;display:flex;gap:8px;flex-wrap:wrap;width:100%}
+.filtros2 select{font:500 13px Inter,sans-serif;padding:8px 10px;border:1px solid var(--ui-line);border-radius:9px;background:var(--ui-surface);color:var(--ui-text);min-height:36px}
+.proxacc{font-size:12px;color:var(--st-new);margin-top:8px;font-weight:600}
+.lf-prox{font-size:12px;color:var(--st-new);font-weight:600}
+.sp-prox{font-size:13px;margin-top:6px;color:var(--ui-text-2)}
+.sp-prox.sin{color:var(--st-warm)}
+.tagprov{font-size:10.5px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;background:var(--st-warm-bg);color:var(--st-warm);border-radius:999px;padding:1px 7px}
+.sapeq{cursor:pointer}.sapeq:hover{background:var(--s-200)!important}
 /* — ronda 3 — */
 .lfila{display:grid;grid-template-columns:40px minmax(0,1fr) auto 110px auto;gap:14px;align-items:center;background:var(--ui-surface);border:1px solid var(--ui-line);border-radius:12px;padding:10px 14px;margin-bottom:8px;cursor:pointer;min-height:64px}
 .lfila:hover{border-color:var(--ui-line-strong);box-shadow:var(--sh-1)}
@@ -672,7 +686,7 @@ body[data-vista="bandeja"] #filtros{flex:1 1 auto}
     <button class="tab" data-t="sinid" id="tab-sinid" style="display:none"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg>Sin identificar<span class="n" id="n-sinid">–</span></button>
     <button class="tab" data-t="todos"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Todo<span class="n" id="n-todos">–</span></button>
     <button class="tab" data-t="archivados" id="tab-arch"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/></svg>Archivados<span class="n" id="n-arch">–</span></button>
-    <button class="tab" data-t="sinasignar" id="tab-sinasig" style="display:none"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20Z"/><path d="M12 10v4M12 17h.01"/></svg>Sin asignar<span class="n" id="n-sinasig">–</span></button>
+    <button class="tab" data-t="sinasignar" id="tab-sinasig" style="display:none"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20Z"/><path d="M12 10v4M12 17h.01"/></svg>Por resolver<span class="n" id="n-sinasig">–</span></button>
     <button class="tab" data-t="reportes" id="tab-rep" style="display:none"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Reportes</button>
   </nav>
   <div class="sfoot"><div class="hname" id="hname"></div><button class="hout" id="hout">Salir</button></div>
@@ -690,6 +704,11 @@ body[data-vista="bandeja"] #filtros{flex:1 1 auto}
     <button class="f" data-f="cancelled">Cerrado</button>
   </div>
   <input id="buscar" type="search" aria-label="Buscar leads" placeholder="Buscar cliente, teléfono o folio">
+  <div class="filtros2" id="filtros2">
+    <select id="f-fuente" aria-label="Filtrar por fuente"><option value="">Todas las fuentes</option><option value="easybroker">EasyBroker</option><option value="inmuebles24_email">Inmuebles24</option><option value="directo">Captura directa</option><option value="otras">Otras</option></select>
+    <select id="f-asesor" aria-label="Filtrar por asesor" class="hidden"><option value="">Todos los asesores</option><option value="__sin">Sin asesor</option></select>
+    <select id="f-seguimiento" aria-label="Filtrar por seguimiento"><option value="">Todo el seguimiento</option><option value="sin_seguimiento">Sin contacto +3 días</option><option value="sin_accion">Sin próxima acción</option><option value="con_visita">Con visita agendada</option><option value="sin_propiedad">Sin propiedad identificada</option></select>
+  </div>
 </div>
 <div id="rangoBanner" class="hidden"></div>
 <div id="lista"></div>
@@ -810,7 +829,7 @@ let VISTA='tablero'; // tablero | bandeja | lista (se recuerda por asesor en est
 try{ const vg=localStorage.getItem('niva_crm_vista'); if(vg==='tablero'||vg==='bandeja'||vg==='lista') VISTA=vg; }catch(_e){}
 let SEL_ID=null; // cliente abierto en la bandeja
 const EST={new:'NUEVO',contacted:'ACTIVO',attended:'TIBIO',cancelled:'CERRADO'};
-const ESRC={easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa',facebook_messenger:'Messenger',whatsapp_meta:'WhatsApp Meta',meta_lead_form:'Formulario Meta',web:'Sitio web'};
+const ESRC={inmuebles24:'Inmuebles24',email:'Correo',easybroker:'EasyBroker',inmuebles24_email:'Inmuebles24',manual_admin:'Manual',manual_asesor:'Captura directa',facebook_messenger:'Messenger',whatsapp_meta:'WhatsApp Meta',meta_lead_form:'Formulario Meta',web:'Sitio web'};
 const srcLabel=(s)=>ESRC[s]||s||'';
 const fmt=(n)=>n==null?'':'$'+Number(n).toLocaleString('es-MX');
 const ftel=(t)=>t?t.replace('+52',''):'';
@@ -1018,6 +1037,7 @@ async function cargar(){
           .map(x=>({id:x.id,n:(((x.first_name||'')+' '+(x.last_name||'')).trim())||x.niva_code||'Asesor'}))
           .sort((x,y)=>x.n.localeCompare(y.n));
       }
+      const fa=$('#f-asesor'); if(fa&&fa.options.length<=2){ ASESORES.forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.n;fa.appendChild(o);}); fa.classList.remove('hidden'); }
       const d=await sb.from('property_advisors').select('property_id,advisor_id').order('updated_at',{ascending:false}).range(0,9999); // la API corta en 1000 filas: pedimos primero las más recientes (las renovadas) para que no parezcan 'sin dueño'
       DUENOS={};
       if(!d.error)(d.data||[]).forEach(x=>{DUENOS[x.property_id]=x.advisor_id});
@@ -1027,6 +1047,7 @@ async function cargar(){
     actualizarBadgeSync();
     LASTLEADIDS=new Set(LEADS.map(x=>x.id));
     cargarUltimos();
+    cargarCitas();
     $('#newBanner').classList.remove('show');
   }catch(e){
     console.error('[CRM] error de carga:',e);
@@ -1060,12 +1081,14 @@ function pintarBannerRango(){
   host.innerHTML='<span>🔎 '+txt+'</span><button id="rangoQuitar">Quitar filtro ✕</button>';
   $('#rangoQuitar').onclick=()=>{RANGO=null;pintar()};
 }
-const TITULOS={clientes:'Mis clientes',asesores:'Asesores (leads de otros asesores)',sinid:'Sin identificar',todos:'Todo',archivados:'Archivados',sinasignar:'Sin asignar',reportes:'Reportes'};
+const TITULOS={clientes:'Mis clientes',asesores:'Asesores (leads de otros asesores)',sinid:'Sin identificar',todos:'Todo',archivados:'Archivados',sinasignar:'Por resolver',reportes:'Reportes'};
 function pintarEncabezado(arr){
   $('#ph-t').textContent=TITULOS[TAB]||'CRM';
   if(!arr){$('#ph-s').textContent='';return}
   const n=arr.length, nn=arr.filter(l=>l.status==='new').length;
-  $('#ph-s').textContent=n+(n===1?' lead':' leads')+(nn?' · '+nn+(nn===1?' nuevo sin contestar':' nuevos sin contestar'):'');
+  const ns=arr.filter(sinSeguimiento).length, na=arr.filter(sinProximaAccion).length, nv=arr.filter(l=>!!PROX[l.id]).length;
+  $('#ph-s').textContent=n+(n===1?' lead':' leads')+(nn?' · '+nn+(nn===1?' nuevo sin contestar':' nuevos sin contestar'):'')
+    +(ns?' · '+ns+' sin contacto +3 días':'')+(na?' · '+na+' sin próxima acción':'')+(nv?' · '+nv+(nv===1?' visita agendada':' visitas agendadas'):'');
 }
 function pintar(){
   document.body.dataset.tab=TAB;
@@ -1087,6 +1110,12 @@ function pintar(){
   document.querySelectorAll('#filtros .f[data-f]').forEach(b=>{const n=b.dataset.f==='todos'?arrTab.length:arrTab.filter(x=>x.status===b.dataset.f).length; b.innerHTML=({todos:'Todos',new:'Nuevos',contacted:'Activos',attended:'Tibios',cancelled:'Cerrado'})[b.dataset.f]+'<span class="fc">'+n+'</span>';});
   if(FIL!=='todos')arr=arr.filter(x=>x.status===FIL);
   if(Q){const q=Q.toLowerCase();arr=arr.filter(x=>[x.full_name,x.phone_normalized,x.property_title,x.eb_public_id,srcLabel(x.source)].join(' ').toLowerCase().includes(q))}
+  if(F_FUENTE) arr=arr.filter(l=>grupoFuente(l.source)===F_FUENTE);
+  if(F_ASESOR) arr=arr.filter(l=>F_ASESOR==='__sin'?!l.advisor_id:l.advisor_id===F_ASESOR);
+  if(F_SEG==='sin_seguimiento') arr=arr.filter(sinSeguimiento);
+  else if(F_SEG==='sin_accion') arr=arr.filter(sinProximaAccion);
+  else if(F_SEG==='con_visita') arr=arr.filter(l=>!!PROX[l.id]);
+  else if(F_SEG==='sin_propiedad') arr=arr.filter(l=>!l.property_id&&!l.property_title);
   if(RANGO){
     const ahora=new Date(), hoy0=new Date(ahora);hoy0.setHours(0,0,0,0);
     const desde=(RANGO==='hoy')?hoy0:(()=>{const d=new Date(hoy0);d.setDate(d.getDate()-6);return d})();
@@ -1245,11 +1274,14 @@ function renderSinAsignar(host){
   const nProps=PROPS.filter(p=>!DUENOS[p.id]).length;
   const bar=document.createElement('div');
   bar.className='filtros';bar.style.marginBottom='14px';
+  const nSinProp=LEADS.filter(l=>!esArchivado(l)&&!l.property_id&&!l.property_title).length;
   bar.innerHTML='<button class="f'+(SUBSA==='leads'?' on':'')+'" data-s="leads">📋 Leads sin asesor ('+nLeads+')</button>'
+               +'<button class="f'+(SUBSA==='sinprop'?' on':'')+'" data-s="sinprop">⚠️ Intervención'+(nSinProp?' ('+nSinProp+' sin propiedad)':'')+'</button>'
                +'<button class="f'+(SUBSA==='props'?' on':'')+'" data-s="props">🏠 Propiedades sin dueño ('+nProps+')</button>';
   bar.querySelectorAll('.f').forEach(b=>b.onclick=()=>{SUBSA=b.dataset.s;pintar()});
   host.appendChild(bar);
   if(SUBSA==='props'){renderPropsSinDueno(host);return}
+  if(SUBSA==='sinprop'){renderIntervencion(host);return}
   const arr=LEADS.filter(l=>!l.advisor_id&&!esArchivado(l));
   if(!arr.length){host.insertAdjacentHTML('beforeend',vacioHTML('Todos los leads tienen asesor asignado. ✅','🎯'));return}
   const conProp={}, sinProp=[];
@@ -1286,6 +1318,92 @@ function renderSinAsignar(host){
   }
 }
 
+// ── Intervención (solo admin): usa la vista crm_leads_intervencion y las RPC crm_vincular_publicacion / crm_resolver_lead / crm_reprocesar_mensaje / crm_reprocesar_pendientes.
+//    Si la vista aún no existe (migración sin aplicar), cae a la versión de solo lectura renderSinPropiedad.
+const MOTIVO_TXT={sin_asesor:'Sin asesor',sin_propiedad:'Sin propiedad',asesor_provisional_por_codigo:'Asesor por código (confirmar)',notificacion_faltante:'Aviso al asesor no registrado',notificacion_pendiente:'WhatsApp al asesor atorado',error_ingesta:'Error al procesar el mensaje'};
+async function renderIntervencion(host){
+  const cont=document.createElement('div'); cont.innerHTML='<div class="vacio">Cargando…</div>'; host.appendChild(cont);
+  const {data,error}=await sb.from('crm_leads_intervencion').select('*').order('created_at',{ascending:true}).limit(1000);
+  if(error){ cont.remove(); renderSinPropiedad(host); return; }
+  cont.innerHTML='';
+  const filas=data||[];
+  if(!filas.length){cont.innerHTML=vacioHTML('Nada por resolver. ✅','🎯');return}
+  const errores=filas.filter(f=>!f.lead_id), conLead=filas.filter(f=>f.lead_id);
+  const cuenta=m=>conLead.filter(f=>(f.motivos||[]).includes(m)).length;
+  cont.insertAdjacentHTML('beforeend','<div class="intv-res">'+['sin_propiedad','sin_asesor','asesor_provisional_por_codigo','notificacion_pendiente','error_ingesta'].map(m=>{const n=m==='error_ingesta'?errores.length+cuenta(m):cuenta(m); return n?'<span class="intv-chip'+(m==='error_ingesta'||m==='notificacion_pendiente'?' mal':'')+'">'+MOTIVO_TXT[m]+': <b>'+n+'</b></span>':'';}).join('')+'</div>');
+  if(errores.length){
+    cont.insertAdjacentHTML('beforeend','<div class="sahead">Mensajes que no llegaron a lead — '+errores.length+'</div><div class="saacc" style="margin:0 0 10px"><button class="b-repr-todos">Reprocesar todos</button></div>');
+    errores.forEach(f=>{
+      const d=document.createElement('div'); d.className='sagrupo sinprop';
+      d.innerHTML='<div class="sat">'+esc(srcLabel(f.source)||f.source||'Fuente')+(f.codigo_aviso?' · aviso '+esc(f.codigo_aviso):'')+'</div><div class="sam">Recibido '+esc(new Date(f.created_at).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}))+' · estado '+esc(f.intake_estado||'')+(f.ultimo_error?' · '+esc(String(f.ultimo_error).slice(0,140)):'')+'</div><div class="saacc"><button class="b-repr">Reprocesar</button><span class="sam">Si vuelve a fallar, revisa el formato del mensaje.</span></div>';
+      const b=d.querySelector('.b-repr');
+      b.onclick=async()=>{ b.disabled=true; b.textContent='Reprocesando…';
+        const r=await sb.rpc('crm_reprocesar_mensaje',{p_intake_id:f.intake_id});
+        if(r.error||(r.data&&r.data.ok===false)){ toast('No se pudo: '+((r.error&&r.error.message)||(r.data&&r.data.estado)||'error')); b.disabled=false; b.textContent='Reintentar'; return; }
+        toast(r.data&&r.data.lead_id?'Mensaje procesado: ya es lead':'Reprocesado: estado '+((r.data&&r.data.estado)||'?')); await cargar(); };
+      cont.appendChild(d);
+    });
+    const bt=cont.querySelector('.b-repr-todos');
+    bt.onclick=async()=>{ bt.disabled=true; bt.textContent='Reprocesando…';
+      const r=await sb.rpc('crm_reprocesar_pendientes',{p_limite:100});
+      if(r.error){ toast('No se pudo: '+(r.error.message||'error')); bt.disabled=false; bt.textContent='Reprocesar todos'; return; }
+      const x=r.data||{}; toast('Revisados '+(x.revisados??0)+' · procesados '+(x.procesados??0)+' · siguen con error '+(x.con_error??0)); await cargar(); };
+  }
+  // agrupar por publicación/código
+  const grupos={}; conLead.forEach(f=>{const k=f.publicacion_id?('p'+f.publicacion_id):(f.codigo_aviso?'c'+f.codigo_aviso:'l'+f.lead_id); (grupos[k]=grupos[k]||[]).push(f);});
+  const props=PROPS.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||'')));
+  const opProps='<option value="">Elige la propiedad…</option>'+props.map(p=>'<option value="'+esc(p.id)+'">'+esc((p.eb_public_id?p.eb_public_id+' · ':'')+(p.title||''))+'</option>').join('');
+  const opAses='<option value="">Elige un asesor…</option>'+ASESORES.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.n)+'</option>').join('');
+  cont.insertAdjacentHTML('beforeend','<div class="sahead">Leads que necesitan intervención — '+conLead.length+'</div>');
+  Object.values(grupos).sort((a,b)=>b.length-a.length).forEach(fs=>{
+    const f0=fs[0], motivos=[...new Set(fs.flatMap(f=>f.motivos||[]))];
+    const nombreDe=f=>{const l=LEADS.find(x=>x.id===f.lead_id); return l&&l.full_name&&l.full_name.trim().length>2?l.full_name:'Sin nombre';};
+    const horas=Math.floor((Date.now()-new Date(f0.created_at).getTime())/3600e3);
+    const d=document.createElement('div'); d.className='sagrupo'+(motivos.includes('sin_propiedad')?' sinprop':'');
+    d.innerHTML='<div class="sat">'+(f0.codigo_aviso?'Aviso '+esc(f0.codigo_aviso):esc(nombreDe(f0)))+' <span class="sacount">'+fs.length+(fs.length===1?' lead':' leads')+'</span></div>'
+      +'<div class="sam">'+esc(srcLabel(f0.source))+' · el más antiguo llegó '+(horas<48?'hace '+horas+' h':'hace '+Math.floor(horas/24)+' días')+' · asesor: '+(f0.advisor_name?esc(f0.advisor_name):'<b style="color:var(--danger)">sin asesor</b>')+'</div>'
+      +'<div class="intv-mot">'+motivos.map(m=>'<span class="tagprov'+(m==='error_ingesta'||m==='notificacion_pendiente'?' mal':'')+'">'+esc(MOTIVO_TXT[m]||m)+'</span>').join(' ')+'</div>'
+      +'<div class="sanombres">'+fs.slice(0,12).map(f=>'<span class="sapeq" data-id="'+esc(f.lead_id)+'">'+esc(nombreDe(f))+'</span>').join('')+(fs.length>12?'<span>+'+(fs.length-12)+' más</span>':'')+'</div>'
+      +(motivos.includes('sin_propiedad')?'<div class="saacc"><select class="sel-prop">'+opProps+'</select><button class="b-ligar" disabled>'+(f0.publicacion_id?'Ligar aviso a la propiedad':'Asignar propiedad')+'</button></div>':'')
+      +(motivos.includes('notificacion_pendiente')||motivos.includes('notificacion_faltante')?'<div class="sam">El aviso por WhatsApp al asesor no ha salido. Avísale por otro medio y revisa el envío de notificaciones.</div>':'')
+      +((motivos.includes('sin_asesor')||motivos.includes('asesor_provisional_por_codigo'))?'<div class="saacc"><select class="sel-ase">'+opAses+'</select><button class="b-ase" disabled>'+(motivos.includes('sin_asesor')?'Asignar asesor':'Confirmar / cambiar asesor')+'</button></div>':'');
+    d.querySelectorAll('.sapeq').forEach(sp=>sp.onclick=()=>{const l=LEADS.find(x=>x.id===sp.dataset.id); if(l) abrirFicha(l);});
+    const sp=d.querySelector('.sel-prop'), bl=d.querySelector('.b-ligar');
+    if(sp){ sp.onchange=()=>{bl.disabled=!sp.value}; bl.onclick=async()=>{
+      bl.disabled=true; bl.textContent='Ligando…';
+      const r=f0.publicacion_id ? await sb.rpc('crm_vincular_publicacion',{p_publicacion_id:f0.publicacion_id,p_property_id:sp.value})
+                                : await sb.rpc('crm_resolver_lead',{p_lead_id:f0.lead_id,p_property_id:sp.value,p_nota:'desde Por resolver'});
+      if(r.error){ toast('No se pudo: '+(r.error.message||'error')); bl.disabled=false; bl.textContent='Reintentar'; return; }
+      toast(f0.publicacion_id?'Aviso ligado: sus leads ya tienen propiedad':'Propiedad asignada'); await cargar(); };
+    }
+    const sa=d.querySelector('.sel-ase'), ba=d.querySelector('.b-ase');
+    if(sa){ sa.onchange=()=>{ba.disabled=!sa.value}; ba.onclick=async()=>{
+      ba.disabled=true; ba.textContent='Asignando…'; let err=null;
+      for(const f of fs){ const r=await sb.rpc('crm_resolver_lead',{p_lead_id:f.lead_id,p_advisor_id:sa.value,p_nota:'desde Por resolver'}); if(r.error){err=r.error;break;} }
+      if(err){ toast('No se pudo: '+(err.message||'error')); ba.disabled=false; ba.textContent='Reintentar'; return; }
+      toast('Asesor asignado'); await cargar(); };
+    }
+    cont.appendChild(d);
+  });
+}
+// ── Leads sin propiedad identificada (solo admin): agrupados por el código del aviso que trae el portal ──
+function codigoAviso(l){ const m=String(l.first_message||'').match(/C[OÓ]D:\s*([^\s]+)/i); const c=m?m[1]:''; return (!c||/^(s\/c|x)$/i.test(c))?'':c.toUpperCase(); }
+function renderSinPropiedad(host){
+  const arr=LEADS.filter(l=>!esArchivado(l)&&!l.property_id&&!l.property_title).sort((a,b)=>fechaLead(a)-fechaLead(b));
+  if(!arr.length){host.insertAdjacentHTML('beforeend',vacioHTML('Todos los leads tienen su propiedad identificada. ✅','🎯'));return}
+  host.insertAdjacentHTML('beforeend','<div class="repnote" style="margin:0 0 12px">El aviso que mencionan no está ligado a ninguna propiedad de NIVA. Al ligar el aviso una sola vez, todos sus leads (y los que lleguen después) quedan con su propiedad. Un asesor marcado «por código» se asignó solo por las iniciales del aviso: confírmalo.</div>');
+  const grupos={}; arr.forEach(l=>{const k=codigoAviso(l)||(grupoFuente(l.source)==='directo'?'Captura directa':'(sin código)'); (grupos[k]=grupos[k]||[]).push(l);});
+  Object.keys(grupos).sort((a,b)=>grupos[b].length-grupos[a].length||a.localeCompare(b)).forEach(k=>{
+    const ls=grupos[k], l0=ls[0], horas=Math.floor((Date.now()-fechaLead(l0))/3600e3);
+    const d=document.createElement('div'); d.className='sagrupo sinprop';
+    d.innerHTML='<div class="sat">'+(k==='Captura directa'?'Captura directa (busca, sin propiedad)':'Aviso '+esc(k))+' <span class="sacount">'+ls.length+(ls.length===1?' lead':' leads')+'</span></div>'
+      +'<div class="sam">'+esc(srcLabel(l0.source))+' · el más antiguo llegó '+(horas<48?'hace '+horas+' h':'hace '+Math.floor(horas/24)+' días')
+      +' · asesor: '+(l0.advisor_name?esc(l0.advisor_name)+(codigoAviso(l0)&&grupoFuente(l0.source)!=='directo'?' <span class="tagprov">por código</span>':''):'<b style="color:var(--danger)">sin asesor</b>')+'</div>'
+      +'<div class="sanombres">'+ls.slice(0,12).map(l=>'<span data-id="'+esc(l.id)+'" class="sapeq">'+esc((l.full_name&&l.full_name.trim().length>2)?l.full_name:'Sin nombre')+'</span>').join('')+(ls.length>12?'<span>+'+(ls.length-12)+' más</span>':'')+'</div>';
+    d.querySelectorAll('.sapeq').forEach(sp=>sp.onclick=()=>{const l=ls.find(x=>x.id===sp.dataset.id); if(l) abrirFicha(l);});
+    host.appendChild(d);
+  });
+}
 // ── Archivados: 2 columnas lado a lado (asesores / clientes), estilo tablero ──
   function renderArchivados(host){
     const arch=LEADS.filter(esArchivado);
@@ -1337,6 +1455,21 @@ function renderSinAsignar(host){
 const COLS=[['new','Nuevos'],['contacted','Activos'],['attended','Tibios'],['cancelled','Cerrado']];
 const fechaLead=(l)=>new Date(l.happened_at||l.created_at||0).getTime();
 let ULT={}; // último contacto por lead (WhatsApp, llamada o cambio de etapa)
+let PROX={}; // próxima acción por lead: la cita pendiente más cercana de la agenda (citas.lead_id)
+let F_FUENTE='', F_ASESOR='', F_SEG='';
+const hoyYMD=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+async function cargarCitas(){
+  try{
+    const {data,error}=await sb.from('citas').select('lead_id,fecha,hora,tipo,estado').not('lead_id','is',null).eq('estado','pendiente').gte('fecha',hoyYMD()).order('fecha').order('hora',{nullsFirst:true}).limit(2000);
+    if(error) return;
+    const m={}; (data||[]).forEach(c=>{ if(!m[c.lead_id]) m[c.lead_id]=c; });
+    PROX=m; if(!$('#modalFicha')) pintar();
+  }catch(_e){}
+}
+const sinSeguimiento=(l)=>(l.status==='contacted'||l.status==='attended')&&(Date.now()-ultimoContacto(l))>3*864e5;
+const sinProximaAccion=(l)=>(l.status==='contacted'||l.status==='attended')&&!PROX[l.id];
+const grupoFuente=(s)=>s==='easybroker'||s==='inmuebles24_email'?s:(s==='manual_asesor'||s==='manual_admin'?'directo':'otras');
+function proxTxt(l){ const c=PROX[l.id]; if(!c) return ''; const d=new Date(c.fecha+'T'+(c.hora||'12:00')); return (c.tipo==='visita'?'Visita ':'Cita ')+d.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'})+(c.hora?' · '+String(c.hora).slice(0,5):''); }
 const ultimoContacto=(l)=>Math.max(ULT[l.id]||0,fechaLead(l));
 const tempDe=(l)=>{const d=(Date.now()-ultimoContacto(l))/864e5; return d<3?'g':d<=7?'a':'r';};
 async function cargarUltimos(){
@@ -1351,6 +1484,7 @@ const haceTxt=(ms)=>{const h=Math.floor(ms/3600e3); if(h<1) return 'hace '+Math.
 const urgencia=(l)=>{const ms=Date.now()-fechaLead(l); if(l.status!=='new') return ''; return ms>864e5?'r':ms>2*3600e3?'a':'g';};
 let ETAPA_M=null; // etapa visible en celular
 let CERR_ABIERTO=false; // columna «Cerrado» plegada por defecto
+function lineaProx(l){ const t=proxTxt(l); return t?'<div class="proxacc">📅 '+esc(t)+'</div>':''; }
 function etiquetaTiempo(l,fecha){
   if(l.status==='new') return '<span class="kbage '+urgencia(l)+'" title="Llegó el '+esc(fecha||'')+'">Llegó '+haceTxt(Date.now()-fechaLead(l))+'</span>';
   if(l.status==='cancelled') return '<span class="kbage">Cerrado</span>';
@@ -1371,7 +1505,7 @@ function filaLista(l){
   const ini=nombre.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
   b.innerHTML='<span class="bj-av">'+esc(ini)+'</span>'
     +'<span class="lf-c"><span class="lf-n">'+esc(nombre)+' <span class="badge b-'+esc(l.status)+'">'+(EST[l.status]||'')+'</span></span>'
-    +'<span class="lf-p">'+esc(l.property_title||[l.zone_text,l.budget_text].filter(Boolean).join(' · ')||'Propiedad no identificada')+'</span></span>'
+    +'<span class="lf-p">'+esc(l.property_title||[l.zone_text,l.budget_text].filter(Boolean).join(' · ')||'Propiedad no identificada')+'</span>'+(proxTxt(l)?'<span class="lf-prox">📅 '+esc(proxTxt(l))+'</span>':'')+'</span>'
     +'<span class="lf-t">'+etiquetaTiempo(l,'')+'</span>'
     +'<span class="lf-pr">'+(l.price_amount?fmt(l.price_amount)+(l.operation_type==='rental'?'/mes':''):'')+'</span>'
     +(l.phone_normalized?'<button type="button" class="lf-wa">WhatsApp</button>':'<span class="lf-wa vacio-wa"></span>');
@@ -1418,6 +1552,7 @@ function kbCard(l,colsVisibles){
     +(l.phone_normalized?'<span class="kbtel">'+esc(ftel(l.phone_normalized))+'</span>':'')
     +(l.source?'<span class="kbsrc">vía '+esc(srcLabel(l.source))+'</span>':'')
     +'</div>'
+    +lineaProx(l)
     +'<div class="kbacc">'
     +(l.phone_normalized?'<button type="button" class="wa kbwa"><svg class="ui-ico wa-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.8 14.06c-.24.68-1.42 1.3-1.96 1.35-.5.05-.98.23-3.3-.69-2.79-1.1-4.56-3.95-4.7-4.13-.13-.18-1.12-1.49-1.12-2.85 0-1.35.71-2.02.96-2.29.25-.27.55-.34.73-.34h.52c.17 0 .4-.06.62.47.24.55.79 1.92.86 2.06.07.14.11.3.02.48-.09.18-.14.3-.27.46-.14.16-.29.36-.41.48-.14.14-.28.29-.12.56.16.27.71 1.17 1.52 1.9 1.05.93 1.93 1.22 2.2 1.36.27.14.43.11.59-.07.16-.18.68-.79.86-1.06.18-.27.36-.23.61-.14.25.09 1.58.75 1.85.88.27.14.45.2.52.32.07.11.07.66-.17 1.34z"/></svg>WhatsApp</button><a class="tel kbllamar" href="tel:'+esc(l.phone_normalized)+'"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>Llamar</a>':'<span class="kbsintel">Sin teléfono</span>')
     +'<button type="button" class="kbarch">🗄️ Archivar</button>'
@@ -1611,7 +1746,7 @@ function cardLead(l){
     +fechaVisible
     +'<div class="cmeta">'+metaSrc+'</div>'
     +'</div></div>'
-    +'<div class="sigpaso"><div class="sp-t">'+sigPasoTxt(l)+'</div>'
+    +'<div class="sigpaso"><div class="sp-t">'+sigPasoTxt(l)+(proxTxt(l)?'<div class="sp-prox">📅 Próxima acción: <b>'+esc(proxTxt(l))+'</b></div>':((l.status==='contacted'||l.status==='attended')?'<div class="sp-prox sin">Sin próxima acción agendada.</div>':''))+'</div>'
     +'<div class="acciones">'
     +(l.phone_normalized?'<button class="acc wa"><svg class="ui-ico wa-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.8 14.06c-.24.68-1.42 1.3-1.96 1.35-.5.05-.98.23-3.3-.69-2.79-1.1-4.56-3.95-4.7-4.13-.13-.18-1.12-1.49-1.12-2.85 0-1.35.71-2.02.96-2.29.25-.27.55-.34.73-.34h.52c.17 0 .4-.06.62.47.24.55.79 1.92.86 2.06.07.14.11.3.02.48-.09.18-.14.3-.27.46-.14.16-.29.36-.41.48-.14.14-.28.29-.12.56.16.27.71 1.17 1.52 1.9 1.05.93 1.93 1.22 2.2 1.36.27.14.43.11.59-.07.16-.18.68-.79.86-1.06.18-.27.36-.23.61-.14.25.09 1.58.75 1.85.88.27.14.45.2.52.32.07.11.07.66-.17 1.34z"/></svg>'+(l.status==='new'?'Contestar por WhatsApp':'WhatsApp')+'</button>':'<button type="button" class="acc sp-addtel">+ Agregar teléfono</button>')
     +(l.phone_normalized?'<a class="acc tel" href="tel:'+esc(l.phone_normalized)+'"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>Llamar</a>':'')
@@ -2239,6 +2374,9 @@ document.querySelectorAll('#vistas .f.v').forEach(b=>b.onclick=()=>{
   pintar();
 });
 document.querySelectorAll('#vistas .f.v').forEach(x=>x.classList.toggle('on',x.dataset.v===VISTA));
+$('#f-fuente').onchange=e=>{F_FUENTE=e.target.value;SHOWN=60;pintar();};
+$('#f-asesor').onchange=e=>{F_ASESOR=e.target.value;SHOWN=60;pintar();};
+$('#f-seguimiento').onchange=e=>{F_SEG=e.target.value;SHOWN=60;pintar();};
 // Bienvenida: explica la pantalla la primera vez (y con el botón «¿Cómo funciona?»)
 function mostrarBienvenida(){
   const b=$('#bienvenida');
