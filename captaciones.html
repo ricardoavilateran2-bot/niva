@@ -158,33 +158,15 @@ textarea { resize: vertical; min-height: 90px; }
 .pr-edit:hover{background:rgba(201,168,76,.15)}
 .pedit-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
 .pedit-overlay.hidden{display:none}
-/* (2026-10-19) Seguimiento de captaciones */
-.cap-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:4px 0 14px}
-.cap-kpi{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px;cursor:pointer;text-align:left;color:inherit;font:inherit}
-.cap-kpi b{display:block;font-size:22px;color:var(--gold)}.cap-kpi span{font-size:12px;opacity:.75}
-.cap-kpi.mal b{color:#ff8a7a}.cap-kpi.on{outline:2px solid var(--gold)}
-.cap-barra{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.cap-barra input,.cap-barra select{flex:1;min-width:150px}
-.cap-nueva{background:var(--gold);color:var(--navy2);border:0;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer}
-.cap-fila{display:grid;grid-template-columns:1fr auto;gap:6px 12px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);border-radius:12px;margin-bottom:8px;cursor:pointer;background:rgba(255,255,255,.03)}
-.cap-fila:hover{border-color:rgba(201,168,76,.5)}.cap-fila .t{font-weight:800}.cap-fila .m{font-size:12.5px;opacity:.75}
-.cap-fila .pa{font-size:12.5px}.cap-fila .pa.venc{color:#ff8a7a;font-weight:700}
-.cap-chip{display:inline-block;font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.08);white-space:nowrap}
-.cap-chip.nueva{background:#2b56c7;color:#fff}.cap-chip.por_contactar{background:#9a6410;color:#fff}.cap-chip.seguimiento{background:#1a7a45;color:#fff}
-.cap-chip.aprobada{background:var(--gold);color:var(--navy2)}.cap-chip.descartada{background:#5a6170;color:#fff}.cap-chip.en_inventario{background:#0f1e36;color:var(--gold);border:1px solid var(--gold)}
-.cap-alerta{color:#ff8a7a;font-size:12px;font-weight:700}
-.cap-box{max-width:720px}
-.cap-sec{margin:16px 0 8px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
-.cap-datos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px;font-size:13.5px}.cap-datos div span{opacity:.65;display:block;font-size:11.5px}
-.cap-acc{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-.cap-acc button{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:inherit;border-radius:10px;padding:9px 13px;font-weight:700;cursor:pointer}
-.cap-acc button.pri{background:var(--gold);color:var(--navy2);border-color:transparent}.cap-acc button.peligro{border-color:#b42318;color:#ff8a7a}
-.cap-hist{list-style:none;padding:0;margin:0;font-size:13px}.cap-hist li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}.cap-hist small{opacity:.6}
-.cap-dup{background:rgba(255,138,122,.08);border:1px solid rgba(255,138,122,.35);border-radius:10px;padding:10px;font-size:13px;margin:10px 0}
-.cap-req::after{content:" *";color:#ff8a7a}
-.cap-archivos a{display:inline-block;margin:0 8px 6px 0;font-size:13px;color:var(--gold)}
-@media (max-width:640px){.cap-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cap-datos{grid-template-columns:1fr}.cap-fila{grid-template-columns:1fr}}
-html.claro .cap-kpi,html.claro .cap-fila{background:rgba(60,45,30,.032);border-color:rgba(60,45,30,.12)}
-html.claro .cap-acc button{border-color:rgba(60,45,30,.18)}html.claro .cap-hist li{border-color:rgba(60,45,30,.08)}
+/* (2026-10-19) Datos adicionales opcionales de la captación (propietario, notas, documentos privados) */
+.cap-extra{margin:14px 0;border:1px dashed rgba(201,168,76,.45);border-radius:12px;padding:0 14px}
+.cap-extra>summary{cursor:pointer;padding:12px 0;font-weight:800;color:var(--gold);list-style:none}
+.cap-extra>summary::-webkit-details-marker{display:none}
+.cap-extra[open]>summary{border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:10px}
+.cap-extra small.ayuda{display:block;opacity:.7;margin:-4px 0 10px}
+.pe-prop{margin:12px 0;padding:10px 12px;border:1px solid rgba(201,168,76,.3);border-radius:10px;font-size:13.5px}
+.pe-prop b{color:var(--gold)}.pe-prop a{color:var(--gold);margin-right:10px}
+html.claro .cap-extra>summary,html.claro .pe-prop b,html.claro .pe-prop a{color:#8a6a18}
 .pedit-box{background:var(--navy2);border:1px solid rgba(201,168,76,.3);border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto}
 .pedit-h{font-size:16px;font-weight:800;color:var(--gold);margin-bottom:4px}
 .pedit-sub{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:18px}
@@ -242,13 +224,12 @@ img,video,canvas{max-width:100%}
   <div class="page-hero">
     <div class="badge">📸 Módulo de Captaciones</div>
     <h1>Alta y <span>consulta de propiedades</span></h1>
-    <p>Da seguimiento a los propietarios que estás captando, sube una propiedad nueva (se publica en EasyBroker y queda a tu nombre) o revisa el inventario.</p>
+    <p>Sube una propiedad nueva o revisa el inventario de propiedades — se publica automáticamente en EasyBroker y queda asignada a tu nombre.</p>
   </div>
 
   <div class="modetabs">
     <button class="modetab on" id="mt-subir">📤 Subir propiedad</button>
     <button class="modetab" id="mt-ver">🏠 Ver propiedades</button>
-    <button class="modetab" id="mt-cap">📋 Captaciones</button>
   </div>
 
   <div id="modo-subir">
@@ -334,6 +315,17 @@ img,video,canvas{max-width:100%}
           <button type="button" class="cap-borrar-todas" id="cap-borrar-todas">🗑️ Borrar todas</button>
         </div>
       </div>
+      <details class="cap-extra" id="cap-extra">
+        <summary>➕ Agregar más datos (opcional)</summary>
+        <small class="ayuda">Solo para tu seguimiento interno: no se publica en EasyBroker. Si lo dejas vacío, la propiedad se publica igual.</small>
+        <div class="form-grid">
+          <div class="form-group"><label for="cx-nombre">Nombre del propietario</label><input id="cx-nombre" autocomplete="off"></div>
+          <div class="form-group"><label for="cx-tel">Teléfono del propietario (10 dígitos)</label><input id="cx-tel" inputmode="tel" autocomplete="off"></div>
+          <div class="form-group full"><label for="cx-email">Correo del propietario</label><input id="cx-email" type="email" autocomplete="off"></div>
+          <div class="form-group full"><label for="cx-notas">Notas internas</label><textarea id="cx-notas" rows="2" placeholder="Ej. Acepta exclusiva 6 meses, llaves con el portero"></textarea></div>
+          <div class="form-group full"><label for="cx-docs">Documentos privados (PDF o imagen, máx. 20 MB c/u)</label><input id="cx-docs" type="file" accept="application/pdf,image/*" multiple></div>
+        </div>
+      </details>
       <div class="merr" id="cap-err"></div>
       <button id="cap-save" class="msave">Publicar captación</button>
     </div>
@@ -370,23 +362,6 @@ img,video,canvas{max-width:100%}
     <div id="props-lista"></div>
   </div>
 
-  <div id="modo-cap" class="hidden">
-    <div class="section-title"><span>Seguimiento de captaciones</span></div>
-    <div class="cap-kpis" id="cap-kpis"></div>
-    <div class="cap-barra">
-      <input id="cap-q" placeholder="Buscar por propietario, teléfono, colonia...">
-      <select id="cap-f-estado">
-        <option value="activas">Activas</option>
-        <option value="">Todos los estados</option>
-        <option value="nueva">Nuevas</option><option value="por_contactar">Por contactar</option><option value="seguimiento">En seguimiento</option>
-        <option value="aprobada">Aprobadas</option><option value="descartada">Descartadas</option><option value="en_inventario">En inventario</option>
-      </select>
-      <select id="cap-f-asesor" class="hidden"><option value="">Todos los asesores</option></select>
-      <button class="cap-nueva" id="cap-btn-nueva">＋ Nueva captación</button>
-    </div>
-    <div id="cap-lista"></div>
-  </div>
-
 </div>
 
 <div class="toast" id="toast"></div>
@@ -395,6 +370,7 @@ img,video,canvas{max-width:100%}
   <div class="pedit-box">
     <div class="pedit-h">Editar propiedad</div>
     <div class="pedit-sub" id="pe-sub"></div>
+    <div class="pe-prop hidden" id="pe-prop"></div>
     <div class="form-group full"><label>Título</label><input id="pe-titulo"></div>
     <div class="form-group full"><label>Descripción</label><textarea id="pe-desc" rows="4"></textarea></div>
     <div class="form-group full"><label>Precio</label><input id="pe-precio" inputmode="numeric"></div>
@@ -413,50 +389,6 @@ img,video,canvas{max-width:100%}
       <button type="button" class="msave" id="pe-save">Guardar cambios</button>
     </div>
   </div>
-</div>
-
-<div class="pedit-overlay hidden" id="capf-overlay">
-  <div class="pedit-box cap-box">
-    <div class="pedit-h" id="capf-h">Nueva captación</div>
-    <div class="cap-sec">Propietario</div>
-    <div class="pedit-grid">
-      <div class="form-group"><label for="capf-nombre" class="cap-req">Nombre</label><input id="capf-nombre" autocomplete="off"></div>
-      <div class="form-group"><label for="capf-tel">Teléfono (10 dígitos)</label><input id="capf-tel" inputmode="tel" autocomplete="off"></div>
-      <div class="form-group full"><label for="capf-email">Correo</label><input id="capf-email" type="email" autocomplete="off"><small>Escribe al menos teléfono o correo.</small></div>
-    </div>
-    <div class="form-group full hidden" id="capf-asesor-wrap"><label for="capf-asesor" class="cap-req">Asesor responsable</label><select id="capf-asesor"></select></div>
-    <div class="cap-sec">Propiedad</div>
-    <div class="pedit-grid">
-      <div class="form-group"><label for="capf-tipo" class="cap-req">Tipo</label><select id="capf-tipo"><option>Casa</option><option>Departamento</option><option>Terreno</option><option>Terreno comercial</option><option>Quinta</option><option>Local comercial</option><option>Oficina</option><option value="Bodega comercial">Bodega</option><option>Edificio</option></select></div>
-      <div class="form-group"><label for="capf-op" class="cap-req">Operación</label><select id="capf-op"><option value="sale">Venta</option><option value="rental">Renta</option></select></div>
-      <div class="form-group"><label for="capf-precio">Precio esperado (MXN)</label><input id="capf-precio" inputmode="numeric"></div>
-      <div class="form-group"><label for="capf-mpio" class="cap-req">Municipio</label><input id="capf-mpio" list="capf-mpios" autocomplete="off"><datalist id="capf-mpios"></datalist></div>
-      <div class="form-group"><label for="capf-col" class="cap-req">Colonia</label><input id="capf-col" list="capf-cols" autocomplete="off"><datalist id="capf-cols"></datalist></div>
-      <div class="form-group"><label for="capf-calle">Calle y número</label><input id="capf-calle" autocomplete="off"></div>
-      <div class="form-group"><label for="capf-rec">Recámaras</label><input id="capf-rec" inputmode="numeric"></div>
-      <div class="form-group"><label for="capf-ban">Baños</label><input id="capf-ban" inputmode="numeric"></div>
-      <div class="form-group"><label for="capf-m2c">M² construcción</label><input id="capf-m2c" inputmode="numeric"></div>
-      <div class="form-group"><label for="capf-m2t">M² terreno</label><input id="capf-m2t" inputmode="numeric"></div>
-    </div>
-    <div class="form-group full"><label for="capf-desc">Descripción</label><textarea id="capf-desc" rows="3"></textarea></div>
-    <div class="form-group full"><label for="capf-notas">Notas internas</label><textarea id="capf-notas" rows="2"></textarea></div>
-    <div id="capf-solo-nueva">
-      <div class="pedit-grid">
-        <div class="form-group"><label for="capf-pa">Próxima acción</label><input id="capf-pa" placeholder="Ej. Llamar para agendar visita"></div>
-        <div class="form-group"><label for="capf-pa-at">¿Cuándo?</label><input id="capf-pa-at" type="datetime-local"></div>
-      </div>
-      <div class="form-group full"><label for="capf-fotos">Fotos (opcional)</label><input id="capf-fotos" type="file" accept="image/*" multiple></div>
-      <div class="form-group full"><label for="capf-docs">Documentos (opcional, privados)</label><input id="capf-docs" type="file" multiple></div>
-    </div>
-    <div class="merr" id="capf-err" role="alert"></div>
-    <div class="pedit-actions">
-      <button type="button" class="pedit-cancel" id="capf-cancel">Cancelar</button>
-      <button type="button" class="msave" id="capf-save">Guardar captación</button>
-    </div>
-  </div>
-</div>
-<div class="pedit-overlay hidden" id="capv-overlay">
-  <div class="pedit-box cap-box" id="capv-box"></div>
 </div>
 
 <script type="module">
@@ -510,6 +442,7 @@ let PEDIT_ACTUAL=null;
 function abrirEdicion(p){
   PEDIT_ACTUAL=p;
   $('#pe-sub').textContent=(p.eb_public_id||'')+' · '+(p.title||'');
+  mostrarDatosPropietario(p);
   $('#pe-titulo').value=p.title||'';
   $('#pe-desc').value=p.description||'';
   $('#pe-precio').value=p.price_amount!=null?p.price_amount:'';
@@ -940,6 +873,56 @@ function menuFicha(url,titulo){
     if(navigator.canShare && navigator.canShare({files:[archivo]})){ try{ await navigator.share({files:[archivo]}); o.remove(); }catch(_e){} }
     else { const u=URL.createObjectURL(archivo); const a=document.createElement('a'); a.href=u; a.download=archivo.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),8000); toast('PDF descargado'); } };
 }
+// ═══ (2026-10-19) Datos adicionales opcionales: se guardan en `captaciones` ligados a la propiedad publicada ═══
+// Usa las RPC cap_* (validan permisos e historial en el servidor). Los documentos van al almacén PRIVADO captaciones-docs.
+const capMsg=(e)=>{ const m=(e&&(e.message||e.error_description))||String(e||'error'); return m.replace(/^.*?ERROR:\s*/,''); };
+function capLeerExtra(){
+  const nombre=$('#cx-nombre').value.trim(), tel=$('#cx-tel').value.replace(/\D/g,''), email=$('#cx-email').value.trim(), notas=$('#cx-notas').value.trim(), docs=[...$('#cx-docs').files];
+  if(!nombre&&!tel&&!email&&!notas&&!docs.length) return null; // sección vacía: no se guarda nada extra
+  if(!nombre) return {error:'En «Agregar más datos»: escribe el nombre del propietario (o deja toda la sección vacía).'};
+  if(!tel&&!email) return {error:'En «Agregar más datos»: escribe el teléfono o el correo del propietario.'};
+  if(tel&&tel.slice(-10).length!==10) return {error:'En «Agregar más datos»: el teléfono debe tener 10 dígitos.'};
+  if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return {error:'En «Agregar más datos»: revisa el formato del correo.'};
+  const malo=docs.find(f=>!(/^image\//.test(f.type)||f.type==='application/pdf')); if(malo) return {error:'«'+malo.name+'» no es PDF ni imagen. Solo se aceptan PDF e imágenes.'};
+  const grande=docs.find(f=>f.size>20*1024*1024); if(grande) return {error:'«'+grande.name+'» pesa más de 20 MB.'};
+  return {nombre,tel:tel?tel.slice(-10):null,email:email||null,notas:notas||null,docs};
+}
+async function capGuardarExtra(X,P){
+  try{
+    const datos={propietario_nombre:X.nombre,propietario_tel:X.tel,propietario_email:X.email,notas:X.notas,tipo:P.tipo,operacion:P.op,precio:P.precio,
+      municipio:P.mpio,colonia:P.colonia,calle:P.calle,descripcion:P.desc,recamaras:P.NUM.bedrooms??null,banos:P.NUM.bathrooms??null,medios_banos:P.NUM.half_bathrooms??null,
+      estacionamientos:P.NUM.parking_spaces??null,m2c:P.NUM.construction_size??null,m2t:P.NUM.lot_size??null};
+    if(ESADMIN){ const {data:pa}=await sb.from('property_advisors').select('advisor_id').eq('property_id',P.property_id).maybeSingle(); if(pa&&pa.advisor_id) datos.advisor_id=pa.advisor_id; }
+    const c=await sb.rpc('cap_crear',{p_request_id:'pub'+P.reqId,p_datos:datos}); if(c.error) throw c.error;
+    const id=c.data.id;
+    // Se liga a la propiedad ya publicada (ruta de estados válida: seguimiento → aprobada → en inventario)
+    const {data:actual}=await sb.from('cap_listado').select('estado,property_id').eq('id',id).maybeSingle();
+    let est=actual&&actual.estado;
+    if(est==='nueva'||est==='por_contactar'){ const r=await sb.rpc('cap_cambiar_estado',{p_id:id,p_estado:'seguimiento',p_nota:'Alta desde «Subir propiedad»'}); if(r.error) throw r.error; est='seguimiento'; }
+    if(est==='seguimiento'){ const r=await sb.rpc('cap_cambiar_estado',{p_id:id,p_estado:'aprobada',p_nota:'Publicada en EasyBroker'}); if(r.error) throw r.error; est='aprobada'; }
+    if(est==='aprobada'){ const r=await sb.rpc('cap_vincular_propiedad',{p_id:id,p_property_id:P.property_id}); if(r.error) throw r.error; }
+    const fallas=[];
+    for(const f of X.docs){
+      try{ const path=id+'/'+Date.now()+'_'+f.name.replace(/[^a-zA-Z0-9.]/g,'_');
+        const up=await sb.storage.from('captaciones-docs').upload(path,f,{contentType:f.type||'application/octet-stream',upsert:false}); if(up.error) throw up.error;
+        const r=await sb.rpc('cap_agregar_archivo',{p_id:id,p_tipo:'documento',p_archivo:{path,nombre:f.name,tipo:f.type||null}}); if(r.error) throw r.error;
+      }catch(e){ fallas.push(f.name+': '+capMsg(e)); }
+    }
+    return fallas.length?('Documentos que no se subieron: '+fallas.join('; ')):null;
+  }catch(e){ return capMsg(e); }
+}
+// En «Editar propiedad»: muestra los datos del propietario y documentos si se capturaron (solo los ve quien tiene permiso).
+async function mostrarDatosPropietario(p){
+  const host=$('#pe-prop'); if(!host) return; host.innerHTML=''; host.classList.add('hidden');
+  const {data:c}=await sb.from('cap_listado').select('id,propietario_nombre,propietario_tel,propietario_email,notas,documentos').eq('property_id',p.id).maybeSingle();
+  if(!c) return;
+  host.innerHTML='<b>Propietario:</b> '+esc(c.propietario_nombre)+(c.propietario_tel?' · '+esc(c.propietario_tel):'')+(c.propietario_email?' · '+esc(c.propietario_email):'')
+    +(c.notas?'<br><b>Notas:</b> '+esc(c.notas):'')+((c.documentos||[]).length?'<br><b>Documentos:</b> '+(c.documentos||[]).map((d,i)=>'<a href="#" data-doc="'+i+'">📄 '+esc(d.nombre||'documento')+'</a>').join(''):'');
+  host.classList.remove('hidden');
+  host.querySelectorAll('[data-doc]').forEach(a=>a.onclick=async(e)=>{ e.preventDefault(); const d=c.documentos[+a.dataset.doc];
+    const r=await sb.storage.from('captaciones-docs').createSignedUrl(d.path,300); if(r.error){ toast('No se pudo abrir: '+capMsg(r.error)); return; } window.open(r.data.signedUrl,'_blank','noopener'); });
+}
+
 async function guardarCaptacion(){
   const err=$('#cap-err'), btn=$('#cap-save');
   const tipo=$('#cap-tipo').value, op=$('#cap-op').value;
@@ -956,6 +939,7 @@ async function guardarCaptacion(){
   const zona=colonia;
   if(desc.length<10){err.textContent='Escribe una descripción (mínimo 10 caracteres).';return}
   if(!CAP_FOTOS.length){err.textContent='Agrega al menos una foto.';return}
+  const EXTRA=capLeerExtra(); if(EXTRA&&EXTRA.error){ err.textContent=EXTRA.error; $('#cap-extra').open=true; return; }
   // (2026-10-02) Números: solo cifras (antes "120 m2" creaba la propiedad en EasyBroker y fallaba al guardarla en NIVA)
   const NUM={};
   for(const [id,k,lbl] of [['#cap-rec','bedrooms','Recámaras'],['#cap-bano','bathrooms','Baños'],['#cap-mbano','half_bathrooms','Medios baños'],['#cap-est','parking_spaces','Estacionamientos'],['#cap-m2c','construction_size','M² construcción'],['#cap-m2t','lot_size','M² terreno']]){
@@ -972,7 +956,6 @@ async function guardarCaptacion(){
     let subidas=0;
     async function subirFoto(i){
       const f=CAP_FOTOS[i];
-      if(f.remoteUrl){ photoUrls[i]=f.remoteUrl; photoPaths[i]=null; subidas++; return; } // foto ya subida en la captación
       const comprimida=await comprimirFoto(f.file,1920,0.9);
       if(comprimida===f.file && !/jpe?g|png|webp/i.test(f.file.type||'')) throw new Error('La foto '+(i+1)+' ('+f.file.name+') está en formato HEIC y este navegador no la puede convertir. Súbela desde el iPhone (Safari) o conviértela a JPG.');
       const path=Date.now()+'_'+Math.random().toString(36).slice(2)+'_'+f.file.name.replace(/[^a-zA-Z0-9.]/g,'_');
@@ -1001,10 +984,9 @@ async function guardarCaptacion(){
     // request_id estable por intento de formulario: si se corta la red y el asesor vuelve a dar
     // "Publicar", la Edge Function reconoce el mismo id y no crea la propiedad dos veces.
     // El id se liga al CONTENIDO del formulario: si se captura otra propiedad distinta, se genera otro id.
-    const firma=JSON.stringify([tipo,op,precio,mpio,colonia,desc.slice(0,200),CAP_FOTOS.map(f=>f.file?f.file.name+'|'+f.file.size:f.remoteUrl)]);
+    const firma=JSON.stringify([tipo,op,precio,mpio,colonia,desc.slice(0,200),CAP_FOTOS.map(f=>f.file.name+'|'+f.file.size)]);
     let reqId=null; try{ const st=JSON.parse(sessionStorage.getItem('niva_cap_req2')||'null'); if(st&&st.firma===firma) reqId=st.id; }catch(_e){}
     if(!reqId){ reqId=Math.random().toString(36).slice(2,12); try{ sessionStorage.setItem('niva_cap_req2',JSON.stringify({id:reqId,firma})); }catch(_e){} }
-    if(CAP_ORIGEN) reqId=CAP_ORIGEN.id.replace(/[^a-zA-Z0-9]/g,'').slice(0,10); // fijo por captación: reintentar no duplica
     const body={ request_id:reqId,
       property_type:tipo,operation_type:op,price_amount:precio,description:desc,location_name:zona,municipio:mpio,
       street:($('#cap-calle')&&$('#cap-calle').value.trim())||undefined,
@@ -1051,7 +1033,7 @@ async function guardarCaptacion(){
         medios_banos:$('#cap-mbano').value||null, estacionamientos:$('#cap-est').value||null,
         m2c:$('#cap-m2c').value||null, m2t:$('#cap-m2t').value||null,
         colonia, municipio:mpio, descripcion:desc,
-        fotos:photoUrls, archivos:photoPaths.filter(Boolean), amenidades:[...document.querySelectorAll('#cap-ams input:checked')].map(x=>x.value),
+        fotos:photoUrls, archivos:photoPaths, amenidades:[...document.querySelectorAll('#cap-ams input:checked')].map(x=>x.value),
         creado_por:(session&&session.user&&session.user.email)||null
       });
       // Rotación de espacio: si el almacenamiento pasa de 800MB, se liberan las fotos
@@ -1083,17 +1065,17 @@ async function guardarCaptacion(){
     document.querySelectorAll('#cap-ams input').forEach(x=>x.checked=false);
     try{ sessionStorage.removeItem('niva_cap_req'); sessionStorage.removeItem('niva_cap_req2'); }catch(_e){}
     if(fichaUrl) mostrarFichaLista(fichaUrl);
-    if(CAP_ORIGEN&&out.property_id){
-      const capId=CAP_ORIGEN.id; const v=await sb.rpc('cap_vincular_propiedad',{p_id:capId,p_property_id:out.property_id});
-      if(v.error) alert('La propiedad se publicó, pero no se pudo vincular a la captación: '+capMsg(v.error)+'\n\nVuelve a pulsar «Publicar» desde la captación: no se duplica y se vincula.');
-      else CAP_ORIGEN=null;
-      $('#cap-save').textContent='Publicar captación';
+    if(EXTRA&&out.property_id){
+      btn.textContent='Guardando datos adicionales...';
+      const fallo=await capGuardarExtra(EXTRA,{reqId,property_id:out.property_id,tipo,op,precio,mpio,colonia,calle:($('#cap-calle')&&$('#cap-calle').value.trim())||null,desc,NUM});
+      if(fallo) alert('La propiedad se publicó ✅, pero los datos adicionales no se guardaron completos:\n\n'+fallo+'\n\nVuelve a pulsar «Publicar captación» con los mismos datos: no se duplica y termina de guardarlos.');
     }
     toast(out.duplicate?'Esta captación ya se había publicado ✅':'Captación publicada ✅');
     $('#cap-tipo').value='Casa';$('#cap-op').value='rental';$('#cap-precio').value='';
     $('#cap-titulo').value='';$('#cap-desc').value='';
     $('#cap-rec').value='';$('#cap-bano').value='';$('#cap-mbano').value='';$('#cap-est').value='';$('#cap-m2c').value='';$('#cap-m2t').value='';
     $('#cap-fotos').value='';CAP_FOTOS=[];pintarFotosCap();
+    ['#cx-nombre','#cx-tel','#cx-email','#cx-notas','#cx-docs'].forEach(x=>$(x).value='');$('#cap-extra').open=false;
     $('#cap-zona').value='';$('#cap-zona-libre').value='';if($('#cap-calle'))$('#cap-calle').value='';$('#cap-mpio-otro').style.display='none';$('#cap-mpio-otro').value='';
     btn.disabled=false;btn.textContent='Publicar captación';
     await cargar();
@@ -1103,243 +1085,14 @@ async function guardarCaptacion(){
   }
 }
 
-function mostrarModo(m){
-  for(const k of ['subir','ver','cap']){ $('#mt-'+k).classList.toggle('on',k===m); $('#modo-'+k).classList.toggle('hidden',k!==m); }
-  if(m==='cap') cargarCaptaciones();
-}
-$('#mt-subir').onclick=()=>{ if(CAP_ORIGEN){ CAP_ORIGEN=null; $('#cap-save').textContent='Publicar captación'; } mostrarModo('subir'); };
-$('#mt-ver').onclick=()=>mostrarModo('ver');
-$('#mt-cap').onclick=()=>mostrarModo('cap');
-
-// ═══ (2026-10-19) Seguimiento de captaciones: propietario → contacto → aprobación → inventario ═══
-// Datos en la tabla captaciones (vista cap_listado). Toda escritura pasa por RPC cap_* que validan
-// permisos, estados e historial en el servidor. Publicar reutiliza el alta existente (niva-crear-captacion)
-// con un request_id fijo por captación: un reintento nunca crea la propiedad dos veces.
-const CAP_EST={nueva:'Nueva',por_contactar:'Por contactar',seguimiento:'En seguimiento',aprobada:'Aprobada',descartada:'Descartada',en_inventario:'En inventario'};
-const CAP_TRANS={nueva:['por_contactar','seguimiento','descartada'],por_contactar:['seguimiento','descartada'],seguimiento:['aprobada','por_contactar','descartada'],aprobada:['seguimiento','descartada'],descartada:['seguimiento'],en_inventario:[]};
-const CAP_TXT_TRANS={por_contactar:'Marcar por contactar',seguimiento:'Pasar a seguimiento',aprobada:'✅ Aprobar',descartada:'Descartar'};
-let CAPS=[], CAP_KPI='', CAP_ORIGEN=null, CAP_EDIT=null, CAP_REQ=null;
-const fechaCorta=(t)=>t?new Date(t).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-const diasTxt=(n)=>n==null?'':(n<1?'hoy':n<2?'hace 1 día':'hace '+Math.floor(n)+' días');
-const capMsg=(e)=>{ const m=(e&&(e.message||e.error_description))||String(e||'error'); return m.replace(/^.*?ERROR:\s*/,''); };
-
-async function cargarCaptaciones(){
-  const host=$('#cap-lista'); host.innerHTML='<div class="vacio">Cargando…</div>';
-  const {data,error}=await sb.from('cap_listado').select('*').order('ultima_actividad_at',{ascending:true}).limit(2000);
-  if(error){ host.innerHTML=vacioHTML('No se pudieron cargar las captaciones: '+esc(capMsg(error)),'⚠️'); return; }
-  CAPS=data||[];
-  if(ESADMIN){ const sel=$('#cap-f-asesor'); sel.classList.remove('hidden'); const ases=[...new Map(CAPS.filter(c=>c.advisor_id).map(c=>[c.advisor_id,c.advisor_name||'Asesor'])).entries()];
-    sel.innerHTML='<option value="">Todos los asesores</option>'+ases.map(([id,n])=>'<option value="'+esc(id)+'">'+esc(n)+'</option>').join(''); }
-  pintarCaptaciones();
-}
-function pintarCaptaciones(){
-  const act=CAPS.filter(c=>c.estado!=='descartada'&&c.estado!=='en_inventario');
-  const k={nuevas:act.filter(c=>c.estado==='nueva').length, porc:act.filter(c=>c.estado==='por_contactar').length, sin:act.filter(c=>c.sin_atencion).length, venc:act.filter(c=>c.vencida).length};
-  $('#cap-kpis').innerHTML=[['nuevas','Nuevas',k.nuevas,''],['porc','Por contactar',k.porc,''],['sin','Sin atención',k.sin,k.sin?'mal':''],['venc','Seguimiento vencido',k.venc,k.venc?'mal':'']]
-    .map(([id,t,n,c])=>'<button class="cap-kpi '+c+(CAP_KPI===id?' on':'')+'" data-k="'+id+'"><b>'+n+'</b><span>'+t+'</span></button>').join('');
-  $('#cap-kpis').querySelectorAll('.cap-kpi').forEach(b=>b.onclick=()=>{ CAP_KPI=(CAP_KPI===b.dataset.k?'':b.dataset.k); pintarCaptaciones(); });
-  const fe=$('#cap-f-estado').value, fa=$('#cap-f-asesor').value, q=$('#cap-q').value.trim().toLowerCase();
-  let l=CAPS.slice();
-  if(fe==='activas') l=l.filter(c=>c.estado!=='descartada'&&c.estado!=='en_inventario'); else if(fe) l=l.filter(c=>c.estado===fe);
-  if(fa) l=l.filter(c=>c.advisor_id===fa);
-  if(CAP_KPI==='nuevas') l=l.filter(c=>c.estado==='nueva'); if(CAP_KPI==='porc') l=l.filter(c=>c.estado==='por_contactar');
-  if(CAP_KPI==='sin') l=l.filter(c=>c.sin_atencion); if(CAP_KPI==='venc') l=l.filter(c=>c.vencida);
-  if(q) l=l.filter(c=>[c.propietario_nombre,c.propietario_tel,c.propietario_email,c.colonia,c.municipio,c.calle,c.tipo].join(' ').toLowerCase().includes(q));
-  // primero lo urgente: vencidas, luego sin atención, luego lo más antiguo sin actividad
-  l.sort((a,b)=>(b.vencida-a.vencida)||(b.sin_atencion-a.sin_atencion)||String(a.ultima_actividad_at).localeCompare(String(b.ultima_actividad_at)));
-  const host=$('#cap-lista');
-  if(!CAPS.length){ host.innerHTML=vacioHTML('Todavía no hay captaciones. Usa «Nueva captación» para registrar al primer propietario.','📋'); return; }
-  if(!l.length){ host.innerHTML=vacioHTML('Sin captaciones con esos filtros.','🔍'); return; }
-  host.innerHTML='';
-  l.forEach(c=>{
-    const d=document.createElement('div'); d.className='cap-fila';
-    d.innerHTML='<div><div class="t">'+esc(c.propietario_nombre)+' · '+esc(c.tipo)+' en '+esc(c.colonia)+'</div>'
-      +'<div class="m">'+(c.operacion==='rental'?'Renta':'Venta')+(c.precio?' · $'+Number(c.precio).toLocaleString('es-MX'):'')+' · '+esc(c.municipio)+(ESADMIN&&c.advisor_name?' · '+esc(c.advisor_name):'')+' · última actividad '+diasTxt(c.dias_sin_actividad)+'</div>'
-      +'<div class="pa'+(c.vencida?' venc':'')+'">'+(c.proxima_accion?'➡️ '+esc(c.proxima_accion)+(c.proxima_accion_at?' · '+fechaCorta(c.proxima_accion_at):'')+(c.vencida?' (vencida)':''):(c.estado==='descartada'||c.estado==='en_inventario'?'':'<span class="cap-alerta">Sin próxima acción</span>'))+'</div></div>'
-      +'<div><span class="cap-chip '+esc(c.estado)+'">'+esc(CAP_EST[c.estado]||c.estado)+'</span>'+(c.sin_atencion?'<div class="cap-alerta">Sin atención</div>':'')+'</div>';
-    d.onclick=()=>abrirCaptacion(c.id);
-    host.appendChild(d);
-  });
-}
-$('#cap-f-estado').onchange=pintarCaptaciones; $('#cap-f-asesor').onchange=pintarCaptaciones; $('#cap-q').oninput=pintarCaptaciones;
-
-// ── Formulario (alta y edición) ──
-function capLlenarCatalogos(){
-  $('#capf-mpios').innerHTML=Object.keys(EB_COLONIAS).map(m=>'<option value="'+esc(m)+'">').join('');
-  const cols=EB_COLONIAS[$('#capf-mpio').value]||[]; $('#capf-cols').innerHTML=cols.slice(0,3000).map(c=>'<option value="'+esc(c)+'">').join('');
-}
-$('#capf-mpio').oninput=capLlenarCatalogos;
-function abrirFormCap(c){
-  CAP_EDIT=c||null; $('#capf-err').textContent='';
-  $('#capf-h').textContent=c?'Editar captación':'Nueva captación'; $('#capf-solo-nueva').classList.toggle('hidden',!!c);
-  const v=(id,x)=>{$(id).value=(x??'')};
-  v('#capf-nombre',c&&c.propietario_nombre); v('#capf-tel',c&&c.propietario_tel); v('#capf-email',c&&c.propietario_email);
-  v('#capf-tipo',(c&&c.tipo)||'Casa'); v('#capf-op',(c&&c.operacion)||'sale'); v('#capf-precio',c&&c.precio); v('#capf-mpio',(c&&c.municipio)||'Monterrey');
-  v('#capf-col',c&&c.colonia); v('#capf-calle',c&&c.calle); v('#capf-rec',c&&c.recamaras); v('#capf-ban',c&&c.banos); v('#capf-m2c',c&&c.m2c); v('#capf-m2t',c&&c.m2t);
-  v('#capf-desc',c&&c.descripcion); v('#capf-notas',c&&c.notas); v('#capf-pa',''); v('#capf-pa-at',''); $('#capf-fotos').value=''; $('#capf-docs').value='';
-  // request_id estable mientras el formulario siga abierto: doble clic o reintento = la misma captación
-  if(!c) CAP_REQ='cap'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-  $('#capf-asesor-wrap').classList.toggle('hidden',!(ESADMIN&&!c));
-  if(ESADMIN&&!c&&!$('#capf-asesor').options.length) sb.from('advisors').select('id,first_name,last_name,status').eq('status','active').then(({data})=>{
-    $('#capf-asesor').innerHTML='<option value="">Elige al asesor…</option>'+(data||[]).map(a=>'<option value="'+esc(a.id)+'">'+esc(a.first_name+' '+(a.last_name||''))+'</option>').join(''); });
-  capLlenarCatalogos(); $('#capf-save').disabled=false; $('#capf-save').textContent=c?'Guardar cambios':'Guardar captación';
-  $('#capf-overlay').classList.remove('hidden'); $('#capf-nombre').focus();
-}
-$('#cap-btn-nueva').onclick=()=>abrirFormCap(null);
-$('#capf-cancel').onclick=()=>$('#capf-overlay').classList.add('hidden');
-function capLeerForm(){
-  const num=(id,lbl,errs)=>{ const r=String($(id).value||'').trim().replace(/[,$\s]/g,''); if(!r) return null; const n=Number(r); if(!Number.isFinite(n)||n<0){errs.push(lbl+': escribe solo el número');return null} return n; };
-  const errs=[], d={
-    propietario_nombre:$('#capf-nombre').value.trim(), propietario_tel:$('#capf-tel').value.replace(/\D/g,'').slice(-10)||null, propietario_email:$('#capf-email').value.trim()||null,
-    tipo:$('#capf-tipo').value, operacion:$('#capf-op').value, municipio:$('#capf-mpio').value.trim(), colonia:$('#capf-col').value.trim(), calle:$('#capf-calle').value.trim()||null,
-    descripcion:$('#capf-desc').value.trim()||null, notas:$('#capf-notas').value.trim()||null };
-  d.precio=num('#capf-precio','Precio',errs); d.recamaras=num('#capf-rec','Recámaras',errs); d.banos=num('#capf-ban','Baños',errs); d.m2c=num('#capf-m2c','M² construcción',errs); d.m2t=num('#capf-m2t','M² terreno',errs);
-  if(!d.propietario_nombre) errs.push('nombre del propietario');
-  if(!d.propietario_tel&&!d.propietario_email) errs.push('teléfono o correo del propietario');
-  if(d.propietario_tel&&d.propietario_tel.length!==10) errs.push('el teléfono debe tener 10 dígitos');
-  if(d.propietario_email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.propietario_email)) errs.push('correo con formato válido');
-  if(!d.municipio) errs.push('municipio'); if(!d.colonia) errs.push('colonia');
-  if(ESADMIN&&!CAP_EDIT){ d.advisor_id=$('#capf-asesor').value||null; if(!d.advisor_id) errs.push('asesor responsable'); }
-  if(d.precio!=null&&d.precio<=0) errs.push('precio mayor a cero');
-  return {d,errs};
-}
-async function capSubirArchivos(id, archivos, tipo){
-  const fallas=[];
-  for(const f of archivos){
-    try{
-      const limpio=f.name.replace(/[^a-zA-Z0-9.]/g,'_'); let path, info;
-      if(tipo==='foto'){
-        const comp=await comprimirFoto(f,1920,0.9); path='cap/'+id+'/'+Date.now()+'_'+limpio;
-        let up=await sb.storage.from('captaciones').upload(path,comp,{contentType:'image/jpeg',upsert:false}); if(up.error) throw up.error;
-        info={path,url:sb.storage.from('captaciones').getPublicUrl(path).data.publicUrl};
-      }else{
-        path=id+'/'+Date.now()+'_'+limpio;
-        const up=await sb.storage.from('captaciones-docs').upload(path,f,{contentType:f.type||'application/octet-stream',upsert:false}); if(up.error) throw up.error;
-        info={path,nombre:f.name,tipo:f.type||null,subido_at:new Date().toISOString()};
-      }
-      const r=await sb.rpc('cap_agregar_archivo',{p_id:id,p_tipo:tipo,p_archivo:info}); if(r.error) throw r.error;
-    }catch(e){ fallas.push(f.name+': '+capMsg(e)); }
-  }
-  return fallas;
-}
-$('#capf-save').onclick=async()=>{
-  const {d,errs}=capLeerForm(); const err=$('#capf-err');
-  if(errs.length){ err.textContent='Falta o hay que corregir: '+errs.join(', ')+'.'; return; }
-  const btn=$('#capf-save'); btn.disabled=true; btn.textContent='Guardando…'; err.textContent='';
-  try{
-    if(CAP_EDIT){
-      const r=await sb.rpc('cap_actualizar',{p_id:CAP_EDIT.id,p_cambios:d,p_version:CAP_EDIT.updated_at});
-      if(r.error) throw r.error;
-      $('#capf-overlay').classList.add('hidden'); toast('Cambios guardados'); await cargarCaptaciones(); abrirCaptacion(CAP_EDIT.id); return;
-    }
-    const pa=$('#capf-pa').value.trim(), paAt=$('#capf-pa-at').value;
-    if(pa){ d.proxima_accion=pa; if(paAt) d.proxima_accion_at=new Date(paAt).toISOString(); }
-    const r=await sb.rpc('cap_crear',{p_request_id:CAP_REQ,p_datos:d});
-    if(r.error) throw r.error;
-    const id=r.data&&r.data.id;
-    // La captación ya quedó guardada: si un archivo falla, no se pierde nada y se puede volver a subir desde la ficha.
-    btn.textContent='Subiendo archivos…';
-    const fallas=[...await capSubirArchivos(id,[...$('#capf-fotos').files],'foto'), ...await capSubirArchivos(id,[...$('#capf-docs').files],'documento')];
-    $('#capf-overlay').classList.add('hidden');
-    toast(r.data.ya_existia?'Esta captación ya estaba registrada ✅':'Captación registrada ✅');
-    if(fallas.length) setTimeout(()=>alert('La captación se guardó, pero estos archivos no se subieron. Vuelve a intentarlo desde la ficha:\n\n'+fallas.join('\n')),300);
-    await cargarCaptaciones(); if(id) abrirCaptacion(id);
-  }catch(e){ err.textContent=capMsg(e); btn.disabled=false; btn.textContent=CAP_EDIT?'Guardar cambios':'Guardar captación'; }
+$('#mt-subir').onclick=()=>{
+  $('#mt-subir').classList.add('on');$('#mt-ver').classList.remove('on');
+  $('#modo-subir').classList.remove('hidden');$('#modo-ver').classList.add('hidden');
 };
-
-// ── Ficha ──
-async function abrirCaptacion(id){
-  const box=$('#capv-box'); $('#capv-overlay').classList.remove('hidden'); box.innerHTML='<div class="vacio">Cargando…</div>';
-  const [{data:c,error},{data:hist}]=await Promise.all([sb.from('cap_listado').select('*').eq('id',id).maybeSingle(), sb.from('captaciones_historial').select('*').eq('captacion_id',id).order('at',{ascending:false}).limit(200)]);
-  if(error||!c){ box.innerHTML='<div class="merr">No se pudo abrir la captación'+(error?': '+esc(capMsg(error)):'')+'</div><div class="pedit-actions"><button class="pedit-cancel" id="capv-x">Cerrar</button></div>'; $('#capv-x').onclick=()=>$('#capv-overlay').classList.add('hidden'); return; }
-  const dato=(t,v)=>v==null||v===''?'':'<div><span>'+t+'</span>'+esc(v)+'</div>';
-  const trans=(CAP_TRANS[c.estado]||[]).map(e=>'<button data-e="'+e+'" class="'+(e==='aprobada'?'pri':e==='descartada'?'peligro':'')+'">'+(c.estado==='descartada'&&e==='seguimiento'?'Reabrir':CAP_TXT_TRANS[e])+'</button>').join('');
-  const fotos=(c.fotos||[]).map(f=>'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">🖼️ foto</a>').join('');
-  const docs=(c.documentos||[]).map((f,i)=>'<a href="#" data-doc="'+i+'">📄 '+esc(f.nombre||'documento')+'</a>').join('');
-  box.innerHTML='<div class="pedit-h">'+esc(c.propietario_nombre)+' <span class="cap-chip '+esc(c.estado)+'">'+esc(CAP_EST[c.estado])+'</span></div>'
-    +'<div class="pedit-sub">'+esc(c.tipo)+' en '+esc(c.colonia)+', '+esc(c.municipio)+' · responsable: '+esc(c.advisor_name||'sin asignar')+' · última actividad '+diasTxt(c.dias_sin_actividad)+(c.sin_atencion?' · <span class="cap-alerta">sin atención</span>':'')+'</div>'
-    +'<div id="capv-dup"></div>'
-    +'<div class="cap-sec">Próxima acción</div><div class="'+(c.vencida?'cap-alerta':'')+'">'+(c.proxima_accion?esc(c.proxima_accion)+(c.proxima_accion_at?' · '+fechaCorta(c.proxima_accion_at):'')+(c.vencida?' (vencida)':''):'Sin próxima acción agendada.')+'</div>'
-    +'<div class="cap-acc">'+trans+(c.estado==='aprobada'?'<button class="pri" id="capv-publicar">📤 Publicar en EasyBroker</button><button id="capv-vincular">🔗 Vincular a propiedad existente</button>':'')
-      +(c.estado!=='en_inventario'?'<button id="capv-editar">✏️ Editar</button>':'')+(ESADMIN?'<button id="capv-asignar">👤 Asignar</button>':'')+'</div>'
-    +(c.property_id?'<div class="cap-sec">En inventario</div><div>Vinculada a la propiedad del inventario ('+esc(c.property_id).slice(0,8)+'…). Búscala en «Ver propiedades».</div>':'')
-    +'<div class="cap-sec">Contacto y propiedad</div><div class="cap-datos">'
-      +dato('Teléfono',c.propietario_tel)+dato('Correo',c.propietario_email)+dato('Operación',c.operacion==='rental'?'Renta':'Venta')+dato('Precio esperado',c.precio?'$'+Number(c.precio).toLocaleString('es-MX'):'')
-      +dato('Calle',c.calle)+dato('Recámaras',c.recamaras)+dato('Baños',c.banos)+dato('M² construcción',c.m2c)+dato('M² terreno',c.m2t)+dato('Registrada',fechaCorta(c.created_at))+'</div>'
-    +(c.descripcion?'<div class="cap-sec">Descripción</div><div>'+esc(c.descripcion)+'</div>':'')+(c.notas?'<div class="cap-sec">Notas internas</div><div>'+esc(c.notas)+'</div>':'')+(c.motivo_descarte?'<div class="cap-sec">Motivo de descarte</div><div>'+esc(c.motivo_descarte)+'</div>':'')
-    +'<div class="cap-sec">Archivos</div><div class="cap-archivos">'+(fotos+docs||'Sin archivos.')+'</div>'
-    +(c.estado!=='en_inventario'?'<div class="cap-acc"><label class="pe-add">➕ Fotos<input type="file" id="capv-fotos" accept="image/*" multiple hidden></label><label class="pe-add">➕ Documentos<input type="file" id="capv-docs" multiple hidden></label></div>':'')
-    +(c.estado!=='descartada'&&c.estado!=='en_inventario'?'<div class="cap-sec">Registrar actividad</div><div class="pedit-grid">'
-      +'<div class="form-group"><label for="capa-tipo">Tipo</label><select id="capa-tipo"><option value="llamada">📞 Llamada</option><option value="whatsapp">💬 WhatsApp</option><option value="visita">🏠 Visita</option><option value="correo">✉️ Correo</option><option value="nota">📝 Nota</option></select></div>'
-      +'<div class="form-group"><label for="capa-pa-at">Próxima acción: ¿cuándo?</label><input id="capa-pa-at" type="datetime-local"></div>'
-      +'<div class="form-group full"><label for="capa-nota">¿Qué pasó?</label><textarea id="capa-nota" rows="2"></textarea></div>'
-      +'<div class="form-group full"><label for="capa-pa">Próxima acción</label><input id="capa-pa" placeholder="Ej. Mandar opinión de valor"></div></div>'
-      +'<div class="merr" id="capa-err" role="alert"></div><div class="cap-acc"><button class="pri" id="capa-guardar">Guardar actividad</button></div>':'')
-    +'<div class="cap-sec">Historial</div><ul class="cap-hist">'+((hist||[]).map(h=>'<li><b>'+esc(capAccionTxt(h))+'</b>'+(h.nota?' — '+esc(h.nota):'')+'<br><small>'+fechaCorta(h.at)+'</small></li>').join('')||'<li>Sin movimientos.</li>')+'</ul>'
-    +'<div class="pedit-actions"><button class="pedit-cancel" id="capv-x">Cerrar</button></div>';
-  $('#capv-x').onclick=()=>$('#capv-overlay').classList.add('hidden');
-  box.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>capCambiarEstado(c,b.dataset.e));
-  if($('#capv-editar')) $('#capv-editar').onclick=()=>{ $('#capv-overlay').classList.add('hidden'); abrirFormCap(c); };
-  if($('#capv-asignar')) $('#capv-asignar').onclick=()=>capAsignar(c);
-  if($('#capv-publicar')) $('#capv-publicar').onclick=()=>capPublicar(c);
-  if($('#capv-vincular')) $('#capv-vincular').onclick=()=>capVincular(c);
-  box.querySelectorAll('[data-doc]').forEach(a=>a.onclick=async(e)=>{ e.preventDefault(); const f=c.documentos[+a.dataset.doc];
-    const r=await sb.storage.from('captaciones-docs').createSignedUrl(f.path,300); if(r.error){toast('No se pudo abrir: '+capMsg(r.error));return} window.open(r.data.signedUrl,'_blank','noopener'); });
-  for(const [sel,tipo] of [['#capv-fotos','foto'],['#capv-docs','documento']]) if($(sel)) $(sel).onchange=async(e)=>{ const fs=[...e.target.files]; if(!fs.length) return; toast('Subiendo…');
-    const fallas=await capSubirArchivos(c.id,fs,tipo); if(fallas.length) alert('No se subieron:\n'+fallas.join('\n')); else toast('Archivos agregados'); abrirCaptacion(c.id); };
-  if($('#capa-guardar')) $('#capa-guardar').onclick=async()=>{
-    const nota=$('#capa-nota').value.trim(), tipo=$('#capa-tipo').value, pa=$('#capa-pa').value.trim()||null, paAt=$('#capa-pa-at').value;
-    if(!nota){ $('#capa-err').textContent='Escribe qué pasó en esta actividad.'; return; }
-    if(paAt&&!pa){ $('#capa-err').textContent='Escribe cuál es la próxima acción para esa fecha.'; return; }
-    const b=$('#capa-guardar'); b.disabled=true;
-    const r=await sb.rpc('cap_registrar_actividad',{p_id:c.id,p_tipo:tipo,p_nota:nota,p_proxima_accion:pa,p_proxima_accion_at:paAt?new Date(paAt).toISOString():null});
-    if(r.error){ $('#capa-err').textContent=capMsg(r.error); b.disabled=false; return; }
-    toast('Actividad guardada'); await cargarCaptaciones(); abrirCaptacion(c.id);
-  };
-  sb.rpc('cap_posibles_duplicados',{p_id:c.id}).then(({data})=>{ const l=Array.isArray(data)?data:(data&&data.posibles)||[]; if(!l.length) return;
-    $('#capv-dup').innerHTML='<div class="cap-dup">⚠️ <b>Posible duplicado</b> — revísalo antes de seguir (no se fusiona nada solo):<br>'+l.map(x=>esc(x.motivo||'coincidencia')).join('<br>')+'</div>'; });
-}
-function capAccionTxt(h){ const a=h.accion||''; const m={creada:'Captación registrada',actualizada:'Datos editados',actividad:'Actividad',estado:'Cambio de estado',asignada:'Responsable asignado',vinculada:'Vinculada al inventario',archivo:'Archivo agregado'};
-  const k=Object.keys(m).find(x=>a.startsWith(x)); let t=k?m[k]:a;
-  if(h.despues&&h.despues.estado) t+=': '+(CAP_EST[h.despues.estado]||h.despues.estado); if(h.despues&&h.despues.tipo&&k==='actividad') t+=' ('+h.despues.tipo+')'; return t; }
-async function capCambiarEstado(c,estado){
-  let motivo=null, nota=null;
-  if(estado==='descartada'){ motivo=prompt('¿Por qué se descarta esta captación? (obligatorio)',''); if(motivo===null) return; motivo=motivo.trim(); if(!motivo){ alert('El motivo es obligatorio para descartar.'); return; } }
-  if(estado==='aprobada'&&!confirm('¿Aprobar esta captación? Después podrás publicarla en EasyBroker o vincularla a una propiedad que ya esté en el inventario.')) return;
-  const r=await sb.rpc('cap_cambiar_estado',{p_id:c.id,p_estado:estado,p_nota:nota,p_motivo:motivo});
-  if(r.error){ alert('No se pudo cambiar el estado: '+capMsg(r.error)); return; }
-  toast('Estado: '+CAP_EST[estado]); await cargarCaptaciones(); abrirCaptacion(c.id);
-}
-async function capAsignar(c){
-  const {data:ads}=await sb.from('advisors').select('id,first_name,last_name,status').eq('status','active');
-  const lista=(ads||[]).map((a,i)=>(i+1)+'. '+a.first_name+' '+(a.last_name||'')).join('\n');
-  const n=prompt('Escribe el número del nuevo responsable:\n\n'+lista,''); if(!n) return; const a=(ads||[])[Number(n)-1]; if(!a){ alert('Número no válido.'); return; }
-  const r=await sb.rpc('cap_asignar',{p_id:c.id,p_advisor_id:a.id}); if(r.error){ alert(capMsg(r.error)); return; }
-  toast('Responsable: '+a.first_name); await cargarCaptaciones(); abrirCaptacion(c.id);
-}
-async function capVincular(c){
-  const cands=PROPS.filter(p=>p.operation_type===c.operacion).map(p=>({p,score:(String(p.location_name||'').toLowerCase().includes(String(c.colonia).toLowerCase())?2:0)+(String(p.property_type||'').toLowerCase()===String(c.tipo).toLowerCase()?1:0)})).sort((a,b)=>b.score-a.score).slice(0,30);
-  if(!cands.length){ alert('No hay propiedades activas de '+(c.operacion==='rental'?'renta':'venta')+' para vincular.'); return; }
-  const n=prompt('Escribe el número de la propiedad del inventario que corresponde a esta captación:\n\n'+cands.map((x,i)=>(i+1)+'. '+(x.p.eb_public_id||'')+' · '+(x.p.title||'')+' · $'+Number(x.p.price_amount||0).toLocaleString('es-MX')).join('\n'),''); if(!n) return;
-  const sel=cands[Number(n)-1]; if(!sel){ alert('Número no válido.'); return; }
-  const r=await sb.rpc('cap_vincular_propiedad',{p_id:c.id,p_property_id:sel.p.id}); if(r.error){ alert('No se pudo vincular: '+capMsg(r.error)); return; }
-  toast('Vinculada al inventario ✅'); await cargarCaptaciones(); abrirCaptacion(c.id);
-}
-// Publicar: prellena «Subir propiedad» con los datos de la captación. Al publicar, guardarCaptacion
-// usa un request_id derivado de la captación y la vincula con la propiedad creada.
-function capPublicar(c){
-  CAP_ORIGEN={id:c.id};
-  $('#capv-overlay').classList.add('hidden'); mostrarModo('subir');
-  const tipos=[...$('#cap-tipo').options].map(o=>o.value); $('#cap-tipo').value=tipos.includes(c.tipo)?c.tipo:'Casa'; $('#cap-op').value=c.operacion;
-  $('#cap-precio').value=c.precio||'';
-  const mpios=[...$('#cap-mpio').options].map(o=>o.value);
-  if(mpios.includes(c.municipio)){ $('#cap-mpio').value=c.municipio; pintarColonias(); $('#cap-zona').value=c.colonia; } else { $('#cap-mpio').value='__otro__'; pintarColonias(); $('#cap-mpio-otro').value=c.municipio; $('#cap-zona-libre').value=c.colonia; }
-  if($('#cap-calle')) $('#cap-calle').value=c.calle||''; $('#cap-desc').value=c.descripcion||'';
-  $('#cap-rec').value=c.recamaras??''; $('#cap-bano').value=c.banos??''; $('#cap-m2c').value=c.m2c??''; $('#cap-m2t').value=c.m2t??'';
-  CAP_FOTOS=(c.fotos||[]).map(f=>({remoteUrl:f.url,previewUrl:f.url})); pintarFotosCap();
-  $('#cap-err').textContent=''; $('#cap-save').textContent='Publicar y vincular captación';
-  toast('Revisa los datos, completa lo que falte y publica'); window.scrollTo({top:$('#modo-subir').offsetTop-20,behavior:'smooth'});
-}
+$('#mt-ver').onclick=()=>{
+  $('#mt-ver').classList.add('on');$('#mt-subir').classList.remove('on');
+  $('#modo-ver').classList.remove('hidden');$('#modo-subir').classList.add('hidden');
+};
   // Pedido de Ricardo: "Ver propiedades" va primero y es la vista inicial del modulo
   document.querySelector('.modetabs').insertBefore($('#mt-ver'), $('#mt-subir'));
   $('#mt-ver').onclick();
