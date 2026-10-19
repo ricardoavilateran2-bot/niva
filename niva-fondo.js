@@ -87,7 +87,7 @@
   // Crema: las letras aparecen una por una y luego ondean. Constelación: las letras se arman con estrellas unidas por líneas.
   // Los módulos que cargan su sesión aparte (CRM) avisan con nivaListo(); los demás se quitan al terminar de cargar.
   var ESPERA = { crm:1 }[pag];
-  var MINIMO = 900; // ms: deja ver la animación aunque el módulo cargue muy rápido
+  var MINIMO = 1800; // ms: deja ver la animación aunque el módulo cargue muy rápido
   st.textContent +=
     '#niva-carga{position:fixed;inset:0;z-index:100;display:grid;place-items:center;transition:opacity .4s ease;' + (claro ? 'background:radial-gradient(70% 45% at 50% 0%,rgba(150,113,76,.07),rgba(251,249,246,0) 70%),#FBF9F6' : 'background:radial-gradient(70% 60% at 50% 40%,rgba(15,34,66,.95),rgba(6,13,26,.98) 85%)') + '}' +
     '#niva-carga.fuera{opacity:0;pointer-events:none}' +
@@ -104,38 +104,93 @@
     '@keyframes ncBarra{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}' +
     '@media (prefers-reduced-motion:reduce){#niva-carga .nc-txt span,#niva-carga .nc-barra:after{animation:none}}';
 
-  // Constelación: puntos que vuelan desde toda la pantalla y forman "NIVA OS." unidos con líneas
+  // Constelación: cada letra de "NIVA OS." se dibuja como constelación (estrellas que aparecen y líneas que se trazan),
+  // las estrellas del fondo se enlazan con las letras al pasar cerca y al final un destello recorre el nombre.
+  var GLIFOS = {
+    N:{w:.66, l:[[[0,1],[0,0],[1,1],[1,0]]]},
+    I:{w:.12, l:[[[.5,0],[.5,1]]]},
+    V:{w:.66, l:[[[0,0],[.5,1],[1,0]]]},
+    A:{w:.7,  l:[[[0,1],[.5,0],[1,1]],[[.24,.62],[.76,.62]]]},
+    ' ':{w:.28, l:[]},
+    O:{w:.76, l:[(function(){ var r=[]; for(var k=0;k<=10;k++){ var t=-Math.PI/2+k*Math.PI*2/10; r.push([.5+.5*Math.cos(t),.5+.5*Math.sin(t)]); } return r; })()]},
+    S:{w:.6,  l:[[[1,.14],[.72,0],[.28,0],[0,.2],[.12,.42],[.5,.5],[.88,.58],[1,.8],[.72,1],[.28,1],[0,.86]]]},
+    '.':{w:.12, l:[], punto:true}
+  };
   function letrasEstrella(c){
     var cv = document.createElement('canvas'); c.appendChild(cv);
-    var g = cv.getContext('2d'), d = Math.min(2, window.devicePixelRatio || 1), W, H, P = [], t0 = performance.now(), vivo = true;
+    var g = cv.getContext('2d'), d = Math.min(2, window.devicePixelRatio || 1), W, H, t0 = performance.now(), vivo = true;
     var quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var SEG = [], EST = [], FONDO = [], FUGAZ = [], FIN = 0, X0 = 0, ANCHO = 0, F = 0, INICIO = .55, SALTO = .6, prox = 0;
     function arma(){
       W = cv.width = Math.round(innerWidth*d); H = cv.height = Math.round(innerHeight*d);
-      var fs = Math.min(innerWidth*0.15, 120)*d, o = document.createElement('canvas'), og = o.getContext('2d');
-      o.width = W; o.height = H; og.font = '800 '+fs+'px Inter,system-ui,sans-serif'; og.textAlign = 'center'; og.textBaseline = 'middle';
-      var txt = 'NIVA OS', ancho = og.measureText(txt+'.').width, x0 = W/2 - ancho/2;
-      og.textAlign = 'left'; og.fillStyle = '#fff'; og.fillText(txt, x0, H/2); var finTxt = x0 + og.measureText(txt).width; og.fillText('.', finTxt, H/2);
-      var paso = Math.max(4, Math.round(fs/22)), dat = og.getImageData(0, 0, W, H).data, pts = [];
-      for(var y = 0; y < H; y += paso) for(var x = 0; x < W; x += paso) if(dat[(y*W+x)*4+3] > 140) pts.push([x, y]);
-      while(pts.length > 650){ paso++; pts = pts.filter(function(_, i){ return i % 2 === 0; }); }
-      P = pts.map(function(q){ var punto = q[0] > finTxt;
-        return { tx:q[0], ty:q[1], x:Math.random()*W, y:Math.random()*H, k:Math.random()*0.35, oro:punto || Math.random() < .22, punto:punto, f:Math.random()*6.28 }; });
-      arma.lim = paso*2.3;
+      F = Math.min(innerWidth*.13, 104)*d; var gap = F*.2, txt = 'NIVA OS.', i, k;
+      ANCHO = 0; for(i = 0; i < txt.length; i++) ANCHO += GLIFOS[txt[i]].w*F + (i ? gap : 0);
+      X0 = (W - ANCHO)/2; var y0 = H/2 - F*.62, x = X0, t = INICIO; SEG = []; EST = [];
+      for(i = 0; i < txt.length; i++){
+        var gl = GLIFOS[txt[i]], w = gl.w*F;
+        gl.l.forEach(function(lin){
+          var pts = lin.map(function(q){ return [x + q[0]*w, y0 + q[1]*F]; });
+          pts.forEach(function(p, j){ EST.push({x:p[0], y:p[1], t:t + j*.07, oro:Math.random() < .25, f:Math.random()*6.3}); });
+          for(k = 1; k < pts.length; k++) SEG.push({a:pts[k-1], b:pts[k], t:t + (k-1)*.07, oro:Math.random() < .2});
+        });
+        if(gl.punto) EST.push({x:x + w/2, y:y0 + F*.94, t:t + .1, oro:true, grande:true, f:0});
+        if(gl.l.length || gl.punto) t += .13;
+        x += w + gap;
+      }
+      FIN = t + .55;
+      FONDO = []; for(i = 0; i < (innerWidth < 700 ? 40 : 70); i++) FONDO.push({x:Math.random()*W, y:Math.random()*H, vx:(Math.random()-.5)*.35*d, vy:(Math.random()-.5)*.35*d, oro:Math.random() < .3});
+      FUGAZ = [];
     }
+    function brillo(x, s){ return s < FIN ? 0 : (Math.sin(s*2.4 + x/(F*1.5))*.5 + .5)*.35; } // las letras respiran suave cuando ya están dibujadas
     function pinta(ahora){
       if(!vivo) return;
-      var t = quieto ? 2 : (ahora - t0)/1100, lim = arma.lim, i, j, a, b, dx, dy, dd;
-      for(i = 0; i < P.length; i++){ a = P[i]; var e = Math.max(0, Math.min(1, (t - a.k)/(1 - .35))); e = 1 - Math.pow(1 - e, 3);
-        var tw = e >= 1 ? Math.sin(ahora/600 + a.f)*0.6*d : 0;
-        a.cx = a.x + (a.tx - a.x)*e + tw; a.cy = a.y + (a.ty - a.y)*e + tw; a.e = e; }
-      g.clearRect(0, 0, W, H); g.lineWidth = d*.8;
-      for(i = 0; i < P.length; i++) for(j = i+1; j < P.length; j++){ a = P[i]; b = P[j]; dx = a.cx-b.cx; if(dx > lim || dx < -lim) continue; dy = a.cy-b.cy; if(dy > lim || dy < -lim) continue;
-        dd = Math.sqrt(dx*dx+dy*dy); if(dd < lim){ g.strokeStyle = 'rgba('+(a.oro&&b.oro ? '232,201,106' : '150,185,245')+','+(.45*(1-dd/lim)*Math.min(a.e,b.e)).toFixed(3)+')'; g.beginPath(); g.moveTo(a.cx,a.cy); g.lineTo(b.cx,b.cy); g.stroke(); } }
-      for(i = 0; i < P.length; i++){ a = P[i]; g.fillStyle = a.punto ? '#E8C96A' : a.oro ? 'rgba(232,201,106,.95)' : 'rgba(225,235,255,.95)'; g.beginPath(); g.arc(a.cx, a.cy, (a.punto ? 1.9 : 1.4)*d, 0, 7); g.fill(); }
+      var s = quieto ? 9 : (ahora - t0)/1000, i, j, a, b, dx, dy, dd, lim = 150*d;
+      g.clearRect(0, 0, W, H);
+      var cx = W/2, cy = H/2;
+      // nebulosa que respira detrás del nombre
+      var na = Math.min(1, Math.max(0, (s - INICIO*.6)/.8)), pr = 1 + Math.sin(s*1.6)*.06;
+      if(na){ var ng = g.createRadialGradient(cx, cy, 0, cx, cy, ANCHO*.75*pr);
+        ng.addColorStop(0, 'rgba(70,110,210,'+(.22*na)+')'); ng.addColorStop(.45, 'rgba(201,168,76,'+(.07*na)+')'); ng.addColorStop(1, 'rgba(6,13,26,0)');
+        g.fillStyle = ng; g.fillRect(0, 0, W, H); }
+      // salto al hiperespacio: las estrellas salen disparadas del centro y frenan hasta su lugar
+      if(s < SALTO){ var k = 1 - Math.pow(1 - s/SALTO, 3); g.lineCap = 'round';
+        for(i = 0; i < FONDO.length; i++){ a = FONDO[i]; var hx = cx + (a.x - cx)*k, hy = cy + (a.y - cy)*k, tl = Math.max(0, k - .35*(1 - k));
+          g.strokeStyle = a.oro ? 'rgba(240,210,122,'+(.9*(1-k*.5))+')' : 'rgba(200,220,255,'+(.9*(1-k*.5))+')'; g.lineWidth = (1 + 1.5*(1-k))*d;
+          g.beginPath(); g.moveTo(cx + (a.x - cx)*tl, cy + (a.y - cy)*tl); g.lineTo(hx, hy); g.stroke(); }
+        requestAnimationFrame(pinta); return; }
+      // estrellas fugaces cuando el nombre ya está
+      if(s > FIN && s > prox && !quieto){ prox = s + 1.1 + Math.random()*1.2; var ang = .35 + Math.random()*.5, lado = Math.random() < .5;
+        FUGAZ.push({x: lado ? Math.random()*W*.6 : -40*d, y: lado ? -40*d : Math.random()*H*.5, vx: Math.cos(ang)*16*d, vy: Math.sin(ang)*16*d, v: 1}); }
+      for(i = FUGAZ.length - 1; i >= 0; i--){ a = FUGAZ[i]; a.x += a.vx; a.y += a.vy; a.v -= .018; if(a.v <= 0 || a.x > W || a.y > H){ FUGAZ.splice(i, 1); continue; }
+        var fg = g.createLinearGradient(a.x, a.y, a.x - a.vx*9, a.y - a.vy*9); fg.addColorStop(0, 'rgba(255,240,200,'+a.v+')'); fg.addColorStop(1, 'rgba(255,240,200,0)');
+        g.strokeStyle = fg; g.lineWidth = 1.6*d; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(a.x - a.vx*9, a.y - a.vy*9); g.stroke(); }
+      // estrellas del fondo que flotan y se enlazan entre ellas y con las letras
+      for(i = 0; i < FONDO.length; i++){ a = FONDO[i]; if(!quieto){ a.x += a.vx; a.y += a.vy; } if(a.x < 0 || a.x > W) a.vx *= -1; if(a.y < 0 || a.y > H) a.vy *= -1; }
+      g.lineWidth = d*.8;
+      for(i = 0; i < FONDO.length; i++){ a = FONDO[i];
+        for(j = i+1; j < FONDO.length; j++){ b = FONDO[j]; dx = a.x-b.x; dy = a.y-b.y; dd = Math.sqrt(dx*dx+dy*dy);
+          if(dd < lim){ g.strokeStyle = 'rgba('+(a.oro||b.oro ? '201,168,76' : '120,160,230')+','+(.22*(1-dd/lim)).toFixed(3)+')'; g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.stroke(); } }
+        for(j = 0; j < EST.length; j += 2){ b = EST[j]; if(s < b.t) continue; dx = a.x-b.x; dy = a.y-b.y; dd = Math.sqrt(dx*dx+dy*dy);
+          if(dd < lim*1.1){ g.strokeStyle = 'rgba(232,201,106,'+(.28*(1-dd/(lim*1.1))).toFixed(3)+')'; g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.stroke(); } }
+        g.fillStyle = a.oro ? 'rgba(232,201,106,.85)' : 'rgba(170,200,255,.75)'; g.beginPath(); g.arc(a.x, a.y, 1.5*d, 0, 7); g.fill(); }
+      // líneas de las letras que se van trazando, con brillo
+      g.lineCap = 'round'; g.lineJoin = 'round'; g.shadowBlur = 16*d;
+      for(i = 0; i < SEG.length; i++){ a = SEG[i]; var e = Math.max(0, Math.min(1, (s - a.t)/.2)); if(!e) continue; e = 1 - Math.pow(1 - e, 3);
+        var bx = a.a[0] + (a.b[0]-a.a[0])*e, by = a.a[1] + (a.b[1]-a.a[1])*e, lz = brillo((a.a[0]+a.b[0])/2, s);
+        g.shadowColor = a.oro ? 'rgba(232,201,106,.9)' : 'rgba(150,190,255,.9)';
+        g.strokeStyle = a.oro ? 'rgba(240,210,122,'+(.85+.15*lz)+')' : 'rgba('+Math.round(205+50*lz)+','+Math.round(222+33*lz)+',255,'+(.8+.2*lz)+')';
+        g.lineWidth = (4.2 + 1.6*lz)*d; g.beginPath(); g.moveTo(a.a[0], a.a[1]); g.lineTo(bx, by); g.stroke(); }
+      // estrellas de las letras: aparecen con un destello y luego titilan
+      for(i = 0; i < EST.length; i++){ a = EST[i]; var e2 = (s - a.t)/.25; if(e2 <= 0) continue;
+        var pop = e2 < 1 ? 1 + Math.sin(e2*Math.PI)*1.6 : 1 + Math.sin(ahora/450 + a.f)*.18 + brillo(a.x, s)*.8;
+        var r = (a.grande ? 6.5 : 3.8)*d*pop;
+        g.shadowColor = a.oro ? 'rgba(232,201,106,1)' : 'rgba(170,205,255,1)'; g.shadowBlur = (a.grande ? 26 : 16)*d;
+        g.fillStyle = a.oro ? '#F0D27A' : '#EAF2FF'; g.beginPath(); g.arc(a.x, a.y, r, 0, 7); g.fill(); }
+      g.shadowBlur = 0;
       requestAnimationFrame(pinta);
     }
-    arma(); requestAnimationFrame(pinta);
-    return function(){ vivo = false; };
+    arma(); addEventListener('resize', arma); requestAnimationFrame(pinta);
+    return function(){ vivo = false; removeEventListener('resize', arma); };
   }
 
   function carga(){
@@ -148,7 +203,6 @@
       html += '<span class="nc-punto" style="--d:.62s">.</span>';
       c.innerHTML = '<div><div class="nc-txt" aria-hidden="true">'+html+'</div><span class="nc-barra"></span></div>';
     } else {
-      c.innerHTML = '<div class="nc-abajo"><span class="nc-barra"></span></div>';
     }
     document.body.appendChild(c);
     if(!claro) para = letrasEstrella(c);
