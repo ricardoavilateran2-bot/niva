@@ -582,6 +582,8 @@ $('#pedit-overlay').onclick=(e)=>{ if(e.target.id==='pedit-overlay')cerrarEdicio
 async function cargar(){
   const uname=(session.user?.email||'').split('@')[0];
   ESADMIN=(uname==='admin');
+  // (2026-10-19) El rol lo decide el servidor (app_users.role), no el nombre de usuario.
+  try{ const {data:esAdm,error:eAdm}=await sb.rpc('my_is_admin'); if(!eAdm && typeof esAdm==='boolean') ESADMIN=esAdm; }catch(_e){}
   const [p,pc]=await Promise.all([
     sb.from('my_properties').select('*'),
     sb.from('my_properties_canceladas').select('*')
@@ -1023,6 +1025,12 @@ async function guardarCaptacion(){
         try{ detalle = Object.entries(errs).map(([k,v])=>(k==='base'?'':k+': ')+(Array.isArray(v)?v.join(', '):v)).join(' · '); }catch(_e){}
       }
       throw new Error(detalle ? (msgBase+' — '+detalle) : msgBase);
+    }
+    if(out.pendiente){
+      // Ya existía en EasyBroker de un intento anterior: no se creó otra. Se avisa y se limpia el formulario.
+      alert(out.mensaje||'Esta propiedad ya se había publicado en EasyBroker. Aparecerá en NIVA OS en unos minutos.');
+      try{ sessionStorage.removeItem('niva_cap_req'); sessionStorage.removeItem('niva_cap_req2'); }catch(_e){}
+      btn.disabled=false; btn.textContent='Publicar captación'; return;
     }
     // ── Content Studio: guardar fotos + datos de esta captación (selector de propiedades) ──
     try{
