@@ -1035,20 +1035,14 @@ img,video,canvas{max-width:100%}
     </div>
 
     <div class="niva-vid-step" id="niva-vid-step-3" style="display:none">
-    <!-- PASO 2: HOOKS IA -->
+    <!-- PASO 3: ELIGE TU GUION — 5 guiones del motor (sin IA), uno por estilo. Reemplaza a «Elige tu hook». -->
     <div class="vid-api-panel" id="vid-hooks-panel" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <h4 style="margin:0">🎣 Elige tu Hook</h4>
-        <button onclick="generarHooks()" style="font-size:10px;padding:5px 10px;background:var(--navy);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700">↺ Regenerar</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+        <h4 style="margin:0">✍️ Elige tu guion</h4>
+        <button onclick="regenerarGuion()" style="flex-shrink:0;font-size:10px;padding:5px 10px;background:var(--navy);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700" title="Otras 5 versiones">↺ Guión</button>
       </div>
-      <div id="vid-hooks-loading" style="display:none;text-align:center;padding:20px;color:#64748b;font-size:12px">
-        <div style="font-size:24px;margin-bottom:8px">🤖</div>
-        Generando hooks con IA…
-      </div>
-      <div id="vid-hooks-list" style="display:flex;flex-direction:column;gap:6px"></div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0">
-        <button id="btn-use-best-hook" onclick="usarMejorHook()" style="width:100%;padding:8px;background:linear-gradient(135deg,#C9A84C,#e8c96a);color:#1B2A4A;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer">🤖 ELEGIR EL MEJOR HOOK (IA)</button>
-      </div>
+      <div id="vid-hooks-loading" style="display:none;text-align:center;padding:20px;color:#64748b;font-size:12px">Escribiendo los guiones…</div>
+      <div id="vid-guion-opciones" style="display:none;flex-direction:column;gap:8px"></div>
     </div>
     </div><!-- /niva-vid-step-3 -->
 
@@ -1150,8 +1144,6 @@ img,video,canvas{max-width:100%}
           <button onclick="regenerarVozSola()" style="font-size:10px;padding:5px 9px;background:linear-gradient(135deg,#1B2A4A,#2d4170);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700" title="Regenerar solo la voz sin cambiar el guión">🎙️ Voz</button>
         </div>
       </div>
-      <!-- 5 guiones del motor (uno por estilo): el asesor elige con "Usar este" -->
-      <div id="vid-guion-opciones" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px"></div>
       <!-- Score -->
       <div id="vid-score-box" style="display:none;background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:12px">
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:8px">📊 Video Score</div>
@@ -7250,7 +7242,7 @@ let nivaVidCurrentStep = 1;
 const NIVA_VID_STEPS = [
   { id: 1, name: '🎙️ Voz y música' },
   { id: 2, name: '🎬 Estilo del video' },
-  { id: 3, name: '🎣 Elige tu hook' },
+  { id: 3, name: '✍️ Elige tu guion' },
   { id: 4, name: '🖼️ Portada del video' },
   { id: 5, name: '📝🎥 Guion y generar video' },
 ];
@@ -7284,17 +7276,13 @@ function nivaVidWizardShow(step) {
     const hooksPanel = document.getElementById('vid-hooks-panel');
     if (hooksPanel) hooksPanel.style.display = 'block';
     const loadEl = document.getElementById('vid-hooks-loading');
-    if (typeof vidHooks !== 'undefined' && vidHooks && vidHooks.length > 0) {
+    if (typeof _motorGuiones !== 'undefined' && _motorGuiones.length) {
       if (loadEl) loadEl.style.display = 'none';
-      const listEl = document.getElementById('vid-hooks-list');
-      if (listEl && !listEl.children.length) renderHooks();
-      document.querySelectorAll('.vid-hook-item').forEach((el2, i2) => {
-        el2.classList.toggle('selected', i2 === selectedHookIdx);
-      });
+      motorPintarGuiones();
     } else if (typeof _nivaHooksLoading !== 'undefined' && _nivaHooksLoading) {
-      if (loadEl) loadEl.style.display = 'block'; // la IA sigue trabajando: que se vea
+      if (loadEl) loadEl.style.display = 'block';
     } else if (typeof vidV !== 'undefined' && vidV) {
-      generarHooks(); // se llegó al paso sin hooks (p. ej. tras un error): generarlos aquí mismo
+      generarHooks(); // se llegó al paso sin guiones: generarlos aquí mismo
     }
   }
   nivaVidStepLoaderRefresh();
@@ -7745,7 +7733,7 @@ async function genVideo(v) {
   cText(ctx, v.tipo.toUpperCase(), W/2, H*0.38, 72, '900', WHITE, 'center');
   cText(ctx, v.col + ' · ' + (v.city||'').split(',')[0], W/2, H*0.38+96, 30, '400', GOLD, 'center');
   cText(ctx, fmtP(v.price) + (v.esMes?' /mes':''), W/2, H*0.50, 64, '900', GOLD, 'center', 'rgba(0,0,0,0.6)', 3);
-  cText(ctx, '🤖 Presiona "Generar Hooks" para comenzar', W/2, H*0.72, 22, '500', 'rgba(255,255,255,.4)', 'center');
+  cText(ctx, 'Elige el estilo de tu guion para comenzar', W/2, H*0.72, 22, '500', 'rgba(255,255,255,.4)', 'center');
   // Análisis musical automático — SOLO si aún no hay música seleccionada
   // musicState.selectedTrackId persiste entre regeneraciones de guion/voz/escenas
   if (!musicState.selectedTrackId) {
@@ -8064,6 +8052,16 @@ function motorEscenas(seg, N) {
   });
 }
 
+// ── HOOK DEL ESTILO "DIRECTO" ── elegido por reglas, sin IA: precio si hay precio,
+// amenidad fuerte si existe, ubicación si no. Forma {categoria, emoji, texto} (como los hooks de antes).
+function motorMejorHook(v) {
+  const d = motorDatos(v), lugar = d.col || d.ciudad || 'la zona';
+  const fuerte = d.ams.find(a => MOTOR_FUERTES.includes(a));
+  if (d.price) return { categoria: 'Precio', emoji: '💰', texto: `¿Qué puedes ${d.renta ? 'rentar' : 'conseguir'} por ${motorPrecioPantalla(d.price)}${d.renta ? ' al mes' : ''} en ${lugar}?` };
+  if (fuerte) return { categoria: 'Amenidad', emoji: '🏡', texto: `${motorCap(d.este)} ${d.tipoMin} en ${lugar} tiene ${motorAmenidadVoz(fuerte, d)}. Mira.` };
+  return { categoria: 'Ubicación', emoji: '📍', texto: `Antes de ${d.renta ? 'rentar' : 'comprar'} en ${lugar}, mira esto.` };
+}
+
 // ── GUION + ESCENAS ──
 // opts: {estilo, hook: {texto}|string, seed, durSeg, nEscenas, wow, cta}
 // Devuelve {estilo, nombre, narracion, escenas, cta}: misma forma que el guion de antes
@@ -8078,6 +8076,7 @@ function motorGuion(v, opts) {
   const N = Math.max(1, opts.nEscenas | 0 || motorNumEscenas(dur));
   const presupuesto = Math.round(dur * 140 / 60); // ~140 palabras/min, voz natural en español
   let hook = opts.hook && typeof opts.hook === 'object' ? (opts.hook.texto || opts.hook.hook_maestro || '') : String(opts.hook || '');
+  if (!hook.trim()) hook = motorMejorHook(v).texto;
   hook = hook.replace(/\$\s?(\d[\d,]*(\.\d+)?)/g, (m, n) => motorPrecioVoz(parseFloat(n.replace(/,/g, '')))); // la voz no lee "$"
   const cta = String(opts.cta || '').trim() || motorCTA(d, seed);
   let seg = motorSegmentosEstilo(estilo[0], d, motorFrases(d), { seed, hook: hook.trim(), wow: opts.wow, cta });
@@ -8099,120 +8098,21 @@ function motorGuiones(v, opts) {
 }
 // ==== MOTOR DE GUIONES (fin) ====
 
-// ── GENERAR HOOKS CON GPT ──
+// ── HOOK + GUIONES (paso «Elige tu guion») — SIN IA ──
+// Antes aquí se pedían 10 hooks a OpenAI para que el asesor eligiera uno. Ahora el motor
+// elige el mejor hook de forma determinista (motorMejorHook) y escribe directamente los
+// 5 guiones; vidHooks/selectedHookIdx quedan apuntando a ese hook para quien los lea.
 async function generarHooks(concept) { return _nivaGenerarHooksBanner.call(this, concept); }
-const _nivaGenerarHooksBanner = nivaConBanner('🎣 Generando hooks y guion del video con IA… puede tardar hasta un minuto.', _generarHooksInner, 'hooks');
+const _nivaGenerarHooksBanner = nivaConBanner('✍️ Escribiendo los guiones del video…', _generarHooksInner, 'hooks');
 let _nivaHooksLoading = false;
 async function _generarHooksInner(concept) {
   if (!vidV) return;
   if (concept) activeConcepto = concept;
-  const oaKey = getOaKey();
-  const hooksPanel = document.getElementById('vid-hooks-panel');
-  // BUG (Ricardo, 22-sep-2026): este panel se ocultaba aquí y otra vez al terminar. Si el asesor
-  // ya estaba en el Paso 3 cuando la IA terminaba, el paso quedaba EN BLANCO y había que ir
-  // Atrás/Siguiente para que apareciera. Ahora el panel siempre está visible dentro del paso 3
-  // (la visibilidad la manda el wizard), con su indicador de carga mientras la IA trabaja.
-  hooksPanel.style.display = 'block';
-  const loadEl = document.getElementById('vid-hooks-loading');
-  const listEl = document.getElementById('vid-hooks-list');
-  _nivaHooksLoading = true;
-  loadEl.style.display = 'block';
-  listEl.innerHTML = '';
+  document.getElementById('vid-hooks-panel').style.display = 'block';
   document.getElementById('vid-script-outer').style.display = 'none';
-  selectedHookIdx = -1;
-
-  const v = vidV;
-  const meta = getVidMeta();
-  const ciudad = (v.city||'Monterrey').split(',')[0];
-  const precio = fmtP(v.price);
-  const ams = (v.ams||[]).slice(0,6).join(', ');
-
-  vidStatus('📝 Generando guión con IA…', 'loading');
-  if (!oaKey || oaKey.length < 10) {
-    vidHooks = generarHooksPlantilla(v, meta);
-    loadEl.style.display = 'none';
-    _nivaHooksLoading = false;
-    renderHooks();
-    if (vidHooks.length > 0) { selectedHookIdx = 0; _nivaMarcarHookSeleccionado(); await generarGuionConHook(0); }
-    return;
-  }
-
-  const conceptStr = activeConcepto ? `
-CONCEPTO CREATIVO ACTIVO:
-- Ángulo: ${activeConcepto.angulo}
-- Idea central: "${activeConcepto.titulo}"
-- Hook maestro: "${activeConcepto.hook_maestro}"
-- WOW: ${activeConcepto.elemento_wow}
-- Must show: ${(activeConcepto.must_show||[]).join(', ')}
-
-IMPORTANTE: Los 10 hooks deben girar alrededor de este concepto. El hook maestro puede ser uno de ellos.` : '';
-
-  try {
-    const prompt = `Eres un experto en marketing inmobiliario y contenido viral para TikTok, Instagram Reels y YouTube Shorts en México.
-
-PROPIEDAD:
-- Tipo: ${v.tipo} en ${v.op}
-- Ubicación: ${v.col}, ${ciudad}
-- Precio: ${precio}${v.esMes?' al mes':''}
-- Recámaras: ${v.rec||'N/D'} | Baños: ${v.ban||'N/D'} | Estacionamientos: ${v.estac||'N/D'}
-- Construcción: ${v.m2c||'N/D'} m² | Terreno: ${v.m2t||'N/D'} m²
-- Amenidades: ${ams||'N/D'}
-- Descripción: ${v.desc||'N/D'}
-${meta.wow ? '- PUNTO WOW: '+meta.wow : ''}
-${meta.buyer ? '- Buyer ideal: '+meta.buyer : ''}
-${meta.objetivo ? '- Objetivo del video: '+meta.objetivo : ''}
-${conceptStr}
-
-Genera exactamente 10 hooks diferentes para el inicio de un video corto de esta propiedad.
-Cada hook debe ser ESPECÍFICO para ESTA propiedad, no genérico.
-Prohibido usar: "Imagina vivir aquí", "Conoce esta increíble propiedad", "Te presentamos", "hermosa", "increíble".
-Los hooks deben ser concretos, con datos reales, generando curiosidad o urgencia real.
-
-Responde en JSON:
-{"hooks":[{"categoria":"Precio","emoji":"💰","texto":"..."},{"categoria":"Curiosidad","emoji":"🧠","texto":"..."},{"categoria":"Contraste","emoji":"⚖️","texto":"..."},{"categoria":"Retador","emoji":"🔥","texto":"..."},{"categoria":"Lifestyle","emoji":"🏡","texto":"..."},{"categoria":"Reveal","emoji":"👁️","texto":"..."},{"categoria":"Pregunta","emoji":"❓","texto":"..."},{"categoria":"Inversión","emoji":"📊","texto":"..."},{"categoria":"Ubicación","emoji":"📍","texto":"..."},{"categoria":"Opinión","emoji":"🎤","texto":"..."}],"mejor_hook_idx":0}`;
-
-    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {'Authorization':'Bearer '+oaKey,'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        temperature: 0.85,
-        response_format: {type:'json_object'},
-        messages: [{role:'user', content: prompt}]
-      })
-    });
-    if (!res.ok) throw new Error('HTTP '+res.status+' al generar hooks');
-    const data = await res.json();
-    const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-    vidHooks = parsed.hooks || [];
-    if (parsed.mejor_hook_idx !== undefined) {
-      document.getElementById('btn-use-best-hook').dataset.best = parsed.mejor_hook_idx;
-    }
-    // Si la API respondió 200 pero sin hooks utilizables, es el mismo caso que un error:
-    // sin este respaldo se quedaba con un panel de hooks vacío y sin aviso.
-    if (!vidHooks.length) {
-      vidStatus('⚠️ La IA no devolvió hooks utilizables. Usando hooks estándar.', 'err');
-      vidHooks = generarHooksPlantilla(v, meta);
-    }
-  } catch(e) {
-    console.warn('[NIVA][HOOKS]', e);
-    vidStatus('⚠️ Hooks IA fallaron (' + (e.message||e) + '). Usando hooks estándar.', 'err');
-    vidHooks = generarHooksPlantilla(v, meta);
-  }
-
-  loadEl.style.display = 'none';
-  _nivaHooksLoading = false;
-  renderHooks(); // siempre se pinta la lista: el Paso 3 existe para verla y cambiarla
-  // ── AUTO-SELECCIÓN: la IA elige el mejor y sigue al guión; el asesor puede cambiarlo en el Paso 3 ──
-  if (vidHooks.length > 0) {
-    const bestIdx = parseInt(document.getElementById('btn-use-best-hook')?.dataset?.best || '0');
-    selectedHookIdx = Math.min(bestIdx, vidHooks.length - 1);
-    _nivaMarcarHookSeleccionado();
-    await generarGuionConHook(selectedHookIdx);
-  }
-}
-function _nivaMarcarHookSeleccionado() {
-  document.querySelectorAll('.vid-hook-item').forEach((el, i) => el.classList.toggle('selected', i === selectedHookIdx));
+  vidHooks = [motorMejorHook(vidV)];
+  selectedHookIdx = 0;
+  await generarGuionConHook(0);
 }
 
 // ══════════════════════════════════════════════
@@ -8435,49 +8335,6 @@ function pickCTAText(v, meta, concept) {
   return opciones[0];
 }
 
-function generarHooksPlantilla(v, meta) {
-  const ciudad = (v.city||'Monterrey').split(',')[0];
-  const precio = fmtP(v.price);
-  return [
-    {categoria:'Precio', emoji:'💰', texto:`¿Qué puedes ${v.op==='Renta'?'rentar':'conseguir'} por ${precio} en ${v.col}?`},
-    {categoria:'Curiosidad', emoji:'🧠', texto:`Hay una razón por la que esta ${v.tipo.toLowerCase()} se siente diferente.`},
-    {categoria:'Contraste', emoji:'⚖️', texto:`Por este precio, normalmente tienes que sacrificar algo. Aquí no.`},
-    {categoria:'Retador', emoji:'🔥', texto:`Antes de ${v.op==='Renta'?'rentar':'comprar'} en ${v.col}, mira esto.`},
-    {categoria:'Lifestyle', emoji:'🏡', texto:`Si tus fines de semana se ven así, esta ${v.tipo.toLowerCase()} es para ti.`},
-    {categoria:'Reveal', emoji:'👁️', texto:`Espera a ver lo que tiene adentro.`},
-    {categoria:'Pregunta', emoji:'❓', texto:`¿Tú pagarías ${precio} por vivir aquí?`},
-    {categoria:'Inversión', emoji:'📊', texto:`Esto es lo que realmente estás comprando con ${precio} en ${ciudad}.`},
-    {categoria:'Ubicación', emoji:'📍', texto:`Vivir en ${v.col} cambia mucho cuando tienes esto.`},
-    {categoria:'Opinión', emoji:'🎤', texto:`Te voy a decir qué me gusta y qué no de esta ${v.tipo.toLowerCase()}.`},
-  ];
-}
-
-function renderHooks() {
-  const listEl = document.getElementById('vid-hooks-list');
-  listEl.innerHTML = '';
-  vidHooks.forEach((h, i) => {
-    const div = document.createElement('div');
-    div.className = 'vid-hook-item';
-    div.innerHTML = `<div class="vid-hook-cat">${_escVidHtml(h.emoji)} ${_escVidHtml(h.categoria)}</div><div class="vid-hook-text">"${_escVidHtml(h.texto)}"</div>`;
-    div.onclick = () => seleccionarHook(i);
-    listEl.appendChild(div);
-  });
-}
-
-function seleccionarHook(idx) {
-  selectedHookIdx = idx;
-  document.querySelectorAll('.vid-hook-item').forEach((el, i) => {
-    el.classList.toggle('selected', i === idx);
-  });
-  generarGuionConHook(idx);
-}
-
-function usarMejorHook() {
-  const btn = document.getElementById('btn-use-best-hook');
-  const best = parseInt(btn.dataset.best || '0');
-  seleccionarHook(Math.min(best, vidHooks.length-1));
-}
-
 // ── CLASIFICACIÓN DE FOTOS (GPT-4o Vision) ──
 // Tipos: HERO, WOW, EXTERIOR, BUILDING_TOWER, SALA, COCINA, RECAMARA, BANO, VISTA, AMENIDAD, DETALLE, OTRO
 const PHOTO_TYPES_ALLOW_TILT = new Set(['BUILDING_TOWER', 'EXTERIOR', 'VISTA']);
@@ -8621,7 +8478,7 @@ async function _generarGuionConHookInner(hookIdx) {
   motorUsarGuion(_motorEstiloIdx);
 }
 
-function motorUsarGuion(i) {
+function motorUsarGuion(i, avanzar) {
   const g = _motorGuiones[i];
   if (!g) return;
   _motorEstiloIdx = i;
@@ -8631,19 +8488,22 @@ function motorUsarGuion(i) {
   vidScenes = remapEscenasAOrdenManual(JSON.parse(JSON.stringify(g.escenas)));
   renderScenes();
   motorPintarGuiones();
+  // Elegido a mano en el paso 3 → sigue el flujo normal al siguiente paso
+  if (avanzar && typeof nivaVidCurrentStep !== 'undefined' && nivaVidCurrentStep === 3) nivaVidWizardGo(1);
 }
 
 function motorPintarGuiones() {
   const box = document.getElementById('vid-guion-opciones');
   if (!box) return;
   box.style.display = _motorGuiones.length ? 'flex' : 'none';
-  box.innerHTML = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A">✍️ Elige el estilo del guion</div>' +
-    _motorGuiones.map((g, i) => {
+  const ld = document.getElementById('vid-hooks-loading');
+  if (ld) ld.style.display = 'none';
+  box.innerHTML = _motorGuiones.map((g, i) => {
       const enUso = i === _motorEstiloIdx;
       return `<div class="motor-guion-card" data-estilo="${g.estilo}" style="border:${enUso ? '2px solid #C9A84C' : '1.5px solid #e2e8f0'};background:${enUso ? '#fdf8ec' : '#fff'};border-radius:10px;padding:10px 12px;min-width:0">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
           <span style="font-size:12px;font-weight:800;color:#1B2A4A">${_escVidHtml(g.nombre)}</span>
-          <button type="button" onclick="motorUsarGuion(${i})" ${enUso ? 'disabled' : ''} style="flex-shrink:0;font-size:10.5px;padding:5px 10px;border-radius:6px;border:none;font-weight:700;cursor:${enUso ? 'default' : 'pointer'};background:${enUso ? '#C9A84C' : '#1B2A4A'};color:${enUso ? '#1B2A4A' : '#fff'}">${enUso ? '✓ En uso' : 'Usar este'}</button>
+          <button type="button" onclick="motorUsarGuion(${i}, true)" ${enUso ? 'disabled' : ''} style="flex-shrink:0;font-size:10.5px;padding:5px 10px;border-radius:6px;border:none;font-weight:700;cursor:${enUso ? 'default' : 'pointer'};background:${enUso ? '#C9A84C' : '#1B2A4A'};color:${enUso ? '#1B2A4A' : '#fff'}">${enUso ? '✓ En uso' : 'Usar este'}</button>
         </div>
         <div style="font-size:11.5px;line-height:1.5;color:#334155;white-space:pre-line;overflow-wrap:anywhere">${_escVidHtml(g.narracion.replace(/\n\n/g, '\n'))}</div>
       </div>`;
