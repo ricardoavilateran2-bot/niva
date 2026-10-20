@@ -1030,7 +1030,7 @@ img,video,canvas{max-width:100%}
       </div>
       <div id="vid-concepts-list" style="display:flex;flex-direction:column;gap:8px"></div>
       <div id="vid-concepts-actions" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0">
-        <button id="btn-use-best-concept" onclick="usarMejorConcepto()" style="width:100%;padding:8px;background:linear-gradient(135deg,#1B2A4A,#2d4170);color:white;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer">🤖 ELEGIR MEJOR CONCEPTO (IA)</button>
+        <button id="btn-use-best-concept" onclick="usarMejorConcepto()" style="width:100%;padding:8px;background:linear-gradient(135deg,#1B2A4A,#2d4170);color:white;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer">⭐ ELEGIR MEJOR CONCEPTO</button>
       </div>
     </div>
 
@@ -1213,29 +1213,6 @@ img,video,canvas{max-width:100%}
       <p class="vid-tip-sm">🎙️ ElevenLabs · 📁 Audio propio<br>Descarga en MP4 HD · Subtítulos opcionales</p>
     </div>
 
-    <!-- ── REVISIÓN CON IA — a petición de Ricardo: un último check con IA antes de -->
-    <!-- descargar (guion, ritmo, fotos vs. escenas, checklist general) + una pregunta libre. -->
-        <div class="card" id="ia-review-card" style="display:none;margin-top:12px">
-      <div class="card-title">🤖 Revisión con IA — antes de descargar</div>
-      <p style="font-size:11px;color:#64748b;margin:0 0 10px">La IA revisa el guion, el ritmo de las escenas, que cada foto combine con lo que dice la voz en ese momento, y un checklist general (precio, ubicación, ortografía). También puedes preguntarle lo que quieras sobre este video.</p>
-      <!-- "Analizar video completo" (nivaAnalizarVideoIA) se quitó: dependía de OpenAI. -->
-      <div id="ia-review-loading" style="display:none;text-align:center;padding:14px;font-size:12px;color:#64748b">🤖 Analizando guion, ritmo y fotos…</div>
-      <div id="ia-review-results" style="margin-top:10px"></div>
-
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #e2e8f0">
-        <button type="button" class="btn-play" style="width:100%;justify-content:center;background:linear-gradient(135deg,#16a34a,#15803d)" id="btn-ia-apply" onclick="nivaAplicarCambiosIA()">🛠️ Revisar y corregir todo de una vez</button>
-        <p style="font-size:9.5px;color:#94a3b8;text-align:center;margin:4px 0 0">La IA revisa TODO el video de una sola vez (duración/temporización de cada escena y pequeñas correcciones de guion) y aplica todo junto — no hace falta "Analizar" primero. Nunca cambia fotos, ni precio, ubicación o portada, ni reestructura el video.</p>
-        <div id="ia-apply-loading" style="display:none;text-align:center;padding:10px;font-size:12px;color:#64748b">🛠️ Aplicando cambios…</div>
-        <div id="ia-apply-result" style="margin-top:10px"></div>
-        <div id="ia-ask-block" style="display:none">
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:6px;margin-top:14px">💬 Pregúntale lo que quieras</div>
-          <textarea id="ia-review-question" placeholder="Ej. ¿El precio se ve claro? ¿Cómo mejoro el cierre del video? ¿Qué le falta comparado con lo que piden los clientes?" style="width:100%;min-height:60px;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
-          <button type="button" class="btn-dl" style="width:100%;justify-content:center;margin-top:8px" id="btn-ia-ask" onclick="nivaPreguntarIA()">🤔 Preguntar</button>
-          <div id="ia-ask-loading" style="display:none;text-align:center;padding:10px;font-size:12px;color:#64748b">🤖 Pensando…</div>
-          <div id="ia-ask-answer" style="margin-top:10px"></div>
-        </div>
-      </div>
-    </div>
     </div><!-- /niva-vid-step-5 -->
 
     <div id="niva-vid-wizard-nav-bottom" style="background:linear-gradient(135deg,#1B2A4A,#233a63);border-radius:12px;padding:10px 14px;margin-top:16px;box-shadow:0 2px 10px rgba(0,0,0,.15)">
@@ -1286,8 +1263,8 @@ img,video,canvas{max-width:100%}
 const DEBUG_MODE = false;
 // ══════════════════════════════════════════════
 //  FETCH CON TIMEOUT — evita que el Motor de Video se quede
-//  "pensando" para siempre cuando una llamada de red (OpenAI,
-//  ElevenLabs, etc.) nunca responde (comun en WiFi/datos de iPad).
+//  "pensando" para siempre cuando una llamada de red (ElevenLabs,
+//  música, etc.) nunca responde (comun en WiFi/datos de iPad).
 //  Cualquier hang ahora truena con un error claro y visible en
 //  vez de colgarse en silencio.
 // ══════════════════════════════════════════════
@@ -1637,7 +1614,7 @@ let VOICE_PROVIDER = "elevenlabs";
 //  VOICE CACHE — evita llamadas API duplicadas
 // ══════════════════════════════════════════════
 const voiceCache = {}; // key: "provider:voiceId:hash:speed", value: { blob, audioUrl }
-const apiUsageStats = { openaiTTS: 0, elevenlabs: 0, cacheHits: 0, cacheMisses: 0 };
+const apiUsageStats = { elevenlabs: 0, cacheHits: 0, cacheMisses: 0 };
 
 function voiceCacheKey(provider, voiceId, text, speed) {
   // IMPORTANTE: la firma debe cubrir el guion COMPLETO, no solo el inicio — antes se
@@ -1650,7 +1627,6 @@ function voiceCacheKey(provider, voiceId, text, speed) {
 
 function updateApiUsageDisplay() {
   const el = (id) => document.getElementById(id);
-  if (el('statOaiTTS'))  el('statOaiTTS').textContent  = apiUsageStats.openaiTTS;
   if (el('statEL'))      el('statEL').textContent      = apiUsageStats.elevenlabs;
   if (el('statHits'))    el('statHits').textContent    = apiUsageStats.cacheHits;
   if (el('statMisses'))  el('statMisses').textContent  = apiUsageStats.cacheMisses;
@@ -1674,7 +1650,7 @@ async function generarPruebaVoz() {
     : 'Descubre esta increíble propiedad en Monterrey. Contáctanos hoy.';
 
   const provider = getActiveVoiceProvider();
-  const voice = (document.getElementById('openai-voice-sel')?.value) || 'marin';
+  const voice = document.getElementById('vid-voice-profile')?.value || 'elevenlabs';
   const speed = calculateVoiceSpeed(testText);
   const cKey = voiceCacheKey(provider, voice, testText, speed);
 
@@ -1689,9 +1665,7 @@ async function generarPruebaVoz() {
       blob = voiceCache[cKey].blob;
     } else {
       apiUsageStats.cacheMisses++;
-      if (provider === 'openai') {
-        blob = await generateVoiceOpenAI(testText);
-      } else if (provider === 'elevenlabs') {
+      if (provider === 'elevenlabs') {
         let voiceId = document.getElementById('vid-voice-profile')?.value || 'onwK4e9ZLuTAKqWW03F9';
         if (voiceId === '__custom__') voiceId = (document.getElementById('el-voice-custom')?.value || '').trim() || 'onwK4e9ZLuTAKqWW03F9';
         blob = await getElevenLabsAudio(testText, getElevenLabsApiKey(), voiceId);
@@ -2398,71 +2372,8 @@ function scoreMusicForAnalysis(track, analysis) {
 async function analyzeAndSelectMusic(fromAuto) {
   // Si ya hay una selección manual activa (no forzada), no cambiar
   if (fromAuto && musicState.selectedTrackId && musicState.source === 'manual') return;
-
-  const oaKey = getOaKey();
-  const statusEl = document.getElementById('music-status');
-  const badge    = document.getElementById('music-ai-badge');
-  const moodEl   = document.getElementById('music-mood-detected');
-  const recBox   = document.getElementById('music-recommendations');
-
-  if (badge) badge.style.background = '#fef9c3';
-  if (statusEl) statusEl.textContent = '🤖 Analizando propiedad para selección musical…';
-
-  const v      = vidV || {};
-  const script = (document.getElementById('vid-script-ta')?.value || '').slice(0, 300);
-  const precio = v.price || 0;
-
-  // Without OpenAI key: use heuristic
-  if (!oaKey) {
-    const fallback = heuristicMusicSelect(v);
-    applyMusicSelection(fallback, null, fromAuto);
-    return;
-  }
-
-  const propSummary = `Tipo: ${v.tipo || 'Casa'} | Precio: $${precio.toLocaleString('es-MX')} MXN${v.esMes?' /mes':''} | Colonia: ${v.col || ''}, ${(v.city||'').split(',')[0]} | Recámaras: ${v.rec||'N/D'}, Baños: ${v.ban||'N/D'}, m²: ${v.m2c||'N/D'} | Amenidades: ${(v.ams||[]).slice(0,5).join(', ')||'N/D'} | Guión: ${script||'N/D'}`;
-  const prompt = `Eres un experto en música para videos inmobiliarios premium de Monterrey.
-Analiza esta propiedad y selecciona 3 tracks de la biblioteca NIVA_TRACKS.
-
-PROPIEDAD:
-${propSummary}
-
-REGLAS OBLIGATORIAS:
-1. Prioriza MELODÍA sobre beats. Una canción con buena melodía siempre gana sobre una con solo beats.
-2. Prioriza estos estilos: FEEL_GOOD_POP, INDIE_POP, FUNK_POP, NU_DISCO, MODERN_SOUL, DISCO_POP, ACOUSTIC_POP, LIGHT_FUNK, SUMMER_POP, POP_ELECTRONIC.
-3. Las 3 opciones DEBEN ser de estilos musicalmente diferentes (no 3 variantes del mismo género).
-4. BPM ideal: 95-125. No es el criterio principal — la melodía y el feeling importan más.
-5. PROHIBIDO: estilos con etiquetas investigation, crime, thriller, horror, suspense, mystery, dark, tension, dramatic, ambient, minimal.
-6. NO asumir que LUXURY = lento y cinematográfico. LUXURY + UPBEAT + MELODY es perfectamente válido.
-7. La música debe provocar: "Está chingona esta propiedad, quiero conocerla." — NO "estoy viendo un documental".
-8. Prefiere instrumental. Voces solo como vocal chops discretos.
-
-BIBLIOTECA DISPONIBLE: ${JSON.stringify(NIVA_TRACKS.map(t=>({id:t.id,title:t.title,mood:t.mood,bpm:t.bpm})))}
-
-Devuelve JSON: {"tracks":["id1","id2","id3"],"mood":"descripción del mood elegido"}`;
-
-  try {
-    const res  = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {'Authorization': 'Bearer '+oaKey, 'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        temperature: 0.2,
-        response_format: {type: 'json_object'},
-        messages: [{role:'user', content: prompt}]
-      })
-    });
-    if (!res.ok) throw new Error('HTTP '+res.status+' al analizar música');
-    const data = await res.json();
-    musicAnalysis = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-  } catch(e) {
-    musicAnalysis = null;
-  }
-
-  // Score all tracks
-  const scored = NIVA_TRACKS.map(t => ({ ...t, aiScore: scoreMusicForAnalysis(t, musicAnalysis) }))
-    .sort((a,b) => b.aiScore - a.aiScore);
-
-  applyMusicSelection(scored, musicAnalysis, fromAuto);
+  // Selección por reglas (tipo y precio de la propiedad), sin IA
+  applyMusicSelection(heuristicMusicSelect(vidV || {}), null, fromAuto);
 }
 
 function heuristicMusicSelect(v) {
@@ -2585,7 +2496,7 @@ function selectMusicRecById(trackId) {
   const statusEl = document.getElementById('music-status');
   if (statusEl) statusEl.textContent = `✅ Usando: ${track.title}`;
   updateMusicDebug();
-  // NO llama a OpenAI, NO genera voz, NO genera video
+  // NO llama a servicios externos, NO genera voz, NO genera video
 }
 
 function selectMusicRec(idx) {
@@ -6925,9 +6836,7 @@ function downloadWebmFallback() {
   vidStatus('⬇️ Descargando WebM (fallback técnico) — la conversión a MP4 no se completó.', 'info');
 }
 
-// ⚠️  API keys — ingresar en los campos de la UI o en el campo "openai-key".
-// Las claves anteriores fueron eliminadas del código fuente por seguridad.
-// Si las claves anteriores estuvieron expuestas, rótalas en platform.openai.com y elevenlabs.io.
+// ⚠️  Las claves anteriores fueron eliminadas del código fuente por seguridad.
 // ── ELEVENLABS — fuente única de verdad ──
 // window.NIVA_ELEVENLABS_API_KEY es el backing store persistente dentro de la sesión.
 // Sobrevive re-evaluaciones del script porque vive en window (no en closure).
@@ -6981,16 +6890,9 @@ function getElDiagnostics() {
 }
 
 let elApiKey = ''; // compatibilidad — no usar directamente; usar getElevenLabsApiKey()
-function getOaKey() {
-  const k = (document.getElementById('openai-key')?.value || '').trim();
-  if (k) return k; // el usuario puede seguir usando su propia key personal
-  return NIVA_PROXY_SENTINEL; // sin key → IA vía proxy de empresa (niva-openai-proxy)
-}
-// ── NIVA PROXY IA DE EMPRESA ─────────────────────────────────────
-// Redirige las llamadas a api.openai.com hacia la edge function
-// niva-openai-proxy (la misma que usa Valuación) cuando el usuario no
-// tiene API key propia. La llave real vive en el servidor, nunca aquí.
-const NIVA_PROXY_SENTINEL = 'NIVA-PROXY-EMPRESA-KEY-000000';
+// ── PASSTHROUGH DE ELEVENLABS ─────────────────────────────────────
+// Las llamadas a api.elevenlabs.io con el sentinel NIVA-EL-PROXY se mandan a la edge
+// function niva-openai-proxy (?provider=elevenlabs), que guarda la llave real del servidor.
 (function(){
   const _f = window.fetch.bind(window);
   window.fetch = async function(url, opts){
@@ -7007,24 +6909,6 @@ const NIVA_PROXY_SENTINEL = 'NIVA-PROXY-EMPRESA-KEY-000000';
           // El proxy recibe la ruta de ElevenLabs y el cuerpo tal cual; responde el audio/JSON sin tocarlo.
           return _f(cfg.url + '/functions/v1/niva-openai-proxy?provider=elevenlabs&path=' + encodeURIComponent(url.replace('https://api.elevenlabs.io','')),
                     { method: opts.method || 'POST', headers:{'Authorization':'Bearer '+cfg.anon, 'apikey':cfg.anon, 'x-niva-jwt': token, 'Content-Type':'application/json'}, body: opts.body });
-        }
-      }
-      if (typeof url === 'string' && url.startsWith('https://api.openai.com/') && opts && opts.headers) {
-        const h = opts.headers;
-        const auth = h['Authorization'] || h['authorization'] || '';
-        if (String(auth).includes(NIVA_PROXY_SENTINEL)) {
-          if (!url.startsWith('https://api.openai.com/v1/chat/completions')) {
-            // Endpoint no soportado por el proxy (p. ej. voz TTS) → aviso claro
-            return new Response(JSON.stringify({error:{message:'Esta función de voz requiere API key propia de OpenAI. Usa audio propio, o pega tu key en Configuración.'}}), {status:400, headers:{'Content-Type':'application/json'}});
-          }
-          const cfg = window.__nivaCfg || (window.__nivaCfg = await (await _f('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json());
-          let token = cfg.anon;
-          try {
-            if (window.__nivaSb) { const s = await window.__nivaSb.auth.getSession(); if (s && s.data && s.data.session) token = s.data.session.access_token; }
-            else if (window.__nivaSession) token = window.__nivaSession.access_token;
-          } catch(e){}
-          // (24-sep-2026) anon key en Authorization (la puerta de Supabase rechaza los JWT nuevos) y el token real en x-niva-jwt
-          return _f(cfg.url + '/functions/v1/niva-openai-proxy', { method:'POST', headers:{'Authorization':'Bearer '+cfg.anon, 'apikey':cfg.anon, 'x-niva-jwt': token, 'Content-Type':'application/json'}, body: opts.body });
         }
       }
     } catch(e) { console.warn('[NIVA][PROXY] interceptor:', e); }
@@ -7055,7 +6939,7 @@ const NIVA_FLAGS = {
   creativDirector:          false, // Creative Director + conceptos creativos — DESACTIVADO
   beatSystem:               true,  // sistema de beats para renderizado
   newOutro:                 true,  // nuevo cierre NIVA elegante
-  photoClassifier:          true,  // Fase 3: clasificación de fotos con GPT-4o Vision
+  photoClassifier:          true,  // tipos de foto genéricos (sin IA) para el movimiento de cámara
   advancedCameraMotion:     true,  // Fase 2V: sistema de cámara cinematográfico
   parallax:                 true,  // efecto parallax / profundidad sutil
   dynamicTransitions:       true,  // transiciones direccionales (push, whip, zoom)
@@ -7737,7 +7621,7 @@ async function genVideo(v) {
   // Análisis musical automático — SOLO si aún no hay música seleccionada
   // musicState.selectedTrackId persiste entre regeneraciones de guion/voz/escenas
   if (!musicState.selectedTrackId) {
-    vidStatus('🎵 Seleccionando música con IA…', 'loading');
+    vidStatus('🎵 Seleccionando música…', 'loading');
     await analyzeAndSelectMusic(true);
   } else {
     vidStatus('🎵 Música: ' + musicState.selectedTrackName, 'ok');
@@ -7885,14 +7769,20 @@ function motorNumEscenas(durSeg) {
   return d <= 22 ? 7 : d <= 33 ? 10 : 12;
 }
 
-function motorCTA(d, seed) {
-  return motorElegir([
+function motorCTAs(d) {
+  return [
     `¿${motorCap(d.lo)} quieres conocer? Mándame mensaje y agendamos tu visita.`,
     'Escríbeme y te paso todos los detalles.',
     `¿Quieres ver${d.lo} en persona? Escríbeme hoy.`,
     'Mándame mensaje y te digo si sigue disponible.',
     'Agenda tu visita, te espero.',
-  ], seed, 0);
+  ];
+}
+function motorCTA(d, seed) { return motorElegir(motorCTAs(d), seed, 0); }
+// «↺ CTA»: la siguiente variante después de la actual (si la actual no es del motor, la primera)
+function motorSiguienteCTA(v, actual) {
+  const L = motorCTAs(motorDatos(v)), i = L.indexOf(String(actual || '').trim());
+  return L[(i + 1) % L.length];
 }
 
 function motorM2(n) { return n.toLocaleString('es-MX') + ' metros cuadrados'; }
@@ -8089,7 +7979,20 @@ function motorGuion(v, opts) {
     }
   }
   const escenas = motorEscenas(seg, N);
-  return { estilo: estilo[0], nombre: estilo[1], narracion: escenas.map(e => e.narracion_frag).filter(Boolean).join('\n\n'), escenas, cta };
+  const ctaUsado = seg.length ? seg[seg.length - 1][0] : cta; // todos los estilos cierran con su CTA
+  return { estilo: estilo[0], nombre: estilo[1], narracion: escenas.map(e => e.narracion_frag).filter(Boolean).join('\n\n'), escenas, cta: ctaUsado };
+}
+
+// «🔀 Alternativa»: otra variante del mismo estilo (siguientes semillas); si el estilo no
+// tiene más variantes para estos datos, el siguiente estilo.
+function motorAlternativa(v, opts) {
+  const actual = motorGuion(v, opts).narracion, seed = (opts && opts.seed) || 1;
+  for (let s = seed + 1; s <= seed + 6; s++) {
+    const g = motorGuion(v, Object.assign({}, opts, { seed: s }));
+    if (g.narracion !== actual) return Object.assign(g, { seed: s });
+  }
+  const i = Math.max(0, MOTOR_ESTILOS.findIndex(e => e[0] === (opts && opts.estilo)));
+  return Object.assign(motorGuion(v, Object.assign({}, opts, { estilo: MOTOR_ESTILOS[(i + 1) % MOTOR_ESTILOS.length][0] })), { seed: seed + 6 });
 }
 
 // Los 5 estilos de una vez (el asesor elige uno; "Directo" es el predeterminado)
@@ -8099,7 +8002,7 @@ function motorGuiones(v, opts) {
 // ==== MOTOR DE GUIONES (fin) ====
 
 // ── HOOK + GUIONES (paso «Elige tu guion») — SIN IA ──
-// Antes aquí se pedían 10 hooks a OpenAI para que el asesor eligiera uno. Ahora el motor
+// Antes aquí se pedían 10 hooks a una IA para que el asesor eligiera uno. Ahora el motor
 // elige el mejor hook de forma determinista (motorMejorHook) y escribe directamente los
 // 5 guiones; vidHooks/selectedHookIdx quedan apuntando a ese hook para quien los lea.
 async function generarHooks(concept) { return _nivaGenerarHooksBanner.call(this, concept); }
@@ -8124,7 +8027,6 @@ async function _generateCreativeConceptsInner() {
   if (!vidV) return;
   const v = vidV;
   const meta = getVidMeta();
-  const oaKey = getOaKey();
   const panel = document.getElementById('vid-concepts-panel');
   const loading = document.getElementById('vid-concepts-loading');
   const list = document.getElementById('vid-concepts-list');
@@ -8137,92 +8039,8 @@ async function _generateCreativeConceptsInner() {
   document.getElementById('vid-hooks-panel').style.display = 'none';
   document.getElementById('vid-script-outer').style.display = 'none';
 
-  const ciudad = (v.city || 'Monterrey').split(',')[0];
-  const precio = fmtP(v.price);
-  const ams = (v.ams || []).join(', ');
-
-  if (!oaKey || oaKey.length < 10) {
-    vidConcepts = buildConceptosPlantilla(v, meta);
-    loading.style.display = 'none';
-    renderConceptSelector(vidConcepts);
-    return;
-  }
-
-  try {
-    vidStatus('🎬 Director Creativo analizando la propiedad…', 'loading');
-    const prompt = `Eres el Director Creativo de NIVA Inmobiliaria. Tu trabajo es encontrar el ÁNGULO CREATIVO más poderoso para convertir esta propiedad en contenido viral para TikTok/Reels/Shorts en México.
-
-PROPIEDAD:
-- Tipo: ${v.tipo} en ${v.op}
-- Ubicación: ${v.col}, ${ciudad}
-- Precio: ${precio}${v.esMes ? ' al mes' : ''}
-- Recámaras: ${v.rec || 'N/D'} | Baños: ${v.ban || 'N/D'} | Estacionamientos: ${v.estac || 'N/D'}
-- Construcción: ${v.m2c || 'N/D'} m² | Terreno: ${v.m2t || 'N/D'} m²
-- Amenidades: ${ams || 'N/D'}
-- Descripción: ${v.desc || ''}
-${meta.wow ? '- PUNTO WOW del asesor: ' + meta.wow : ''}
-${meta.buyer ? '- Comprador ideal: ' + meta.buyer : ''}
-${meta.objetivo ? '- Objetivo: ' + meta.objetivo : ''}
-- Fotos disponibles: ${photos.length}
-
-Tu tarea: Genera exactamente 3 CONCEPTOS CREATIVOS. Cada concepto es un ÁNGULO NARRATIVO diferente — no solo palabras distintas para la misma idea.
-
-REGLAS CRÍTICAS:
-- NO inventar características que no existan en los datos
-- Cada concepto debe tener una idea central completamente diferente
-- El score debe reflejar honestamente cuál funcionará mejor con ESTA propiedad
-- Prohibido: "increíble", "hermosa", "espectacular", "de ensueño", "garantizada", "la mejor zona"
-- PRECIOS: siempre en PESOS MEXICANOS. Nunca mencionar dólares, USD, ni hacer conversiones.
-  Usar lenguaje natural: "50 mil al mes", "2.5 millones", NUNCA "$50,000 USD"
-- El cta_texto debe ser conversacional y NO usar siempre "CONTÁCTANOS"
-
-Responde en JSON:
-{
-  "conceptos": [
-    {
-      "id": "A",
-      "angulo": "precio_valor|lifestyle|espacio|ubicacion|inversion|familia|exclusivo",
-      "titulo": "la idea en máximo 8 palabras (español, minúsculas)",
-      "hook_maestro": "el hook exacto que abre el video",
-      "razon_funcionar": "por qué este ángulo funciona con ESTA propiedad (max 20 palabras)",
-      "elemento_wow": "el elemento específico que justifica el concepto",
-      "publico_ideal": "quién es el comprador para este ángulo (max 10 palabras)",
-      "must_show": ["item1","item2","item3"],
-      "nice_show": ["item opcional"],
-      "dont_show": ["lo que NO aporta al concepto"],
-      "ritmo": "rapido-medio-wow|medio-lento-elegante|rapido-reveal-impacto",
-      "musica_mood": "urban|cinematic|lifestyle|luxury|energetic|emotional",
-      "camera_style": "dinamico|cinematografico|documental|lifestyle",
-      "cta_texto": "CTA conversacional en primera persona (max 8 palabras)",
-      "score": 0
-    }
-  ],
-  "concepto_recomendado": "A"
-}`;
-
-    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + oaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o', temperature: 0.88,
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    if (!res.ok) throw new Error('HTTP '+res.status+' al generar conceptos');
-    const data = await res.json();
-    const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-    vidConcepts = parsed.conceptos || [];
-    const bestId = parsed.concepto_recomendado;
-    const bestIdx = vidConcepts.findIndex(c => c.id === bestId);
-    const btn = document.getElementById('btn-use-best-concept');
-    if (btn) btn.dataset.best = Math.max(0, bestIdx);
-  } catch(e) {
-    console.warn('[NIVA][CREATIVE_DIRECTOR]', e);
-    vidStatus('⚠️ Director Creativo IA falló (' + (e.message||e) + '). Usando conceptos estándar.', 'err');
-    vidConcepts = buildConceptosPlantilla(v, meta);
-  }
-
+  // Conceptos por plantilla con los datos de la propiedad (sin IA)
+  vidConcepts = buildConceptosPlantilla(v, meta);
   loading.style.display = 'none';
   renderConceptSelector(vidConcepts);
 }
@@ -8335,7 +8153,7 @@ function pickCTAText(v, meta, concept) {
   return opciones[0];
 }
 
-// ── CLASIFICACIÓN DE FOTOS (GPT-4o Vision) ──
+// ── TIPOS DE FOTO (para movimiento de cámara) ──
 // Tipos: HERO, WOW, EXTERIOR, BUILDING_TOWER, SALA, COCINA, RECAMARA, BANO, VISTA, AMENIDAD, DETALLE, OTRO
 const PHOTO_TYPES_ALLOW_TILT = new Set(['BUILDING_TOWER', 'EXTERIOR', 'VISTA']);
 
@@ -8354,85 +8172,10 @@ const MOTION_BY_PHOTO_TYPE = {
   OTRO:          ['dollyIn', 'panRight', 'pullOut'],
 };
 
+// Sin IA: todas las fotos quedan como tipo genérico (OTRO, puntajes medios) y el video
+// respeta el orden manual del asesor — es el mismo respaldo que se usaba cuando no había IA.
 async function classifyPhotos(photoUrls) {
-  const oaKey = getOaKey();
-  if (!oaKey || !NIVA_FLAGS.photoClassifier || !photoUrls || !photoUrls.length) {
-    // fallback sin clasificación
-    return photoUrls.map(() => ({ type: 'OTRO', hero_score: 5, wow_score: 5, visual_score: 5, narrative_score: 5, recommended_function: 'Detalle' }));
-  }
-  try {
-    vidStatus('🔍 Clasificando fotos con IA…', 'loading');
-    // Enviar hasta 8 fotos (límite de tokens razonable)
-    const toClassify = photoUrls.slice(0, 8);
-    const imageContent = toClassify.map((url, i) => ([
-      { type: 'text', text: `Foto ${i}:` },
-      { type: 'image_url', image_url: { url, detail: 'low' } }
-    ])).flat();
-
-    const prompt = `Eres un director de fotografía inmobiliaria. Clasifica cada foto de la propiedad.
-
-Para cada foto (0 a ${toClassify.length - 1}) responde en JSON con este formato exacto:
-{
-  "fotos": [
-    {
-      "idx": 0,
-      "type": "HERO|WOW|EXTERIOR|BUILDING_TOWER|SALA|COCINA|RECAMARA|BANO|VISTA|AMENIDAD|DETALLE|OTRO",
-      "hero_score": 0-10,
-      "wow_score": 0-10,
-      "visual_score": 0-10,
-      "narrative_score": 0-10,
-      "recommended_function": "Hook|Contexto|Detalle|WOW|Precio|Respiracion|CTA"
-    }
-  ]
-}
-
-Guía de tipos:
-- HERO: foto principal de mayor impacto visual, la mejor para portada
-- WOW: elemento sorprendente (vista, detalle de lujo, espacio muy amplio)
-- BUILDING_TOWER: fachada de edificio, torre, altura visible (SOLO estos permiten tilt up/down)
-- EXTERIOR: fachada de casa, jardín, piscina desde afuera
-- SALA: sala de estar, comedor, área social
-- COCINA: cocina, isla, barra
-- RECAMARA: habitación, cuarto, bedroom
-- BANO: baño, shower, tina
-- VISTA: vista desde ventana o terraza al exterior
-- AMENIDAD: gimnasio, roof, lobby, área común
-- DETALLE: close-up de materiales, acabados, herrajes
-- OTRO: planos, renders, documentos
-
-hero_score: qué tan buena es para portada/hook (10=perfecta)
-wow_score: nivel de impacto emocional (10=muy impresionante)
-visual_score: calidad fotográfica y composición (10=excelente)
-narrative_score: qué tan bien cuenta la historia de la propiedad (10=muy descriptiva)`;
-
-    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + oaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        temperature: 0.2,
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, ...imageContent] }]
-      })
-    });
-    if (!res.ok) throw new Error('Vision API ' + res.status);
-    const data = await res.json();
-    const parsed = JSON.parse(data.choices[0].message.content);
-    const classified = parsed.fotos || [];
-
-    // Rellenar con OTRO para fotos que no llegaron a la API
-    const result = photoUrls.map((_, i) => {
-      const found = classified.find(f => f.idx === i);
-      return found || { idx: i, type: 'OTRO', hero_score: 5, wow_score: 5, visual_score: 5, narrative_score: 5, recommended_function: 'Detalle' };
-    });
-
-    vidStatus('✅ Fotos clasificadas (' + result.filter(f => f.type !== 'OTRO').length + '/' + result.length + ')', 'ok');
-    return result;
-  } catch(e) {
-    console.warn('[NIVA][CLASSIFY_PHOTOS]', e);
-    vidStatus('⚠️ Clasificación de fotos IA falló (' + (e.message||e) + '). Usando tipo genérico.', 'err');
-    return photoUrls.map(() => ({ type: 'OTRO', hero_score: 5, wow_score: 5, visual_score: 5, narrative_score: 5, recommended_function: 'Detalle' }));
-  }
+  return (photoUrls || []).map((_, i) => ({ idx: i, type: 'OTRO', hero_score: 5, wow_score: 5, visual_score: 5, narrative_score: 5, recommended_function: 'Detalle' }));
 }
 
 // Recorta la narración para que quepa hablada en la duración objetivo del video
@@ -8486,6 +8229,7 @@ function motorUsarGuion(i, avanzar) {
   vidCountChars();
   // Copia: editar escenas no debe cambiar la opción guardada
   vidScenes = remapEscenasAOrdenManual(JSON.parse(JSON.stringify(g.escenas)));
+  _motorCtaActual = g.cta;
   renderScenes();
   motorPintarGuiones();
   // Elegido a mano en el paso 3 → sigue el flujo normal al siguiente paso
@@ -9054,562 +8798,6 @@ function renderScore(score) {
   fixBtn.style.display = (advertencias.length > 0 || total < 75) ? 'block' : 'none';
 }
 
-// ══════════════════════════════════════════════
-//  REVISIÓN CON IA — ANTES DE DESCARGAR (a petición de Ricardo)
-//  Distinto del Video Score (que corre automático al generar el guion): esto es un
-//  chequeo bajo demanda, justo antes de bajar el MP4, que además compara las FOTOS
-//  asignadas a cada escena contra lo que esa escena dice (con visión de GPT-4o).
-// ══════════════════════════════════════════════
-
-// Recuerda el último análisis y la última pregunta/respuesta — es el contexto que usa
-// "Aplicar estos cambios al video" para saber QUÉ cambios convertir en ediciones reales.
-let _nivaLastReviewData = null;
-let _nivaLastAskQA = null;
-
-// Junta, para hasta 1 foto por escena (deduplicada por índice), las partes de "content"
-// que se le mandan a la API de OpenAI (chat/completions con visión) — reutilizado tanto
-// por el análisis completo como por la pregunta libre.
-function _nivaScenePhotoParts(scenes, withLabel) {
-  const parts = [];
-  const seenIdx = new Set();
-  (scenes || []).forEach((s, i) => {
-    const fIdx = Math.min(Math.max(s.foto_idx || 0, 0), Math.max(photos.length - 1, 0));
-    const url = photos[fIdx];
-    if (!url || seenIdx.has(fIdx)) return;
-    seenIdx.add(fIdx);
-    if (withLabel) parts.push({ type: 'text', text: `Foto asignada a la escena ${i + 1} (índice ${fIdx}):` });
-    parts.push({ type: 'image_url', image_url: { url, detail: 'low' } });
-  });
-  return parts;
-}
-
-async function nivaAnalizarVideoIA() {
-  // Desactivado: el análisis dependía de OpenAI y ya no hay botón que lo llame.
-  return;
-  if (!vidV) { vidStatus('⚠️ Primero genera el guion del video.', 'err'); return; }
-  const ta = document.getElementById('vid-script-ta');
-  const scriptTxt = (ta && ta.value) ? ta.value.trim() : '';
-  if (!scriptTxt) { vidStatus('⚠️ No hay guion todavía — genera el guion antes de analizar.', 'err'); return; }
-
-  const btn = document.getElementById('btn-ia-review');
-  const loading = document.getElementById('ia-review-loading');
-  const results = document.getElementById('ia-review-results');
-  btn.disabled = true;
-  loading.style.display = 'block';
-  results.innerHTML = '';
-
-  try {
-    const v = vidV;
-    const ciudad = (v.city || 'Monterrey').split(',')[0];
-    const precio = fmtP(v.price);
-    const scenesForReview = (vidScenes || []).slice(0, 15); // límite de seguridad
-
-    const contextTxt = `PROPIEDAD:
-- Tipo: ${v.tipo || 'N/D'} en ${v.op || 'N/D'}
-- Ubicación: ${v.col || 'N/D'}, ${ciudad}
-- Precio: ${precio}${v.esMes ? ' al mes' : ''}
-
-GUION COMPLETO (lo que dice la voz):
-"""
-${scriptTxt}
-"""
-
-ESCENAS (en orden, tal como quedaron configuradas):
-` + scenesForReview.map((s, i) => `${i + 1}. [${s.funcion || '—'}] Duración: ${(parseFloat(s.duracion_seg) || 0).toFixed(1)}s | Foto actual: índice ${s.foto_idx || 0} | Texto en pantalla: "${s.texto_pantalla || ''}" | Lo que dice la voz en esta escena: "${s.narracion_frag || ''}"`).join('\n');
-
-    const instructions = `Eres un editor experto de video inmobiliario para redes sociales (TikTok/Reels/Shorts) en México, revisando un video de NIVA Inmobiliaria ANTES de que el asesor lo descargue y publique. Actúas como un director de reels inmobiliarios con IA: tu trabajo es pensar qué se puede mejorar para que este reel venda mejor, sea más claro y tenga mejor ritmo — pero SIEMPRE usando solo datos reales de la propiedad, las fotos disponibles y el guion actual. Nunca inventes características de la propiedad ni afirmaciones que no puedas respaldar con lo que te doy (evita frases genéricas sin respaldo como "acabados premium", "cocina de lujo", "vistas espectaculares", "espacios extraordinariamente amplios" o "diseño arquitectónico único" salvo que de verdad se vean en la foto o vengan en los datos de la propiedad).
-
-Te doy el guion completo, la lista de escenas configuradas (con su duración, texto y qué foto usa cada una, por índice), y TODAS las fotos disponibles del asesor, etiquetadas por índice (algunas ya en uso en alguna escena, otras no).
-
-PARTE 1 — ANÁLISIS (igual que siempre, esto no cambia):
-1. CHECKLIST GENERAL: ¿el precio aparece claro y correcto en el guion?, ¿la ubicación es clara?, ¿hay faltas de ortografía o gramática?, ¿hay muletillas o frases repetidas/genéricas ("increíble", "imagina vivir aquí", "vida cómoda", "lo que mereces", "espacios diseñados para ti", "el hogar de tus sueños", etc.)?, ¿la duración total es razonable para redes (ni muy corta ni muy larga)?
-2. GUION: sugerencias concretas de redacción o tono, si aplica.
-3. RITMO: si alguna escena se ve muy corta o muy larga para lo que dice — considera cuánto texto trae, el tiempo de lectura y el ritmo general; NO uses una regla rígida de "todas deben durar X segundos", cada duración se juzga por su propio contenido.
-4. FOTOS: para cada escena, compara la foto asignada con lo que esa escena dice en pantalla/voz — avisa SOLO si hay un desajuste real (ej. foto de cocina en una escena que dice "cuatro baños"). Si combina bien, no hace falta comentar cada una — reporta solo problemas reales.
-
-Si una sección está bien, no inventes problemas — repórtala como correcta (checklist con "ok":true, o el array de notas vacío).
-
-PARTE 2 — CAMBIOS RECOMENDADOS (nuevo): convierte CADA problema real que detectaste arriba en una acción CONCRETA y aplicable. Solo propón un cambio cuando exista una mejora real, justificable y útil — si algo ya está bien, NO propongas cambiarlo solo por cambiarlo.
-
-Tipos de cambio permitidos (usa "tipo" exactamente así):
-- "texto": corregir texto_pantalla y/o narracion_frag de una escena (ortografía, frase genérica sin respaldo, o un desajuste foto-texto que se resuelve ajustando el texto). Si reemplazas una frase genérica, la alternativa debe basarse en algo real y visible en la foto de esa escena o en los datos de la propiedad — si no tienes con qué respaldarla, NO propongas un texto de reemplazo (deja el problema solo señalado en guion_notas, sin un cambio accionable).
-- "duracion": ajustar duracion_seg de una escena, siempre con una razón puntual (p.ej. muy poco tiempo para el texto que trae, o tiempo muerto de sobra).
-- "foto": SOLO cuando la foto asignada a una escena no corresponde con su texto Y existe, entre TODAS las fotos que te mostré por índice, otra foto YA SUBIDA por el asesor que sí corresponde mejor. Nunca inventes una foto que no esté en la lista que te di. Si no hay una foto disponible que combine mejor, no uses este tipo — usa "texto" para ajustar el texto a la foto actual.
-- "orden": SOLO si reordenar las escenas mejora claramente el video (p.ej. mostrar la fachada antes que los interiores) y puedes explicar la razón en una frase clara. Como máximo UNA recomendación de este tipo.
-
-Responde en JSON (agrega el campo nuevo "cambios_recomendados" SIN quitar ni renombrar los campos que ya existían):
-{
-  "resumen": "1-2 frases con tu impresión general",
-  "checklist": [{"ok": true, "item": "Precio claro y correcto"}, {"ok": false, "item": "..."}],
-  "guion_notas": ["nota específica 1", "..."],
-  "ritmo_notas": ["nota específica 1 (menciona el número de escena)", "..."],
-  "fotos_notas": ["nota específica 1 (menciona el número de escena) — solo problemas reales, deja el array vacío si todo combina bien"],
-  "cambios_recomendados": [
-    {
-      "tipo": "texto|duracion|foto|orden",
-      "severidad": "alta|media",
-      "escena": 4,
-      "problema": "explicación breve y concreta de qué está mal en esta escena",
-      "recomendacion": "qué se recomienda hacer, en una sola frase",
-      "texto_pantalla_nuevo": "SOLO si tipo=texto y aplica",
-      "narracion_frag_nuevo": "SOLO si tipo=texto y aplica",
-      "duracion_seg_nueva": 2.2,
-      "foto_idx_nueva": 5,
-      "orden_nuevo": [3,1,2,4,5,6,7,8]
-    }
-  ]
-}
-Reglas del JSON:
-- "escena" es el número de escena tal como aparece en ESCENAS (empieza en 1). Para tipo="orden" puedes dejar "escena" en null (aplica a todo el video) y usar "orden_nuevo" con TODOS los números de escena, en el nuevo orden.
-- Incluye solo los campos relevantes al "tipo" de cada cambio — no incluyas campos vacíos o que no apliquen.
-- Si el video está bien en general, "cambios_recomendados" puede quedar vacío — no inventes problemas que no existen.`;
-
-    const contentParts = [{ type: 'text', text: instructions + '\n\n' + contextTxt }]
-      .concat(_nivaAllPhotoParts());
-
-    const oaKey = getOaKey();
-    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + oaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        temperature: 0.4,
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: contentParts }]
-      })
-    }, 90000);
-
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error((e && e.error && e.error.message) || ('Error IA ' + res.status));
-    }
-    const data = await res.json();
-    const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-    _nivaLastReviewData = parsed;
-    _nivaRenderReview(parsed);
-  } catch (e) {
-    console.error('[NIVA][IA_REVIEW]', e);
-    results.innerHTML = `<div class="vid-warning">❌ No se pudo completar el análisis: ${_escVidHtml(e.message || String(e))}</div>`;
-  } finally {
-    btn.disabled = false;
-    loading.style.display = 'none';
-  }
-}
-
-let _nivaReviewCheckItems = [];
-let _nivaLastCambiosRecomendados = [];
-
-function _nivaRenderReview(parsed) {
-  const results = document.getElementById('ia-review-results');
-  const checklist = parsed.checklist || [];
-  const guionNotas = parsed.guion_notas || [];
-  const ritmoNotas = parsed.ritmo_notas || [];
-  const fotosNotas = parsed.fotos_notas || [];
-
-  // Junta todos los puntos accionables (checklist pendiente + notas) en una lista
-  // plana con checkbox, para que el asesor marque exactamente cuáles corregir.
-  _nivaReviewCheckItems = [];
-  checklist.filter(c => !c.ok).forEach(c => { if (c.item) _nivaReviewCheckItems.push({ cat: 'Checklist', text: String(c.item) }); });
-  guionNotas.forEach(n => { if (n) _nivaReviewCheckItems.push({ cat: 'Guion', text: String(n) }); });
-  ritmoNotas.forEach(n => { if (n) _nivaReviewCheckItems.push({ cat: 'Ritmo', text: String(n) }); });
-  fotosNotas.forEach(n => { if (n) _nivaReviewCheckItems.push({ cat: 'Fotos vs. escenas', text: String(n) }); });
-
-  let html = '';
-  if (parsed.resumen) {
-    html += `<div style="font-size:12.5px;color:#1B2A4A;font-weight:600;background:#f8fafc;border-radius:8px;padding:9px 11px;margin-bottom:10px">${_escVidHtml(parsed.resumen)}</div>`;
-  }
-  if (checklist.length) {
-    html += `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:5px">✅ Checklist</div>`;
-    html += checklist.map(c => `<div style="font-size:11.5px;padding:5px 9px;margin-bottom:4px;border-radius:6px;background:${c.ok ? '#f0fdf4' : '#fef3c7'};color:${c.ok ? '#15803d' : '#b45309'}">${c.ok ? '✅' : '⚠️'} ${_escVidHtml(c.item || '')}</div>`).join('');
-  }
-  // Estas notas (checklist pendiente / guion / ritmo / fotos vs. escenas) son solo
-  // informativas — ya no llevan checkbox propio ni botón propio. La única acción que
-  // aplica cambios reales en todo el análisis es "✨ Cambios recomendados por IA" más
-  // abajo, con su único conjunto de checkboxes y su único botón.
-  const notaBlock = (title, catName) => {
-    const items = _nivaReviewCheckItems.filter(it => it.cat === catName);
-    if (!items.length) return '';
-    return `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin:10px 0 5px">${title}</div>` +
-      items.map(it => `<div style="font-size:11.5px;padding:6px 9px;margin-bottom:4px;border-radius:6px;background:#fef3c7;color:#b45309">🟡 ${_escVidHtml(it.text)}</div>`).join('');
-  };
-  html += notaBlock('✅ Checklist pendiente', 'Checklist');
-  html += notaBlock('✏️ Guion', 'Guion');
-  html += notaBlock('⏱️ Ritmo', 'Ritmo');
-  html += notaBlock('🖼️ Fotos vs. escenas', 'Fotos vs. escenas');
-
-  if (!_nivaReviewCheckItems.length) {
-    html += `<div style="font-size:11.5px;padding:8px 10px;border-radius:6px;background:#f0fdf4;color:#15803d">✅ Todo se ve bien — sin observaciones que corregir.</div>`;
-  }
-
-  // Cambios concretos y aplicables (ANALIZAR → PROPONER → SELECCIONAR → APLICAR).
-  // Es la ÚNICA sección con checkboxes y con un botón que aplica cambios de verdad —
-  // no existe otro botón equivalente en ninguna otra parte de la pantalla.
-  html += _nivaRenderCambiosRecomendados(parsed.cambios_recomendados);
-
-  results.innerHTML = html;
-}
-
-function _nivaTipoLabel(tipo) {
-  return { texto: 'TEXTO', duracion: 'DURACIÓN', foto: 'FOTOGRAFÍA', orden: 'ORDEN DE ESCENAS' }[tipo] || String(tipo || '').toUpperCase();
-}
-
-// Pinta "✨ Cambios recomendados por IA": una tarjeta con checkbox por cada cambio
-// concreto que propuso el análisis. No aplica nada todavía — solo lo muestra.
-function _nivaRenderCambiosRecomendados(cambios) {
-  _nivaLastCambiosRecomendados = Array.isArray(cambios) ? cambios : [];
-  let html = `<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin:14px 0 5px;padding-top:10px;border-top:1px solid #e2e8f0">✨ Cambios recomendados por IA</div>`;
-  if (!_nivaLastCambiosRecomendados.length) {
-    html += `<div style="font-size:11.5px;padding:8px 10px;border-radius:6px;background:#f0fdf4;color:#15803d">✅ Correcto — no encontré cambios adicionales que valga la pena aplicar.</div>`;
-    return html;
-  }
-  html += `<p style="font-size:10.5px;color:#64748b;margin:0 0 8px">Cada punto es una acción concreta que se puede aplicar directamente al video. Selecciona los que quieras aplicar.</p>`;
-  html += _nivaLastCambiosRecomendados.map((c, idx) => {
-    const sev = (c.severidad === 'alta') ? { emoji: '🔴', color: '#dc2626' } : { emoji: '🟡', color: '#b45309' };
-    const escenaLabel = (c.tipo === 'orden' || c.escena === null || c.escena === undefined) ? 'TODO EL VIDEO' : ('ESCENA ' + c.escena);
-    return `<label style="display:block;border:1px solid #e2e8f0;border-radius:8px;padding:9px 11px;margin-bottom:8px;cursor:pointer">
-      <div style="display:flex;gap:7px;align-items:flex-start">
-        <input type="checkbox" class="ia-reco-check" data-idx="${idx}" checked style="margin-top:3px;accent-color:#16a34a;flex-shrink:0">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:11px;font-weight:800;color:${sev.color}">${sev.emoji} ${_escVidHtml(escenaLabel)} — ${_escVidHtml(_nivaTipoLabel(c.tipo))}</div>
-          ${c.problema ? `<div style="font-size:11.5px;color:#334155;margin-top:3px">${_escVidHtml(c.problema)}</div>` : ''}
-          ${c.recomendacion ? `<div style="font-size:11.5px;color:#1B2A4A;margin-top:4px"><strong>Recomendación:</strong> ${_escVidHtml(c.recomendacion)}</div>` : ''}
-        </div>
-      </div>
-    </label>`;
-  }).join('');
-  html += `<div style="display:flex;gap:12px;margin:4px 0 2px;font-size:10.5px">
-    <a href="#" onclick="document.querySelectorAll('.ia-reco-check').forEach(c=>c.checked=true);return false;" style="color:#64748b">☑️ Marcar todos</a>
-    <a href="#" onclick="document.querySelectorAll('.ia-reco-check').forEach(c=>c.checked=false);return false;" style="color:#64748b">⬜ Desmarcar todos</a>
-  </div>
-  <button type="button" class="btn-play" style="width:100%;justify-content:center;margin-top:8px;background:linear-gradient(135deg,#16a34a,#15803d)" id="btn-ia-reco-apply" onclick="nivaMostrarConfirmacionCambios()">✨ Aplicar cambios seleccionados</button>
-  <div id="ia-reco-confirm" style="margin-top:10px"></div>
-  <div id="ia-reco-result" style="margin-top:10px"></div>`;
-  return html;
-}
-
-// Punto 12: antes de aplicar, muestra un resumen ("N cambios seleccionados" + la
-// lista) con [Aplicar cambios] / [Cancelar] — nada se toca todavía en este paso.
-function nivaMostrarConfirmacionCambios() {
-  const checks = Array.from(document.querySelectorAll('.ia-reco-check:checked'));
-  const box = document.getElementById('ia-reco-confirm');
-  if (!box) return;
-  if (!checks.length) {
-    box.innerHTML = `<div class="vid-warning">⚠️ No seleccionaste ningún cambio.</div>`;
-    return;
-  }
-  const items = checks.map(ch => _nivaLastCambiosRecomendados[parseInt(ch.dataset.idx, 10)]).filter(Boolean);
-  const lista = items.map(c => {
-    const escenaLabel = (c.tipo === 'orden' || c.escena === null || c.escena === undefined) ? 'Todo el video' : ('Escena ' + c.escena);
-    return `<div style="font-size:11.5px;padding:3px 0">✓ ${_escVidHtml(escenaLabel)} — ${_escVidHtml(_nivaTipoLabel(c.tipo))}</div>`;
-  }).join('');
-  box.innerHTML = `<div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0">
-    <div style="font-size:11px;font-weight:800;color:#1B2A4A;margin-bottom:4px">CAMBIOS SELECCIONADOS</div>
-    <div style="font-size:11.5px;color:#64748b;margin-bottom:6px">${items.length} cambio(s) seleccionado(s):</div>
-    ${lista}
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button type="button" class="btn-play" style="flex:1;justify-content:center;background:linear-gradient(135deg,#16a34a,#15803d)" onclick="nivaAplicarCambiosRecomendadosConfirmado()">✅ Aplicar cambios</button>
-      <button type="button" class="btn-dl" style="flex:1;justify-content:center" onclick="document.getElementById('ia-reco-confirm').innerHTML=''">Cancelar</button>
-    </div>
-  </div>`;
-}
-
-// Punto 4 y 11: solo aquí, tras confirmar, se tocan las escenas de verdad — y se
-// aplica DIRECTO (sin volver a llamar a la IA) el valor concreto que ya trae cada
-// cambio aprobado, con los mismos setters que usa el editor manual de escenas.
-function nivaAplicarCambiosRecomendadosConfirmado() {
-  const checks = Array.from(document.querySelectorAll('.ia-reco-check:checked'));
-  const resultBox = document.getElementById('ia-reco-result');
-  const confirmBox = document.getElementById('ia-reco-confirm');
-  const items = checks.map(ch => _nivaLastCambiosRecomendados[parseInt(ch.dataset.idx, 10)]).filter(Boolean);
-  if (!items.length) return;
-
-  let applied = 0;
-  let narracionChanged = false;
-  let ordenChanged = false;
-  const skipped = [];
-  const aplicados = [];
-
-  items.forEach(c => {
-    if (c.tipo === 'orden') {
-      const orden = Array.isArray(c.orden_nuevo) ? c.orden_nuevo.map(n => parseInt(n, 10)) : null;
-      const valido = orden && orden.length === vidScenes.length && orden.every(n => vidScenes[n - 1]);
-      if (!valido) { skipped.push('Orden de escenas: la propuesta no coincide con las escenas actuales, se omitió.'); return; }
-      const nuevo = orden.map(n => vidScenes[n - 1]);
-      vidScenes.length = 0;
-      nuevo.forEach(s => vidScenes.push(s));
-      _renumberScenes();
-      ordenChanged = true;
-      applied++;
-      aplicados.push('Orden de escenas actualizado.');
-      return;
-    }
-    const idx = (c.escena !== null && c.escena !== undefined) ? (parseInt(c.escena, 10) - 1) : NaN;
-    if (!vidScenes[idx]) { skipped.push('Escena ' + c.escena + ' no existe, se omitió.'); return; }
-    if (c.tipo === 'texto') {
-      let touched = false;
-      if (c.texto_pantalla_nuevo) { _updateSceneCaption(idx, String(c.texto_pantalla_nuevo)); touched = true; }
-      if (c.narracion_frag_nuevo) { _updateSceneNarracion(idx, String(c.narracion_frag_nuevo)); narracionChanged = true; touched = true; }
-      if (touched) { applied++; aplicados.push('Escena ' + c.escena + ' — texto actualizado.'); }
-    } else if (c.tipo === 'duracion') {
-      if (c.duracion_seg_nueva !== undefined && c.duracion_seg_nueva !== null) {
-        _updateSceneDuration(idx, c.duracion_seg_nueva);
-        applied++;
-        aplicados.push('Escena ' + c.escena + ' — duración ajustada a ' + parseFloat(c.duracion_seg_nueva).toFixed(1) + 's.');
-      }
-    } else if (c.tipo === 'foto') {
-      const fIdx = parseInt(c.foto_idx_nueva, 10);
-      if (isFinite(fIdx) && photos[fIdx]) {
-        _updateScenePhoto(idx, fIdx);
-        applied++;
-        aplicados.push('Escena ' + c.escena + ' — foto reasignada.');
-      } else {
-        skipped.push('Escena ' + c.escena + ': la foto propuesta no existe entre las fotos subidas, se omitió.');
-      }
-    }
-  });
-
-  if (ordenChanged) _nivaMarkVoiceStale();
-  renderScenes();
-
-  let html = '';
-  if (applied > 0) {
-    html += `<div style="font-size:12.5px;color:#15803d;font-weight:600;background:#f0fdf4;border-radius:8px;padding:9px 11px;margin-bottom:6px">✅ Cambios aplicados</div>`;
-    html += aplicados.map(a => `<div style="font-size:11.5px;color:#334155;padding:2px 0">✓ ${_escVidHtml(a)}</div>`).join('');
-    html += `<div style="font-size:11px;color:#64748b;margin-top:6px">🎬 Vuelve a darle a "Generar Video" arriba para ver el resultado${(narracionChanged || ordenChanged) ? ' — la voz se regenera automáticamente porque el guion cambió' : ''}.</div>`;
-  } else {
-    html += `<div style="font-size:12px;color:#64748b;background:#f8fafc;border-radius:8px;padding:9px 11px">ℹ️ No se aplicó ningún cambio.</div>`;
-  }
-  if (skipped.length) html += `<div class="vid-warning" style="margin-top:6px">⚠️ ${_escVidHtml(skipped.join(' · '))}</div>`;
-
-  if (resultBox) resultBox.innerHTML = html;
-  if (confirmBox) confirmBox.innerHTML = '';
-}
-
-// Pregunta libre — "cualquier cosa", incluso fuera de lo que hoy se puede editar en la
-// herramienta. Responde con texto libre (no JSON), usando el mismo contexto del video.
-async function nivaPreguntarIA() {
-  const qEl = document.getElementById('ia-review-question');
-  const question = (qEl && qEl.value ? qEl.value.trim() : '');
-  if (!question) { vidStatus('⚠️ Escribe tu pregunta primero.', 'err'); return; }
-  if (!vidV) { vidStatus('⚠️ Primero genera el guion del video.', 'err'); return; }
-
-  const btn = document.getElementById('btn-ia-ask');
-  const loading = document.getElementById('ia-ask-loading');
-  const answerBox = document.getElementById('ia-ask-answer');
-  btn.disabled = true;
-  loading.style.display = 'block';
-  answerBox.innerHTML = '';
-
-  try {
-    const v = vidV;
-    const ciudad = (v.city || 'Monterrey').split(',')[0];
-    const precio = fmtP(v.price);
-    const ta = document.getElementById('vid-script-ta');
-    const scriptTxt = (ta && ta.value) ? ta.value.trim() : '';
-    const scenesTxt = (vidScenes || []).map((s, i) => `${i + 1}. [${s.funcion || '—'}] ${(parseFloat(s.duracion_seg) || 0).toFixed(1)}s | Pantalla: "${s.texto_pantalla || ''}" | Voz: "${s.narracion_frag || ''}"`).join('\n');
-
-    const contextTxt = `PROPIEDAD: ${v.tipo || 'N/D'} en ${v.op || 'N/D'}, ${v.col || 'N/D'}, ${ciudad}. Precio: ${precio}${v.esMes ? ' al mes' : ''}.
-
-GUION:
-"""
-${scriptTxt}
-"""
-
-ESCENAS:
-${scenesTxt}`;
-
-    const instructions = `Eres un asistente experto en video marketing inmobiliario para NIVA Inmobiliaria. Un asesor está a punto de descargar este video y te hace una pregunta libre — puede ser sobre CUALQUIER aspecto del video (guion, ritmo, fotos, estrategia, qué más agregar, cómo mejorar conversión, etc.), incluso cosas que hoy no se pueden editar directamente en la herramienta. Responde de forma concreta, específica a ESTE video (usando los datos que te doy), práctica y breve (máximo ~150 palabras). Si la mejora que sugieres no se puede hacer directamente en la herramienta actual, acláralo brevemente y sugiere cómo lograrla de otra forma (editar el guion o las escenas manualmente, etc.). No inventes datos de la propiedad que no te di.`;
-
-    const contentParts = [{ type: 'text', text: instructions + '\n\n' + contextTxt + '\n\nPREGUNTA DEL ASESOR:\n' + question }]
-      .concat(_nivaScenePhotoParts(vidScenes, false));
-
-    const oaKey = getOaKey();
-    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + oaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        temperature: 0.6,
-        messages: [{ role: 'user', content: contentParts }]
-      })
-    }, 90000);
-
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error((e && e.error && e.error.message) || ('Error IA ' + res.status));
-    }
-    const data = await res.json();
-    const answer = data.choices?.[0]?.message?.content || 'No obtuve respuesta — intenta de nuevo.';
-    _nivaLastAskQA = { question, answer };
-    answerBox.innerHTML = `<div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border-left:3px solid #C9A84C;font-size:12.5px;color:#334155;line-height:1.6">${_escVidHtml(answer).replace(/\n/g, '<br>')}</div>`;
-  } catch (e) {
-    console.error('[NIVA][IA_ASK]', e);
-    answerBox.innerHTML = `<div class="vid-warning">❌ No se pudo obtener respuesta: ${_escVidHtml(e.message || String(e))}</div>`;
-  } finally {
-    btn.disabled = false;
-    loading.style.display = 'none';
-  }
-}
-
-// ══════════════════════════════════════════════
-//  APLICAR CAMBIOS CON IA — convierte las sugerencias (del análisis o de la pregunta
-//  libre) en ediciones REALES a las escenas. Nunca agrega/quita escenas ni toca
-//  precio/ubicación/portada — solo: duración, texto en pantalla, voz y foto de cada
-//  escena, siempre con los mismos setters que usa el editor manual.
-// ══════════════════════════════════════════════
-
-// Todas las fotos disponibles (con su índice), para que la IA pueda elegir la foto
-// correcta al reasignar una escena — no solo las que ya están en uso.
-function _nivaAllPhotoParts() {
-  const parts = [];
-  photos.slice(0, 15).forEach((url, i) => {
-    if (!url) return;
-    parts.push({ type: 'text', text: `Foto índice ${i}:` });
-    parts.push({ type: 'image_url', image_url: { url, detail: 'low' } });
-  });
-  return parts;
-}
-
-async function nivaAplicarCambiosIA() {
-  if (!vidV) { vidStatus('⚠️ Primero genera el guion del video.', 'err'); return; }
-
-  const btn = document.getElementById('btn-ia-apply');
-  const loading = document.getElementById('ia-apply-loading');
-  const resultBox = document.getElementById('ia-apply-result');
-  btn.disabled = true;
-  loading.style.display = 'block';
-  resultBox.innerHTML = '';
-
-  try {
-    const v = vidV;
-    const ta = document.getElementById('vid-script-ta');
-    const scriptTxt = (ta && ta.value) ? ta.value.trim() : '';
-    const scenesTxt = (vidScenes || []).map((s, i) => `${i + 1}. [${s.funcion || '—'}] Duración: ${(parseFloat(s.duracion_seg) || 0).toFixed(1)}s | Pantalla: "${s.texto_pantalla || ''}" | Voz: "${s.narracion_frag || ''}"`).join('\n');
-
-    let sugerenciasTxt = '';
-    if (_nivaLastReviewData) {
-      sugerenciasTxt += 'ANÁLISIS PREVIO DE LA IA (JSON):\n' + JSON.stringify(_nivaLastReviewData) + '\n\n';
-    }
-    if (_nivaLastAskQA) {
-      sugerenciasTxt += `PREGUNTA DEL ASESOR: ${_nivaLastAskQA.question}\nRESPUESTA PREVIA DE LA IA: ${_nivaLastAskQA.answer}\n\n`;
-    }
-
-    const contextTxt = `PROPIEDAD: ${v.tipo || 'N/D'} en ${v.op || 'N/D'}, ${v.col || 'N/D'}, ${(v.city || 'Monterrey').split(',')[0]}. Precio: ${fmtP(v.price)}${v.esMes ? ' al mes' : ''}.
-
-GUION ACTUAL:
-"""
-${scriptTxt}
-"""
-
-ESCENAS ACTUALES (número. función | duración | texto en pantalla | voz | foto actual):
-${scenesTxt}
-
-${sugerenciasTxt}`;
-
-    const instructions = `Eres un editor de video inmobiliario para NIVA Inmobiliaria. El asesor quiere que revises TODO el video de una sola vez y corrijas TODOS los detalles finos que encuentres en esta misma pasada — no quiere aplicar cambios varias veces y que le sigan saliendo cosas nuevas cada vez. Si hay un análisis previo o una pregunta del asesor más abajo, tómalos en cuenta, pero además de eso revisa TÚ MISMO cada escena, una por una, buscando: frases incompletas, muletillas, faltas de ortografía o gramática, texto en pantalla que no calza bien, y escenas donde la voz podría necesitar un poco más o menos tiempo para no cortarse o para no dejar tiempo muerto. Sé exhaustivo — esta es la única pasada. El asesor ya construyó y organizó el video a propósito (incluyendo qué foto va en cada escena) — respeta esa estructura: solo ajustas detalles finos y puntuales, NUNCA una reescritura ni una reestructuración del video.
-
-REGLAS ESTRICTAS (no negociables):
-- NUNCA cambies, agregues ni quites fotos de ninguna escena — no existe forma de tocar eso desde aquí, ni lo intentes.
-- NUNCA inventes escenas nuevas, elimines escenas, ni cambies el orden de las escenas.
-- NUNCA cambies precio, ubicación ni portada.
-- NUNCA reescribas un guion completo de una escena — solo corrige lo puntual (una frase incompleta, una muletilla, una falta de ortografía, una palabra). Si una frase ya está bien, no la toques.
-- Los ajustes de duración deben ser pequeños y con un propósito claro (p.ej. dar medio segundo más para que la voz no se corte, o quitar tiempo muerto al inicio de la escena) — no reorganices los tiempos de todo el video.
-- Si una sugerencia previa es sobre que el TEXTO no combina con la foto de esa escena (ej. la foto es de cocina pero el texto dice "vista a la montaña"), la corrección correcta es AJUSTAR EL TEXTO (texto_pantalla y/o narracion_frag) para que sí describa lo que se ve en esa foto — esto SÍ debes hacerlo, es tu forma principal de resolver un desajuste foto-texto. Solo ignora una sugerencia si pide literalmente cambiar qué foto usa la escena, agregar/quitar escenas, o cambiar su orden — eso no lo puedes hacer aquí.
-
-Solo puedes ajustar, escena por escena, estos 3 campos: duración (duracion_seg), texto en pantalla (texto_pantalla) y pequeñas correcciones al texto de la voz (narracion_frag).
-
-Responde en JSON con SOLO los cambios necesarios (si un campo de una escena no cambia, NO lo incluyas):
-{
-  "resumen_cambios": "1-2 frases explicando qué revisaste y qué corregiste",
-  "escenas": [
-    {"num": 3, "narracion_frag": "texto corregido, mismo contenido salvo el detalle puntual", "texto_pantalla": "TEXTO EN PANTALLA", "duracion_seg": 2.0}
-  ]
-}
-Reglas:
-- "num" es el número de escena tal como aparece en ESCENAS ACTUALES (empieza en 1).
-- Incluye solo los campos que realmente cambian para esa escena — si una escena no cambia, no la incluyas.
-- Si después de revisar todo no encuentras cambios claros y puntuales que aplicar, regresa {"resumen_cambios":"Revisé todo el video y no encontré cambios puntuales que aplicar — está bien como está.","escenas":[]}`;
-
-    const contentParts = [{ type: 'text', text: instructions + '\n\n' + contextTxt }];
-
-    const oaKey = getOaKey();
-    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + oaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: contentParts }]
-      })
-    }, 90000);
-
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error((e && e.error && e.error.message) || ('Error IA ' + res.status));
-    }
-    const data = await res.json();
-    const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-    _nivaApplySceneEdits(parsed);
-  } catch (e) {
-    console.error('[NIVA][IA_APPLY]', e);
-    resultBox.innerHTML = `<div class="vid-warning">❌ No se pudieron aplicar los cambios: ${_escVidHtml(e.message || String(e))}</div>`;
-  } finally {
-    btn.disabled = false;
-    loading.style.display = 'none';
-  }
-}
-
-// Aplica el plan de cambios de la IA a vidScenes usando los MISMOS setters que el editor
-// manual de escenas (_updateSceneDuration/_updateSceneCaption/_updateSceneNarracion/
-// _updateScenePhoto) — así queda igual de consistente que si el asesor lo editara a mano,
-// y renderScenes() al final refresca toda la UI desde vidScenes (fuente única de verdad).
-function _nivaApplySceneEdits(parsed, resultBoxId) {
-  const resultBox = document.getElementById(resultBoxId || 'ia-apply-result');
-  const edits = parsed.escenas || [];
-  let applied = 0;
-  let narracionChanged = false;
-  const skipped = [];
-
-  edits.forEach(edit => {
-    const num = parseInt(edit.num, 10);
-    const idx = num - 1;
-    if (!vidScenes[idx]) { skipped.push(`Escena ${edit.num} no existe`); return; }
-    let touched = false;
-    if (edit.duracion_seg !== undefined && edit.duracion_seg !== null) {
-      _updateSceneDuration(idx, edit.duracion_seg);
-      touched = true;
-    }
-    if (edit.texto_pantalla !== undefined && edit.texto_pantalla !== null) {
-      _updateSceneCaption(idx, String(edit.texto_pantalla));
-      touched = true;
-    }
-    if (edit.narracion_frag !== undefined && edit.narracion_frag !== null && String(edit.narracion_frag).trim()) {
-      _updateSceneNarracion(idx, String(edit.narracion_frag));
-      narracionChanged = true;
-      touched = true;
-    }
-    // foto_idx: intencionalmente NO se aplica — a petición de Ricardo, esta función
-    // nunca debe reasignar fotos (el asesor ya las organizó a propósito). Si el modelo
-    // lo devuelve de todos modos, se ignora en silencio (no es un error del asesor).
-    if (touched) applied++;
-  });
-
-  renderScenes();
-
-  let html = '';
-  if (applied > 0) {
-    html += `<div style="font-size:12.5px;color:#15803d;font-weight:600;background:#f0fdf4;border-radius:8px;padding:9px 11px;margin-bottom:6px">✅ ${_escVidHtml(parsed.resumen_cambios || ('Se aplicaron cambios a ' + applied + ' escena(s).'))}</div>`;
-    html += `<div style="font-size:11px;color:#64748b">🎬 Vuelve a darle a "Generar Video" arriba para ver el resultado${narracionChanged ? ' — la voz se regenera automáticamente porque el guion cambió' : ''}.</div>`;
-  } else {
-    html += `<div style="font-size:12px;color:#64748b;background:#f8fafc;border-radius:8px;padding:9px 11px">ℹ️ ${_escVidHtml(parsed.resumen_cambios || 'No encontré cambios claros que aplicar.')}</div>`;
-  }
-  if (skipped.length) {
-    html += `<div class="vid-warning" style="margin-top:6px">⚠️ ${_escVidHtml(skipped.join(' · '))}</div>`;
-  }
-  resultBox.innerHTML = html;
-}
-
 // ── ESTILOS DE VIDEO — 3 perfiles que modifican el render real ──
 const OBJETIVO_CONFIG = {
   IMPACTO: {
@@ -9986,15 +9174,12 @@ async function regenerarGuion() {
 
 // ── VERSIÓN ALTERNATIVA ──
 // Genera un 2do guión sin reemplazar el actual — lo muestra en un panel debajo del textarea
+let _motorAlt = null;        // última versión alternativa propuesta (guion completo del motor)
+let _motorAltSemilla = 0;
 async function generarVersionAlternativa() {
   if (!vidV) return;
-  const oaKey = getOaKey();
-  const v = vidV;
   const meta = getVidMeta();
-  // Usar hook diferente si hay varios, o pedir a GPT una variación
-  const altHookIdx = (selectedHookIdx + 1) % Math.max(vidHooks.length, 1);
-  const altHook = vidHooks[altHookIdx] || vidHooks[0] || { texto: '', categoria: '' };
-
+  const g = _motorGuiones[_motorEstiloIdx];
   // Panel alternativo
   let altPanel = document.getElementById('vid-alt-script-panel');
   if (!altPanel) {
@@ -10011,75 +9196,53 @@ async function generarVersionAlternativa() {
     }
   }
   const altTa = document.getElementById('vid-alt-script-ta');
-  altTa.value = '⏳ Generando variación…';
-
-  if (!oaKey || oaKey.length < 10) {
-    const s = buildScriptPlantilla(v, altHook, meta);
-    altTa.value = s;
-    return;
-  }
-  try {
-    const currentScript = (document.getElementById('vid-script-ta')?.value || '').trim();
-    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + oaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-4o', temperature: 0.95,
-        messages: [{ role: 'user', content: `Eres experto en marketing inmobiliario para TikTok/Reels en México. Genera una VERSIÓN ALTERNATIVA del siguiente guión para un video de esta propiedad. Debe tener un ángulo completamente diferente (distinto hook, distinto ritmo, distinto enfoque), pero con los mismos datos reales. Devuelve solo el guión, sin explicaciones.
-
-GUIÓN ORIGINAL:
-${currentScript}
-
-PROPIEDAD: ${v.tipo} en ${v.op}, ${v.col}, ${ (v.city||'Monterrey').split(',')[0]}, ${fmtP(v.price)}${v.esMes?' /mes':''}
-HOOK ALTERNATIVO SUGERIDO: "${altHook.texto}"` }]
-      })
+  // Otra variante del motor (sin IA), distinta del guion actual; cada clic avanza la semilla
+  const actual = document.getElementById('vid-script-ta').value;
+  let seed = Math.max(_motorAltSemilla, _motorSemillaGuion);
+  for (let k = 0; k < 6; k++) {
+    _motorAlt = motorAlternativa(vidV, {
+      estilo: g ? g.estilo : 'directo', hook: vidHooks[selectedHookIdx], seed,
+      durSeg: meta.duracion > 0 ? meta.duracion : 30, wow: meta.wow, cta: activeConcepto && activeConcepto.cta_texto,
     });
-    if (!res.ok) throw new Error('HTTP '+res.status+' al generar versión alternativa');
-    const data = await res.json();
-    altTa.value = data.choices?.[0]?.message?.content?.trim() || buildScriptPlantilla(v, altHook, meta);
-  } catch(e) {
-    altTa.value = buildScriptPlantilla(v, altHook, meta);
+    seed = _motorAlt.seed;
+    if (_motorAlt.narracion !== actual) break;
   }
+  _motorAltSemilla = seed;
+  altTa.value = _motorAlt.narracion;
 }
 
 function usarVersionAlternativa() {
   const altTa = document.getElementById('vid-alt-script-ta');
-  const mainTa = document.getElementById('vid-script-ta');
-  if (altTa && mainTa && altTa.value && !altTa.value.startsWith('⏳')) {
-    mainTa.value = altTa.value;
+  if (!altTa || !altTa.value || altTa.value.startsWith('⏳')) return;
+  if (_motorAlt && altTa.value === _motorAlt.narracion) {
+    // Sin editar: se aplica con sus escenas (misma ruta que «Usar este»)
+    vidScenes = remapEscenasAOrdenManual(JSON.parse(JSON.stringify(_motorAlt.escenas)));
+    _motorCtaActual = _motorAlt.cta;
+    renderScenes();
+  } else {
+    document.getElementById('vid-script-ta').value = altTa.value;
     vidCountChars();
-    document.getElementById('vid-alt-script-panel')?.remove();
-    vidStatus('✅ Versión alternativa aplicada. Edita y genera el video cuando quieras.', 'ok');
   }
+  document.getElementById('vid-alt-script-panel')?.remove();
+  vidStatus('✅ Versión alternativa aplicada. Edita y genera el video cuando quieras.', 'ok');
 }
 
+// «↺ CTA»: cambia la frase de cierre por la siguiente variante del motor (sin IA)
+let _motorCtaActual = '';
 async function regenerarCTA() {
-  const oaKeyCTA = getOaKey();
-  if (!vidV || !oaKeyCTA) return;
-  const ta = document.getElementById('vid-script-ta');
-  const currentScript = ta.value;
-  try {
-    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method:'POST',
-      headers:{'Authorization':'Bearer '+oaKeyCTA,'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'gpt-4o',temperature:0.9,
-        messages:[{role:'user',content:`Genera un CTA diferente para este guión inmobiliario. Debe ser conversacional y natural (ej: "¿La quieres ver? Mándame mensaje"). Solo el CTA, nada más.\n\nGuión: ${currentScript.slice(-200)}`}]
-      })
-    });
-    if (!res.ok) throw new Error('HTTP '+res.status+' al regenerar el CTA');
-    const data = await res.json();
-    const newCta = data.choices?.[0]?.message?.content?.trim() || '';
-    if (newCta) {
-      const lines = currentScript.trimEnd().split('\n');
-      const ctaLine = lines[lines.length-1];
-      ta.value = currentScript.trimEnd().replace(ctaLine, newCta);
-      vidCountChars();
-    }
-  } catch(e) {
-    console.warn('[NIVA][CTA]', e);
-    vidStatus('⚠️ No se pudo regenerar el CTA: ' + (e.message||e), 'err');
+  if (!vidV || !vidScenes.length) return;
+  let k = vidScenes.length - 1;
+  while (k > 0 && !(vidScenes[k].narracion_frag || '').trim()) k--;
+  const sc = vidScenes[k], frag = (sc.narracion_frag || '').trim();
+  const nuevo = motorSiguienteCTA(vidV, _motorCtaActual);
+  if (_motorCtaActual && frag.endsWith(_motorCtaActual)) {
+    sc.narracion_frag = frag.slice(0, frag.length - _motorCtaActual.length).trimEnd() + (frag.length > _motorCtaActual.length ? ' ' : '') + nuevo;
+  } else {
+    sc.narracion_frag = (frag ? frag + ' ' : '') + nuevo; // el cierre se editó a mano: se agrega al final
   }
+  _motorCtaActual = nuevo;
+  renderScenes();
+  vidStatus('✅ CTA cambiado.', 'ok');
 }
 
 async function mejorarGuion() {
@@ -10089,26 +9252,8 @@ async function mejorarGuion() {
 // ── MÚSICA — ver genMusicBuffer / getMusicBuffer arriba (AI MUSIC MATCH) ──
 
 // ══════════════════════════════════════════════
-//  VOICE ENGINE — Solo ElevenLabs + Audio propio (upload). Sin browser TTS. Sin OpenAI TTS.
+//  VOICE ENGINE — Solo ElevenLabs + Audio propio (upload). Sin browser TTS.
 // ══════════════════════════════════════════════
-
-// Instrucciones de voz adaptativas según tipo y precio de propiedad
-function getVoiceInstructions(v) {
-  const tipo  = (v?.tipo || '').toLowerCase();
-  const price = v?.price || 0;
-  if (price >= 5000000 || tipo.includes('lujo')) {
-    return "Habla en español mexicano con voz masculina elegante, calmada y sofisticada. Eres un asesor inmobiliario premium de Monterrey. Tono tranquilo, pausas estratégicas, pronunciación clara y perfecta. Evita el apresuramiento.";
-  } else if ((tipo.includes('casa') || tipo.includes('quinta')) && price >= 2000000) {
-    return "Habla en español mexicano con voz cálida y cercana. Eres un asesor inmobiliario de confianza en Monterrey. Tono familiar, amable, inspirador. Transmite seguridad y hogar.";
-  } else if (tipo.includes('departamento')) {
-    return "Habla en español mexicano con voz dinámica y contemporánea. Eres un asesor inmobiliario moderno de Monterrey. Tono fresco, energético pero profesional.";
-  } else if (tipo.includes('local') || tipo.includes('oficina') || tipo.includes('bodega')) {
-    return "Habla en español mexicano con voz segura y directa. Eres un asesor inmobiliario comercial de Monterrey. Tono profesional, concreto y confiable.";
-  } else if (tipo.includes('terren')) {
-    return "Habla en español mexicano con voz inspiradora y visionaria. Eres un asesor inmobiliario de Monterrey. Transmite potencial, oportunidad y futuro.";
-  }
-  return "Habla en español mexicano con voz profesional y cercana. Eres un asesor inmobiliario de NIVA en Monterrey. Tono cálido pero seguro, sin apresurarte.";
-}
 
 // Calcula velocidad de voz según palabras y segundos disponibles
 function calculateVoiceSpeed(script) {
@@ -10117,51 +9262,10 @@ function calculateVoiceSpeed(script) {
     ? vidScenes.reduce((a, s) => a + (s.duracion_seg || 5), 0)
     : 30;
   const wpm = words / (targetSec / 60);
-  // Español natural: ~140-160 wpm. OpenAI speed range: 0.25-4.0
+  // Español natural: ~140-160 wpm
   if (wpm < 110) return 0.9;
   if (wpm > 175) return 1.15;
   return 1.0;
-}
-
-// ── OPENAI TTS (principal) ──
-async function generateVoiceOpenAI(script) {
-  const oaKey = getOaKey();
-  if (!oaKey) throw new Error('Sin API Key OpenAI');
-  const voice = (document.getElementById('openai-voice-sel')?.value) || 'marin';
-  const instructions = getVoiceInstructions(vidV);
-  const speed = calculateVoiceSpeed(script);
-
-  // Comprobar cache
-  const cKey = voiceCacheKey('openai', voice, script, speed);
-  if (voiceCache[cKey]) {
-    apiUsageStats.cacheHits++;
-    updateApiUsageDisplay();
-    return voiceCache[cKey].blob;
-  }
-
-  apiUsageStats.openaiTTS++;
-  apiUsageStats.cacheMisses++;
-  updateApiUsageDisplay();
-
-  const resp = await fetchWithTimeoutNIVA('https://api.openai.com/v1/audio/speech', {
-    method: 'POST',
-    headers: {'Authorization': 'Bearer '+oaKey, 'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      model: 'gpt-4o-mini-tts',
-      input: script,
-      voice: voice,
-      instructions: instructions,
-      speed: speed
-    })
-  });
-  if (!resp.ok) {
-    const e = await resp.json().catch(() => ({}));
-    throw new Error(e?.error?.message || 'Error OpenAI TTS ' + resp.status);
-  }
-  const blob = await resp.blob();
-  voiceCache[cKey] = { blob, audioUrl: URL.createObjectURL(blob) };
-  _lastVoiceGen = { text: script, provider: 'openai', voice, speed: String(speed) };
-  return blob;
 }
 
 // ── ELEVENLABS TTS WITH TIMESTAMPS ──
@@ -10231,7 +9335,7 @@ function getActiveVoiceProvider() {
   return VOICE_PROVIDER;
 }
 
-// ── PLAY VIDEO — Solo ElevenLabs o Audio Propio. SIN browser TTS. SIN OpenAI TTS. ──
+// ── PLAY VIDEO — Solo ElevenLabs o Audio Propio. SIN browser TTS. ──
 async function playVideoEL() {
   if (!vidV) return;
   const _btnPlayCheck = document.getElementById('btn-play-video');
@@ -10330,7 +9434,7 @@ async function playVideoEL() {
   try { vidScaledImages.forEach(im => { if (im) _nivaGetEnhancedSource(im); }); } catch (e) {}
   try { _nivaFramedCache.clear(); vidScaledImages.forEach(im => { if (im) _nivaGetFramedSource(im, 1080, 1920); }); } catch (e) {}
 
-  // Clasificar fotos con GPT-4o Vision (Fase 3) — solo si hay fotos reales
+  // Tipos de foto (genéricos, sin IA) — solo si hay fotos reales
   if (NIVA_FLAGS.photoClassifier && photos.length > 0) {
     vidPhotoData = await classifyPhotos(photoList.filter(Boolean));
   } else {
@@ -14700,7 +13804,6 @@ function esMusicManualSearch() {}
 <!-- ── API USAGE PANEL ── -->
 <div id="apiUsagePanel" style="display:none;position:fixed;bottom:10px;left:10px;background:#1a1a2e;color:#00ff88;padding:8px;font-size:10px;font-family:monospace;z-index:9999;border-radius:4px;min-width:200px;opacity:0.9">
   <div style="font-weight:bold;margin-bottom:4px;">📊 API USAGE</div>
-  <div>OpenAI TTS: <span id="statOaiTTS">0</span> llamadas</div>
   <div>ElevenLabs: <span id="statEL">0</span> llamadas</div>
   <div>Cache hits: <span id="statHits">0</span></div>
   <div>Cache misses: <span id="statMisses">0</span></div>
