@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head><script>/* tema elegido por el asesor (Configuración) */try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro"){document.documentElement.classList.add("claro");document.addEventListener("DOMContentLoaded",function(){var m=document.querySelector("meta[name=theme-color]");if(m)m.content="#FBF9F6"})}}catch(e){}</script>
+<head><script>/* tema elegido por el asesor (Configuración) */try{var z={grande:"1.12",xl:"1.25"}[localStorage.getItem("niva_letra")];if(z){document.documentElement.style.zoom=z;document.documentElement.style.setProperty("--z",z)}}catch(e){}try{var t=localStorage.getItem("niva_tema");if(/[?&]tema=claro/.test(location.search)){t="claro";localStorage.setItem("niva_tema",t)}if(/[?&]tema=cons/.test(location.search)){t="cons";localStorage.setItem("niva_tema",t)}if(t==="claro"){document.documentElement.classList.add("claro");document.addEventListener("DOMContentLoaded",function(){var m=document.querySelector("meta[name=theme-color]");if(m)m.content="#FBF9F6"})}}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NIVA OS — Portal de Herramientas</title>
@@ -401,6 +401,17 @@ html:not(.claro) #portal:not(.hidden){animation:fadeUp .7s ease both}
   .mini-claro i{position:absolute;top:44%;width:34%;height:38%;border-radius:6px;background:#fff;box-shadow:0 4px 10px -4px rgba(27,42,74,.3);border:1px solid rgba(27,42,74,.08)}
   .mini-claro i:nth-child(1){left:12%}.mini-claro i:nth-child(2){left:54%}
   .conf-nota{margin-top:14px;font-size:12.5px;opacity:.6}
+  .conf-letra{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .conf-letra button{display:grid;justify-items:center;align-content:end;gap:4px;min-height:74px;padding:10px 6px;border-radius:14px;cursor:pointer;font:600 12.5px Inter,sans-serif;color:inherit;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.12);transition:all .2s}
+  .conf-letra button span{font-weight:800;line-height:1}
+  .conf-letra button:hover{border-color:rgba(232,201,106,.6)}
+  .conf-letra button.on{border-color:#E8C96A;box-shadow:0 0 0 4px rgba(201,168,76,.2)}
+  html.claro .conf-letra button{background:#fff;border-color:rgba(60,45,30,.12)}
+  html.claro .conf-letra button.on{border-color:#96714C;box-shadow:0 0 0 4px rgba(150,113,76,.18)}
+  .conf-caja{max-height:calc(100dvh - 40px);overflow-y:auto}
+  /* con letra grande todo se amplía: el inicio de sesión se compensa para llenar justo la pantalla */
+  #login{min-height:calc(100vh / var(--z,1)) !important;min-height:calc(100dvh / var(--z,1)) !important}
+  html, body, .page{min-height:calc(100vh / var(--z,1)) !important;min-height:calc(100dvh / var(--z,1)) !important}
   html.claro .conf{background:rgba(251,249,246,.6)}
   html.claro .conf-caja{background:#fff;color:#1D1D1F;border-color:rgba(60,45,30,.12);box-shadow:0 30px 70px -24px rgba(60,45,30,.35)}
   html.claro .conf-top button{background:rgba(60,45,30,.06);color:#1D1D1F}
@@ -470,6 +481,12 @@ img,video,canvas{max-width:100%}
     <div class="conf-ops">
       <button class="conf-op" data-tema="cons"><span class="conf-mini mini-cons"><i></i><i></i><i></i><i></i><i></i></span><b>Constelación</b><small>Azul NIVA con puntos dorados</small></button>
       <button class="conf-op" data-tema="claro"><span class="conf-mini mini-claro"><i></i><i></i></span><b>Crema</b><small>Crema y café, limpio estilo Apple</small></button>
+    </div>
+    <p class="conf-sec">Tamaño de letra</p>
+    <div class="conf-letra" role="group" aria-label="Tamaño de letra">
+      <button type="button" data-letra="normal"><span style="font-size:15px">Aa</span>Normal</button>
+      <button type="button" data-letra="grande"><span style="font-size:20px">Aa</span>Grande</button>
+      <button type="button" data-letra="xl"><span style="font-size:25px">Aa</span>Muy grande</button>
     </div>
     <p class="conf-nota">Se aplica en el inicio y en todos los módulos.</p>
   </div>
@@ -824,7 +841,16 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').cat
 // (2026-10-18) Configuración: fondo de pantalla del asesor (se guarda en este equipo)
 (function(){
   const conf=document.getElementById('conf'), html=document.documentElement;
-  const marca=()=>conf.querySelectorAll('.conf-op').forEach(b=>b.classList.toggle('on',(b.dataset.tema==='claro')===html.classList.contains('claro')));
+  const ZOOM={normal:'',grande:'1.12',xl:'1.25'};
+  const letra=()=>{ try{ return localStorage.getItem('niva_letra')||'normal'; }catch(_e){ return 'normal'; } };
+  const marca=()=>{ conf.querySelectorAll('.conf-op').forEach(b=>b.classList.toggle('on',(b.dataset.tema==='claro')===html.classList.contains('claro')));
+    conf.querySelectorAll('.conf-letra button').forEach(b=>{ const on=b.dataset.letra===letra(); b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); }); };
+  conf.querySelectorAll('.conf-letra button').forEach(b=>b.onclick=()=>{
+    html.style.zoom=ZOOM[b.dataset.letra]||'';
+    html.style.setProperty('--z',ZOOM[b.dataset.letra]||'1');
+    try{ localStorage.setItem('niva_letra',b.dataset.letra); }catch(_e){}
+    marca();
+  });
   document.getElementById('hconf').onclick=document.getElementById('lconf').onclick=()=>{ marca(); conf.classList.remove('hidden'); };
   const cerrar=()=>conf.classList.add('hidden');
   document.getElementById('conf-x').onclick=cerrar;
