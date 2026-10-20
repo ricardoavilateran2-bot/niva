@@ -1150,6 +1150,8 @@ img,video,canvas{max-width:100%}
           <button onclick="regenerarVozSola()" style="font-size:10px;padding:5px 9px;background:linear-gradient(135deg,#1B2A4A,#2d4170);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700" title="Regenerar solo la voz sin cambiar el guión">🎙️ Voz</button>
         </div>
       </div>
+      <!-- 5 guiones del motor (uno por estilo): el asesor elige con "Usar este" -->
+      <div id="vid-guion-opciones" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px"></div>
       <!-- Score -->
       <div id="vid-score-box" style="display:none;background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:12px">
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:8px">📊 Video Score</div>
@@ -1224,7 +1226,7 @@ img,video,canvas{max-width:100%}
         <div class="card" id="ia-review-card" style="display:none;margin-top:12px">
       <div class="card-title">🤖 Revisión con IA — antes de descargar</div>
       <p style="font-size:11px;color:#64748b;margin:0 0 10px">La IA revisa el guion, el ritmo de las escenas, que cada foto combine con lo que dice la voz en ese momento, y un checklist general (precio, ubicación, ortografía). También puedes preguntarle lo que quieras sobre este video.</p>
-      <button type="button" class="btn-play" style="width:100%;justify-content:center" id="btn-ia-review" onclick="nivaAnalizarVideoIA()">🔍 Analizar video completo</button>
+      <!-- "Analizar video completo" (nivaAnalizarVideoIA) se quitó: dependía de OpenAI. -->
       <div id="ia-review-loading" style="display:none;text-align:center;padding:14px;font-size:12px;color:#64748b">🤖 Analizando guion, ritmo y fotos…</div>
       <div id="ia-review-results" style="margin-top:10px"></div>
 
@@ -7772,6 +7774,331 @@ function getVidMeta() {
   };
 }
 
+// ==== MOTOR DE GUIONES (inicio) ====
+// Motor determinista (reglas + plantillas) que escribe el guion SIN IA: sale solo de los
+// datos de la propiedad — gratis e instantáneo. Funciones puras (sin DOM ni globales) para
+// probarlas aisladas en Node: /Users/ricardoavila/niva-respaldos/studio-motor-2026-10-20/pruebas/
+// Regla de oro: nunca afirmar algo que no esté en los datos.
+const MOTOR_AMENIDADES = [
+  ['Alberca', /\b(alberca|piscina)/],
+  ['Jardín', /\bjardin/],
+  ['Roof Garden', /roof ?garden|roof ?top/],
+  ['Gym', /\b(gym|gimnasio)/],
+  ['Seguridad 24h', /(seguridad|vigilancia)[^.]{0,25}24 ?(h|hr|hrs|horas)\b/],
+  ['Área de juegos', /area de juegos|juegos infantiles|ludoteca|kids club/],
+  ['Salón de eventos', /salon de (eventos|fiestas|usos multiples)/],
+  ['Cuarto de servicio', /(cuarto|recamara) de servicio/],
+  ['Bodega', /\bbodega/],
+  ['Elevador', /\b(elevador|ascensor)/],
+  ['Amueblada', /\bamueblad[oa]s?\b/],
+  ['Vista a la montaña', /vista (a|al|hacia) (la |las |el )?(montana|sierra|cerro)/],
+  ['Área de BBQ', /\b(bbq|asador|parrilla)/],
+  ['Cuarto de lavado', /(cuarto|area) de lavado|lavanderia/],
+  ['Equipado', /(totalmente|completamente|casa|departamento|propiedad) equipad[oa]/],
+  ['Terraza', /\bterraza/],
+  ['Parque', /\bparques?\b|areas? verdes?/],
+  ['Canchas', /\bcanchas?\b/],
+  ['Pet friendly', /pet ?friendly|(se )?aceptan? mascotas/],
+  ['Cocina integral', /cocina integral/],
+];
+// Amenidades que por sí solas venden: van primero en "lo mejor"
+const MOTOR_FUERTES = ['Alberca', 'Roof Garden', 'Vista a la montaña', 'Jardín', 'Terraza', 'Gym', 'Seguridad 24h', 'Amueblada'];
+
+function motorNormalizar(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+function motorNum(x) {
+  const n = parseFloat(String(x == null ? '' : x).replace(/[^\d.]/g, ''));
+  return isFinite(n) && n > 0 ? n : 0;
+}
+
+// Amenidades marcadas por el asesor + las que aparecen en la descripción (ignora "sin ...", "no ...").
+function motorDetectarAmenidades(desc, ams, tipo) {
+  const t = motorNormalizar(desc);
+  const out = [];
+  MOTOR_AMENIDADES.forEach(([nombre, re]) => {
+    if (nombre === 'Bodega' && /bodega/i.test(tipo || '')) return;
+    const g = new RegExp(re.source, 'g');
+    let m;
+    while ((m = g.exec(t))) {
+      const antes = t.slice(Math.max(0, m.index - 16), m.index);
+      if (!/\b(sin|no|ni|semi)[\s-]+(se\s+)?$/.test(antes) && !/\b(sin|no)\s+\w+\s+$/.test(antes)) { out.push(nombre); break; }
+    }
+  });
+  const marcadas = (ams || []).filter(Boolean);
+  const todas = marcadas.concat(out.filter(a => !marcadas.includes(a)));
+  return todas.filter(a => MOTOR_FUERTES.includes(a)).sort((a, b) => MOTOR_FUERTES.indexOf(a) - MOTOR_FUERTES.indexOf(b))
+    .concat(todas.filter(a => !MOTOR_FUERTES.includes(a)));
+}
+
+function motorPlural(n, uno, varios) { return n + ' ' + (n === 1 ? uno : varios); }
+function motorLista(arr) {
+  const a = arr.filter(Boolean);
+  return a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1];
+}
+function motorPrecioPantalla(n) { return n ? '$' + n.toLocaleString('es-MX') : ''; }
+// Precio como se dice en voz (evita que la voz lea "$" como dólares): "4.5 millones de pesos", "18 mil 500 pesos"
+function motorPrecioVoz(n) {
+  if (!n) return '';
+  if (n >= 1e6) { const m = Math.round(n / 1e4) / 100; return (m === 1 ? '1 millón' : m + ' millones') + ' de pesos'; }
+  if (n >= 1000) { const r = Math.round(n % 1000); return Math.floor(n / 1000) + ' mil' + (r ? ' ' + r : '') + ' pesos'; }
+  return Math.round(n) + ' pesos';
+}
+
+// Datos normalizados de la propiedad (v = objeto de getV())
+function motorDatos(v) {
+  v = v || {};
+  const tipo = String(v.tipo || 'Propiedad').trim();
+  const tipoMin = tipo.split('/')[0].trim().toLowerCase();
+  const fem = /^(casa|bodega|oficina|quinta|residencia|propiedad)/.test(tipoMin);
+  const renta = /renta/i.test(v.op || '');
+  const ciudad = String(v.city || '').split(',')[0].trim();
+  const col = String(v.col || '').trim();
+  const zona = !col || motorNormalizar(col) === motorNormalizar(ciudad) ? (ciudad || col) : (ciudad ? col + ', ' + ciudad : col);
+  const price = motorNum(v.price);
+  const ams = motorDetectarAmenidades(v.desc, v.ams, tipo);
+  return {
+    tipo, tipoMin, fem, renta, ciudad, col: col || ciudad, zona, price,
+    familia: /terreno/i.test(tipo) ? 'terreno' : /local|oficina|bodega/i.test(tipo) ? 'comercial' : 'residencial',
+    precioPantalla: price ? motorPrecioPantalla(price) + (renta ? ' /mes' : '') : '',
+    precioVoz: motorPrecioVoz(price),
+    rec: motorNum(v.rec), ban: motorNum(v.ban), mban: motorNum(v.mban), estac: motorNum(v.estac),
+    m2c: motorNum(v.m2c), m2t: motorNum(v.m2t), ams,
+    este: fem ? 'esta' : 'este', un: fem ? 'una' : 'un', lo: fem ? 'la' : 'lo',
+    opTxt: renta ? 'en renta' : 'en venta',
+  };
+}
+
+// Variante elegida por semilla: semillas consecutivas siempre cambian de variante
+function motorElegir(arr, seed, k) { return arr[((seed | 0) + k * 7) % arr.length]; }
+function motorCap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+function motorAmenidadVoz(a, d) {
+  return ({
+    'Gym': 'gimnasio', 'Seguridad 24h': 'seguridad las 24 horas', 'Área de BBQ': 'área de asador',
+    'Amueblada': d.fem ? 'amueblada' : 'amueblado', 'Equipado': d.fem ? 'equipada' : 'equipado',
+    'Pet friendly': 'pet friendly', 'Roof Garden': 'roof garden',
+  })[a] || a.toLowerCase();
+}
+
+// Baños como se dicen: "2 baños y medio", "1 baño", "2 baños y 2 medios baños"
+function motorBanos(d) {
+  if (!d.ban && !d.mban) return '';
+  if (!d.ban) return motorPlural(d.mban, 'medio baño', 'medios baños');
+  const b = motorPlural(d.ban, 'baño', 'baños');
+  if (d.mban === 1) return b + ' y medio';
+  return d.mban > 1 ? b + ' y ' + motorPlural(d.mban, 'medio baño', 'medios baños') : b;
+}
+
+// Número de escenas que el Studio ya pedía para cada duración (mismos rangos que el
+// prompt anterior: ≤22s → 6-8, ≤33s → 9-11, más → 11-14; se toma el punto medio).
+function motorNumEscenas(durSeg) {
+  const d = durSeg > 0 ? durSeg : 30;
+  return d <= 22 ? 7 : d <= 33 ? 10 : 12;
+}
+
+function motorCTA(d, seed) {
+  return motorElegir([
+    `¿${motorCap(d.lo)} quieres conocer? Mándame mensaje y agendamos tu visita.`,
+    'Escríbeme y te paso todos los detalles.',
+    `¿Quieres ver${d.lo} en persona? Escríbeme hoy.`,
+    'Mándame mensaje y te digo si sigue disponible.',
+    'Agenda tu visita, te espero.',
+  ], seed, 0);
+}
+
+function motorM2(n) { return n.toLocaleString('es-MX') + ' metros cuadrados'; }
+
+// Frases de datos reutilizables por todos los estilos (vacías si falta el dato)
+function motorFrases(d) {
+  const resid = d.familia === 'residencial', terr = d.familia === 'terreno';
+  return {
+    rec: resid && d.rec ? motorPlural(d.rec, 'recámara', 'recámaras') : '',
+    ban: !terr ? motorBanos(d) : '',
+    estac: !terr && d.estac ? motorPlural(d.estac, 'cajón de estacionamiento', 'cajones de estacionamiento') : '',
+    m2c: !terr && d.m2c ? motorM2(d.m2c) + ' de construcción' : '',
+    m2t: d.m2t ? motorM2(d.m2t) + ' de terreno' : '',
+    pantRec: resid && d.rec ? motorPlural(d.rec, 'RECÁMARA', 'RECÁMARAS') : '',
+    pantM2: (terr ? d.m2t || d.m2c : d.m2c || d.m2t) ? (terr ? d.m2t || d.m2c : d.m2c || d.m2t).toLocaleString('es-MX') + ' M²' : '',
+  };
+}
+
+const MOTOR_ESTILOS = [
+  ['directo', 'Directo'], ['recorrido', 'Recorrido'], ['estilo_vida', 'Estilo de vida'],
+  ['inversion', 'Inversión'], ['reto', 'Pregunta / reto'],
+];
+
+// Cómo se vive cada amenidad (solo se usa si la amenidad existe en los datos)
+function motorVivir(a, d) {
+  return ({
+    'Alberca': 'Las tardes de calor se resuelven en la alberca.',
+    'Jardín': 'El jardín es para jugar, convivir o simplemente descansar.',
+    'Roof Garden': 'Las noches se disfrutan en el roof garden.',
+    'Vista a la montaña': 'Y cada mañana despiertas con vista a la montaña.',
+    'Terraza': 'La terraza es para el café de la mañana.',
+    'Gym': 'Entrenas sin salir: hay gimnasio.',
+    'Seguridad 24h': 'Con seguridad las 24 horas, vives tranquilo.',
+    'Área de BBQ': 'El área de asador queda lista para los domingos.',
+    'Área de juegos': 'Los niños tienen su área de juegos.',
+    'Amueblada': `Llegas con tu maleta: se entrega ${d.fem ? 'amueblada' : 'amueblado'}.`,
+    'Elevador': 'Con elevador, todo es más cómodo.',
+    'Pet friendly': 'Y tu mascota también es bienvenida.',
+    'Parque': 'Hay parque para salir a caminar.',
+    'Canchas': 'Hay canchas para hacer deporte.',
+    'Salón de eventos': 'Y hay salón de eventos para celebrar.',
+    'Cocina integral': 'La cocina integral invita a cocinar a gusto.',
+  })[a] || `Además, cuenta con ${motorAmenidadVoz(a, d)}.`;
+}
+
+// Frases de cada estilo: [texto, texto en pantalla, prioridad]. Prioridad 0 = nunca se quita;
+// para ajustar a la duración se quitan primero las de prioridad 3, luego 2, luego 1.
+function motorSegmentosEstilo(estilo, d, f, o) {
+  const { seed, hook, wow, cta } = o;
+  const E = (arr, k) => motorElegir(arr, seed, k), lugar = d.col || d.ciudad || 'la zona';
+  const Este = motorCap(d.este), lo = d.lo, PRE = d.precioPantalla, CTA_P = PRE || 'AGENDA TU VISITA';
+  const TIPO = (d.tipo + (d.tipo.length < 14 ? ' ' + d.opTxt : '')).toUpperCase();
+  const amVoz = d.ams.map(a => motorAmenidadVoz(a, d));
+  const wowTxt = String(wow || '').trim().replace(/[.!]+$/, '');
+  const m2 = [f.m2c, f.m2t].filter(Boolean);
+  const S = [];
+  const add = (t, p, pr) => { if (t) S.push([t, p || '', pr || 0]); };
+  if (estilo === 'directo') {
+    add(hook, TIPO, 0);
+    add(motorCap(E([`es ${d.un} ${d.tipoMin} ${d.opTxt} en ${d.zona}.`, `${d.este} ${d.tipoMin} ${d.opTxt} está en ${d.zona}.`, `te presento ${d.este} ${d.tipoMin} ${d.opTxt} en ${d.zona}.`], 1)), lugar.toUpperCase(), hook ? 1 : 0);
+    const a = [f.rec, f.ban].filter(Boolean);
+    if (a.length) add(E([`Tiene ${motorLista(a)}.`, `Cuenta con ${motorLista(a)}.`], 2), f.pantRec || f.ban.toUpperCase(), 0);
+    if (m2.length) add(`${a.length ? 'Son' : 'Tiene'} ${motorLista(m2)}.`, f.pantM2, 0);
+    if (f.estac) add(E([`Incluye ${f.estac}.`, `Y ${f.estac}.`], 3), '', 2);
+    if (wowTxt) add(`Y lo mejor: ${wowTxt}.`, '', 1);
+    else if (amVoz.length) add(E([`Y lo mejor: ${motorLista(amVoz.slice(0, 3))}.`, `Lo mejor: ${motorLista(amVoz.slice(0, 3))}.`], 4), d.ams[0].toUpperCase(), 1);
+    add(d.price ? E(d.renta ? [`La renta es de ${d.precioVoz} al mes.`, `Se renta en ${d.precioVoz} mensuales.`] : [`Su precio es de ${d.precioVoz}.`, `Se vende en ${d.precioVoz}.`], 5) : 'Pregúntame por el precio y las condiciones.', PRE, 0);
+    add(String(cta || '').trim() || motorCTA(d, seed), CTA_P, 0);
+  } else if (estilo === 'recorrido') {
+    add(E([`Acompáñame a conocer ${d.este} ${d.tipoMin} en ${lugar}.`, `Acompáñame: hoy te enseño ${d.este} ${d.tipoMin} en ${lugar}.`], 1), TIPO, 0);
+    if (d.familia === 'terreno') {
+      add('Llegamos por el acceso.', '', 3);
+      add(f.m2t ? `Desde aquí lo ves completo: ${f.m2t}.` : 'Desde aquí lo ves completo.', f.pantM2, f.m2t ? 0 : 3);
+      add('Caminamos hacia el fondo.', '', 3);
+      add('Así es el entorno.', '', 3);
+    } else {
+      add(`Empezamos por la entrada.${d.estac ? ` Hay lugar para ${motorPlural(d.estac, 'auto', 'autos')}.` : ''}`, '', d.estac ? 2 : 3);
+      add(d.familia === 'residencial' ? `Pasamos a las áreas sociales.${f.m2c ? ` En total son ${f.m2c}.` : ''}` : `Este es el espacio principal.${f.m2c ? ` Son ${f.m2c}.` : ''}`, f.m2c ? f.pantM2 : '', f.m2c ? 0 : 3);
+      if (d.familia === 'residencial') {
+        add('Sigue la cocina.', '', 3);
+        add(d.rec === 1 ? 'Vamos a la recámara.' : d.rec ? `Vamos a las ${d.rec} recámaras.` : '', f.pantRec, 0);
+      } else add('Mira la distribución.', '', 3);
+      if (f.ban) add(`Son ${f.ban} en total.`, f.ban.toUpperCase(), 1);
+      if (f.m2t) add(`Todo sobre ${f.m2t}.`, '', 0);
+    }
+    d.ams.slice(0, 2).forEach((a, i) => add(`${i ? 'Y no te pierdas' : 'Ahora, uno de sus favoritos'}: ${motorAmenidadVoz(a, d)}.`, a.toUpperCase(), 1));
+    if (wowTxt) add(`Fíjate en esto: ${wowTxt}.`, '', 1);
+    add(d.price ? `Y esto ${d.renta ? 'se renta' : 'se vende'} en ${d.precioVoz}${d.renta ? ' al mes' : ''}.` : 'El precio te lo paso por mensaje.', PRE, 0);
+    add(`Si te gustó el recorrido, escríbeme y ${lo} vemos en persona.`, CTA_P, 0);
+  } else if (estilo === 'estilo_vida') {
+    const fuerte = d.ams.some(a => ['Alberca', 'Jardín', 'Terraza', 'Roof Garden', 'Área de BBQ', 'Vista a la montaña'].includes(a));
+    const casa = d.familia === 'residencial';
+    add(d.familia === 'terreno' ? `Imagina lo que puedes construir en ${lugar}.` : !casa ? `Imagina tu negocio en ${lugar}.`
+      : fuerte ? `Imagina tus fines de semana en ${lugar}.` : E([`Así se vive en ${lugar}.`, `Piensa en tu día a día en ${lugar}.`], 1), lugar.toUpperCase(), 0);
+    if (d.familia === 'residencial' && d.rec) add(d.rec >= 3 ? `Con ${f.rec}, hay espacio para toda la familia.` : d.rec === 2 ? `Con ${f.rec}, cada quien tiene su espacio.` : `${motorCap(f.rec)} para vivir a tu ritmo.`, f.pantRec, 0);
+    if (d.familia === 'terreno') add(`Con ${f.m2t || 'este espacio'}, el proyecto lo pones tú.`, f.pantM2, 0);
+    else if (m2.length) add(`Son ${motorLista(m2)} para vivirlos a tu manera.`, f.pantM2, 0);
+    d.ams.slice(0, 4).forEach(a => add(motorVivir(a, d), a.toUpperCase(), 1));
+    if (wowTxt) add(`Y lo que más vas a disfrutar: ${wowTxt}.`, '', 1);
+    if (d.ban >= 2) add(`Con ${f.ban}, nadie hace fila en las mañanas.`, '', 2);
+    if (d.estac) add(`Y llegas sin batallar: ${motorPlural(d.estac, 'cajón', 'cajones')} de estacionamiento.`, '', 2);
+    add(d.price ? `Todo esto por ${d.precioVoz}${d.renta ? ' al mes' : ''}.` : 'Pregúntame por el precio.', PRE, 0);
+    add(`${d.familia === 'terreno' ? '¿Ya te imaginas tu proyecto aquí?' : !casa ? '¿Te imaginas tu negocio aquí?' : '¿Te ves viviendo aquí?'} Escríbeme y agendamos tu visita.`, CTA_P, 0);
+  } else if (estilo === 'inversion') {
+    add(d.renta ? `Si buscas rentar bien en ${lugar}, pon atención.` : `Si piensas invertir en ${lugar}, pon atención.`, TIPO, 0);
+    const sp = [f.rec, ...m2].filter(Boolean);
+    add(d.familia === 'terreno' && f.m2t ? `Son ${f.m2t} ${d.opTxt}.` : `${motorCap(d.un)} ${d.tipoMin} ${d.opTxt}${sp.length ? ' con ' + motorLista(sp) : ' en ' + d.zona}.`, f.pantM2 || lugar.toUpperCase(), 0);
+    if (f.ban) add(`Tiene ${f.ban}.`, '', 2);
+    const base = d.familia === 'terreno' ? d.m2t || d.m2c : d.m2c || d.m2t;
+    const deQue = d.familia === 'terreno' || !d.m2c ? 'de terreno' : 'de construcción';
+    if (d.price && base) {
+      if (d.renta) add(`Es una renta competitiva: unos ${motorPrecioVoz(Math.round(d.price / base))} por metro cuadrado al mes.`, '$' + Math.round(d.price / base).toLocaleString('es-MX') + ' / M²', 0);
+      else add(`Sale en unos ${motorPrecioVoz(Math.round(d.price / base / 100) * 100)} por metro cuadrado ${deQue}.`, '$' + (Math.round(d.price / base / 100) * 100).toLocaleString('es-MX') + ' / M²', 0);
+    } else if (d.renta) add('Es una renta competitiva para lo que ofrece.', '', 1);
+    add(d.renta ? `Rentar en ${lugar} te da ubicación sin comprometer tu patrimonio.` : `En una zona como ${lugar}, la plusvalía suele ser un buen respaldo para tu patrimonio.`, '', 2);
+    if (amVoz.length) add(d.renta ? `Y suma ${motorLista(amVoz.slice(0, 3))}.` : `Las amenidades suman valor: ${motorLista(amVoz.slice(0, 3))}.`, d.ams[0].toUpperCase(), 1);
+    if (f.estac) add(`Incluye ${f.estac}.`, '', 2);
+    add(d.price ? `Precio: ${d.precioVoz}${d.renta ? ' al mes' : ''}.` : 'Pregúntame por el precio.', PRE, 0);
+    add(d.renta ? '¿Quieres los detalles del contrato? Escríbeme.' : '¿Quieres los números completos? Escríbeme.', CTA_P, 0);
+  } else { // reto
+    const dato = f.rec || f.m2t || f.m2c;
+    add(d.price ? `¿Cuánto crees que ${d.renta ? 'cuesta la renta de' : 'vale'} ${d.un} ${d.tipoMin}${dato ? ' con ' + (/terreno/i.test(d.tipoMin) ? dato.replace(/ de terreno$/, '') : dato) : ''} en ${lugar}?` : `¿Buscas ${d.un} ${d.tipoMin} ${d.opTxt} en ${lugar}?`, TIPO, 0);
+    add(E(['Piénsalo mientras la ves.', 'Haz tu apuesta y mira.'], 1).replace('la ves', d.fem ? 'la ves' : 'lo ves'), '', 3);
+    const resto = [f.rec === dato ? '' : f.rec, f.ban, f.m2c === dato ? '' : f.m2c, f.m2t === dato ? '' : f.m2t].filter(Boolean);
+    if (resto.length) add(`Mira: ${motorLista(resto)}.`, f.pantRec || f.pantM2, 0);
+    if (amVoz.length) add(`Y sí, tiene ${motorLista(amVoz.slice(0, 3))}.`, d.ams[0].toUpperCase(), 1);
+    if (wowTxt) add(`Y encima: ${wowTxt}.`, '', 1);
+    if (f.estac) add(`Con ${f.estac}.`, '', 2);
+    add(d.price ? `La respuesta: ${d.precioVoz}${d.renta ? ' al mes' : ''}.` : 'El precio te lo paso por mensaje.', PRE, 0);
+    add(`Las buenas se van rápido. Escríbeme hoy antes de que alguien más ${lo} aparte.`, CTA_P, 0);
+  }
+  return S;
+}
+
+// Reparte las frases en N escenas (en orden; si sobran escenas quedan mudas, intercaladas)
+function motorEscenas(seg, N) {
+  const S = seg.length, porEscena = Array.from({ length: N }, () => []);
+  seg.forEach((s, j) => {
+    const k = S >= N ? Math.floor(j * N / S) : (S === 1 ? 0 : Math.round(j * (N - 1) / (S - 1)));
+    porEscena[k].push(s);
+  });
+  return porEscena.map((frases, k) => {
+    const ultima = k === N - 1;
+    const frag = frases.map(x => x[0]).join(' ');
+    const txt = (frases.map(x => x[1]).filter(Boolean)[0] || '').slice(0, 25).trim();
+    const nPal = frag ? frag.split(/\s+/).length : 0;
+    return {
+      num: k + 1, funcion: k === 0 ? 'Hook' : ultima ? 'CTA' : 'Detalle',
+      bloque: k === 0 ? 'HOOK' : ultima ? 'CTA' : 'RECORRIDO', foto_idx: k,
+      duracion_seg: Math.round(Math.max(1.5, nPal / 2.33 + (ultima ? 1 : 0)) * 10) / 10,
+      texto_pantalla: txt, texto_position: k === 0 || ultima ? 'TC' : (k % 2 ? 'BL' : 'BC'),
+      texto_style: k === 0 ? 'hook' : ultima ? 'price' : 'label', texto_anim: k % 2 ? 'slideUp' : 'fade',
+      visual_intensity: k === 0 || ultima ? 'high' : 'medium', respiracion: false,
+      transicion_salida: ultima ? 'crossfade' : 'cut', narracion_frag: frag,
+      beats: [{ type: 'photo', variant: k % 6, frac: [0, 1] }].concat(txt ? [{ type: 'text', frac: [0.12, 0.88] }] : []),
+    };
+  });
+}
+
+// ── GUION + ESCENAS ──
+// opts: {estilo, hook: {texto}|string, seed, durSeg, nEscenas, wow, cta}
+// Devuelve {estilo, nombre, narracion, escenas, cta}: misma forma que el guion de antes
+// (escenas con num/funcion/bloque/foto_idx/duracion_seg/texto_pantalla/narracion_frag/beats…).
+// narracion = unión exacta de los narracion_frag (la voz se sincroniza por fragmento).
+// foto_idx va en orden (i); el Studio la reasigna con su lógica de siempre.
+function motorGuion(v, opts) {
+  opts = opts || {};
+  const d = motorDatos(v), seed = opts.seed || 1;
+  const estilo = MOTOR_ESTILOS.find(e => e[0] === opts.estilo) || MOTOR_ESTILOS[0];
+  const dur = opts.durSeg > 0 ? opts.durSeg : 30;
+  const N = Math.max(1, opts.nEscenas | 0 || motorNumEscenas(dur));
+  const presupuesto = Math.round(dur * 140 / 60); // ~140 palabras/min, voz natural en español
+  let hook = opts.hook && typeof opts.hook === 'object' ? (opts.hook.texto || opts.hook.hook_maestro || '') : String(opts.hook || '');
+  hook = hook.replace(/\$\s?(\d[\d,]*(\.\d+)?)/g, (m, n) => motorPrecioVoz(parseFloat(n.replace(/,/g, '')))); // la voz no lee "$"
+  const cta = String(opts.cta || '').trim() || motorCTA(d, seed);
+  let seg = motorSegmentosEstilo(estilo[0], d, motorFrases(d), { seed, hook: hook.trim(), wow: opts.wow, cta });
+  // Ajuste a la duración: se quitan frases de relleno, luego extras, luego amenidades (de atrás hacia adelante)
+  const palabras = () => seg.map(x => x[0]).join(' ').split(/\s+/).length;
+  for (const pr of [3, 2, 1]) {
+    for (let i = seg.length - 1; i >= 0; i--) {
+      if (seg[i][2] !== pr) continue;
+      if (palabras() > presupuesto || (pr === 3 && seg.length > N)) seg.splice(i, 1);
+    }
+  }
+  const escenas = motorEscenas(seg, N);
+  return { estilo: estilo[0], nombre: estilo[1], narracion: escenas.map(e => e.narracion_frag).filter(Boolean).join('\n\n'), escenas, cta };
+}
+
+// Los 5 estilos de una vez (el asesor elige uno; "Directo" es el predeterminado)
+function motorGuiones(v, opts) {
+  return MOTOR_ESTILOS.map(e => motorGuion(v, Object.assign({}, opts, { estilo: e[0] })));
+}
+// ==== MOTOR DE GUIONES (fin) ====
+
 // ── GENERAR HOOKS CON GPT ──
 async function generarHooks(concept) { return _nivaGenerarHooksBanner.call(this, concept); }
 const _nivaGenerarHooksBanner = nivaConBanner('🎣 Generando hooks y guion del video con IA… puede tardar hasta un minuto.', _generarHooksInner, 'hooks');
@@ -8273,282 +8600,54 @@ function fitNarracionADuracion(text, durTargetSec) {
 
 // ── GENERAR GUIÓN CON HOOK SELECCIONADO ──
 async function generarGuionConHook(hookIdx) { return _nivaGenerarGuionBanner.call(this, hookIdx); }
-const _nivaGenerarGuionBanner = nivaConBanner('📝 Escribiendo el guion del video con IA…', _generarGuionConHookInner, 'guion');
+const _nivaGenerarGuionBanner = nivaConBanner('📝 Escribiendo el guion del video…', _generarGuionConHookInner, 'guion');
+let _motorSemillaGuion = 1; // cambia con "↺ Guión" para dar otras variantes del motor
+let _motorGuiones = [];      // los 5 guiones (uno por estilo) de la última generación
+let _motorEstiloIdx = 0;     // estilo en uso; por defecto "Directo"
 async function _generarGuionConHookInner(hookIdx) {
+  // Guion SIN IA: el motor determinista (bloque MOTOR DE GUIONES) escribe 5 guiones, uno por
+  // estilo, con los datos de la propiedad. Se aplica el estilo en uso (por defecto "Directo")
+  // y el asesor puede cambiarlo con "Usar este". La salida es la misma de antes (textarea +
+  // vidScenes) y las fotos se reparten con la lógica de siempre (remapEscenasAOrdenManual).
   if (!vidV) return;
-  const oaKey = getOaKey();
-  const scriptOuter = document.getElementById('vid-script-outer');
-  scriptOuter.style.display = 'block';
-
-  const scoreBox = document.getElementById('vid-score-box');
-  scoreBox.style.display = 'none';
+  document.getElementById('vid-script-outer').style.display = 'block';
+  document.getElementById('vid-score-box').style.display = 'none';
   document.getElementById('vid-scenes-box').style.display = 'none';
-  document.getElementById('vid-script-ta').value = '⏳ Generando guión con IA…';
-
-  const v = vidV;
   const meta = getVidMeta();
-  const hook = vidHooks[hookIdx];
-  const ciudad = (v.city||'Monterrey').split(',')[0];
-  const precio = fmtP(v.price);
-  const ams = (v.ams||[]).join(', ');
-  const durTarget = meta.duracion > 0 ? meta.duracion : 30;
-
-  if (!oaKey || oaKey.length < 10) {
-    const s = fitNarracionADuracion(buildScriptPlantilla(v, hook, meta), durTarget);
-    document.getElementById('vid-script-ta').value = s;
-    vidCountChars();
-    vidScenes = NIVA_FLAGS.beatSystem
-      ? buildScenesPlantillaV2(v, hook, activeConcepto, meta)
-      : buildScenesPlantilla(v, hook, s);
-    renderScenes();
-    return;
-  }
-
-  const conceptInfo = activeConcepto ? `
-CONCEPTO CREATIVO: "${activeConcepto.titulo}"
-- Ángulo: ${activeConcepto.angulo}
-- WOW: ${activeConcepto.elemento_wow}
-- MUST SHOW: ${(activeConcepto.must_show||[]).join(', ')}
-- NICE TO SHOW: ${(activeConcepto.nice_show||[]).join(', ')}
-- DON'T SHOW: ${(activeConcepto.dont_show||[]).join(', ')}
-- Ritmo: ${activeConcepto.ritmo}
-- CTA ideal: "${activeConcepto.cta_texto}"` : '';
-
-  // Estilo del video — modifica escenas, duración, cámara, transiciones, texto
-  const objCfg = OBJETIVO_CONFIG[vidVideoObjective] || OBJETIVO_CONFIG.IMPACTO;
-  const objetivoInfo = `
-ESTILO DE VIDEO: ${vidVideoObjective} ${objCfg.emoji}
-- Tono: ${objCfg.tono}
-- Movimientos preferidos: ${(objCfg.preferred_motions||[]).join(', ')}
-- Transiciones: ${(objCfg.transitions||[]).join(', ')}
-- Densidad de texto: ${objCfg.text_density} (high=texto en casi toda escena, low=pocas escenas con texto, medium=selectivo)
-- Captions: ${objCfg.captions_on ? 'ON (obligatorio)' : 'OFF'}
-- RITMO: ${objCfg.ritmo_prompt}
-- Duración de escenas: ${(objCfg.scene_dur_range||[1,2.5]).join('–')}s por escena`;
-
-  // Contexto de clasificación de fotos (si disponible)
-  const photoClassInfo = vidPhotoData.length > 0 ? `
-CLASIFICACIÓN DE FOTOS (usar para asignar foto_idx y cameraMotion):
-${vidPhotoData.slice(0, 8).map((p, i) => `- Foto ${i}: ${p.type} | hero:${p.hero_score} wow:${p.wow_score} → función sugerida: ${p.recommended_function}`).join('\n')}
-NOTA: tiltUp y tiltDown SOLO para fotos tipo BUILDING_TOWER o EXTERIOR.` : '';
-
-  try {
-    const prompt = `Eres el motor creativo de NIVA Inmobiliaria. Creas guiones y estructuras de video para TikTok/Reels/Shorts inmobiliarios en México que DETIENEN el scroll.
-
-PROPIEDAD:
-- Tipo: ${v.tipo} en ${v.op}
-- Ubicación: ${v.col}, ${ciudad}
-- Precio: ${precio}${v.esMes?' al mes':''}
-- Recámaras: ${v.rec||'N/D'} | Baños: ${v.ban||'N/D'} | Estacionamientos: ${v.estac||'N/D'}
-- Construcción: ${v.m2c||'N/D'} m² | Terreno: ${v.m2t||'N/D'} m²
-- Amenidades: ${ams||'N/D'}
-- Descripción: ${v.desc||'N/D'}
-${meta.wow ? '- PUNTO WOW: '+meta.wow : ''}
-${meta.buyer ? '- Buyer ideal: '+meta.buyer : ''}
-${meta.objetivo ? '- Objetivo: '+meta.objetivo : ''}
-${meta.emocion ? '- Emoción: '+meta.emocion : ''}
-${conceptInfo}
-${objetivoInfo}
-${photoClassInfo}
-
-HOOK ELEGIDO: "${hook.texto}"
-DURACIÓN OBJETIVO: ${durTarget} segundos
-LÍMITE DE PALABRAS de narracion_completa: entre MÍNIMO ${Math.max(6, Math.round(durTarget * (110/60)))} y MÁXIMO ${Math.max(8, Math.round(durTarget * (140/60)))} palabras en total (ritmo de voz natural en español, ~110-140 palabras/min). Esto es una regla dura — cuenta las palabras antes de responder. NO entregues un guion corto "por seguridad": si te quedas muy por debajo del mínimo, el video sale más corto de lo que el usuario pidió. Si no alcanzas a contar todo el recorrido dentro del máximo, prioriza HOOK + WOW + PRECIO + CTA y recorta o elimina detalles secundarios en vez de exceder el límite — pero SIEMPRE llega al mínimo agregando más detalle sensorial, contexto del vecindario o beneficios si hace falta.
-FOTOS DISPONIBLES: ${photos.length} (foto_idx: 0 a ${Math.max(photos.length-1,0)})
-
-INSTRUCCIONES DE NARRATIVA:
-- Estructura: HOOK → CONTEXTO → RECORRIDO → WOW → PRECIO → CTA
-- Genera aproximadamente ${durTarget <= 22 ? '6 a 8' : durTarget <= 33 ? '9 a 11' : '11 a 14'} visual beats (escenas) — MÁS escenas para videos más largos, MENOS para más cortos; esto es proporcional a la DURACIÓN OBJETIVO de arriba, no un número fijo
-- RITMO VARIABLE (el CD decide): hook 0.8-1.5s | detalle 0.7-1.2s | foto normal 1.0-1.8s | importante 1.5-2.2s | WOW 2.0-2.8s | hero hasta 3s | respiración 1.8-2.5s | precio 1.5-2.2s | CTA 3.5-4.5s
-- MÁXIMO 2 escenas de respiración (respiracion:true) por video
-- NO repetir misma foto dos veces seguidas si hay fotos disponibles
-- NO repetir mismo texto — mantén registro de info mostrada
-- VARIEDAD DE ESPACIOS: exterior→sala→cocina→recámara→baño→patio, NUNCA la misma habitación consecutiva
-- La ÚLTIMA escena SIEMPRE es funcion:"CTA" con la mejor foto, duracion_seg:4.0
-- visual_intensity: "high"|"medium"|"low" — una foto excelente a veces solo se muestra sin texto (low)
-- OPEN LOOPS solo cuando realmente existe un reveal posterior en el video
-
-REGLA CRÍTICA DE PRECIOS — MXN:
-- SIEMPRE en pesos mexicanos. NUNCA mencionar dólares, USD, ni hacer conversión.
-- Lenguaje natural: "50 mil al mes", "2.5 millones", "todo esto por 50 mil"
-- NUNCA: "$50,000 USD", "US$", "dollars", "dólares"
-- CTA dinámico: precio_valor→"¿Sigue disponible?" | lifestyle→"¿Te imaginas aquí?" | familia→"¿La quieres conocer?" | inversion→"¿Quieres los números?"
-
-REGLAS DE TEXTO — CINEMATOGRÁFICO / BENEFIT-DRIVEN:
-- texto_position: "TL"|"TR"|"BL"|"BR"|"TC"|"BC" — VARIAR entre escenas
-- texto_style: "hook"|"editorial"|"price"|"label"|"micro"
-- texto_anim: "fade"|"slideUp"|"slideLeft"|"maskReveal"|"tracking"
-- Sin texto en escenas con respiracion:true
-- Máximo 25 caracteres en texto_pantalla
-- El texto COORDINA con cámara: si cámara va derecha → texto entra desde izquierda
-- TEXTOS EMOCIONALES / BENEFIT-DRIVEN — NO GENÉRICOS:
-  ✅ "DESPIERTA CON ESTA VISTA" (no "VISTA")
-  ✅ "TU COCINA DE CHEF" (no "COCINA")
-  ✅ "240M² DE VIDA" (no "240 M²")
-  ✅ "NADIE TOCA TU PRIVACIDAD" (no "PRIVACIDAD")
-  ✅ "ESTO ES TUYO POR 3.2M" (no solo el precio)
-  ✅ "JARDÍN QUE LOS NIÑOS AMARÁN" (no "JARDÍN")
-  ✅ "WORKOUT SIN SALIR DE CASA" (no "GIMNASIO")
-- El texto habla al comprador, no describe la foto
-- Para objetivo VIRAL: texto cortante, provocador ("ESPERA... ¿ESO ES EL BAÑO?")
-- Para objetivo PREMIUM: texto minimalista elegante, menos es más
-- Para objetivo PRECIO: datos claros con contexto de valor ("CUESTA MENOS QUE UN AUTO")
-- Para objetivo FAMILIA: texto cálido, cotidiano ("AQUÍ CRECE TU FAMILIA")
-- Para objetivo INVERSIÓN: datos de mercado, rendimiento ("PLUSVALÍA 8% ANUAL")
-- Para objetivo UBICACIÓN: zona, cercanía, lifestyle ("3 MIN DE CUMBRES")
-
-REGLAS DE CÁMARA — TRAYECTORIA CINEMATOGRÁFICA:
-Cada foto es una MINI TOMA. Puedes usar dos modos:
-
-MODO A — preset rápido (cameraMotion.type):
-- dollyIn: profundidad / elemento central
-- pushIn: hook potente / impacto
-- pullOut: reveal de habitación completa
-- panRight/panLeft: elementos horizontales / ventanas laterales
-- tiltUp: fachadas / altura / edificios
-- tiltDown: jardines / detalles de piso
-- revealWide: empezar tight y abrir → WOW shots
-- breathingShot: escenas de respiración (slow, elegante)
-- focusPush: precio / datos clave
-- luxurySlow: cierre / premium
-- diagonalPushTR: composición diagonal
-
-MODO B — trayectoria bezier completa (cameraPath) — usar en escenas clave (Hook, WOW, Precio):
-Define start → middle → end para que la cámara cambie de dirección a mitad del shot.
-Combina con velocityPreset para controlar la aceleración:
-- CINEMATIC_SLOW: luxury, muy suave
-- SLOW_FAST_SLOW: clásico cinematográfico (recomendado)
-- QUICK_REVEAL: arranca rápido y frena
-- FAST_PUSH: acelera hacia el final
-- NATURAL: orgánico y fluido
-
-REGLA CRÍTICA DE CÁMARA — NO TILT EN INTERIORES:
-- tiltUp y tiltDown SOLO para fotos tipo BUILDING_TOWER o EXTERIOR (fachadas, torres, edificios).
-- NUNCA tilt en sala, cocina, recámara, baño, detalle, ni interiores generales.
-- El movimiento vertical es una herramienta especial para mostrar altura real de una torre o edificio.
-- Si la foto clasificada es SALA/COCINA/RECAMARA/BANO/DETALLE → usa pushIn, pullOut, panRight, panLeft, dollyIn.
-
-IMPORTANTE: Varía el movimiento en CADA escena. No uses el mismo dos veces seguidas.
-
-REGLAS DE BEATS:
-- beats[]: beats internos de la escena
-- {type:"photo","variant":0-5,"frac":[0,1]}
-- {type:"text","frac":[start,end]} — siempre dentro de [0.10,0.92]
-
-REGLAS DE TRANSICIÓN (transitionOut):
-- crossfade: default suave
-- push: cuando cámara va en una dirección y la siguiente empieza en la misma
-- zoom: transición entre WOW y precio
-- whip: cuts rápidos / pattern interrupts
-
-REGLAS DE GUIÓN (narracion_completa):
-- Voz de asesor hablando natural, NO anuncio corporativo
-- Frases cortas con pausas (puntos, comas)
-- Open loops cuando corresponda: "pero espera...", "y lo mejor..."
-- NO inventar características que no estén en los datos
-- PRECIOS siempre en MXN, lenguaje natural
-
-Responde en JSON:
-{
-  "narracion_completa": "texto completo con puntuación natural para voz IA",
-  "escenas": [
-    {
-      "num": 1,
-      "funcion": "Hook|Contexto|Detalle|WOW|Precio|Respiracion|CTA",
-      "bloque": "HOOK|CONTEXTO|RECORRIDO|WOW|PRECIO|CTA",
-      "foto_idx": 0,
-      "duracion_seg": 1.5,
-      "cameraMotion": {
-        "type": "pushIn|dollyIn|panRight|panLeft|tiltUp|tiltDown|pullOut|revealWide|revealRight|breathingShot|parallaxDepth|orbitLeft|orbitRight|focusPush|luxurySlow|diagonalPushTR",
-        "intensity": 0.8,
-        "direction": "center|left|right|up|down",
-        "easing": "speedRamp|easeInOut|easeOut|easeIn"
-      },
-      "cameraPath": {
-        "start":  {"x": 0.35, "y": 0.60, "scale": 1.08},
-        "middle": {"x": 0.50, "y": 0.50, "scale": 1.14},
-        "end":    {"x": 0.65, "y": 0.42, "scale": 1.22},
-        "velocityPreset": "SLOW_FAST_SLOW",
-        "easing": "easeInOut"
-      },
-      "transitionOut": {
-        "type": "crossfade|push|zoom|whip",
-        "direction": "right|left|up|down",
-        "duration": 0.25
-      },
-      "texto_pantalla": "TEXTO EN CAPS",
-      "texto_position": "TC|TL|TR|BC|BL|BR",
-      "texto_style": "hook|editorial|price|label|micro",
-      "texto_anim": "fade|slideUp|slideLeft|maskReveal|tracking",
-      "visual_intensity": "high|medium|low",
-      "respiracion": false,
-      "narracion_frag": "fragmento de la narración en esta escena",
-      "beats": [
-        {"type":"photo","variant":1,"frac":[0,1]},
-        {"type":"text","frac":[0.12,0.90]}
-      ]
-    }
-  ],
-  "cta_texto": "CTA conversacional corto (en pesos, nunca dólares)",
-  "score": {
-    "hook": 85, "retencion": 82, "storytelling": 88,
-    "densidad_visual": 84, "ritmo": 86, "tipografia": 80,
-    "cta": 83, "visual_variety": 87, "info_variety": 85,
-    "camera_motion": 88, "transition_quality": 85, "motion_variety": 87,
-    "repetition_penalty": 0, "breathing_balance": 88,
-    "advertencias": []
-  }
+  _motorGuiones = motorGuiones(vidV, {
+    hook: vidHooks[hookIdx], seed: _motorSemillaGuion, durSeg: meta.duracion > 0 ? meta.duracion : 30,
+    wow: meta.wow, cta: activeConcepto && activeConcepto.cta_texto,
+  });
+  motorUsarGuion(_motorEstiloIdx);
 }
-}`;
 
-    const res = await fetchWithTimeoutNIVA('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {'Authorization':'Bearer '+oaKey,'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        temperature: 0.7,
-        response_format: {type:'json_object'},
-        messages: [{role:'user', content: prompt}]
-      })
-    });
-    if (!res.ok) throw new Error('HTTP '+res.status+' al generar el guión');
-    const data = await res.json();
-    const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+function motorUsarGuion(i) {
+  const g = _motorGuiones[i];
+  if (!g) return;
+  _motorEstiloIdx = i;
+  document.getElementById('vid-script-ta').value = g.narracion;
+  vidCountChars();
+  // Copia: editar escenas no debe cambiar la opción guardada
+  vidScenes = remapEscenasAOrdenManual(JSON.parse(JSON.stringify(g.escenas)));
+  renderScenes();
+  motorPintarGuiones();
+}
 
-    const ta = document.getElementById('vid-script-ta');
-    ta.value = fitNarracionADuracion(parsed.narracion_completa || '', durTarget);
-    vidCountChars();
-
-    vidScenes = remapEscenasAOrdenManual(parsed.escenas || []);
-
-    // Store CTA from concept
-    if (parsed.cta_texto) {
-      if (!activeConcepto) activeConcepto = {};
-      activeConcepto.cta_texto = parsed.cta_texto;
-    }
-
-    renderScenes();
-
-    if (parsed.score) renderScore(parsed.score);
-
-    // Music mood from concept takes priority over script suggestion
-    const mood = (activeConcepto && activeConcepto.musica_mood) || parsed.musica_recomendada;
-    if (mood) {
-      const mSel = document.getElementById('music-preset');
-      if (mSel) mSel.value = mood;
-    }
-
-  } catch(e) {
-    console.warn('[NIVA][GUION] IA falló, usando plantilla:', e);
-    vidStatus('⚠️ IA de guión falló (' + (e.message||e) + '). Usando guión de plantilla.', 'err');
-    const s = fitNarracionADuracion(buildScriptPlantilla(v, hook, meta), durTarget);
-    document.getElementById('vid-script-ta').value = s;
-    vidCountChars();
-    vidScenes = NIVA_FLAGS.beatSystem
-      ? buildScenesPlantillaV2(v, hook, activeConcepto, meta)
-      : buildScenesPlantilla(v, hook, s);
-    renderScenes();
-  }
+function motorPintarGuiones() {
+  const box = document.getElementById('vid-guion-opciones');
+  if (!box) return;
+  box.style.display = _motorGuiones.length ? 'flex' : 'none';
+  box.innerHTML = '<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A">✍️ Elige el estilo del guion</div>' +
+    _motorGuiones.map((g, i) => {
+      const enUso = i === _motorEstiloIdx;
+      return `<div class="motor-guion-card" data-estilo="${g.estilo}" style="border:${enUso ? '2px solid #C9A84C' : '1.5px solid #e2e8f0'};background:${enUso ? '#fdf8ec' : '#fff'};border-radius:10px;padding:10px 12px;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:800;color:#1B2A4A">${_escVidHtml(g.nombre)}</span>
+          <button type="button" onclick="motorUsarGuion(${i})" ${enUso ? 'disabled' : ''} style="flex-shrink:0;font-size:10.5px;padding:5px 10px;border-radius:6px;border:none;font-weight:700;cursor:${enUso ? 'default' : 'pointer'};background:${enUso ? '#C9A84C' : '#1B2A4A'};color:${enUso ? '#1B2A4A' : '#fff'}">${enUso ? '✓ En uso' : 'Usar este'}</button>
+        </div>
+        <div style="font-size:11.5px;line-height:1.5;color:#334155;white-space:pre-line;overflow-wrap:anywhere">${_escVidHtml(g.narracion.replace(/\n\n/g, '\n'))}</div>
+      </div>`;
+    }).join('');
 }
 
 function buildScriptPlantilla(v, hook, meta) {
@@ -9125,6 +9224,8 @@ function _nivaScenePhotoParts(scenes, withLabel) {
 }
 
 async function nivaAnalizarVideoIA() {
+  // Desactivado: el análisis dependía de OpenAI y ya no hay botón que lo llame.
+  return;
   if (!vidV) { vidStatus('⚠️ Primero genera el guion del video.', 'err'); return; }
   const ta = document.getElementById('vid-script-ta');
   const scriptTxt = (ta && ta.value) ? ta.value.trim() : '';
@@ -10015,6 +10116,7 @@ async function regenerarVozSola() {
 }
 
 async function regenerarGuion() {
+  _motorSemillaGuion++; // otra variante del motor
   if (selectedHookIdx >= 0) {
     await generarGuionConHook(selectedHookIdx);
   } else {
