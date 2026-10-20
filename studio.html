@@ -37,7 +37,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NIVA Content Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&family=Montserrat:wght@600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&family=Montserrat:wght@300;400;500;600;700;800;900&family=Cormorant+Garamond:wght@400;500;600;700&family=Cormorant+Infant:wght@500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
@@ -391,6 +391,177 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .niva-backfab{position:fixed;top:14px;left:14px;z-index:99999;background:#1B2A4A;color:#C9A84C;font:600 12px 'Inter',sans-serif;padding:8px 14px;border-radius:9px;text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.4);display:inline-flex;align-items:center;gap:6px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .22s ease,transform .22s ease}
 .niva-backfab.show{opacity:1;transform:translateY(0);pointer-events:auto}
 .niva-backfab:hover{background:#22345c}
+
+/* ==== MOTOR DE FLYERS NIVA — estilos (1080×1620) ==== */
+.nfl{width:1080px;height:1620px;position:relative;overflow:hidden;font-family:Montserrat,sans-serif;font-variant-numeric:lining-nums;font-feature-settings:'lnum' 1;color:#fff;line-height:normal;text-align:left;text-transform:none;letter-spacing:normal;--acento55:rgba(201,169,106,.55);--oscuro96:rgba(20,36,60,.96);--fondoCompleto:#e0dcd4;--acento:#c9a96a;--acento2:#e8d3a3;--acento3:#b58f4d;--oscuro:#14243c;--negro:#0d0f12;--claro:#f4efe6;--banda:#8c7558;--suave:#ddcfb8;--pie:#e6dccb;--oro:var(--acento);--oro2:var(--acento2);--crema:var(--claro);--marino:var(--oscuro);--cafe:var(--banda)}
+.nfl *{margin:0;padding:0;box-sizing:border-box}
+.nfl img{display:block} /* el realce de color se aplica al recortar la foto en canvas (html2canvas no soporta filter) */
+.nfl .ic{width:46px;height:46px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.nfl .serif{font-family:'Cormorant Garamond',serif}
+
+/* ───────── 1. LUJO ───────── */
+.nfl.lujo{background:var(--crema)}
+.nfl.lujo .hero{position:absolute;inset:0 0 auto 0;height:1010px;background:#000}
+.nfl.lujo .hero img{width:100%;height:100%;object-fit:cover}
+.nfl.lujo .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 48%,rgba(8,9,11,.82) 82%,var(--negro) 100%)}
+.nfl.lujo .logo{position:absolute;top:58px;left:64px}
+.nfl.lujo .logo .n{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:92px;letter-spacing:6px;line-height:.9}
+.nfl.lujo .logo .n i,.nfl .marca i,.nfl .logo2 i{font-style:normal;color:var(--oro)}
+.nfl.lujo .logo .s{font-size:15px;letter-spacing:9px;margin-top:8px;padding-left:4px}
+.nfl.lujo .zona{position:absolute;top:70px;right:64px;border-top:1px solid rgba(255,255,255,.7);padding-top:16px;min-width:300px}
+.nfl.lujo .zona .a{font-size:22px;letter-spacing:6px;font-weight:500;white-space:nowrap}
+.nfl.lujo .zona .b{font-size:14px;letter-spacing:4px;font-weight:300;margin-top:10px;line-height:1.6}
+.nfl.lujo .titulo{position:absolute;left:64px;bottom:640px}
+.nfl.lujo .t1,.nfl.lujo .t2{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:132px;line-height:.9;letter-spacing:2px;text-shadow:0 6px 30px rgba(0,0,0,.35)}
+.nfl.lujo .t2{color:var(--oro2)}
+.nfl.lujo .precio{display:inline-block;margin-top:26px;padding:16px 40px;border-radius:14px;background:linear-gradient(135deg,var(--acento2),var(--acento) 55%,var(--acento3));color:#1a140a;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:76px} /* sin box-shadow: html2canvas lo pinta DENTRO de las cajas redondeadas */
+.nfl.lujo .precio .mes{font-size:.45em}
+.nfl.lujo .barra{position:absolute;top:1010px;left:0;right:0;height:160px;background:var(--negro);display:flex;align-items:center;padding:0 54px}
+.nfl.lujo .dato{display:flex;align-items:center;gap:12px;margin-right:34px;white-space:nowrap;color:var(--oro2)}
+.nfl.lujo .dato .v{font-size:30px;font-weight:500;line-height:1;color:#fff}
+.nfl.lujo .dato .l{font-size:12.5px;letter-spacing:3px;margin-top:6px;color:rgba(255,255,255,.85)}
+.nfl.lujo .claim{margin-left:auto;border-left:1px solid var(--acento55);padding-left:26px;color:var(--oro2);font-size:14px;letter-spacing:3.5px;line-height:1.9;white-space:nowrap}
+.nfl.lujo .collage{position:absolute;top:1170px;left:0;right:0;height:300px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.nfl.lujo .collage img{width:100%;height:100%;object-fit:cover}
+.nfl.lujo .pie{position:absolute;top:1470px;left:0;right:0;bottom:0;background:var(--crema);color:#1c1c1c;display:flex;align-items:center;justify-content:space-between;padding:0 64px}
+.nfl.lujo .pie .frase{font-family:'Cormorant Garamond',serif;font-size:40px;letter-spacing:7px;line-height:1.15;font-weight:500}
+.nfl.lujo .pie .cta{text-align:right}
+.nfl.lujo .pie .k{font-size:14px;letter-spacing:5px;font-weight:500;border-top:1px solid #1c1c1c;padding-top:12px;display:inline-block}
+.nfl.lujo .pie .w{display:flex;align-items:center;gap:14px;justify-content:flex-end;margin-top:10px;font-family:'Cormorant Garamond',serif;font-size:46px;font-weight:600;color:#1c1c1c}
+.nfl.lujo .pie .w .ic{color:var(--acento3)}
+
+/* ───────── 2. CLÁSICO (renta clara) ───────── */
+.nfl.clasico{background:#dfe8f2;color:#151515}
+.nfl.clasico .hero{position:absolute;inset:0}
+.nfl.clasico .hero img{width:100%;height:100%;object-fit:cover}
+.nfl.clasico .velo{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,.78) 34%,rgba(255,255,255,0) 58%),linear-gradient(0deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,0) 22%)}
+.nfl.clasico .cab{position:absolute;top:84px;left:72px;width:640px}
+.nfl.clasico .tipo{font-size:34px;letter-spacing:13px;font-weight:400}
+.nfl.clasico .op{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:200px;line-height:.86;letter-spacing:-2px;margin:6px 0 10px -6px;color:#141414}
+.nfl.clasico .banda{display:inline-block;background:var(--cafe);color:#fff;font-size:34px;letter-spacing:12px;padding:12px 34px 12px 40px;font-weight:500;white-space:nowrap}
+.nfl.clasico .lugar{font-size:28px;letter-spacing:10px;margin-top:18px;font-weight:500}
+.nfl.clasico .iconos{display:flex;align-items:center;gap:26px;margin-top:44px}
+.nfl.clasico .it{text-align:center;min-width:120px}
+.nfl.clasico .it .ic{width:54px;height:54px;color:#1a1a1a}
+.nfl.clasico .it .v{font-size:20px;font-weight:600;margin-top:8px}
+.nfl.clasico .it .l{font-size:16px;letter-spacing:2px;font-weight:600}
+.nfl.clasico .sep{width:1px;height:96px;background:#1a1a1a;opacity:.5}
+.nfl.clasico .precio{display:inline-block;margin-top:44px;background:var(--cafe);color:#fff;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:96px;padding:14px 44px;box-shadow:0 18px 40px rgba(0,0,0,.22)}
+.nfl.clasico .precio .mes{font-family:Montserrat,sans-serif;font-size:26px;font-weight:400;letter-spacing:3px}
+.nfl.clasico .precio.consultar{font-size:54px}
+.nfl.clasico .pie-izq{position:absolute;left:72px;bottom:92px;font-size:28px;letter-spacing:7px;line-height:1.6;font-weight:500}
+.nfl.clasico .pie-izq i{display:block;width:84px;height:2px;background:#151515;margin-top:20px}
+.nfl.clasico .pie-der{position:absolute;right:72px;bottom:92px;display:flex;align-items:center;gap:16px;font-family:'Cormorant Garamond',serif;font-size:56px;font-weight:600}
+.nfl.clasico .pie-der .ic{width:60px;height:60px}
+.nfl.clasico .marca{position:absolute;right:72px;top:84px;font-family:'Cormorant Garamond',serif;font-size:64px;font-weight:500;letter-spacing:4px;color:#fff;text-align:right;text-shadow:0 2px 16px rgba(0,0,0,.35);line-height:.9}
+.nfl.clasico .marca small{display:block;font-family:Montserrat,sans-serif;font-size:12px;letter-spacing:7px;margin-top:6px}
+
+/* ───────── 3. AMENIDADES ───────── */
+.nfl.amenidades{background:#e9eef4;color:var(--marino)}
+.nfl.amenidades .hero{position:absolute;inset:0 0 230px 0}
+.nfl.amenidades .hero img{width:100%;height:100%;object-fit:cover}
+.nfl.amenidades .velo{position:absolute;inset:0 0 230px 0;background:linear-gradient(90deg,rgba(244,247,250,.95) 0%,rgba(244,247,250,.86) 36%,rgba(244,247,250,0) 62%)}
+.nfl.amenidades .col{position:absolute;top:70px;left:64px;width:560px}
+.nfl.amenidades .tipo{font-size:26px;letter-spacing:7px;font-weight:500;display:flex;align-items:center;gap:22px}
+.nfl.amenidades .tipo i{flex:1;height:2px;background:var(--marino);max-width:260px}
+.nfl.amenidades .op{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:178px;line-height:.86;margin:10px 0 4px -6px}
+.nfl.amenidades .zona{font-size:40px;letter-spacing:8px;font-weight:400}
+.nfl.amenidades .banda{display:inline-block;margin-top:22px;background:var(--suave);color:var(--marino);font-size:30px;letter-spacing:14px;padding:12px 36px;font-weight:500}
+.nfl.amenidades .datos{margin-top:38px;display:flex;flex-direction:column;gap:20px}
+.nfl.amenidades .dt{display:flex;align-items:center;gap:20px}
+.nfl.amenidades .circ{width:78px;height:78px;border:2px solid var(--marino);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.nfl.amenidades .circ .ic{width:42px;height:42px}
+.nfl.amenidades .dt .v{font-family:'Cormorant Garamond',serif;font-size:46px;font-weight:700;line-height:1}
+.nfl.amenidades .dt .l{font-size:16px;letter-spacing:4px;font-weight:500;margin-top:4px}
+.nfl.amenidades .caja-precio{position:absolute;left:0;top:930px;width:560px;background:var(--marino);color:#fff;padding:26px 0 26px 64px}
+.nfl.amenidades .caja-precio .k{font-size:18px;letter-spacing:7px;opacity:.85}
+.nfl.amenidades .caja-precio .p{font-family:'Cormorant Garamond',serif;font-size:100px;font-weight:700;line-height:1}
+.nfl.amenidades .caja-precio .p .mes{display:none}
+.nfl.amenidades .caja-precio .p.consultar{font-size:52px}
+.nfl.amenidades .caja-precio .mn{font-size:18px;letter-spacing:6px;opacity:.85;margin-top:4px}
+.nfl.amenidades .barra-am{position:absolute;left:0;right:0;top:1250px;height:140px;background:var(--oscuro96);display:flex;align-items:center;justify-content:space-around;padding:0 20px}
+.nfl.amenidades .am{flex:1;text-align:center;color:#fff;font-size:15px;letter-spacing:2px;font-weight:600;border-right:1px solid rgba(255,255,255,.25);padding:0 8px}
+.nfl.amenidades .am:last-child{border-right:0}
+.nfl.amenidades .am .ic{width:52px;height:52px;margin:0 auto 10px;color:#fff}
+.nfl.amenidades .pie{position:absolute;left:0;right:0;bottom:0;height:230px;background:var(--pie);display:grid;grid-template-columns:1fr 1.3fr 1fr;align-items:center;padding:0 54px;color:var(--marino)}
+.nfl.amenidades .logo2{font-family:Montserrat,sans-serif;font-weight:800;font-size:76px;letter-spacing:-2px;line-height:.9}
+.nfl.amenidades .logo2 small{display:block;font-size:15px;letter-spacing:7px;font-weight:400;margin-top:8px}
+.nfl.amenidades .ct{text-align:center;border-left:1px solid rgba(20,36,60,.3);border-right:1px solid rgba(20,36,60,.3)}
+.nfl.amenidades .ct .k{font-size:17px;letter-spacing:6px}
+.nfl.amenidades .ct .w{display:flex;align-items:center;justify-content:center;gap:14px;font-size:50px;font-weight:500;margin-top:8px}
+.nfl.amenidades .ct .w .ic{width:52px;height:52px}
+.nfl.amenidades .lema{font-size:17px;letter-spacing:5px;line-height:1.6;padding-left:34px}
+
+/* ───────── 4. COMPLETO ───────── */
+.nfl.completo{background:var(--fondoCompleto);color:var(--oscuro)}
+.nfl.completo .hero{position:absolute;inset:0 0 auto 0;height:720px}
+.nfl.completo .hero img{width:100%;height:100%;object-fit:cover}
+.nfl.completo .tarjeta{position:absolute;top:56px;left:0;background:rgba(244,239,230,.94);padding:34px 54px 34px 54px;width:520px}
+.nfl.completo .tarjeta .t1{font-size:58px;font-weight:600;letter-spacing:1px;line-height:1}
+.nfl.completo .tarjeta .t2{font-size:96px;font-weight:800;letter-spacing:-1px;line-height:.95}
+.nfl.completo .tarjeta>i{display:block;height:3px;width:280px;background:var(--oro);margin:18px 0}
+.nfl.completo .ubi{display:flex;gap:14px;align-items:flex-start;font-size:22px;line-height:1.35}
+.nfl.completo .ubi .ic{width:44px;height:44px;color:var(--oscuro)}
+.nfl.completo .ubi b{font-size:26px}
+.nfl.completo .caja-precio{position:absolute;left:0;bottom:900px;background:var(--oscuro);color:#fff;padding:20px 54px 18px;min-width:470px;text-align:center}
+.nfl.completo .caja-precio .p{font-family:'Cormorant Garamond',serif;font-size:82px;font-weight:700;line-height:1}
+.nfl.completo .caja-precio .p .mes{font-size:.4em}
+.nfl.completo .caja-precio .p.consultar{font-size:46px}
+.nfl.completo .mxn{display:flex;align-items:center;justify-content:center;gap:16px;color:var(--oro);font-size:22px;letter-spacing:4px;margin-top:6px}
+.nfl.completo .mxn i{width:80px;height:1px;background:var(--oro)}
+.nfl.completo .specs{position:absolute;top:720px;left:0;right:0;height:120px;background:var(--claro);display:flex;align-items:center;justify-content:space-around;padding:0 30px}
+.nfl.completo .sp{display:flex;align-items:center;gap:14px;border-right:1px solid rgba(20,36,60,.2);padding-right:34px}
+.nfl.completo .sp:last-child{border-right:0;padding-right:0}
+.nfl.completo .sp .ic{width:48px;height:48px}
+.nfl.completo .sp .v{font-size:34px;font-weight:600;line-height:1}
+.nfl.completo .sp .l{font-size:14px;letter-spacing:2px;margin-top:4px}
+.nfl.completo .tira{position:absolute;top:840px;left:0;right:0;height:250px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--claro)}
+.nfl.completo .tira img{width:100%;height:100%;object-fit:cover}
+.nfl.completo .medio{position:absolute;top:1096px;left:0;right:0;height:250px;display:grid;grid-template-columns:1fr 1fr;gap:0}
+.nfl.completo .medio>img{width:100%;height:100%;object-fit:cover}
+.nfl.completo .ben{background:var(--claro);padding:28px 40px}
+.nfl.completo .ben .h{font-size:24px;font-weight:700;letter-spacing:1px;line-height:1.25}
+.nfl.completo .ben ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:12px 18px;margin-top:20px}
+.nfl.completo .ben li{display:flex;align-items:center;gap:10px;font-size:18px}
+.nfl.completo .ck{width:24px;height:24px;fill:none;stroke:var(--acento3);stroke-width:3;flex:none}
+.nfl.completo .ams{position:absolute;top:1346px;left:0;right:0;height:154px;background:var(--claro);border-top:1px solid rgba(20,36,60,.15);padding:14px 30px 0}
+.nfl.completo .ams .h{text-align:center;font-size:18px;letter-spacing:6px;font-weight:600}
+.nfl.completo .ams .fila{display:flex;justify-content:space-around;margin-top:12px}
+.nfl.completo .ams .am{text-align:center;font-size:15px;min-width:110px}
+.nfl.completo .ams .am .ic{width:40px;height:40px;margin:0 auto 6px;color:var(--oscuro)}
+.nfl.completo .pie{position:absolute;left:0;right:0;bottom:0;height:120px;background:var(--oscuro);color:#fff;display:flex;align-items:center;padding:0 50px;gap:22px}
+.nfl.completo .pinpie,.nfl.completo .wapie{width:56px;height:56px;fill:none;stroke:var(--acento2);stroke-width:1.8;flex:none}
+.nfl.completo .pie .txt{flex:1;font-size:20px;line-height:1.35;border-right:1px solid rgba(255,255,255,.25);padding-right:22px}
+.nfl.completo .pie .cta{display:flex;align-items:center;gap:16px;font-size:24px}
+.nfl.completo .pie .cta b{color:var(--acento2);font-size:26px}
+/* Cifras (precios, teléfonos, datos): Cormorant Infant trae números alineados de fábrica. html2canvas ignora
+   font-variant-numeric:lining-nums, así que con Cormorant Garamond el PNG salía con números "de texto". */
+.nfl.lujo .precio,.nfl.lujo .pie .w,.nfl.clasico .precio,.nfl.clasico .pie-der,.nfl.amenidades .dt .v,.nfl.amenidades .caja-precio .p,.nfl.completo .caja-precio .p{font-family:'Cormorant Infant','Cormorant Garamond',serif}
+
+/* ── Panel del motor de flyers ── */
+.nfl-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:18px;align-items:start}
+@media (max-width:860px){.nfl-panel{grid-template-columns:minmax(0,1fr)}}
+.nfl-vista{min-width:0}
+#nfl-prev-wrap{position:relative;width:100%;max-width:440px;margin:0 auto;aspect-ratio:1080/1620;overflow:hidden;border-radius:8px;background:#0f172a;box-shadow:0 6px 24px rgba(15,23,42,.18)}
+#nfl-escala{position:absolute;left:0;top:0;width:1080px;height:1620px;transform-origin:0 0}
+.nfl-nota{text-align:center;margin-top:6px;font-size:11px;color:#94a3b8}
+.nfl-controles{min-width:0;display:flex;flex-direction:column;gap:12px}
+.nfl-grupo{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:0}
+.nfl-tit{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:8px}
+.nfl-sub{font-size:10.5px;font-weight:700;color:#64748b;margin:8px 0 4px}
+.nfl-fila{display:flex;flex-wrap:wrap;gap:6px}
+.nfl-fila button{flex:1 1 auto;min-width:0;padding:7px 9px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:#334155;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.nfl-fila button.sel{border-color:var(--gold);background:#fdf8ec;color:#1B2A4A}
+.nfl-fila .nfl-sw{display:flex;align-items:center;gap:6px}
+.nfl-fila .nfl-sw i{width:16px;height:16px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.15)}
+.nfl-color{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;color:#334155;font-weight:600}
+.nfl-finos{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.nfl-finos label{display:flex;align-items:center;gap:6px;font-size:11px;color:#475569}
+.nfl-color input,.nfl-finos input{width:34px;height:26px;padding:0;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer}
+.nfl-mini{padding:5px 9px;border-radius:6px;border:1px solid var(--border);background:#f8fafc;color:#475569;font-size:10.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.nfl-slot{margin-bottom:6px}
+.nfl-slot-lbl{font-size:10.5px;font-weight:700;color:#64748b;margin-bottom:2px}
+.nfl-in{width:100%;box-sizing:border-box;margin-bottom:6px;padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit}
 </style>
 <style>/* NIVA-COMPAT-2026-09-29: iPhone/Android/Safari/Chrome/Windows */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -613,38 +784,44 @@ img,video,canvas{max-width:100%}
 <div class="tc on" id="tc-flyer">
   <div class="empty" id="e-flyer"><div class="ei">🏡</div><h3>Listo para generar</h3><p>Llena el formulario y presiona<br><strong>Generar Todo el Contenido</strong></p></div>
   <div id="r-flyer" style="display:none">
-    <div class="btns-row no-print" style="margin-bottom:14px">
-      <button class="btn-dl" id="btn-dl-flyer" onclick="dlCanvas('cv-flyer','flyer-niva.png')">⬇️ Descargar Flyer (PNG)</button>
+    <!-- ── MOTOR DE FLYERS: plantillas con los datos y fotos reales de la propiedad ── -->
+    <div class="nfl-panel">
+      <div class="nfl-vista">
+        <div id="nfl-prev-wrap"><div id="nfl-escala"></div></div>
+        <button class="btn-dl" id="btn-dl-flyer" onclick="nflDescargar(this)" style="width:100%;justify-content:center;margin-top:10px">⬇️ Descargar PNG</button>
+        <p class="nfl-nota">Formato 1080×1620 px</p>
+      </div>
+      <div class="nfl-controles">
+        <div class="nfl-grupo"><div class="nfl-tit">Plantilla</div>
+          <div class="nfl-fila" id="nfl-plantillas">
+            <button type="button" data-p="lujo" onclick="nflSet('plantilla','lujo')">Lujo</button>
+            <button type="button" data-p="clasico" onclick="nflSet('plantilla','clasico')">Clásico</button>
+            <button type="button" data-p="amenidades" onclick="nflSet('plantilla','amenidades')">Amenidades</button>
+            <button type="button" data-p="completo" onclick="nflSet('plantilla','completo')">Completo</button>
+          </div>
+        </div>
+        <div class="nfl-grupo"><div class="nfl-tit">Colores</div>
+          <div class="nfl-fila" id="nfl-paletas"></div>
+          <label class="nfl-color">🎨 Color personalizado <input type="color" id="nfl-color" value="#c9a96a" oninput="nflSet('color', this.value)"></label>
+          <div class="nfl-finos">
+            <label>Letras y detalles <input type="color" id="nfl-c-acento" oninput="nflSetColor('acento', this.value)"></label>
+            <label>Recuadros <input type="color" id="nfl-c-recuadro" oninput="nflSetColor('recuadro', this.value)"></label>
+            <label>Fondos claros <input type="color" id="nfl-c-claro" oninput="nflSetColor('claro', this.value)"></label>
+            <button type="button" class="nfl-mini" onclick="nflRestablecerColores()">↺ Restablecer colores</button>
+          </div>
+        </div>
+        <div class="nfl-grupo"><div class="nfl-tit">Fotos</div><div id="nfl-fotos"></div></div>
+        <div class="nfl-grupo"><div class="nfl-tit">Textos opcionales</div>
+          <input type="text" class="nfl-in" id="nfl-nombre" placeholder="Nombre de la torre o privada (opcional)" oninput="nflSet('nombre', this.value)">
+          <div class="nfl-sub">Frases (plantilla Lujo)</div>
+          <input type="text" class="nfl-in" id="nfl-frase-0" placeholder="Frase 1" oninput="nflSetFrase(0, this.value)">
+          <input type="text" class="nfl-in" id="nfl-frase-1" placeholder="Frase 2" oninput="nflSetFrase(1, this.value)">
+          <input type="text" class="nfl-in" id="nfl-frase-2" placeholder="Frase 3" oninput="nflSetFrase(2, this.value)">
+          <div class="nfl-sub">Beneficios (plantilla Completo, uno por línea)</div>
+          <textarea class="nfl-in" id="nfl-beneficios" rows="3" placeholder="Ej. Alberca climatizada" oninput="nflSet('beneficios', this.value)"></textarea>
+        </div>
+      </div>
     </div>
-    <!-- ── Selector de 4 templates ── -->
-    <div id="niva-flyer-selector" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;justify-content:center">
-      <div class="niva-ftpl" id="ftpl-minimal" onclick="nivaFlyerSelect('minimal')" style="flex:1;min-width:110px;max-width:140px;border:2px solid #C9A84C;border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#F4EFE6;color:#0D1B31;user-select:none">
-        <div style="font-size:22px;margin-bottom:4px">🤍</div>
-        <div style="font-size:11px;font-weight:800;color:#0D1B31;letter-spacing:.5px">MINIMAL PÓSTER</div>
-        <div style="font-size:10px;color:#8a7a5a;margin-top:3px">Elegante y limpio</div>
-      </div>
-      <div class="niva-ftpl" id="ftpl-clasico" onclick="nivaFlyerSelect('clasico')" style="flex:1;min-width:110px;max-width:140px;border:2px solid #334;border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#1A2A1A;color:#fff;user-select:none">
-        <div style="font-size:22px;margin-bottom:4px">✨</div>
-        <div style="font-size:11px;font-weight:800;color:#C9A84C;letter-spacing:.5px">CLÁSICO NIVA</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px">Limpio y claro</div>
-      </div>
-      <div class="niva-ftpl" id="ftpl-scroll" onclick="nivaFlyerSelect('scroll')" style="flex:1;min-width:110px;max-width:140px;border:2px solid #334;border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#141825;color:#fff;user-select:none">
-        <div style="font-size:22px;margin-bottom:4px">🔥</div>
-        <div style="font-size:11px;font-weight:800;color:#C9A84C;letter-spacing:.5px">DETÉN EL SCROLL</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px">Hero + Hook</div>
-      </div>
-
-
-      <div class="niva-ftpl" id="ftpl-revista" onclick="nivaFlyerSelect('revista')" style="flex:1;min-width:110px;max-width:140px;border:2px solid #334;border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;background:#141825;color:#fff;user-select:none">
-        <div style="font-size:22px;margin-bottom:4px">📰</div>
-        <div style="font-size:11px;font-weight:800;color:#F2F2F2;letter-spacing:.5px">PORTADA REVISTA</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px">Editorial</div>
-      </div>
-    </div>
-    <div class="canvas-wrap" style="max-width:486px">
-      <canvas id="cv-flyer" width="1080" height="1350"></canvas>
-    </div>
-    <p style="text-align:center;margin-top:10px;font-size:11px;color:#94a3b8">Formato 1080×1350 px · Ideal para Meta Ads (Feed 4:5)</p>
   </div>
 </div>
 
@@ -3170,1421 +3347,360 @@ async function generateAll() {
   }
 }
 
-// ══════════════════════════════════════════════
-//  FLYER — selector y dispatcher entre 4 estilos
-// ══════════════════════════════════════════════
-var NIVA_FLYER_selectedStyle = 'minimal';
-var NIVA_FLYER_lastV = null;
-
-function nivaFlyerSelect(style) {
-  NIVA_FLYER_selectedStyle = style;
-  // Actualizar UI de tarjetas
-  ['minimal','clasico','scroll','benefits','editorial','revista'].forEach(s => {
-    const el = document.getElementById('ftpl-' + s);
-    if (!el) return;
-    if (s === style) {
-      el.style.border = '2px solid #C9A84C';
-      el.style.background = '#1A2A1A';
-    } else {
-      el.style.border = '2px solid #334';
-      el.style.background = '#141825';
+// ==== MOTOR DE FLYERS NIVA (inicio) ====
+// Plantillas de flyer sin IA: se llenan solas con los datos y fotos reales de la propiedad.
+// API: motorFlyerDatos(prop, extra) -> datos normalizados; motorFlyerHTML(plantilla, datos) -> HTML del flyer (1080x1620).
+// Plantillas: 'lujo' (venta oscura), 'clasico' (renta clara), 'amenidades', 'completo'.
+(function (global) {
+  const FLYER_AMENIDADES = [
+    ['alberca', 'Alberca', /alberca|piscina/i], ['gym', 'Gym', /\bgym\b|gimnasio/i], ['seguridad', 'Vigilancia 24/7', /seguridad|vigilancia|caseta|acceso controlado/i],
+    ['eventos', 'Salón de eventos', /sal[oó]n de (eventos|usos|fiestas)/i], ['asador', 'Asadores', /asador|bbq/i], ['juegos', 'Juegos infantiles', /juegos infantiles|[áa]rea de juegos|ludoteca/i],
+    ['coworking', 'Coworking', /coworking|business center/i], ['roof', 'Roof garden', /roof/i], ['jardin', 'Jardín', /jard[ií]n/i], ['terraza', 'Terraza', /terraza/i],
+    ['elevador', 'Elevador', /elevador/i], ['cine', 'Sala de cine', /sala de cine|cuarto de cine/i], ['solar', 'Paneles solares', /paneles solares/i],
+    ['servicio', 'Cuarto de servicio', /cuarto de servicio/i], ['canchas', 'Canchas', /cancha|p[áa]del/i], ['mascotas', 'Pet friendly', /pet ?friendly|se aceptan mascotas/i],
+    ['amueblado', 'Amueblado', /amueblad/i], ['vista', 'Vista panorámica', /vista (a la|panor)/i],
+  ];
+  const NEG = /\b(no|sin|prohibid[oa]s?)\b[^.,;\n]{0,25}$/i;
+  function detectarAmenidades(texto) {
+    const t = String(texto || ''); const out = [];
+    for (const [k, nombre, re] of FLYER_AMENIDADES) {
+      const m = re.exec(t); if (!m) continue;
+      if (NEG.test(t.slice(Math.max(0, m.index - 30), m.index))) continue; // "no se aceptan mascotas", "sin amueblar"
+      out.push({ k, nombre });
     }
-  });
-  // Re-renderizar si ya hay datos
-  if (NIVA_FLYER_lastV) genFlyer(NIVA_FLYER_lastV);
-}
+    return out;
+  }
+  const ICON = {
+    rec: '<path d="M5 34V14M5 28h38v6M43 28v-6a6 6 0 0 0-6-6H22v12"/><circle cx="13" cy="22" r="4"/>',
+    ban: '<path d="M6 24h36v5a9 9 0 0 1-9 9H15a9 9 0 0 1-9-9z"/><path d="M11 24V11a4 4 0 0 1 8 0M14 38l-2 4M34 38l2 4"/>',
+    auto: '<path d="M7 30l3-10a5 5 0 0 1 5-3h18a5 5 0 0 1 5 3l3 10v8H7z"/><circle cx="15" cy="31" r="2.5"/><circle cx="33" cy="31" r="2.5"/><path d="M7 38v3M41 38v3"/>',
+    m2: '<rect x="8" y="8" width="32" height="32" rx="2"/><path d="M8 18h6M34 30h6M18 8v6M30 34v6"/>',
+    terreno: '<path d="M6 36l10-14 8 9 6-7 12 12z"/><path d="M6 40h36"/>',
+    sofa: '<path d="M8 30v-6a4 4 0 0 1 8 0v4h16v-4a4 4 0 0 1 8 0v6a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z"/><path d="M14 20v-4a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v4M12 34v4M36 34v4"/>',
+    alberca: '<path d="M14 30V12a4 4 0 0 1 8 0M26 30V12a4 4 0 0 1 8 0M14 20h12"/><path d="M4 34c4 0 4 3 8 3s4-3 8-3 4 3 8 3 4-3 8-3 4 3 8 3"/>',
+    gym: '<path d="M6 20v8M42 20v8M11 15v18M37 15v18M11 24h26"/>',
+    seguridad: '<path d="M24 5l15 6v11c0 10-7 17-15 21-8-4-15-11-15-21V11z"/><path d="M17 24l5 5 9-10"/>',
+    eventos: '<path d="M14 6l6 18a6 6 0 0 1-12 0zM34 6l6 18a6 6 0 0 1-12 0z"/><path d="M14 30v10M34 30v10M9 42h10M29 42h10"/>',
+    asador: '<path d="M8 20h32a16 16 0 0 1-32 0zM14 34l-4 8M34 34l4 8M24 36v6M18 12c0-3 3-3 3-6M27 12c0-3 3-3 3-6"/>',
+    juegos: '<path d="M10 42V14l10-8 10 8v28M30 22l10 20M10 26h20"/>',
+    coworking: '<rect x="10" y="10" width="20" height="16" rx="2"/><path d="M8 34h24l4 8M12 34l-2 8M30 20h8v14"/>',
+    roof: '<path d="M6 22l18-14 18 14M10 20v20h28V20"/><path d="M18 40v-8a6 6 0 0 1 12 0v8"/>',
+    jardin: '<path d="M24 42V22M24 22c-8 0-12-6-12-12 8 0 12 6 12 12zM24 28c6 0 10-5 10-10-6 0-10 5-10 10z"/>',
+    terraza: '<path d="M6 16h36L24 6zM10 16v20M38 16v20M6 36h36M16 26h16v10"/>',
+    elevador: '<rect x="11" y="6" width="26" height="36" rx="2"/><path d="M24 6v36M18 18l-3 4h6zM30 26l3-4h-6z"/>',
+    cine: '<rect x="6" y="12" width="36" height="24" rx="2"/><path d="M20 19v10l9-5z"/>',
+    solar: '<path d="M8 36l6-20h20l6 20zM12 26h24M21 16l-3 20M27 16l3 20"/><path d="M24 4v6"/>',
+    servicio: '<path d="M10 38h28M14 38V24h20v14M24 24v-6M18 18h12"/>',
+    canchas: '<circle cx="18" cy="18" r="9"/><path d="M24 24l14 14M34 38l4-4"/>',
+    mascotas: '<circle cx="14" cy="16" r="3"/><circle cx="24" cy="11" r="3"/><circle cx="34" cy="16" r="3"/><path d="M16 32c0-6 4-10 8-10s8 4 8 10c0 4-4 5-8 3-4 2-8 1-8-3z"/>',
+    amueblado: '<path d="M8 30v-6a4 4 0 0 1 8 0v4h16v-4a4 4 0 0 1 8 0v6a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z"/><path d="M14 20v-4a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v4"/>',
+    vista: '<path d="M4 38l12-18 8 10 6-8 14 16z"/><circle cx="34" cy="12" r="4"/>',
+    pin: '<path d="M24 44s14-13 14-24a14 14 0 0 0-28 0c0 11 14 24 14 24z"/><circle cx="24" cy="20" r="5"/>',
+    wa: '<path d="M7 41l2.6-8.4A17 17 0 1 1 16 38.6z"/><path d="M18 17c.6 5.2 4.8 10.4 10.8 12.4l2.6-2.6 4 2-.8 3.2c-.6 1.6-2.4 2.4-4 2-8.6-2-14.8-8.6-16.4-16.6-.4-1.6.6-3.2 2.2-3.6l3.2-.8 1.8 4z"/>',
+    tel: '<path d="M14 6l6 10-4 4a22 22 0 0 0 12 12l4-4 10 6-2 6c-1 2-3 3-5 3C19 43 5 29 5 13c0-2 1-4 3-5z"/>',
+    check: '<circle cx="24" cy="24" r="18"/><path d="M15 24l6 6 12-12"/>',
+  };
+  const svg = (k, cls) => `<svg class="${cls || 'ic'}" viewBox="0 0 48 48">${ICON[k] || ICON.check}</svg>`;
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const miles = (n) => Math.round(Number(n)).toLocaleString('en-US');
+  const precioTxt = (n) => '$' + miles(n);
+  const TIPOS = { house: 'Casa', apartment: 'Departamento' };
 
-function selStyle(el) { /* legado — no usar */ }
+  // Teléfono legible: los 10 dígitos de México como "81 1227 2233" (quita +52 / 52 / 1 y espacios).
+  function telFlyer(t) { const d = String(t || '').replace(/\D/g, '').slice(-10); return d.length === 10 ? d.slice(0, 2) + ' ' + d.slice(2, 6) + ' ' + d.slice(6) : String(t || ''); }
+  function motorFlyerDatos(p, extra) {
+    extra = extra || {};
+    const loc = String(p.location_name || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const tipo = TIPOS[String(p.property_type || '').toLowerCase()] || p.property_type || 'Propiedad';
+    const renta = /rent|renta/i.test(p.operation_type || '');
+    const desc = String(p.description || '');
+    const ams = detectarAmenidades(desc);
+    const fotos = (p.fotos || p.images || []).map((i) => (typeof i === 'string' ? i : (i && (i.url || i.full)))).filter(Boolean);
+    return Object.assign({
+      tipo, tipoMay: tipo.toUpperCase(), renta, opMay: renta ? 'RENTA' : 'VENTA',
+      zona: loc[0] || '', ciudad: loc[1] || '', nombre: '', // nombre: desarrollo/torre (opcional, p. ej. "Torre Boreal")
+      precio: Number(p.price_amount) || 0,
+      rec: Number(p.bedrooms) || 0, ban: Number(p.bathrooms) || 0, mban: Number(p.half_bathrooms) || 0, est: Number(p.parking_spaces) || 0,
+      m2c: Number(p.construction_size) || 0, m2t: Number(p.lot_size) || 0,
+      amenidades: ams, amueblado: ams.some((a) => a.k === 'amueblado'),
+      frases: [], beneficios: [], fotos, tel: '81 1227 2233',
+    }, extra, { tel: telFlyer((extra && extra.tel) || '81 1227 2233') });
+  }
+  const banTxt = (d) => d.ban + (d.mban ? '½' : '');
+  function datosBasicos(d) {
+    const out = [];
+    if (d.rec) out.push(['rec', d.rec, d.rec === 1 ? 'Recámara' : 'Recámaras']);
+    if (d.ban) out.push(['ban', banTxt(d), d.ban === 1 && !d.mban ? 'Baño' : 'Baños']);
+    return out;
+  }
+  const precioBloque = (d, cls) => d.precio ? `<div class="${cls}">${precioTxt(d.precio)}${d.renta ? '<span class="mes"> / mes</span>' : ''}</div>` : `<div class="${cls} consultar">Precio a consultar</div>`;
+
+  // ── 1. LUJO (venta, oscura) ──
+  function lujo(d) {
+    const datos = datosBasicos(d);
+    if (d.est) datos.push(['auto', d.est, d.est === 1 ? 'Auto' : 'Autos']);
+    if (d.m2c) datos.push(['m2', miles(d.m2c) + ' m²', 'Construcción']); else if (d.m2t) datos.push(['terreno', miles(d.m2t) + ' m²', 'Terreno']);
+    const frases = (d.frases.length ? d.frases : d.amenidades.slice(0, 3).map((a) => a.nombre)).slice(0, 3);
+    return `<div class="nfl lujo">
+      <div class="hero"><img src="${esc(d.fotos[0])}"></div>
+      <div class="logo"><div class="n">NIVA<i>.</i></div><div class="s">INMOBILIARIA</div></div>
+      <div class="zona"><div class="a">${esc((d.nombre || d.zona).toUpperCase())}</div><div class="b">${[d.nombre ? d.zona : '', d.ciudad].filter(Boolean).map((s) => esc(s.toUpperCase())).join('<br>')}</div></div>
+      <div class="titulo"><div class="t1">${esc(d.tipoMay)}</div><div class="t2">EN ${d.opMay}</div>${precioBloque(d, 'precio')}</div>
+      <div class="barra">${datos.map((x) => `<div class="dato">${svg(x[0])}<div><div class="v">${esc(x[1])}</div><div class="l">${esc(x[2].toUpperCase())}</div></div></div>`).join('')}
+        ${frases.length ? `<div class="claim">${frases.map((f) => esc(f.toUpperCase())).join('<br>')}</div>` : ''}</div>
+      <div class="collage">${[1, 2, 3].map((i) => `<img src="${esc(d.fotos[i] || d.fotos[0])}">`).join('')}</div>
+      <div class="pie"><div class="frase">TU PRÓXIMO<br>HOGAR TE ESPERA</div><div class="cta"><div class="k">AGENDA TU VISITA</div><div class="w">${svg('wa')}<span>${esc(d.tel)}</span></div></div></div>
+    </div>`;
+  }
+  // ── 2. CLÁSICO (renta, clara) ──
+  function clasico(d) {
+    const datos = datosBasicos(d);
+    if (d.amueblado) datos.push(['sofa', '', 'Amueblado']); else if (d.est) datos.push(['auto', d.est, d.est === 1 ? 'Cajón' : 'Cajones']); else if (d.m2c) datos.push(['m2', miles(d.m2c), 'm²']);
+    return `<div class="nfl clasico">
+      <div class="hero"><img src="${esc(d.fotos[0])}"></div>
+      <div class="velo"></div>
+      <div class="cab">
+        <div class="tipo">${esc(d.tipoMay)}</div>
+        <div class="op">${d.opMay}</div>
+        <div class="banda">${esc((d.nombre || d.zona).toUpperCase())}</div>
+        <div class="lugar">${esc((d.nombre ? d.zona : d.ciudad).toUpperCase())}</div>
+        <div class="iconos">${datos.map((x) => `<div class="it">${svg(x[0])}<div class="v">${esc(x[1])}</div><div class="l">${esc(x[2].toUpperCase())}</div></div>`).join('<div class="sep"></div>')}</div>
+        ${precioBloque(d, 'precio')}
+      </div>
+      <div class="pie-izq">TU PRÓXIMO<br>HOGAR ESTÁ AQUÍ<i></i></div>
+      <div class="pie-der">${svg('wa')}<span>${esc(d.tel)}</span></div>
+      <div class="marca">NIVA<i>.</i><small>INMOBILIARIA</small></div>
+    </div>`;
+  }
+  // ── 3. AMENIDADES ──
+  function amenidades(d) {
+    const datos = datosBasicos(d);
+    if (d.m2c) datos.push(['m2', miles(d.m2c) + ' m²', 'Construcción']); else if (d.est) datos.push(['auto', d.est, 'Estacionamiento']);
+    const ams = d.amenidades.filter((a) => !['amueblado', 'servicio'].includes(a.k)).slice(0, 6);
+    return `<div class="nfl amenidades">
+      <div class="hero"><img src="${esc(d.fotos[0])}"></div>
+      <div class="velo"></div>
+      <div class="col">
+        <div class="tipo">${esc(d.tipoMay)}<i></i></div>
+        <div class="op">${d.opMay}</div>
+        <div class="zona">EN ${esc(d.zona.toUpperCase())}</div>
+        ${d.nombre ? `<div class="banda">${esc(d.nombre.toUpperCase())}</div>` : ''}
+        <div class="datos">${datos.map((x) => `<div class="dt"><div class="circ">${svg(x[0])}</div><div><div class="v">${esc(x[1])}</div><div class="l">${esc(x[2].toUpperCase())}</div></div></div>`).join('')}</div>
+      </div>
+      <div class="caja-precio"><div class="k">PRECIO DE ${d.opMay}</div>${precioBloque(d, 'p')}<div class="mn">M.N.${d.renta ? ' / MES' : ''}</div></div>
+      ${ams.length ? `<div class="barra-am">${ams.map((a) => `<div class="am">${svg(a.k)}<div>${esc(a.nombre.toUpperCase())}</div></div>`).join('')}</div>` : ''}
+      <div class="pie"><div class="logo2">NIVA<i>.</i><small>INMOBILIARIA</small></div><div class="ct"><div class="k">CONTÁCTANOS</div><div class="w">${svg('wa')}<span>${esc(d.tel)}</span></div></div><div class="lema">ESPACIOS<br>QUE INSPIRAN<br>TU HISTORIA</div></div>
+    </div>`;
+  }
+  // ── 4. COMPLETO ──
+  function completo(d) {
+    const specs = datosBasicos(d);
+    if (d.m2t) specs.push(['terreno', miles(d.m2t) + ' m²', 'Terreno']);
+    if (d.m2c) specs.push(['m2', miles(d.m2c) + ' m²', 'Construcción']);
+    if (specs.length < 4 && d.est) specs.push(['auto', d.est, 'Estacionamientos']);
+    const ams = d.amenidades.slice(0, 7);
+    const ben = (d.beneficios.length ? d.beneficios : ams.slice(0, 6).map((a) => a.nombre)).slice(0, 6);
+    return `<div class="nfl completo">
+      <div class="hero"><img src="${esc(d.fotos[0])}"></div>
+      <div class="tarjeta"><div class="t1">${esc(d.tipoMay)}</div><div class="t2">EN ${d.opMay}</div><i></i>
+        <div class="ubi">${svg('pin')}<div><b>${esc((d.nombre || d.zona).toUpperCase())}</b><br>${esc([d.nombre ? d.zona : '', d.ciudad].filter(Boolean).join(', '))}</div></div></div>
+      <div class="caja-precio">${precioBloque(d, 'p')}<div class="mxn"><i></i>MXN<i></i></div></div>
+      <div class="specs">${specs.slice(0, 4).map((x) => `<div class="sp">${svg(x[0])}<div><div class="v">${esc(x[1])}</div><div class="l">${esc(x[2].toUpperCase())}</div></div></div>`).join('')}</div>
+      <div class="tira">${[1, 2, 3].map((i) => `<img src="${esc(d.fotos[i] || d.fotos[0])}">`).join('')}</div>
+      <div class="medio"><div class="ben"><div class="h">${esc(d.titularBeneficios || 'VIVE CON ESTILO,\nCOMODIDAD Y EXCLUSIVIDAD').replace(/\n/g, '<br>')}</div>
+        <ul>${ben.map((b) => `<li>${svg('check', 'ck')}${esc(b)}</li>`).join('')}</ul></div><img src="${esc(d.fotos[4] || d.fotos[0])}"></div>
+      ${ams.length ? `<div class="ams"><div class="h">AMENIDADES</div><div class="fila">${ams.map((a) => `<div class="am">${svg(a.k)}<div>${esc(a.nombre)}</div></div>`).join('')}</div></div>` : ''}
+      <div class="pie">${svg('pin', 'pinpie')}<div class="txt">${esc(d.notaPie || (d.tipo + ' en ' + d.zona + ', ' + d.ciudad + '.'))}</div><div class="cta">${svg('wa', 'wapie')}<div><b>AGENDA TU VISITA</b><br>${esc(d.tel)}</div></div></div>
+    </div>`;
+  }
+  const PLANTILLAS = { lujo, clasico, amenidades, completo };
+  // Paletas de color: cada una define las variables CSS de la plantilla. 'personalizada' se arma desde un color base.
+  const PALETAS = {
+    dorado:    { nombre: 'Dorado NIVA',        acento: '#c9a96a', acento2: '#e8d3a3', acento3: '#b58f4d', oscuro: '#14243c', negro: '#0d0f12', claro: '#f4efe6', banda: '#8c7558', suave: '#ddcfb8', pie: '#e6dccb' },
+    marino:    { nombre: 'Azul marino y plata', acento: '#aeb8c6', acento2: '#dfe5ee', acento3: '#8792a3', oscuro: '#0f2747', negro: '#0b1626', claro: '#eef2f7', banda: '#1f3b63', suave: '#cfd8e4', pie: '#dde4ee' },
+    negro:     { nombre: 'Negro y blanco',      acento: '#d9d9d9', acento2: '#ffffff', acento3: '#9a9a9a', oscuro: '#111111', negro: '#000000', claro: '#f5f5f5', banda: '#1c1c1c', suave: '#e3e3e3', pie: '#ececec' },
+    olivo:     { nombre: 'Verde olivo y arena', acento: '#b9a47a', acento2: '#e3d6b8', acento3: '#94815a', oscuro: '#2f3b2a', negro: '#1c2318', claro: '#f2eee4', banda: '#56653f', suave: '#d9d2bd', pie: '#e4ddcb' },
+    terracota: { nombre: 'Terracota y crema',   acento: '#d08b62', acento2: '#f0cdb4', acento3: '#a9643f', oscuro: '#3a2a22', negro: '#211814', claro: '#f6efe7', banda: '#a85a3a', suave: '#e8d3c2', pie: '#efe2d6' },
+  };
+  function hexAhsl(hex) { const n = parseInt(hex.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+    if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+    return [h, s * 100, l * 100]; }
+  // En hex (no hsl()) para poder precalcular transparencias y mezclas sin color-mix().
+  const hsl = (h, s, l) => { s = Math.max(0, Math.min(100, s)) / 100; l = Math.max(0, Math.min(100, l)) / 100;
+    const a = s * Math.min(l, 1 - l), f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, '0'); };
+    return '#' + f(0) + f(8) + f(4); };
+  const rgb = (hex) => { const n = parseInt(String(hex).slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  // Desde un solo color: el acento es ese color; el oscuro, el claro y la banda salen del mismo tono para que combine.
+  function paletaDesdeColor(hex) { const [h, s, l] = hexAhsl(/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#c9a96a');
+    return { nombre: 'Personalizada', acento: hsl(h, s, l), acento2: hsl(h, s * .8, Math.min(88, l + 22)), acento3: hsl(h, s, Math.max(20, l - 14)),
+      oscuro: hsl(h, Math.min(s, 45), 15), negro: hsl(h, Math.min(s, 30), 7), claro: hsl(h, Math.min(s, 30), 95), banda: hsl(h, Math.min(s, 40), 40), suave: hsl(h, Math.min(s, 30), 82), pie: hsl(h, Math.min(s, 25), 89) }; }
+  function estiloPaleta(p) {
+    const [ar, ag, ab] = rgb(p.acento), [or, og, ob] = rgb(p.oscuro), [cr, cg, cb] = rgb(p.claro);
+    const extra = { acento55: `rgba(${ar},${ag},${ab},.55)`, oscuro96: `rgba(${or},${og},${ob},.96)`,
+      fondoCompleto: `rgb(${Math.round(cr * .92)},${Math.round(cg * .92)},${Math.round(cb * .92)})` }; // claro 92% + negro
+    return Object.entries(Object.assign({}, p, extra)).filter(([k]) => k !== 'nombre').map(([k, v]) => `--${k}:${v}`).join(';'); }
+  function motorFlyerHTML(plantilla, d) {
+    const html = (PLANTILLAS[plantilla] || lujo)(d);
+    let pal = Object.assign({}, d.color ? paletaDesdeColor(d.color) : (PALETAS[d.paleta] || PALETAS.dorado));
+    // Ajustes finos (opcionales): letras/detalles, recuadros oscuros y fondos claros, por separado.
+    const ok = (x) => typeof x === 'string' && /^#[0-9a-f]{6}$/i.test(x);
+    const c = d.colores || {};
+    if (ok(c.acento)) { const [h, s, l] = hexAhsl(c.acento); Object.assign(pal, { acento: c.acento, acento2: hsl(h, s * .8, Math.min(88, l + 22)), acento3: hsl(h, s, Math.max(20, l - 14)) }); }
+    if (ok(c.recuadro)) { const [h, s, l] = hexAhsl(c.recuadro); Object.assign(pal, { oscuro: c.recuadro, negro: hsl(h, s, Math.max(3, l - 8)), banda: c.recuadro }); }
+    if (ok(c.claro)) { const [h, s, l] = hexAhsl(c.claro); Object.assign(pal, { claro: c.claro, pie: hsl(h, s, Math.max(10, l - 6)), suave: hsl(h, s, Math.max(10, l - 13)) }); }
+    return html.replace('<div class="nfl ', `<div style="${estiloPaleta(pal)}" class="nfl `);
+  }
+  global.motorFlyerPaletas = PALETAS;
+  global.motorFlyerDatos = motorFlyerDatos; global.motorFlyerHTML = motorFlyerHTML; global.motorFlyerDetectarAmenidades = detectarAmenidades;
+})(typeof window !== 'undefined' ? window : globalThis);
+// ==== MOTOR DE FLYERS NIVA (fin) ====
+
+// ══════════════════════════════════════════════
+//  FLYER — panel del motor de flyers (plantillas HTML → PNG 1080×1620 con html2canvas)
+// ══════════════════════════════════════════════
+var NIVA_FLYER_lastV = null;
+const NFL = { plantilla: '', paleta: 'dorado', color: '', colores: {}, fotos: [0, 1, 2, 3, 4], nombre: '', frases: ['', '', ''], beneficios: '' };
+const NFL_FILTRO = 'contrast(1.06) saturate(1.12) brightness(1.03)'; // realce de las fotos (antes era CSS filter)
+const _nflRecortes = new Map();
+let _nflToken = 0;
 
 async function genFlyer(v) {
   NIVA_FLYER_lastV = v;
+  if (!NFL.plantilla) NFL.plantilla = v.op === 'Renta' ? 'clasico' : 'lujo';
   showResult('flyer');
-  // Esperar a que la fuente de marca (Inter) termine de cargar antes de dibujar en
-  // el canvas — si no, en conexiones lentas el texto se dibuja con la fuente de
-  // respaldo (Arial) y, al ser un canvas rasterizado, ya no se corrige sola aunque
-  // la fuente llegue después (a diferencia de los demás generadores, que sí esperan).
-  try { await document.fonts.ready; } catch (e) {}
-  const cv = document.getElementById('cv-flyer');
-  const ctx = cv.getContext('2d');
-  const W = 1080, H = 1350;
-  ctx.clearRect(0, 0, W, H);
-  const s = NIVA_FLYER_selectedStyle || 'minimal';
-  if      (s === 'minimal')   await flyerF(v, ctx, W, H);
-  else if (s === 'clasico')   await flyerE(v, ctx, W, H);
-  else if (s === 'scroll')    await flyerA(v, ctx, W, H);
-  else if (s === 'benefits')  await flyerB(v, ctx, W, H);
-  else if (s === 'editorial') await flyerC(v, ctx, W, H);
-  else if (s === 'revista')   await flyerD(v, ctx, W, H);
-  else                        await flyerA(v, ctx, W, H);
+  nflPintarControles();
+  await nflRender();
 }
 
-// ══════════════════════════════════════════════
-// ══════════════════════════════════════════════
-// ══════════════════════════════════════════════
-// ══════════════════════════════════════════════
-//  ESTILO E — ✨ CLÁSICO NIVA (2026-10-02)
-//  Foto grande limpia (sin texto encima) + 3 fotos + panel azul con datos claros
-// ══════════════════════════════════════════════
-function _nivaImg(src){ return new Promise(res=>{ if(!src){res(null);return;} const im=new Image(); if(!String(src).startsWith('data:')) im.crossOrigin='anonymous'; im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src; }); }
-function _nivaCover(ctx, im, x, y, w, h, r){
-  ctx.save(); ctx.beginPath();
-  if (r) { ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); } else ctx.rect(x,y,w,h);
-  ctx.clip();
-  if (im) { const ir=im.width/im.height, cr=w/h; let sw=im.width, sh=im.height, sx=0, sy=0; if(ir>cr){ sw=sh*cr; sx=(im.width-sw)/2; } else { sh=sw/cr; sy=(im.height-sh)*0.45; } ctx.drawImage(im,sx,sy,sw,sh,x,y,w,h); }
-  else { ctx.fillStyle='#1c2c48'; ctx.fillRect(x,y,w,h); }
-  ctx.restore();
-}
-function _nivaFit(ctx, txt, maxW, size, weight, family){ let s=size; do { ctx.font=weight+' '+s+'px '+family; if(ctx.measureText(txt).width<=maxW) break; s-=2; } while(s>22); return s; }
-async function flyerF(v, ctx, W, H) {
-  // ✨ MINIMAL PÓSTER (2026-10-02): fondo crema, foto enmarcada, tipografía elegante, mucho aire
-  const CREMA='#F4EFE6', NAVY='#0D1B31', GOLD='#B08D3C', GRIS='#7C7466';
-  const SANS='Montserrat, Inter, Arial, sans-serif', SERIF='"Playfair Display", Georgia, serif';
-  const sp=(t,x,y,ls)=>{ if('letterSpacing' in ctx){ ctx.letterSpacing=ls+'px'; ctx.fillText(t,x,y); ctx.letterSpacing='0px'; return; } let cx=x; const al=ctx.textAlign; let tw=0; for(const ch of t) tw+=ctx.measureText(ch).width+ls; tw-=ls; if(al==='center') cx=x-tw/2; else if(al==='right') cx=x-tw; ctx.textAlign='left'; for(const ch of t){ ctx.fillText(ch,cx,y); cx+=ctx.measureText(ch).width+ls; } ctx.textAlign=al; };
-  const im = await _nivaImg(photos[0]);
-  ctx.fillStyle=CREMA; ctx.fillRect(0,0,W,H);
-  const isRenta = String(v.op||'').toLowerCase().includes('rent');
-  // encabezado
-  ctx.textBaseline='alphabetic'; ctx.textAlign='center';
-  ctx.fillStyle=NAVY; ctx.font='800 30px '+SANS; sp('N I V A', W/2, 92, 6);
-  ctx.fillStyle=GOLD; ctx.font='600 15px '+SANS; sp('INMOBILIARIA', W/2, 120, 7);
-  // foto enmarcada
-  const M=70, PY=160, PH=760;
-  _nivaCover(ctx, im, M, PY, W-2*M, PH, 4);
-  ctx.strokeStyle='rgba(176,141,60,.55)'; ctx.lineWidth=1.5; ctx.strokeRect(M-14, PY-14, W-2*M+28, PH+28);
-  // etiqueta sobre el borde de la foto
-  const et=(isRenta?'EN RENTA':'EN VENTA'); ctx.font='700 18px '+SANS; const ew=ctx.measureText(et).width+8*et.length+50;
-  ctx.fillStyle=CREMA; ctx.fillRect(W/2-ew/2, PY+PH-2, ew, 34);
-  ctx.fillStyle=GOLD; sp(et, W/2, PY+PH+22, 8);
-  // tipo · ciudad
-  let y=PY+PH+92;
-  const tipo=String(v.tipo||'Propiedad'); const city=String(v.city||'').split(',')[0].trim();
-  ctx.fillStyle=GRIS; ctx.font='600 19px '+SANS; sp((tipo+(city?'  ·  '+city:'')).toUpperCase(), W/2, y, 5);
-  // colonia en serif
-  const col=String(v.col||'').trim()||tipo;
-  const cs=_nivaFit(ctx, col, W-2*M, 66, 'italic 700', SERIF); ctx.fillStyle=NAVY; ctx.fillText(col, W/2, y+cs+14);
-  y=y+cs+56;
-  // línea fina dorada
-  ctx.fillStyle=GOLD; ctx.fillRect(W/2-40, y, 80, 2);
-  // datos en una sola línea
-  const d=[]; if(v.rec&&v.rec!='0') d.push(v.rec+' rec'); if(v.ban&&v.ban!='0') d.push(v.ban+' baños'); if(v.estac&&v.estac!='0') d.push(v.estac+' estac.'); if(v.m&&v.m!='0') d.push(v.m+' m²');
-  ctx.fillStyle=NAVY; ctx.font='500 24px '+SANS; if(d.length) ctx.fillText(d.join('   ·   '), W/2, y+50);
-  // precio
-  const precio=fmtP(v.price)+((v.esMes||isRenta)?' / mes':'');
-  ctx.fillStyle=GOLD; _nivaFit(ctx, precio, W-2*M, 46, '700', SERIF); ctx.fillText(precio, W/2, y+112);
-  // pie
-  ctx.fillStyle='rgba(13,27,49,.15)'; ctx.fillRect(M, H-78, W-2*M, 1);
-  ctx.fillStyle=GRIS; ctx.font='600 17px '+SANS; sp(((v.asesor||'Asesor NIVA')+(v.tel?'   ·   '+v.tel:'')).toUpperCase(), W/2, H-40, 3);
-  ctx.textAlign='left';
-}
-async function flyerE(v, ctx, W, H) {
-  const NAVY='#0D1B31', GOLD='#C9A84C', WH='#FFFFFF', GRAY='rgba(255,255,255,.62)';
-  const F='Montserrat, Inter, Arial, sans-serif';
-  const imgs = await Promise.all([0,1,2,3].map(i=>_nivaImg(photos[i])));
-  const extra = imgs.slice(1).filter(Boolean);
-  ctx.fillStyle=NAVY; ctx.fillRect(0,0,W,H);
-  const HERO_H = extra.length ? 640 : 820;
-  _nivaCover(ctx, imgs[0], 0, 0, W, HERO_H, 0);
-  // sombra suave arriba para que se lean la etiqueta y el logo
-  let g=ctx.createLinearGradient(0,0,0,170); g.addColorStop(0,'rgba(0,0,0,.45)'); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,170);
-  const isRenta = String(v.op||'').toLowerCase().includes('rent');
-  const etiqueta = (isRenta?'EN RENTA':'EN VENTA');
-  ctx.font='800 26px '+F; const ew=ctx.measureText(etiqueta).width+52;
-  ctx.fillStyle=GOLD; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(44,44,ew,54,27) : ctx.rect(44,44,ew,54); ctx.fill();
-  ctx.fillStyle=NAVY; ctx.textBaseline='middle'; ctx.fillText(etiqueta, 70, 72);
-  ctx.textAlign='right'; ctx.fillStyle=WH; ctx.font='900 34px '+F; ctx.fillText('NIVA', W-44-ctx.measureText(' INMOBILIARIA').width*0.55, 72);
-  ctx.font='600 19px '+F; ctx.fillStyle=GOLD; ctx.fillText('INMOBILIARIA', W-44, 74); ctx.textAlign='left';
-  // franja dorada
-  ctx.fillStyle=GOLD; ctx.fillRect(0,HERO_H,W,6);
-  let y = HERO_H + 6;
-  if (extra.length) {
-    const n = Math.min(3, extra.length), gap=12, m=40, tw=(W-2*m-gap*(n-1))/n, th=180;
-    for (let i=0;i<n;i++) _nivaCover(ctx, extra[i], m+i*(tw+gap), y+26, tw, th, 14);
-    y += 26 + th;
-  }
-  // Tipo + colonia + ciudad
-  const tipo = String(v.tipo||'Propiedad');
-  ctx.textBaseline='alphabetic';
-  ctx.fillStyle=GOLD; ctx.font='700 24px '+F; ctx.fillText((tipo+' en '+(isRenta?'renta':'venta')).toUpperCase(), 44, y+62);
-  const col = String(v.col||'').trim() || tipo;
-  const cs=_nivaFit(ctx, col, W-88, 58, '800', F); ctx.fillStyle=WH; ctx.fillText(col, 44, y+62+cs+8);
-  const city=String(v.city||'').split(',')[0].trim();
-  ctx.fillStyle=GRAY; ctx.font='500 28px '+F; if(city) ctx.fillText(city+', N.L.', 44, y+62+cs+52);
-  // Datos en cajas
-  const datos=[[v.rec,'Recámaras'],[v.ban,'Baños'],[v.estac,'Estac.'],[v.m?(v.m+' m²'):'','Construcción']].filter(d=>d[0]&&String(d[0])!=='0');
-  const by=y+62+cs+84;
-  if (datos.length) {
-    const gap=14, bw=(W-88-gap*(datos.length-1))/datos.length, bh=96;
-    datos.forEach((d,i)=>{ const x=44+i*(bw+gap);
-      ctx.strokeStyle='rgba(201,168,76,.55)'; ctx.lineWidth=2; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x,by,bw,bh,16) : ctx.rect(x,by,bw,bh); ctx.stroke();
-      ctx.textAlign='center'; ctx.fillStyle=WH; ctx.font='800 40px '+F; ctx.fillText(String(d[0]), x+bw/2, by+50);
-      ctx.fillStyle=GRAY; ctx.font='500 21px '+F; ctx.fillText(d[1], x+bw/2, by+80); ctx.textAlign='left'; });
-  }
-  // Pie: precio a la izquierda, asesor a la derecha
-  const FY=H-150;
-  ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(44,FY,W-88,2);
-  const precio=fmtP(v.price);
-  ctx.fillStyle=GOLD; const ps=_nivaFit(ctx, precio, 560, 76, '900', F); ctx.fillText(precio, 44, FY+100);
-  const pw=ctx.measureText(precio).width;
-  ctx.fillStyle=GRAY; ctx.font='600 26px '+F; ctx.fillText(v.esMes||isRenta?'/ mes':'MXN', 44+pw+12, FY+100);
-  ctx.textAlign='right';
-  ctx.fillStyle=WH; ctx.font='700 30px '+F; ctx.fillText(v.asesor||'Asesor NIVA', W-44, FY+70);
-  ctx.fillStyle=GOLD; ctx.font='700 30px '+F; if(v.tel) ctx.fillText('📱 '+v.tel, W-44, FY+112);
-  ctx.textAlign='left';
+// Datos del Studio (getV + fotos) → entrada del motor
+function nflDatos() {
+  const v = NIVA_FLYER_lastV || getV();
+  const n = (x) => parseInt(x, 10) || 0;
+  const tel = (document.getElementById('tel')?.value || '').trim();
+  const fotos = NFL.fotos.slice(0, 5).map(i => photos[i] || photos[0] || '');
+  const extra = { paleta: NFL.paleta, fotos, nombre: NFL.nombre.trim(),
+    frases: NFL.frases.map(s => s.trim()).filter(Boolean),
+    beneficios: NFL.beneficios.split('\n').map(s => s.trim()).filter(Boolean) };
+  if (NFL.color) extra.color = NFL.color;
+  if (Object.keys(NFL.colores).length) extra.colores = Object.assign({}, NFL.colores);
+  if (tel) extra.tel = tel;
+  return motorFlyerDatos({
+    operation_type: v.op, property_type: v.tipo,
+    location_name: [v.col, String(v.city || '').split(',')[0].trim()].filter(Boolean).join(', '),
+    price_amount: v.price, bedrooms: n(v.rec), bathrooms: n(v.ban), half_bathrooms: n(v.mban), parking_spaces: n(v.estac),
+    construction_size: n(v.m2c), lot_size: n(v.m2t),
+    // las amenidades marcadas en el formulario también cuentan (el motor las detecta del texto)
+    description: [v.desc, (v.ams || []).join(', ')].filter(Boolean).join('\n'),
+  }, extra);
 }
 
-// ══════════════════════════════════════════════
-//  ESTILO A — 🔥 DETÉN EL SCROLL
-//  Hero dominante + 2 fotos secundarias 50/50 + footer
-// ══════════════════════════════════════════════
-async function flyerA(v, ctx, W, H) {
-  const FG  = '#C9A84C';
-  const FG2 = '#FFE070';
-  const DK  = '#060C18';
-  const WH  = '#FFFFFF';
+function nflSet(k, val) {
+  NFL[k] = val;
+  if (k === 'paleta') NFL.color = '';
+  if (k === 'color') NFL.paleta = '';
+  if (k === 'plantilla' || k === 'paleta' || k === 'color') nflPintarControles();
+  nflRender();
+}
+function nflSetFrase(i, val) { NFL.frases[i] = val; nflRender(); }
+function nflSetColor(k, val) { NFL.colores[k] = val; nflRender(); }
+function nflRestablecerColores() { NFL.colores = {}; nflPintarControles(); nflRender(); }
+function nflSetFoto(slot, idx) { NFL.fotos[slot] = idx; nflPintarControles(); nflRender(); }
 
-  // LAYOUT: HERO(970) + GAL(290) + BAR(90) = 1350
-  // HERO más alto → ratio 1080/970=1.11 → menos crop en fotos verticales de casas
-  const HERO_H = 970;
-  const GAL_H  = 290;
-  const BAR_H  = 90;
-
-  // ── FOTO HERO — crop biased hacia abajo para mostrar alberca ──
-  // En lugar de center-crop, usamos sy = (imgH - cropH) * 0.38
-  // para ver un 12% más de la zona inferior sin perder la torre.
-  await (function() {
-    return new Promise(function(res) {
-      var ph0 = photos[0] || null;
-      ctx.fillStyle = '#0d1c33'; ctx.fillRect(0, 0, W, HERO_H);
-      if (!ph0) { res(); return; }
-      var img = new Image();
-      if (!ph0.startsWith('data:')) img.crossOrigin = 'anonymous';
-      img.onload = function() {
-        var ir = img.width / img.height;
-        var cr = W / HERO_H;
-        var sx = 0, sy = 0, sw = img.width, sh = img.height;
-        if (ir > cr) {
-          sh = img.height; sw = sh * cr; sx = (img.width - sw) / 2;
-        } else {
-          sw = img.width; sh = sw / cr;
-          sy = (img.height - sh) * 0.38; // bias: centro-inferior
-        }
-
-        // 10% menos zoom: expandir ventana de crop 11% desde su centro
-        // Resultado: se ve ~10% más de la fotografía original
-        var expand = 0.111;
-        var newSw = Math.min(sw * (1 + expand), img.width);
-        var newSh = Math.min(sh * (1 + expand), img.height);
-        var cx = sx + sw / 2;
-        var cy = sy + sh / 2;
-        sx = Math.max(0, cx - newSw / 2);
-        sy = Math.max(0, cy - newSh / 2);
-        if (sx + newSw > img.width) sx = img.width - newSw;
-        if (sy + newSh > img.height) sy = img.height - newSh;
-        sw = newSw; sh = newSh;
-
-        var tmp = document.createElement('canvas');
-        tmp.width = W; tmp.height = HERO_H;
-        var tCtx = tmp.getContext('2d');
-        tCtx.filter = 'contrast(1.12) saturate(1.22) brightness(1.04)';
-        tCtx.drawImage(img, sx, sy, sw, sh, 0, 0, W, HERO_H);
-        tCtx.filter = 'none';
-        ctx.drawImage(tmp, 0, 0);
-        res();
-      };
-      img.onerror = res;
-      img.src = ph0;
-    });
-  })();
-
-  // Gradiente inferior — más localizado detrás del texto, zona arquitectónica más clara
-  // Empieza al 48% del hero: zona media queda sin overlay → fachada/acceso visible
-  // Concentra oscuridad solo donde está el texto (tercio inferior)
-  var gBot = ctx.createLinearGradient(0, HERO_H * 0.48, 0, HERO_H);
-  gBot.addColorStop(0,    'rgba(0,0,0,0)');
-  gBot.addColorStop(0.52, 'rgba(4,8,18,0.54)');
-  gBot.addColorStop(1,    'rgba(4,8,18,0.88)');
-  ctx.fillStyle = gBot; ctx.fillRect(0, 0, W, HERO_H);
-
-  // Gradiente superior (badge)
-  var gTop = ctx.createLinearGradient(0, 0, 0, 200);
-  gTop.addColorStop(0, 'rgba(4,8,18,0.72)');
-  gTop.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = gTop; ctx.fillRect(0, 0, W, 200);
-
-  // ── BADGE SUPERIOR ──
-  var badgeTxt = v.op.toUpperCase() + '  ·  ' + v.tipo.toUpperCase();
-  ctx.font = '700 21px Inter, Arial';
-  var bW = ctx.measureText(badgeTxt).width + 48;
-  cRoundRect(ctx, 48, 40, bW, 42, 21, 'rgba(201,168,76,0.15)');
-  ctx.strokeStyle = 'rgba(201,168,76,0.60)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.roundRect(48, 40, bW, 42, 21); ctx.stroke();
-  ctx.fillStyle = FG; ctx.textAlign = 'left';
-  ctx.fillText(badgeTxt, 72, 68);
-
-  // ── HOOK ──
-  var HOOK_X     = 76;
-  var HOOK_MAX_W = W - HOOK_X - 60;
-  var colShort   = v.col.split(' ').slice(0,2).join(' ').toUpperCase();
-  var pickA      = v.col.length % 4;
-  var hookLine1  = '', hookLine2 = '';
-
-  if (v.op.toLowerCase().includes('rent')) {
-    var optsR = [
-      ['BUSCAS VIVIR', 'EN ' + colShort + '?'],
-      ['RENTA EN', colShort + '.'],
-      ['QUE PUEDES', 'RENTAR AQUI?'],
-      ['TU PROXIMO HOGAR', 'EN ' + colShort.split(' ')[0]]
-    ];
-    hookLine1 = optsR[pickA][0]; hookLine2 = optsR[pickA][1];
-  } else {
-    var optsV = [
-      ['LA PROPIEDAD', 'QUE BUSCABAS.'],
-      ['INVIERTE EN', colShort + '.'],
-      ['BUSCAS COMPRAR', 'EN ' + colShort + '?'],
-      ['TU NUEVO HOGAR', 'EN ' + colShort.split(' ')[0]]
-    ];
-    hookLine1 = optsV[pickA][0]; hookLine2 = optsV[pickA][1];
+function nflPintarControles() {
+  document.querySelectorAll('#nfl-plantillas button').forEach(b => b.classList.toggle('sel', b.dataset.p === NFL.plantilla));
+  const pals = document.getElementById('nfl-paletas');
+  if (pals) pals.innerHTML = Object.entries(motorFlyerPaletas).map(([k, p]) =>
+    `<button type="button" class="nfl-sw${NFL.paleta === k ? ' sel' : ''}" onclick="nflSet('paleta','${k}')" title="${_escVidAttr(p.nombre)}"><i style="background:linear-gradient(135deg,${p.acento} 50%,${p.oscuro} 50%)"></i>${_escVidHtml(p.nombre.split(' ')[0])}</button>`).join('');
+  // Selectores finos: muestran el color vigente (paleta o ajuste propio)
+  const base = (NFL.color ? null : motorFlyerPaletas[NFL.paleta]) || motorFlyerPaletas.dorado;
+  const fino = { acento: NFL.colores.acento || (NFL.color || base.acento), recuadro: NFL.colores.recuadro || base.oscuro, claro: NFL.colores.claro || base.claro };
+  for (const k of ['acento', 'recuadro', 'claro']) { const el = document.getElementById('nfl-c-' + k); if (el && /^#[0-9a-f]{6}$/i.test(fino[k])) el.value = fino[k]; }
+  const box = document.getElementById('nfl-fotos');
+  if (box) {
+    if (!photos.length) { box.innerHTML = '<div class="nfl-sub">Sube fotos de la propiedad en el formulario para usarlas aquí.</div>'; return; }
+    const slots = ['Portada', 'Foto 2', 'Foto 3', 'Foto 4', 'Foto 5'].slice(0, NFL.plantilla === 'completo' ? 5 : 4);
+    box.innerHTML = slots.map((lbl, s) => {
+      const sel = Math.min(NFL.fotos[s] || 0, photos.length - 1);
+      return `<div class="nfl-slot"><div class="nfl-slot-lbl">${lbl}</div><div class="vid-scene-photostrip">${photos.map((u, i) =>
+        `<button type="button" class="vid-scene-photo-btn${i === sel ? ' sel' : ''}" onclick="nflSetFoto(${s}, ${i})" title="Foto ${i + 1}"><img src="${u}" loading="lazy"></button>`).join('')}</div></div>`;
+    }).join('');
   }
-
-  var fs1 = 68;
-  ctx.font = '900 ' + fs1 + 'px Inter, Arial';
-  while ((ctx.measureText(hookLine1).width > HOOK_MAX_W || ctx.measureText(hookLine2).width > HOOK_MAX_W) && fs1 > 34) {
-    fs1 -= 4; ctx.font = '900 ' + fs1 + 'px Inter, Arial';
-  }
-
-  // Calcular precio para dimensionar el bloque total ANTES de posicionar
-  var pStr = fmtP(v.price);
-  var pFs = 74;
-  ctx.font = '900 ' + pFs + 'px Inter, Arial';
-  while (ctx.measureText(pStr).width > W - HOOK_X - 48 && pFs > 44) {
-    pFs -= 4; ctx.font = '900 ' + pFs + 'px Inter, Arial';
-  }
-
-  // Layout bottom-up desde HERO_H:
-  // SUB bottom margin = 20px desde borde hero
-  // Bloques (de abajo a arriba):
-  //   SUB_Y         = HERO_H - 20         (/ MES, 22px font, baseline)
-  //   PRICE_BASE_Y  = SUB_Y - 36          (precio, baseline)
-  //   PRICE_LABEL_Y = PRICE_BASE_Y-pFs-28 (etiqueta RENTA MENSUAL)
-  //   LOC_Y         = PRICE_LABEL_Y - 60  (ubicacion)
-  //   HL2_Y         = LOC_Y - 74          (hook linea 2, baseline)
-  //   HL1_Y         = HL2_Y - fs1 - 16   (hook linea 1, baseline)
-
-  var SUB_Y         = HERO_H - 20;
-  var PRICE_BASE_Y  = SUB_Y - 36;
-  var PRICE_LABEL_Y = PRICE_BASE_Y - pFs - 28;
-  var LOC_Y         = PRICE_LABEL_Y - 60;
-  var HL2_Y         = LOC_Y - 74;
-  var HL1_Y         = HL2_Y - fs1 - 16;
-
-  // Si el hook sube demasiado, comprimir pFs para que quepa
-  while (HL1_Y < 140 && pFs > 48) {
-    pFs -= 4;
-    PRICE_BASE_Y  = SUB_Y - 36;
-    PRICE_LABEL_Y = PRICE_BASE_Y - pFs - 28;
-    LOC_Y         = PRICE_LABEL_Y - 60;
-    HL2_Y         = LOC_Y - 74;
-    HL1_Y         = HL2_Y - fs1 - 16;
-  }
-
-  // ── BARRA DE ACENTO DORADA ──
-  ctx.fillStyle = FG;
-  ctx.fillRect(48, HL1_Y - fs1, 5, fs1 * 2 + 16 + Math.round(fs1 * 0.28));
-
-  // ── HOOK LINEA 1 — blanca ──
-  ctx.font = '900 ' + fs1 + 'px Inter, Arial';
-  ctx.fillStyle = WH; ctx.textAlign = 'left';
-  ctx.fillText(hookLine1, HOOK_X, HL1_Y);
-
-  // ── HOOK LINEA 2 — dorada ──
-  ctx.font = '900 ' + fs1 + 'px Inter, Arial';
-  var gHook = ctx.createLinearGradient(HOOK_X, 0, HOOK_X + ctx.measureText(hookLine2).width + 20, 0);
-  gHook.addColorStop(0, '#FFE870'); gHook.addColorStop(1, FG);
-  ctx.fillStyle = gHook;
-  ctx.fillText(hookLine2, HOOK_X, HL2_Y);
-
-  // ── SEPARADOR HOOK / UBICACIÓN — linea dorada sutil ──
-  ctx.strokeStyle = 'rgba(201,168,76,0.30)'; ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(HOOK_X, LOC_Y - 50);
-  ctx.lineTo(HOOK_X + 180, LOC_Y - 50);
-  ctx.stroke();
-
-  // ── UBICACIÓN — más grande y visible ──
-  nivaIcon(ctx, 'pin', HOOK_X + 12, LOC_Y - 12, 22, 'rgba(201,168,76,0.90)', 2);
-  var locTxt = v.col + ', ' + v.city.split(',')[0];
-  ctx.font = '600 26px Inter, Arial';
-  ctx.fillStyle = 'rgba(255,255,255,0.92)';
-  ctx.textAlign = 'left';
-  while (ctx.measureText(locTxt).width > W - HOOK_X - 42 - 40) locTxt = locTxt.slice(0,-1);
-  ctx.fillText(locTxt, HOOK_X + 38, LOC_Y);
-
-  // ── DATOS: RECÁMARAS · BAÑOS — reemplaza etiqueta de precio ──
-  var recNum = parseInt(v.rec, 10) || 0;
-  var banNum = parseInt(v.ban, 10) || 0;
-  var dataRB = '';
-  var recLabel = recNum === 1 ? 'RECÁMARA' : 'RECÁMARAS';
-  var banLabel = banNum === 1 ? 'BAÑO' : 'BAÑOS';
-  if (recNum > 0 && banNum > 0) {
-    dataRB = recNum + ' ' + recLabel + '  ·  ' + banNum + ' ' + banLabel;
-  } else if (recNum > 0) {
-    dataRB = recNum + ' ' + recLabel;
-  } else if (banNum > 0) {
-    dataRB = banNum + ' ' + banLabel;
-  }
-  if (dataRB) {
-    ctx.font = '500 18px Inter, Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.62)';
-    ctx.textAlign = 'left';
-    ctx.fillText(dataRB, HOOK_X, PRICE_LABEL_Y);
-  }
-
-  // ── PRECIO — valor grande ──
-  ctx.font = '900 ' + pFs + 'px Inter, Arial';
-  var gP = ctx.createLinearGradient(HOOK_X, PRICE_BASE_Y - pFs, HOOK_X + ctx.measureText(pStr).width, PRICE_BASE_Y);
-  gP.addColorStop(0, '#FFFFFF'); gP.addColorStop(1, FG2);
-  ctx.fillStyle = gP; ctx.textAlign = 'left';
-  ctx.fillText(pStr, HOOK_X, PRICE_BASE_Y);
-
-  // ── / MES — inline después del precio, misma línea ──
-  if (v.esMes) {
-    var priceW = ctx.measureText(pStr).width;
-    ctx.font = '400 22px Inter, Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.52)';
-    ctx.fillText(' / MES', HOOK_X + priceW + 6, PRICE_BASE_Y - 10);
-  }
-
-  // ── GALERÍA 50/50 — ambas fotos mismo ancho exacto ──
-  var GAL_Y = HERO_H;
-  ctx.fillStyle = FG; ctx.fillRect(0, GAL_Y, W, 3);
-
-  var ph1 = photos[1] || photos[0] || null;
-  var ph2 = photos[2] || photos[0] || null;
-
-  var GAP_G = 4;
-  var wHalf = Math.floor((W - GAP_G) / 2);
-  // Segunda foto ocupa el resto exacto para sumar W
-  var wHalf2 = W - wHalf - GAP_G;
-
-  await drawImg(ctx, ph1, 0,            GAL_Y + 3, wHalf,  GAL_H - 3, 'cover', true);
-  await drawImg(ctx, ph2, wHalf+GAP_G,  GAL_Y + 3, wHalf2, GAL_H - 3, 'cover', true);
-
-  // Overlay leve galería
-  var gGal = ctx.createLinearGradient(0, GAL_Y, 0, GAL_Y + GAL_H);
-  gGal.addColorStop(0, 'rgba(4,8,18,0.08)');
-  gGal.addColorStop(1, 'rgba(4,8,18,0.26)');
-  ctx.fillStyle = gGal; ctx.fillRect(0, GAL_Y, W, GAL_H);
-
-  // ── FOOTER ── (a petición de Ricardo: nombre del asesor + teléfono juntos de un lado,
-  // NIVA INMOBILIARIA del otro, sin mostrar la ubicación/dirección de la propiedad)
-  var BAR_Y = GAL_Y + GAL_H;
-  ctx.fillStyle = DK; ctx.fillRect(0, BAR_Y, W, BAR_H);
-  ctx.fillStyle = FG; ctx.fillRect(0, BAR_Y, W, 2);
-
-  // Izquierda: nombre del asesor + teléfono
-  ctx.font = '800 20px Inter, Arial'; ctx.fillStyle = FG; ctx.textAlign = 'left';
-  ctx.fillText(v.asesor || 'Asesor NIVA', 48, BAR_Y + 34);
-  ctx.font = '400 15px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.52)';
-  ctx.fillText(v.tel, 48, BAR_Y + 56);
-
-  var SEP_X = Math.round(W * 0.62);
-  ctx.strokeStyle = 'rgba(201,168,76,0.28)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(SEP_X, BAR_Y + 14); ctx.lineTo(SEP_X, BAR_Y + BAR_H - 14); ctx.stroke();
-
-  // Derecha: NIVA INMOBILIARIA (sin ubicación de la propiedad)
-  ctx.font = '700 22px Inter, Arial'; ctx.fillStyle = WH; ctx.textAlign = 'right';
-  ctx.fillText('NIVA INMOBILIARIA', W - 48, BAR_Y + 51);
 }
 
-// ══════════════════════════════════════════════
-//  ESTILO B — 🎯 QUE OBTIENES?
-//  Hook con precio · foto hero · 2 fotos sec · características · firma
-// ══════════════════════════════════════════════
-async function flyerB(v, ctx, W, H) {
-  var FG  = '#C9A84C';
-  var FG2 = '#FFE070';
-  var DK  = '#060C18';
-  var WH  = '#FFFFFF';
-  var BG2 = '#080D1A';
-
-  // LAYOUT: HERO(720) + SEC(190) + FEATS(dyn) + FOOT(118) = 1350
-  // FEATS se ajusta automáticamente según cantidad de características
-  var HERO_H = 720;
-  var SEC_H  = 190;
-  var FOOT_H = 118;
-  var FEATS_H = H - HERO_H - SEC_H - FOOT_H; // 322px para características
-
-  // ── FOTO HERO ──
-  await drawImg(ctx, photos[0]||null, 0, 0, W, HERO_H, 'cover', true);
-
-  // Gradiente superior profundo (hook zone)
-  var gTop = ctx.createLinearGradient(0, 0, 0, 380);
-  gTop.addColorStop(0,    'rgba(0,0,0,0.92)');
-  gTop.addColorStop(0.50, 'rgba(0,0,0,0.28)');
-  gTop.addColorStop(1,    'rgba(0,0,0,0)');
-  ctx.fillStyle = gTop; ctx.fillRect(0, 0, W, 380);
-
-  // Gradiente inferior leve (filo de sección)
-  var gBotH = ctx.createLinearGradient(0, HERO_H - 80, 0, HERO_H);
-  gBotH.addColorStop(0, 'rgba(0,0,0,0)');
-  gBotH.addColorStop(1, 'rgba(4,8,18,0.60)');
-  ctx.fillStyle = gBotH; ctx.fillRect(0, HERO_H - 80, W, 80);
-
-  // ── HOOK — precio integrado en el título ──
-  // Formato: "QUE OBTIENES" / "POR $50,000 AL MES?" (renta)
-  //       o: "QUE OBTIENES" / "POR $50,000?"         (venta)
-  var pStrB  = fmtP(v.price);
-  var isRenta = v.op.toLowerCase().includes('rent');
-
-  var hk1 = 'QUE OBTIENES';
-  var hk2 = isRenta ? ('POR ' + pStrB + ' AL MES?') : ('POR ' + pStrB + '?');
-
-  // Calcular tamaño que quepa ambas líneas
-  var hkFs = 80;
-  ctx.font = '900 ' + hkFs + 'px Inter, Arial';
-  var maxHkW = W - 104;
-  while ((ctx.measureText(hk1).width > maxHkW || ctx.measureText(hk2).width > maxHkW) && hkFs > 36) {
-    hkFs -= 4; ctx.font = '900 ' + hkFs + 'px Inter, Arial';
-  }
-
-  var HK1_Y = 58 + hkFs;
-  var HK2_Y = HK1_Y + hkFs + 14;
-
-  // Línea 1 — blanca
-  ctx.font = '900 ' + hkFs + 'px Inter, Arial';
-  ctx.fillStyle = WH; ctx.textAlign = 'left';
-  ctx.fillText(hk1, 52, HK1_Y);
-
-  // Línea 2 — dorada (tiene el precio)
-  var gHk = ctx.createLinearGradient(52, 0, 52 + ctx.measureText(hk2).width + 20, 0);
-  gHk.addColorStop(0, FG2); gHk.addColorStop(1, FG);
-  ctx.fillStyle = gHk;
-  ctx.fillText(hk2, 52, HK2_Y);
-
-  // ── 2 FOTOS SECUNDARIAS — 50/50 ──
-  var SEC_Y = HERO_H;
-  ctx.fillStyle = FG; ctx.fillRect(0, SEC_Y, W, 3);
-
-  var phSec1 = photos[1] || photos[0] || null;
-  var phSec2 = photos[2] || photos[0] || null;
-  var GAP_S  = 4;
-  var wSec   = Math.floor((W - GAP_S) / 2);
-  var wSec2  = W - wSec - GAP_S;
-  await drawImg(ctx, phSec1, 0,          SEC_Y + 3, wSec,  SEC_H - 3, 'cover', true);
-  await drawImg(ctx, phSec2, wSec+GAP_S, SEC_Y + 3, wSec2, SEC_H - 3, 'cover', true);
-  ctx.fillStyle = 'rgba(4,8,18,0.16)'; ctx.fillRect(0, SEC_Y, W, SEC_H);
-
-  // ── SECCIÓN DE CARACTERÍSTICAS ──
-  var FEATS_Y = SEC_Y + SEC_H;
-  ctx.fillStyle = BG2; ctx.fillRect(0, FEATS_Y, W, FEATS_H);
-  ctx.fillStyle = FG;  ctx.fillRect(0, FEATS_Y, W, 2);
-
-  // Construir lista REAL de características (solo las que existen)
-  var feats = [];
-
-  // Datos estructurales
-  if (v.rec && v.rec !== '0') {
-    feats.push({ val: '0' + v.rec, lbl: parseInt(v.rec,10) === 1 ? 'RECAMARA' : 'RECAMARAS' });
-  }
-  if (v.ban && v.ban !== '0') {
-    feats.push({ val: '0' + v.ban, lbl: parseInt(v.ban,10) === 1 ? 'BANO' : 'BANOS' });
-  }
-  if (v.estac && v.estac !== '0') {
-    feats.push({ val: '0' + v.estac, lbl: 'CAJONES' });
-  }
-  if (v.m2c) {
-    feats.push({ val: v.m2c + ' m2', lbl: 'CONSTRUCCION' });
-  } else if (v.m2t) {
-    feats.push({ val: v.m2t + ' m2', lbl: 'TOTAL' });
-  }
-
-  // Amenidades reales
-  if (v.ams && v.ams.length > 0) {
-    v.ams.forEach(function(am) {
-      var label = am.toUpperCase();
-      // Abreviar etiquetas largas
-      if (label === 'SEGURIDAD 24H')       label = 'SEGURIDAD 24H';
-      if (label === 'VISTA A LA MONTANA')  label = 'VISTA MONTANA';
-      if (label === 'AREA DE BBQ')         label = 'ASADORES';
-      if (label === 'SALON DE EVENTOS')    label = 'SALON EVENTOS';
-      if (label === 'AREA DE JUEGOS')      label = 'AREA JUEGOS';
-      if (label === 'CUARTO DE SERVICIO')  label = 'CTO. SERVICIO';
-      if (label === 'CUARTO DE LAVADO')    label = 'CTO. LAVADO';
-      if (label === 'ROOF GARDEN')         label = 'ROOF GARDEN';
-      feats.push({ val: '✦', lbl: label });
-    });
-  }
-
-  // Máximo razonable para 322px de altura con texto legible
-  // 3 columnas, rows de ~42px (24px texto + 18px separador)
-  // 322px / 42px ≈ 7 filas → 21 items máximo, pero preferimos 12-15 para legibilidad
-  var MAX_FEATS = 15;
-  if (feats.length > MAX_FEATS) feats = feats.slice(0, MAX_FEATS);
-
-  var COLS = 3;
-  var rows = Math.ceil(feats.length / COLS);
-
-  // Padding interno
-  var padX = 52;
-  var padTop = 22;
-  var padBot = 18;
-  var innerH = FEATS_H - padTop - padBot;
-  var rowH   = Math.floor(innerH / rows);
-  rowH = Math.min(rowH, 52); // máximo 52px por fila
-  rowH = Math.max(rowH, 36); // mínimo 36px por fila
-
-  var colW_f = Math.floor((W - padX * 2) / COLS);
-
-  // Fuentes adaptadas a rowH
-  var valFs = Math.min(Math.round(rowH * 0.44), 20);
-  var lblFs = Math.min(Math.round(rowH * 0.30), 14);
-  valFs = Math.max(valFs, 14);
-  lblFs = Math.max(lblFs, 11);
-
-  feats.forEach(function(f, i) {
-    var col = i % COLS;
-    var row = Math.floor(i / COLS);
-    var fx  = padX + col * colW_f;
-    var fy  = FEATS_Y + padTop + row * rowH;
-
-    // Separador horizontal entre filas (excepto la primera)
-    if (col === 0 && row > 0) {
-      ctx.strokeStyle = 'rgba(201,168,76,0.12)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(padX, fy - 2); ctx.lineTo(W - padX, fy - 2); ctx.stroke();
-    }
-
-    // Separador vertical entre columnas
-    if (col > 0) {
-      ctx.strokeStyle = 'rgba(201,168,76,0.10)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(fx, fy + 6); ctx.lineTo(fx, fy + rowH - 8); ctx.stroke();
-    }
-
-    // Valor
-    ctx.font = '700 ' + valFs + 'px Inter, Arial';
-    ctx.fillStyle = FG;
-    ctx.textAlign = 'left';
-    ctx.fillText(f.val, fx + 14, fy + valFs + 4);
-
-    // Etiqueta — debajo del valor si caben las dos líneas, sino en la misma línea
-    var lblY = fy + valFs + lblFs + 8;
-    if (lblY > fy + rowH - 4) {
-      // No caben en 2 líneas — poner en la misma línea
-      ctx.font = '400 ' + lblFs + 'px Inter, Arial';
-      ctx.fillStyle = 'rgba(255,255,255,0.50)';
-      var lblTxt = f.lbl;
-      while (ctx.measureText(lblTxt).width > colW_f - 32 && lblTxt.length > 2) lblTxt = lblTxt.slice(0,-1);
-      ctx.fillText(lblTxt, fx + 14 + ctx.measureText(f.val).width + 8, fy + valFs + 4);
-    } else {
-      ctx.font = '400 ' + lblFs + 'px Inter, Arial';
-      ctx.fillStyle = 'rgba(255,255,255,0.50)';
-      var lblTxt2 = f.lbl;
-      while (ctx.measureText(lblTxt2).width > colW_f - 20 && lblTxt2.length > 2) lblTxt2 = lblTxt2.slice(0,-1);
-      ctx.fillText(lblTxt2, fx + 14, lblY);
-    }
+// Recorta cada foto EXACTO al tamaño de su recuadro (con el realce de color) para que la
+// vista previa y el PNG sean iguales: html2canvas no soporta object-fit ni CSS filter.
+// También pasa los estilos de los íconos SVG a atributos (html2canvas no les aplica la hoja de estilos).
+async function nflPrepararFlyer(el) {
+  el.querySelectorAll('svg').forEach(svg => {
+    const cs = getComputedStyle(svg);
+    svg.setAttribute('fill', cs.fill); svg.setAttribute('stroke', cs.stroke); svg.setAttribute('stroke-width', parseFloat(cs.strokeWidth) || 1.7);
+    svg.setAttribute('stroke-linecap', cs.strokeLinecap); svg.setAttribute('stroke-linejoin', cs.strokeLinejoin);
+    svg.setAttribute('width', parseFloat(cs.width) || 46); svg.setAttribute('height', parseFloat(cs.height) || 46);
   });
-
-  // ── FOOTER — firma limpia ──
-  var FOOT_Y = FEATS_Y + FEATS_H;
-  ctx.fillStyle = DK; ctx.fillRect(0, FOOT_Y, W, FOOT_H);
-  ctx.fillStyle = FG; ctx.fillRect(0, FOOT_Y, W, 1.5);
-
-  // Izquierda: NIVA INMOBILIARIA + asesor
-  ctx.font = '700 20px Inter, Arial'; ctx.fillStyle = FG; ctx.textAlign = 'left';
-  ctx.fillText('NIVA INMOBILIARIA', 52, FOOT_Y + 40);
-  ctx.font = '400 16px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.65)';
-  ctx.fillText(v.asesor || 'Asesor NIVA', 52, FOOT_Y + 64);
-
-  // Separador vertical
-  var sepXF = Math.round(W * 0.58);
-  ctx.strokeStyle = 'rgba(201,168,76,0.24)'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(sepXF, FOOT_Y + 16); ctx.lineTo(sepXF, FOOT_Y + FOOT_H - 16); ctx.stroke();
-
-  // Derecha: teléfono
-  ctx.font = '700 22px Inter, Arial'; ctx.fillStyle = WH; ctx.textAlign = 'right';
-  ctx.fillText(v.tel, W - 52, FOOT_Y + 44);
-  ctx.font = '300 12px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.28)';
-  ctx.fillText('niva.mx  ·  monterrey, n.l.', W - 52, FOOT_Y + 66);
+  await Promise.all([...el.querySelectorAll('img')].map(async img => {
+    const src = img.dataset.src || img.getAttribute('src') || '';
+    img.dataset.src = src;
+    const w = Math.round(img.offsetWidth), h = Math.round(img.offsetHeight);
+    if (!w || !h) return;
+    const key = src + '|' + w + 'x' + h;
+    if (!_nflRecortes.has(key)) _nflRecortes.set(key, _photoToJpeg(src, w, h, NFL_FILTRO));
+    const url = await _nflRecortes.get(key);
+    if (url) img.src = url;
+  }));
 }
 
-// ══════════════════════════════════════════════
-//  ESTILO C — 💎 EDITORIAL PREMIUM
-//  Photo-first · Serif · Magazine real estate
-// ══════════════════════════════════════════════
-async function flyerC(v, ctx, W, H) {
-  var FG  = '#C9A84C';       // gold — solo detalles
-  var DK  = '#0A0E1A';       // negro profundo
-  var CR  = '#F5F0E8';       // crema cálida
-  var GY  = '#8A7F6E';       // gris cálido
-  var NG  = '#2C2820';       // negro suave (texto nombre)
-  var WH  = '#FFFFFF';
+function nflEscalar() {
+  const wrap = document.getElementById('nfl-prev-wrap'), esc = document.getElementById('nfl-escala');
+  if (wrap && esc) esc.style.transform = 'scale(' + (wrap.clientWidth / 1080) + ')';
+}
+window.addEventListener('resize', () => { if (NIVA_FLYER_lastV) nflEscalar(); });
 
-  // LAYOUT VERTICAL
-  var HERO_H = 800;          // ~59% — foto dominante
-  var INFO_H = 350;          // zona info cream
-  var FOOT_H = 200;          // H - HERO_H - INFO_H = 1350 - 800 - 350 = 200
-  // TOTAL = 1350 ✓
+async function nflRender() {
+  const esc = document.getElementById('nfl-escala');
+  if (!esc || !NIVA_FLYER_lastV) return;
+  const token = ++_nflToken;
+  esc.innerHTML = motorFlyerHTML(NFL.plantilla || 'lujo', nflDatos());
+  nflEscalar();
+  await nflPrepararFlyer(esc.firstElementChild);
+  return token === _nflToken;
+}
 
-  var INFO_Y = HERO_H;       // 800
-  var FOOT_Y = INFO_Y + INFO_H; // 1150
+async function nflFuentes() {
+  const caras = ['400', '500', '600', '700'].map(w => w + ' 40px "Cormorant Garamond"').concat(['500', '600', '700'].map(w => w + ' 40px "Cormorant Infant"')).concat(['300', '400', '500', '600', '700', '800'].map(w => w + ' 40px Montserrat'));
+  try { await Promise.race([Promise.all(caras.map(f => document.fonts.load(f))).then(() => document.fonts.ready), new Promise(r => setTimeout(r, 8000))]); } catch (e) {}
+}
 
-  // ── FOTO HERO — smart crop bias bottom (alberca + torre) ──
-  await (function() {
-    return new Promise(function(res) {
-      var ph0 = photos[0] || null;
-      ctx.fillStyle = '#0d1520';
-      ctx.fillRect(0, 0, W, HERO_H);
-      if (!ph0) { res(); return; }
-      var img = new Image();
-      if (!ph0.startsWith('data:')) img.crossOrigin = 'anonymous';
-      img.onload = function() {
-        var ir = img.width / img.height;
-        var cr = W / HERO_H;
-        var sx = 0, sy = 0, sw = img.width, sh = img.height;
-        if (ir > cr) {
-          // foto más ancha: crop horizontal centrado
-          sw = img.height * cr; sx = (img.width - sw) / 2;
-        } else {
-          // foto más alta: bias 0.32 para mostrar zona baja (alberca)
-          sh = img.width / cr;
-          sy = (img.height - sh) * 0.32;
-        }
-        var tmp = document.createElement('canvas');
-        tmp.width = W; tmp.height = HERO_H;
-        var tc = tmp.getContext('2d');
-        tc.filter = 'contrast(1.08) saturate(1.15) brightness(1.02)';
-        tc.drawImage(img, sx, sy, sw, sh, 0, 0, W, HERO_H);
-        tc.filter = 'none';
-        ctx.drawImage(tmp, 0, 0);
-        res();
-      };
-      img.onerror = res;
-      img.src = ph0;
+// PNG 1080×1620: se dibuja una copia sin escalar (fuera de la vista) y se captura con html2canvas
+async function nflExportar() {
+  await nflFuentes();
+  const host = document.createElement('div');
+  host.id = 'nfl-export';
+  host.style.cssText = 'position:fixed;left:0;top:0;width:1080px;height:1620px;opacity:0;pointer-events:none;z-index:-1';
+  host.innerHTML = motorFlyerHTML(NFL.plantilla || 'lujo', nflDatos());
+  document.body.appendChild(host);
+  try {
+    const el = host.firstElementChild;
+    await nflPrepararFlyer(el);
+    return await html2canvas(el, {
+      scale: 1, width: 1080, height: 1620, useCORS: true, backgroundColor: null, logging: false,
+      onclone: (doc) => { const h = doc.getElementById('nfl-export'); if (h) h.style.opacity = '1'; },
+      ignoreElements: (n) => n.tagName !== 'BODY' && document.body.contains(n) && n !== host && !host.contains(n) && !n.contains(host),
     });
-  })();
-
-  // ── GRADIENTES SOBRE LA FOTO ──
-  // Superior sutil — para detalle editorial
-  var gTop = ctx.createLinearGradient(0, 0, 0, 100);
-  gTop.addColorStop(0, 'rgba(10,14,26,0.68)');
-  gTop.addColorStop(1, 'rgba(10,14,26,0)');
-  ctx.fillStyle = gTop;
-  ctx.fillRect(0, 0, W, 100);
-
-  // Inferior — transición foto → crema
-  var gBot = ctx.createLinearGradient(0, HERO_H - 240, 0, HERO_H);
-  gBot.addColorStop(0, 'rgba(245,240,232,0)');
-  gBot.addColorStop(0.65, 'rgba(245,240,232,0.55)');
-  gBot.addColorStop(1, 'rgba(245,240,232,0.92)');
-  ctx.fillStyle = gBot;
-  ctx.fillRect(0, HERO_H - 240, W, 240);
-
-  // ── DETALLE EDITORIAL SUPERIOR ──
-  ctx.font = '400 12px Inter, Arial';
-  ctx.fillStyle = 'rgba(255,255,255,0.48)';
-  ctx.textAlign = 'left';
-  ctx.fillText('NIVA RESIDENTIAL  ·  MONTERREY, N.L.', 52, 38);
-
-  // Línea dorada vertical izquierda — muy delgada
-  ctx.fillStyle = 'rgba(201,168,76,0.45)';
-  ctx.fillRect(36, 28, 1, 18);
-
-  // ── ZONA INFO — fondo crema ──
-  ctx.fillStyle = CR;
-  ctx.fillRect(0, INFO_Y, W, INFO_H);
-
-  // Línea dorada separadora en la cima de la info
-  ctx.fillStyle = FG;
-  ctx.fillRect(0, INFO_Y, W, 1.5);
-
-  // ── NOMBRE DE LA PROPIEDAD ──
-  // Línea 1: tipo en serif bold (ej: TORRE ACACIA)
-  // Línea 2: colonia · ciudad en sans light
-  var nombreRaw = (v.tipo || 'PROPIEDAD').toUpperCase();
-  var nFs = 52;
-  ctx.font = '700 ' + nFs + 'px Georgia, "Times New Roman", serif';
-  while (ctx.measureText(nombreRaw).width > W - 104 && nFs > 30) {
-    nFs -= 3;
-    ctx.font = '700 ' + nFs + 'px Georgia, "Times New Roman", serif';
-  }
-
-  var NAME_Y = INFO_Y + 52;
-  ctx.fillStyle = NG;
-  ctx.textAlign = 'left';
-  ctx.fillText(nombreRaw, 52, NAME_Y);
-
-  // Línea ubicación
-  var locC = v.col + '  ·  ' + v.city.split(',')[0];
-  ctx.font = '400 16px Inter, Arial';
-  ctx.fillStyle = GY;
-  var LOC_Y = NAME_Y + 30;
-  while (ctx.measureText(locC).width > W - 104) locC = locC.slice(0, -1);
-  ctx.fillText(locC, 52, LOC_Y);
-
-  // ── FRASE EDITORIAL — según tipo de op y propiedad ──
-  var phrasesR = [
-    'UNA NUEVA FORMA DE VIVIR LA CIUDAD.',
-    'VIVE VALLE ORIENTE DESDE AQUÍ.',
-    'UNA VISTA QUE CAMBIA TODO.',
-    'DONDE LA CIUDAD SE VE DIFERENTE.'
-  ];
-  var phrasesV = [
-    'LA PROPIEDAD QUE TRANSFORMA TU VIDA.',
-    'INVIERTE EN LO QUE DURA.',
-    'EL ESTILO DE VIDA QUE MERECES.',
-    'AQUÍ COMIENZA LO QUE BUSCAS.'
-  ];
-  var phraseList = v.op.toLowerCase().indexOf('rent') !== -1 ? phrasesR : phrasesV;
-  var pickC = (v.col.length + (parseInt(v.rec, 10) || 0)) % phraseList.length;
-  var phraseTxt = phraseList[pickC];
-
-  ctx.font = '300 13px Inter, Arial';
-  ctx.fillStyle = 'rgba(44,40,32,0.42)';
-  var PHRASE_Y = LOC_Y + 26;
-  ctx.fillText(phraseTxt, 52, PHRASE_Y);
-
-  // ── SEPARADOR DELGADO ──
-  var SEP_Y = PHRASE_Y + 22;
-  ctx.strokeStyle = 'rgba(201,168,76,0.22)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(52, SEP_Y);
-  ctx.lineTo(W - 52, SEP_Y);
-  ctx.stroke();
-
-  // ── DATOS COMPACTOS ──
-  // Formato: 02 REC  ·  02 BAÑOS  ·  80 M²  ·  02 EST.
-  var dItems = [];
-  if (v.rec && v.rec !== '0') {
-    dItems.push('0' + v.rec + ' REC');
-  }
-  if (v.ban && v.ban !== '0') {
-    var banLabel = parseInt(v.ban, 10) === 1 ? 'BAÑO' : 'BAÑOS';
-    dItems.push('0' + v.ban + ' ' + banLabel);
-  }
-  if (v.m2c) {
-    dItems.push(v.m2c + ' M²');
-  } else if (v.m2t) {
-    dItems.push(v.m2t + ' M²');
-  }
-  if (v.estac && v.estac !== '0') {
-    dItems.push('0' + v.estac + ' EST.');
-  }
-  var dataLine = dItems.join('  ·  ');
-
-  var DATA_Y = SEP_Y + 30;
-  ctx.font = '600 14px Inter, Arial';
-  ctx.fillStyle = NG;
-  ctx.textAlign = 'left';
-  ctx.fillText(dataLine, 52, DATA_Y);
-
-  // ── BLOQUE DE PRECIO — zona protegida ──
-  // Posicionado en la parte inferior de INFO_H
-  // Centrado horizontalmente
-  // Layout desde arriba del bloque precio:
-  //   LABEL (13px)
-  //   gap 10px
-  //   PRECIO (pFsC px, serif ligero)
-  //   gap 8px
-  //   /MES (13px)
-  var isRentaC = v.op.toLowerCase().indexOf('rent') !== -1;
-  var pStrC = fmtP(v.price);
-
-  var pFsC = 60;
-  ctx.font = '300 ' + pFsC + 'px Georgia, "Times New Roman", serif';
-  while (ctx.measureText(pStrC).width > W - 160 && pFsC > 38) {
-    pFsC -= 3;
-    ctx.font = '300 ' + pFsC + 'px Georgia, "Times New Roman", serif';
-  }
-
-  // Calcular posición vertical centrada en espacio disponible bajo DATA_Y
-  // Espacio disponible: DATA_Y+16 a INFO_Y+INFO_H-16
-  var priceAreaTop = DATA_Y + 16;
-  var priceAreaBot = INFO_Y + INFO_H - 18;
-  var priceAreaH   = priceAreaBot - priceAreaTop;
-
-  // Altura bloque precio: 13(label) + 10 + pFsC + 8 + 13 = pFsC + 44
-  var priceBlockH = pFsC + 44;
-  var priceBlockTop = priceAreaTop + Math.round((priceAreaH - priceBlockH) / 2);
-  if (priceBlockTop < priceAreaTop) priceBlockTop = priceAreaTop;
-
-  var LABEL_BL  = priceBlockTop + 13;
-  var PRICE_BL  = LABEL_BL + 10 + pFsC;
-  var MES_BL    = PRICE_BL + 8 + 13;
-
-  // Asegurar no overlap con DATA_Y
-  if (LABEL_BL < DATA_Y + 24) {
-    var shift = (DATA_Y + 24) - LABEL_BL;
-    LABEL_BL += shift; PRICE_BL += shift; MES_BL += shift;
-  }
-  // Asegurar no overflow de INFO zone
-  if (MES_BL > INFO_Y + INFO_H - 10) {
-    var over = MES_BL - (INFO_Y + INFO_H - 10);
-    LABEL_BL -= over; PRICE_BL -= over; MES_BL -= over;
-  }
-
-  var CX = Math.round(W / 2);
-  ctx.textAlign = 'center';
-
-  // Label tipo precio — muy discreto
-  ctx.font = '400 11px Inter, Arial';
-  ctx.fillStyle = GY;
-  ctx.fillText(isRentaC ? 'RENTA MENSUAL' : 'PRECIO DE VENTA', CX, LABEL_BL);
-
-  // Precio — serif ligero, elegante
-  ctx.font = '300 ' + pFsC + 'px Georgia, "Times New Roman", serif';
-  ctx.fillStyle = NG;
-  ctx.fillText(pStrC, CX, PRICE_BL);
-
-  // /MES — solo en renta
-  if (isRentaC) {
-    ctx.font = '400 12px Inter, Arial';
-    ctx.fillStyle = GY;
-    ctx.fillText('/ MES', CX, MES_BL);
-  }
-
-  // Pequeño acento dorado — línea vertical izquierda del bloque precio
-  ctx.fillStyle = 'rgba(201,168,76,0.35)';
-  ctx.fillRect(52, LABEL_BL - 14, 1.5, MES_BL - LABEL_BL + 14);
-
-  // ── FOOTER ──
-  ctx.fillStyle = DK;
-  ctx.fillRect(0, FOOT_Y, W, FOOT_H);
-
-  // Línea dorada de apertura footer
-  ctx.fillStyle = FG;
-  ctx.fillRect(0, FOOT_Y, W, 1.5);
-
-  // Padding vertical: FOOT_H = 200, texto centrado
-  var F_MID = FOOT_Y + Math.round(FOOT_H / 2);
-
-  // Izquierda: NIVA + asesor
-  ctx.textAlign = 'left';
-  ctx.font = '700 20px Inter, Arial';
-  ctx.fillStyle = FG;
-  ctx.fillText('NIVA INMOBILIARIA', 52, F_MID - 10);
-
-  ctx.font = '300 15px Inter, Arial';
-  ctx.fillStyle = 'rgba(255,255,255,0.52)';
-  ctx.fillText(v.asesor || 'Asesor NIVA', 52, F_MID + 14);
-
-  // Separador vertical sutil
-  var SEP_F = Math.round(W * 0.60);
-  ctx.strokeStyle = 'rgba(201,168,76,0.22)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(SEP_F, FOOT_Y + 60);
-  ctx.lineTo(SEP_F, FOOT_Y + FOOT_H - 60);
-  ctx.stroke();
-
-  // Derecha: teléfono
-  ctx.textAlign = 'right';
-  ctx.font = '600 22px Inter, Arial';
-  ctx.fillStyle = WH;
-  ctx.fillText(v.tel, W - 52, F_MID - 6);
-
-  ctx.font = '300 12px Inter, Arial';
-  ctx.fillStyle = 'rgba(255,255,255,0.26)';
-  ctx.fillText('monterrey, n.l.', W - 52, F_MID + 16);
-
-  ctx.textAlign = 'left';
+  } finally { host.remove(); }
 }
 
-//  ESTILO D — 📰 PORTADA DE REVISTA
-//  Foto 100% canvas, texto overlay con aire, precio zona protegida
-// ══════════════════════════════════════════════
-async function flyerD(v, ctx, W, H) {
-  // Layout bottom-up — todos los elementos calculados para NO solaparse.
-  // H = 1350.
-  //
-  // ZONA INFERIOR (bottom-up):
-  //   micro      H-28  = 1322
-  //   tel        H-82  = 1268
-  //   niva       H-114 = 1236   (font 22px, top=1214, gap desde linea=14px ok)
-  //   linea      H-170 = 1180   (fin NIVA top=1214, fin linea=1181.5 => gap=32px ok)
-  //   sub        PRICE_BASE+40  (siempre debajo del precio)
-  //   price_base H-222 = 1128   (pFsD max 64 => top=1064)
-  //   plabel     H-302 = 1048   (plabel bottom~1053, price top=1064 => gap=11px ok)
-  //   techs      H-340 = 1010
-  //
-  // ZONA SUPERIOR:
-  //   masthead   y=36
-  //   linea      y=46
-  //   hl1        y=72+hlFs
-  //   hl2        y=hl1+hlFs+26  (26px de aire entre lineas)
-  //   col        y=hl2+84       (84px de aire headline->colonia)
-  //   city       y=col+54       (54px colonia->ciudad)
-  //
-  // Verificacion anti-overlap: city_bottom <= techs_Y (1010) ok si headline no es muy grande.
-
-  const FG  = '#C9A84C';
-  const FG2 = '#FFE070';
-  const WH  = '#FFFFFF';
-
-  // Constantes bottom-up
-  const Y_MICRO_D    = H - 28;
-  const Y_TEL_D      = H - 82;
-  const Y_NIVA_D     = H - 114;
-  const Y_LINE_D     = H - 170;
-  const PRICE_BASE_D = H - 222;
-  const Y_PLABEL_D   = H - 302;
-  const Y_TECHS_D    = H - 340;
-
-  // ── FOTO FULL-BLEED ──
-  await drawImg(ctx, photos[0]||null, 0, 0, W, H, 'cover', true);
-
-  // Gradiente superior editorial
-  const gTopD = ctx.createLinearGradient(0, 0, 0, 560);
-  gTopD.addColorStop(0,    'rgba(0,0,0,0.88)');
-  gTopD.addColorStop(0.50, 'rgba(0,0,0,0.28)');
-  gTopD.addColorStop(1,    'rgba(0,0,0,0)');
-  ctx.fillStyle = gTopD; ctx.fillRect(0, 0, W, 560);
-
-  // Gradiente inferior
-  const gBotD = ctx.createLinearGradient(0, H - 680, 0, H);
-  gBotD.addColorStop(0,    'rgba(0,0,0,0)');
-  gBotD.addColorStop(0.20, 'rgba(0,0,0,0.42)');
-  gBotD.addColorStop(1,    'rgba(0,0,0,0.97)');
-  ctx.fillStyle = gBotD; ctx.fillRect(0, H - 680, W, 680);
-
-  // ── MASTHEAD SUPERIOR ──
-  ctx.font = '400 13px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.44)'; ctx.textAlign = 'left';
-  ctx.fillText('N I V A   R E S I D E N C I A L', 52, 36);
-  ctx.font = '300 13px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.34)'; ctx.textAlign = 'right';
-  ctx.fillText('MTY, N.L.  -  2026', W - 52, 36);
-  ctx.fillStyle = FG; ctx.fillRect(52, 46, W - 104, 1.5);
-
-  // ── HEADLINE EDITORIAL ──
-  const isRentaD = v.op.toLowerCase().includes('rent');
-  let headlinesD;
-  if (isRentaD) {
-    headlinesD = [
-      ['VIVIR AQUI', 'TIENE PRECIO.'],
-      ['TU NUEVO', 'RITMO DE VIDA.'],
-      ['RENTA EL LUGAR', 'QUE MERECES.']
-    ];
-  } else {
-    headlinesD = [
-      ['LA PROPIEDAD', 'QUE BUSCABAS.'],
-      ['VIVE EL ESTILO', 'QUE IMAGINAS.'],
-      ['UN HOGAR', 'A TU MEDIDA.']
-    ];
-  }
-  const hIdx = v.col.length % headlinesD.length;
-  const hl1  = headlinesD[hIdx][0];
-  const hl2  = headlinesD[hIdx][1];
-
-  let hlFs = 96;
-  ctx.font = '900 ' + hlFs + 'px Inter, Arial';
-  const maxHlW = W - 104;
-  while ((ctx.measureText(hl1).width > maxHlW || ctx.measureText(hl2).width > maxHlW) && hlFs > 50) {
-    hlFs -= 4; ctx.font = '900 ' + hlFs + 'px Inter, Arial';
-  }
-
-  const HL1_Y_D = 72 + hlFs;
-  ctx.font = '900 ' + hlFs + 'px Inter, Arial';
-  ctx.fillStyle = WH; ctx.textAlign = 'left';
-  ctx.fillText(hl1, 52, HL1_Y_D);
-
-  // Linea 2 con 26px de aire
-  const HL2_Y_D = HL1_Y_D + hlFs + 26;
-  const gHLD = ctx.createLinearGradient(52, 0, 52 + ctx.measureText(hl2).width + 20, 0);
-  gHLD.addColorStop(0, FG2); gHLD.addColorStop(1, FG);
-  ctx.fillStyle = hl2.endsWith('.') ? gHLD : WH;
-  ctx.fillText(hl2, 52, HL2_Y_D);
-
-  // ── COLONIA ──
-  // 84px de aire desde ultima linea de headline
-  const COL_Y_D = HL2_Y_D + 84;
-  let cfsD = 40;
-  ctx.font = '400 ' + cfsD + 'px Inter, Arial';
-  while (ctx.measureText(v.col).width > W - 104 && cfsD > 20) { cfsD -= 2; ctx.font = '400 ' + cfsD + 'px Inter, Arial'; }
-  ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.textAlign = 'left';
-  ctx.fillText(v.col, 52, COL_Y_D);
-
-  // ── CIUDAD ──
-  // 54px de aire desde colonia
-  const CITY_Y_D = COL_Y_D + 54;
-  nivaIcon(ctx, 'pin', 54, CITY_Y_D - 17, 17, FG, 2);
-  ctx.font = '400 17px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.50)';
-  ctx.fillText(v.city.split(',')[0] + ', N.L.', 78, CITY_Y_D);
-
-  // ── DATOS TECNICOS ──
-  // Solo si hay espacio suficiente entre ciudad y Y_TECHS_D
-  const showTechs = (CITY_Y_D + 40) < Y_TECHS_D;
-  if (showTechs) {
-    const techsD = [];
-    if (v.rec !== '0') techsD.push(v.rec + ' REC');
-    if (v.ban)         techsD.push(v.ban + ' BAN');
-    if (v.m2c)        techsD.push(v.m2c + ' m2');
-    else if (v.m2t)   techsD.push(v.m2t + ' m2');
-    if (v.estac && v.estac !== '0') techsD.push(v.estac + ' EST');
-    ctx.font = '400 19px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.textAlign = 'left';
-    ctx.fillText(techsD.join('   -   '), 52, Y_TECHS_D);
-  }
-
-  // ── PRECIO — ZONA COMPLETAMENTE PROTEGIDA ──
-  // Estructura (bottom-up):
-  //   sub      Y_SUB = PRICE_BASE + 40
-  //   precio   PRICE_BASE = 1128
-  //   etiqueta Y_PLABEL = 1048
-  //   (linea separadora en Y_LINE = 1180)
-  //
-  // Verificacion: price_top = PRICE_BASE - pFsD (max 64) = 1064 > Y_PLABEL+8=1056. Gap=8px ok.
-  // sub_bottom = Y_SUB + 6 = 1174. Y_LINE = 1180. Gap=6px ok.
-
-  // Etiqueta
-  ctx.font = '500 15px Inter, Arial'; ctx.fillStyle = FG; ctx.textAlign = 'left';
-  ctx.fillText(isRentaD ? 'RENTA MENSUAL' : 'PRECIO DE VENTA', 52, Y_PLABEL_D);
-
-  // Precio — Georgia elegante, max 64px garantizado
-  const pStrD = fmtP(v.price);
-  let pFsD = 74;
-  ctx.font = '300 ' + pFsD + 'px Georgia, serif';
-  while ((ctx.measureText(pStrD).width > W - 104 || pFsD > 64) && pFsD > 38) {
-    pFsD -= 4; ctx.font = '300 ' + pFsD + 'px Georgia, serif';
-  }
-  const gPriceD = ctx.createLinearGradient(52, PRICE_BASE_D - pFsD, 52 + 380, PRICE_BASE_D + 10);
-  gPriceD.addColorStop(0, '#FFFFFF'); gPriceD.addColorStop(1, 'rgba(255,255,255,0.90)');
-  ctx.fillStyle = gPriceD; ctx.textAlign = 'left';
-  ctx.fillText(pStrD, 52, PRICE_BASE_D);
-
-  // Subtitulo — siempre 40px debajo del baseline del precio
-  const Y_SUB_D = PRICE_BASE_D + 40;
-  ctx.font = '300 16px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.36)'; ctx.textAlign = 'left';
-  ctx.fillText(isRentaD ? '/ mes - pesos mexicanos' : 'precio de venta', 52, Y_SUB_D);
-
-  // ── LINEA DORADA — siempre despues del subtitulo ──
-  // Y_LINE = 1180. sub_bottom aprox Y_SUB+6=1174. Gap=6px ok.
-  ctx.fillStyle = FG; ctx.fillRect(52, Y_LINE_D, W - 104, 1.5);
-
-  // ── FIRMA NIVA — 34px debajo de la linea ──
-  // Y_NIVA = 1236. top=1214. linea_bottom=1181.5. Gap=32.5px ok.
-  ctx.font = '700 22px Georgia, serif'; ctx.fillStyle = FG; ctx.textAlign = 'left';
-  ctx.fillText('NIVA', 52, Y_NIVA_D);
-  ctx.font = '300 12px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.44)';
-  ctx.fillText('INMOBILIARIA - MTY, N.L.', 52, Y_NIVA_D + 22);
-
-  // Asesor (derecha, misma linea que NIVA)
-  ctx.font = '400 17px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.82)'; ctx.textAlign = 'right';
-  ctx.fillText(v.asesor || 'Asesor NIVA', W - 52, Y_NIVA_D);
-
-  // Tel — 46px debajo de NIVA baseline
-  // Y_TEL = 1268. top=1249. NIVA_bottom=1258. gap=9px ok.
-  ctx.font = '700 19px Inter, Arial'; ctx.fillStyle = FG; ctx.textAlign = 'right';
-  ctx.fillText(v.tel, W - 52, Y_TEL_D);
-
-  // Micro
-  ctx.font = '300 11px Inter, Arial'; ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.textAlign = 'center';
-  ctx.fillText('niva.mx  -  2026', W/2, Y_MICRO_D);
-}
-
-//  FICHA TÉCNICA (helper — kept below)
-// ══════════════════════════════════════════════
-// (old genFlyer body removed — replaced by flyerA/B/C/D above)
-async function _noop_removeme() {
-  const W = 1080, H = 1350;
-
-  const FG   = '#F5A800';
-  const FG2  = '#FFD000';
-  const DARK = '#040A16';
-
-  // ── ZONAS (estructura original 4 zonas) ──
-  const PHOTO_H = 785;
-  const FEAT_H  = 195;
-  const PRICE_H = 195;
-  const FOOT_H  = 175;
-  const THUMB_W = 270;
-  const MAIN_W  = W - THUMB_W; // 810px
-
-  // ═══════════════════════════════════════════
-  // A) ZONA FOTO — cinematográfica
-  // ═══════════════════════════════════════════
-  await drawImg(ctx, photos[0] || null, 0, 0, MAIN_W, PHOTO_H, 'cover');
-
-  // Vignette cinematográfica oscura en las esquinas
-  const vign = ctx.createRadialGradient(MAIN_W * 0.5, PHOTO_H * 0.45, PHOTO_H * 0.12, MAIN_W * 0.5, PHOTO_H * 0.45, PHOTO_H * 0.92);
-  vign.addColorStop(0, 'rgba(0,0,0,0)');
-  vign.addColorStop(1, 'rgba(2,6,18,0.62)');
-  ctx.fillStyle = vign; ctx.fillRect(0, 0, MAIN_W, PHOTO_H);
-
-  // Gradiente superior dramático (texto arriba)
-  const gTop = ctx.createLinearGradient(0, 0, 0, 380);
-  gTop.addColorStop(0, 'rgba(3,8,22,0.95)');
-  gTop.addColorStop(0.55, 'rgba(2,5,15,0.18)');
-  gTop.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = gTop; ctx.fillRect(0, 0, MAIN_W, PHOTO_H);
-
-  // Gradiente inferior suave
-  const gBot = ctx.createLinearGradient(0, PHOTO_H - 160, 0, PHOTO_H);
-  gBot.addColorStop(0, 'rgba(0,0,0,0)');
-  gBot.addColorStop(1, 'rgba(3,8,22,0.68)');
-  ctx.fillStyle = gBot; ctx.fillRect(0, 0, MAIN_W, PHOTO_H);
-
-  // Barra vertical izquierda degradada (acento editorial)
-  const gVertL = ctx.createLinearGradient(0, 0, 0, PHOTO_H);
-  gVertL.addColorStop(0, 'rgba(245,168,0,0)');
-  gVertL.addColorStop(0.15, FG);
-  gVertL.addColorStop(0.85, FG);
-  gVertL.addColorStop(1, 'rgba(245,168,0,0)');
-  ctx.fillStyle = gVertL; ctx.fillRect(0, 0, 5, PHOTO_H);
-
-  // TIPO — badge pill dorado semitransparente
-  const tipoBadgeText = v.tipo.toUpperCase();
-  ctx.font = '700 20px Inter, Arial, sans-serif';
-  const tipoBW = ctx.measureText(tipoBadgeText).width + 38;
-  const tipoBH = 38;
-  cRoundRect(ctx, 48, 46, tipoBW, tipoBH, tipoBH / 2, 'rgba(245,168,0,0.88)');
-  // Thin border glow
-  ctx.strokeStyle = 'rgba(255,210,0,0.6)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.roundRect(48, 46, tipoBW, tipoBH, tipoBH / 2); ctx.stroke();
-  ctx.fillStyle = '#07101E'; ctx.textAlign = 'left';
-  ctx.fillText(tipoBadgeText, 48 + 19, 46 + tipoBH * 0.68);
-
-  // OPERACIÓN — texto masivo con glow dorado
-  const opTxt = v.op.toUpperCase();
-  ctx.font = '900 118px Inter, Arial, sans-serif';
-  // Glow sutil dorado detrás
-  ctx.shadowColor = 'rgba(245,168,0,0.35)'; ctx.shadowBlur = 24;
-  ctx.fillStyle = WHITE; ctx.textAlign = 'left';
-  ctx.fillText(opTxt, 52, 200);
-  ctx.shadowBlur = 0;
-
-  // Línea dorada bajo OPERACIÓN — con degradado que se desvanece
-  const opW = ctx.measureText(opTxt).width;
-  const opLineW = Math.min(opW + 50, MAIN_W - 80);
-  const lineGrad = ctx.createLinearGradient(52, 0, 52 + opLineW, 0);
-  lineGrad.addColorStop(0, FG);
-  lineGrad.addColorStop(0.75, FG);
-  lineGrad.addColorStop(1, 'rgba(245,168,0,0)');
-  ctx.fillStyle = lineGrad; ctx.fillRect(52, 210, opLineW, 8);
-
-  // COLONIA — tipografía masiva dorada con sombra negra
-  const colRaw = v.col.toUpperCase();
-  let colFs = colRaw.length <= 10 ? 88 : colRaw.length <= 16 ? 66 : 50;
-  ctx.font = `900 ${colFs}px Inter, Arial, sans-serif`;
-  while (ctx.measureText(colRaw).width > MAIN_W - 80 && colFs > 38) {
-    colFs -= 4;
-    ctx.font = `900 ${colFs}px Inter, Arial, sans-serif`;
-  }
-  ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 22;
-  ctx.fillStyle = FG; ctx.textAlign = 'left';
-  ctx.fillText(colRaw, 52, 222 + colFs);
-  ctx.shadowBlur = 0;
-
-  // Thumbnails columna derecha (fotos 1–4)
-  const THGT = Math.floor(PHOTO_H / 4);
-  for (let i = 0; i < 4; i++) {
-    const src = photos[i + 1] !== undefined ? photos[i + 1] : null;
-    const ty = i * THGT;
-    await drawImg(ctx, src, MAIN_W, ty, THUMB_W, THGT, 'cover');
-    // Overlay oscuro sutil (profundidad editorial en cada thumb)
-    const gTh = ctx.createLinearGradient(MAIN_W, ty, MAIN_W + THUMB_W, ty);
-    gTh.addColorStop(0, 'rgba(3,8,22,0.22)'); gTh.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = gTh; ctx.fillRect(MAIN_W, ty, THUMB_W, THGT);
-    if (i > 0) { ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(MAIN_W, ty, THUMB_W, 1); }
-  }
-  // Separador vertical dorado brillante con glow
-  ctx.shadowColor = FG; ctx.shadowBlur = 10;
-  ctx.fillStyle = FG; ctx.fillRect(MAIN_W, 0, 4, PHOTO_H);
-  ctx.shadowBlur = 0;
-
-  // ═══════════════════════════════════════════
-  // B) ZONA CARACTERÍSTICAS — fondo crema premium
-  // ═══════════════════════════════════════════
-  const FEAT_Y = PHOTO_H;
-  // Fondo crema cálido (más sofisticado que blanco puro)
-  ctx.fillStyle = '#FAFAF7'; ctx.fillRect(0, FEAT_Y, W, FEAT_H);
-
-  // Patrón de puntos muy sutil (textura editorial)
-  ctx.fillStyle = 'rgba(27,42,74,0.055)';
-  for (let gx = 22; gx < W; gx += 27) {
-    for (let gy = FEAT_Y + 18; gy < FEAT_Y + FEAT_H - 12; gy += 27) {
-      ctx.beginPath(); ctx.arc(gx, gy, 1.1, 0, Math.PI * 2); ctx.fill();
-    }
-  }
-
-  // Franja dorada arriba (más gruesa)
-  ctx.fillStyle = FG; ctx.fillRect(0, FEAT_Y, W, 8);
-  // Franja navy abajo
-  ctx.fillStyle = NAVY; ctx.fillRect(0, FEAT_Y + FEAT_H - 5, W, 5);
-
-  const feats = [];
-  if (v.rec !== '0')   feats.push(['🛏', v.rec, 'Recámaras']);
-                       feats.push(['🚿', v.ban, 'Baños']);
-  if (v.estac !== '0') feats.push(['🚗', v.estac, 'Estac.']);
-  if (v.m2t)           feats.push(['📏', v.m2t + ' m²', 'Terreno']);
-  if (v.m2c)           feats.push(['🏗', v.m2c + ' m²', 'Construcción']);
-  // Amenidad destacada (1 feature premium visible)
-  const isCommercial = ['Departamento','Local Comercial','Oficina','Bodega'].includes(v.tipo);
-  if (isCommercial && v.ams.length > 0) {
-    feats.push(['✨', v.ams.length, amLabel(v.tipo)]);
-  } else if (!isCommercial && v.ams.length > 0) {
-    const amIcons = {'Alberca':'🏊','Seguridad 24h':'🔒','Jardín':'🌿','Área de BBQ':'🔥','Gym':'💪','Roof Garden':'🏙','Cuarto de servicio':'🏠','Elevador':'🛗','Amueblada':'🛋','Área de juegos':'🛝','Salón de eventos':'🎉','Vista a la montaña':'⛰','Bodega':'📦','Cuarto de lavado':'🧺'};
-    const priority = ['Alberca','Seguridad 24h','Jardín','Área de BBQ','Gym','Roof Garden'];
-    const featured = priority.find(p => v.ams.includes(p)) || v.ams[0];
-    feats.push([amIcons[featured] || '✨', featured, '']);
-  }
-
-  const featN = Math.min(feats.length, 6);
-  const colW  = W / featN;
-  const fCY   = FEAT_Y + 9 + (FEAT_H - 14) / 2;
-
-  feats.slice(0, 6).forEach((f, i) => {
-    const cx = i * colW + colW / 2;
-    // Separador degradado (desaparece arriba y abajo)
-    if (i < featN - 1) {
-      const sepG = ctx.createLinearGradient(0, FEAT_Y + 28, 0, FEAT_Y + FEAT_H - 28);
-      sepG.addColorStop(0, 'rgba(27,42,74,0)');
-      sepG.addColorStop(0.5, 'rgba(27,42,74,0.14)');
-      sepG.addColorStop(1, 'rgba(27,42,74,0)');
-      ctx.strokeStyle = sepG; ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo((i + 1) * colW, FEAT_Y + 28);
-      ctx.lineTo((i + 1) * colW, FEAT_Y + FEAT_H - 28);
-      ctx.stroke();
-    }
-    // Halo dorado detrás del icono
-    ctx.fillStyle = 'rgba(245,168,0,0.13)';
-    ctx.beginPath(); ctx.arc(cx, fCY - 23, 28, 0, Math.PI * 2); ctx.fill();
-    // Ícono
-    ctx.font = '400 32px Inter, Arial, sans-serif';
-    ctx.fillStyle = FG; ctx.textAlign = 'center';
-    ctx.fillText(f[0], cx, fCY - 6);
-    // Valor — grande, degradado navy→azul
-    const valGrad = ctx.createLinearGradient(cx - 50, fCY + 8, cx + 50, fCY + 50);
-    valGrad.addColorStop(0, '#0F1E3C'); valGrad.addColorStop(1, '#1B2A4A');
-    ctx.font = '900 42px Inter, Arial, sans-serif';
-    ctx.fillStyle = valGrad; ctx.fillText(f[1], cx, fCY + 28);
-    // Etiqueta
-    ctx.font = '600 15px Inter, Arial, sans-serif';
-    ctx.fillStyle = '#64748b'; ctx.fillText(f[2], cx, fCY + 49);
-  });
-
-  // ═══════════════════════════════════════════
-  // C) ZONA PRECIO — profundidad cinematográfica
-  // ═══════════════════════════════════════════
-  const PRICE_Y = FEAT_Y + FEAT_H;
-  // Gradiente multi-stop muy rico
-  const gPriceBg = ctx.createLinearGradient(0, PRICE_Y, 0, PRICE_Y + PRICE_H);
-  gPriceBg.addColorStop(0, '#040B1C');
-  gPriceBg.addColorStop(0.38, '#0B1628');
-  gPriceBg.addColorStop(1, '#1B2A4A');
-  ctx.fillStyle = gPriceBg; ctx.fillRect(0, PRICE_Y, W, PRICE_H);
-
-  // Rayas diagonales de textura (muy sutiles, solo 3% opacidad)
-  ctx.save();
-  ctx.globalAlpha = 0.032;
-  ctx.strokeStyle = FG; ctx.lineWidth = 1.5;
-  for (let dx = -PRICE_H; dx < W + PRICE_H; dx += 20) {
-    ctx.beginPath();
-    ctx.moveTo(dx, PRICE_Y);
-    ctx.lineTo(dx + PRICE_H, PRICE_Y + PRICE_H);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // Watermark "NIVA" fantasmal en el fondo
-  ctx.save();
-  ctx.globalAlpha = 0.045;
-  ctx.font = '900 230px Inter, Arial, sans-serif';
-  ctx.fillStyle = WHITE; ctx.textAlign = 'center';
-  ctx.fillText('NIVA', W / 2, PRICE_Y + PRICE_H * 0.82);
-  ctx.restore();
-
-  // Badge con glow pulsante
-  const pBadge = v.esMes ? 'RENTA MENSUAL' : 'PRECIO DE OPORTUNIDAD';
-  ctx.font = '800 21px Inter, Arial, sans-serif';
-  const pbW = ctx.measureText(pBadge).width + 58;
-  // Glow externo del badge
-  ctx.save();
-  ctx.shadowColor = FG; ctx.shadowBlur = 24;
-  const badgeGrad = ctx.createLinearGradient(W/2 - pbW/2, PRICE_Y + 16, W/2 + pbW/2, PRICE_Y + 62);
-  badgeGrad.addColorStop(0, '#FFD000'); badgeGrad.addColorStop(1, '#F5A800');
-  cRoundRect(ctx, W / 2 - pbW / 2, PRICE_Y + 16, pbW, 46, 23, badgeGrad);
-  ctx.restore();
-  ctx.fillStyle = '#07101E'; ctx.textAlign = 'center';
-  ctx.fillText(pBadge, W / 2, PRICE_Y + 46);
-
-  // Precio — enorme, gradiente dorado, con glow dorado
-  const pStr = fmtP(v.price);
-  const pFs  = pStr.length > 13 ? 70 : 84;
-  ctx.save();
-  ctx.shadowColor = 'rgba(245,168,0,0.45)'; ctx.shadowBlur = 30;
-  const gPriceTxt = ctx.createLinearGradient(0, PRICE_Y + 62, 0, PRICE_Y + 62 + pFs);
-  gPriceTxt.addColorStop(0, FG2); gPriceTxt.addColorStop(1, FG);
-  ctx.font = `900 ${pFs}px Inter, Arial, sans-serif`;
-  ctx.fillStyle = gPriceTxt; ctx.textAlign = 'center';
-  ctx.fillText(pStr, W / 2, PRICE_Y + 72 + pFs);
-  ctx.restore();
-
-  // ═══════════════════════════════════════════
-  // D) ZONA FOOTER — ultra oscuro, 3 columnas premium
-  // ═══════════════════════════════════════════
-  const FOOT_Y = PRICE_Y + PRICE_H;
-  // Gradiente horizontal (bordes más oscuros → centro ligerísimo)
-  const gFoot = ctx.createLinearGradient(0, FOOT_Y, W, FOOT_Y);
-  gFoot.addColorStop(0, '#020609');
-  gFoot.addColorStop(0.5, '#06101F');
-  gFoot.addColorStop(1, '#020609');
-  ctx.fillStyle = gFoot; ctx.fillRect(0, FOOT_Y, W, FOOT_H);
-
-  // Franja dorada arriba con glow
-  ctx.save();
-  ctx.shadowColor = FG; ctx.shadowBlur = 8;
-  ctx.fillStyle = FG; ctx.fillRect(0, FOOT_Y, W, 4);
-  ctx.restore();
-
-  const col3W = W / 3;
-  const fCY2  = FOOT_Y + FOOT_H / 2;
-
-  // Resaltado sutil en la columna central (CTA)
-  const gCTA = ctx.createLinearGradient(0, FOOT_Y, 0, FOOT_Y + FOOT_H);
-  gCTA.addColorStop(0, 'rgba(245,168,0,0.06)');
-  gCTA.addColorStop(1, 'rgba(245,168,0,0.02)');
-  ctx.fillStyle = gCTA; ctx.fillRect(col3W, FOOT_Y + 4, col3W, FOOT_H - 4);
-
-  // Separadores con degradado dorado
-  [1, 2].forEach(i => {
-    const sepG = ctx.createLinearGradient(0, FOOT_Y + 14, 0, FOOT_Y + FOOT_H - 14);
-    sepG.addColorStop(0, 'rgba(245,168,0,0)');
-    sepG.addColorStop(0.5, 'rgba(245,168,0,0.28)');
-    sepG.addColorStop(1, 'rgba(245,168,0,0)');
-    ctx.strokeStyle = sepG; ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(i * col3W, FOOT_Y + 14);
-    ctx.lineTo(i * col3W, FOOT_Y + FOOT_H - 14);
-    ctx.stroke();
-  });
-
-  // Col 1: Ubicación
-  ctx.font = '400 30px Inter, Arial, sans-serif';
-  ctx.fillStyle = FG; ctx.textAlign = 'center';
-  ctx.fillText('📍', col3W / 2, fCY2 - 27);
-  ctx.font = '700 22px Inter, Arial, sans-serif';
-  ctx.fillStyle = WHITE; ctx.fillText(v.city.split(',')[0], col3W / 2, fCY2 + 6);
-  ctx.font = '500 16px Inter, Arial, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.38)';
-  ctx.fillText('Nuevo León', col3W / 2, fCY2 + 29);
-
-  // Col 2: CTA
-  ctx.font = '400 30px Inter, Arial, sans-serif';
-  ctx.fillStyle = FG; ctx.textAlign = 'center';
-  ctx.fillText('📲', col3W + col3W / 2, fCY2 - 27);
-  ctx.font = '700 22px Inter, Arial, sans-serif';
-  ctx.fillStyle = WHITE; ctx.fillText('Agenda tu Visita', col3W + col3W / 2, fCY2 + 6);
-  ctx.font = '500 16px Inter, Arial, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.38)';
-  ctx.fillText(v.esMes ? 'Disponible para rentar' : 'Propiedad disponible', col3W + col3W / 2, fCY2 + 29);
-
-  // Col 3: NIVA + asesor
-  const fcx3 = col3W * 2 + col3W / 2;
-  ctx.font = '900 26px Inter, Arial, sans-serif';
-  ctx.fillStyle = FG; ctx.textAlign = 'center';
-  ctx.fillText('NIVA Inmobiliaria', fcx3, fCY2 - 20);
-  ctx.font = '700 20px Inter, Arial, sans-serif';
-  ctx.fillStyle = WHITE; ctx.fillText(v.asesor || 'Asesor NIVA', fcx3, fCY2 + 10);
-  ctx.font = '700 20px Inter, Arial, sans-serif';
-  ctx.fillStyle = FG; ctx.fillText(v.tel, fcx3, fCY2 + 35);
+async function nflDescargar(btn) {
+  if (!NIVA_FLYER_lastV) return;
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generando PNG…'; }
+  try {
+    const cv = await nflExportar();
+    dlCanvas(cv, 'flyer-niva-' + (NFL.plantilla || 'lujo') + '.png');
+  } catch (e) {
+    console.error('[NIVA][FLYER]', e);
+    alert('No se pudo generar el PNG del flyer: ' + (e.message || e));
+  } finally { if (btn) { btn.disabled = false; btn.innerHTML = orig; } }
 }
 
 // ══════════════════════════════════════════════
@@ -4950,7 +4066,7 @@ async function _nivaShareOrDownload(file, fallbackHref, filename) {
 }
 
 function dlCanvas(id, filename) {
-  const c = document.getElementById(id);
+  const c = typeof id === 'string' ? document.getElementById(id) : id; // id o el canvas mismo
   const dataUrl = c.toDataURL('image/png');
   c.toBlob((blob) => {
     if (blob) {
@@ -13535,7 +12651,7 @@ async function guardarFichaNiva(btn) {
 // cargarPropsFicha(); (2026-10-05) ya no se usa: el guardado manual se quitó
 
 // Convierte un data URL (cualquier formato) a JPEG a alta resolución con crop cover
-function _photoToJpeg(src, w, h) {
+function _photoToJpeg(src, w, h, filtro) {
   return new Promise(res => {
     const tmp = document.createElement('canvas');
     tmp.width = w; tmp.height = h;
@@ -13553,6 +12669,7 @@ function _photoToJpeg(src, w, h) {
                 let sx = 0, sy = 0, sw = img.width, sh = img.height;
                 if (ir > cr) { sh = img.height; sw = sh * cr; sx = (img.width - sw) / 2; }
                 else { sw = img.width; sh = sw / cr; sy = (img.height - sh) / 2; }
+                if (filtro) tc.filter = filtro; // realce de color (navegadores sin ctx.filter lo ignoran)
                 tc.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
                 res(tmp.toDataURL('image/jpeg', 0.95));
         } catch(e) { console.warn('[NIVA] _photoToJpeg:', e); fallback(); } });
