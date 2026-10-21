@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diagnóstico NIVA OS</title>
+<style>body{font-family:system-ui,sans-serif;margin:16px;background:#fff;color:#111}h1{font-size:20px}li{margin:8px 0;font-size:15px}.ok{color:#15803d}.no{color:#b91c1c}#r{font-size:13px;background:#f1f5f9;padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all}button{font-size:16px;padding:10px 16px;margin-top:10px}</style></head>
+<body>
+<h1>Diagnóstico NIVA OS</h1>
+<p>Espera unos segundos y mándale captura de pantalla a soporte.</p>
+<ul id="l"></ul>
+<div id="r"></div>
+<button onclick="navigator.clipboard.writeText(document.getElementById('r').textContent).then(()=>alert('Copiado'))">Copiar resultado</button>
+<script>
+// Página sin dependencias externas: prueba cada servicio que usa NIVA OS y muestra cuál no responde en esta red.
+const P='https://niva-api.ricardo-avilateran2.workers.dev';
+const pruebas=[
+  ['Página NIVA OS (GitHub)', location.origin+'/index.html?d='+Date.now()],
+  ['Puente Cloudflare', P+'/functions/v1/niva-config'],
+  ['Puente: inicio de sesión', P+'/auth/v1/health', true],
+  ['Supabase directo', 'https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config'],
+  ['Librería de datos (esm.sh)', 'https://esm.sh/@supabase/supabase-js@2'],
+  ['Librerías (cdnjs)', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'],
+  ['Letras (Google Fonts)', 'https://fonts.googleapis.com/css2?family=Montserrat'],
+];
+const out=[]; const L=document.getElementById('l');
+function poner(n,ok,txt){ const li=document.createElement('li'); li.innerHTML=(ok?'✅ ':'❌ ')+'<b>'+n+'</b> — '+txt; li.className=ok?'ok':'no'; L.appendChild(li); out.push((ok?'OK ':'FALLA ')+n+': '+txt); document.getElementById('r').textContent=out.join('\n'); }
+async function probar([n,u,conAnon]){
+  const t=performance.now(), ac=new AbortController(), tm=setTimeout(()=>ac.abort(),15000);
+  try{
+    let h={}; if(conAnon){ const c=await (await fetch(P+'/functions/v1/niva-config')).json(); h={apikey:c.anon}; }
+    const r=await fetch(u,{signal:ac.signal,headers:h,cache:'no-store'}); poner(n,r.ok,'HTTP '+r.status+' en '+Math.round(performance.now()-t)+' ms');
+  }catch(e){ poner(n,false,(e.name==='AbortError'?'no respondió en 15 s':e.message)+' ('+Math.round(performance.now()-t)+' ms)'); }
+  finally{ clearTimeout(tm); }
+}
+function probarWS(){ return new Promise(res=>{ const t=performance.now(); let fin=false; const done=(ok,txt)=>{ if(fin) return; fin=true; poner('Tiempo real (WebSocket)',ok,txt); try{ws.close()}catch(_e){} res(); };
+  let ws; fetch(P+'/functions/v1/niva-config').then(r=>r.json()).then(c=>{ ws=new WebSocket(P.replace('https','wss')+'/realtime/v1/websocket?apikey='+encodeURIComponent(c.anon)+'&vsn=1.0.0'); ws.onopen=()=>done(true,'conectó en '+Math.round(performance.now()-t)+' ms'); ws.onerror=()=>done(false,'error al conectar'); }).catch(e=>done(false,e.message)); setTimeout(()=>done(false,'no respondió en 15 s'),15000); }); }
+(async()=>{ out.push('Navegador: '+navigator.userAgent, 'Conexión: '+((navigator.connection||{}).effectiveType||'?')+' · '+new Date().toLocaleString('es-MX')); for(const p of pruebas) await probar(p); await probarWS(); out.push('— fin —'); document.getElementById('r').textContent=out.join('\n'); })();
+</script>
+</body></html>
