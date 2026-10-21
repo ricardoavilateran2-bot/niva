@@ -65,6 +65,7 @@ img,video,canvas{max-width:100%}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <style>#mapa{height:340px;border-radius:12px;border:1px solid #d9dee7;z-index:0}.mapbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:13px}.mapbar input[type=range]{flex:1;min-width:160px}#map-cols{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}@media(max-width:820px){#mapa{height:280px}}</style>
 <link rel="manifest" href="./manifest.webmanifest"><meta name="theme-color" content="#0f1e36"><link rel="apple-touch-icon" href="./icon-180.png"><link rel="icon" type="image/png" href="./icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="NIVA OS"><style>/* (2026-10-10) evita el zoom automatico del iPhone al escribir */@media (max-width:820px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:16px!important}}</style>
 <link rel="stylesheet" href="./niva-oscuro-form.css">
@@ -112,6 +113,7 @@ img,video,canvas{max-width:100%}
     <select id="f-fuente" onchange="pintar()" style="width:auto"><option value="">Todas las fuentes</option></select>
     <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="solo-fav" onchange="pintar()" style="width:auto">Solo favoritas</label>
     <button class="btn sm" onclick="mensajeWA()">📲 Mensaje para el cliente</button>
+    <button class="btn sm sec" id="btn-pdf" onclick="descargarPDF()">📄 Descargar PDF</button>
   </div>
   <div class="sub" id="r-sub"></div>
   <div class="res" id="res"></div>
@@ -125,7 +127,7 @@ img,video,canvas{max-width:100%}
 <script>
 const IMPR=['Amueblado','Acepta mascotas','Alberca','Jardín','Planta baja','Elevador','Seguridad 24h','Cochera techada','Roof garden','Cerca del Tec','Cerca de escuelas','Cuarto de servicio','Terraza','Sin muebles'];
 const $=id=>document.getElementById(id); const fmt=n=>'$'+Math.round(n||0).toLocaleString('es-MX'); const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let RES=[], BID=null, CRIT=null, MARCAS={};
+let RES=[], BID=null, CRIT=null, MARCAS={}, VISTA=[];
 $('impr').innerHTML=IMPR.map(a=>`<span class="chip" onclick="this.classList.toggle('on')">${a}</span>`).join('');
 function leer(){
   const c={cliente:$('cliente').value.trim(),operacion:$('operacion').value,tipo:$('tipo').value,municipio:$('municipio').value,municipios:[$('municipio').value,$('municipio2').value].filter((x,i,a)=>x&&a.indexOf(x)===i),zonas:$('zonas').value.split(',').map(s=>s.trim()).filter(Boolean),presupuesto_min:+$('pmin').value||0,presupuesto_max:+$('pmax').value||0,recamaras_min:+$('rec').value||0,banos_min:+$('ban').value||0,m2_min:+$('m2').value||0,estacionamientos_min:+$('est').value||0,imprescindibles:[...document.querySelectorAll('#impr .chip.on')].map(x=>x.textContent),nota:$('nota').value.trim(),centros:window.__centros&&window.__centros.length?window.__centros:null,centro:window.__centro||null,...(window.__centro&&window.__mapMunis&&window.__mapMunis.length?{municipios:window.__mapMunis.slice(0,3)}:{})};
@@ -170,7 +172,7 @@ function pintar(){
   // 1) en la zona pedida o a menos de 3 km · 2) hasta 6 km · 3) hasta 10 km o sin ubicación exacta
   const banda=r=>{ const d=r.distancia_km; if(r.anillo===0||(d!=null&&d<=3)) return 0; if(d!=null&&d<=6) return 1; return 2; };
   if(ord==='reciente') l.sort((a,b)=>(banda(a)-banda(b))||(fr(b)-fr(a))||((a.distancia_km??99)-(b.distancia_km??99))); else if(ord==='precio') l.sort((a,b)=>(a.precio||0)-(b.precio||0)); else if(ord==='m2') l.sort((a,b)=>((a.precio||0)/(a.m2c||1e9))-((b.precio||0)/(b.m2c||1e9))); else l.sort((a,b)=>(a.anillo-b.anillo)||((a.distancia_km??99)-(b.distancia_km??99))||(fm(b.fecha_pub)-fm(a.fecha_pub)));
-  avisoPocas(l.length);
+  VISTA=l; avisoPocas(l.length);
   const anTxt=['En la colonia pedida','Colonia vecina','Mismo municipio','Más lejos'];
   $('res').innerHTML=l.map(r=>{const m=MARCAS[r.clave]||{}; const foto=r.datos&&r.datos.foto; const c=Object.fromEntries(Object.entries(r.contacto||{}).map(([k,v])=>[k,(v==null||/^(null|none|n\/a|no|-)$/i.test(String(v).trim()))?null:v]));
     return `<div class="r ${m.favorito?'fav':''} ${m.descartado?'desc':''}"><div class="ph" style="${foto?`background-image:url('${esc(foto)}')`:''}"><span class="tag">${esc(r.fuente)}${r.datos&&r.datos.verificada===false?' · sin verificar':''}</span><span class="an">${anTxt[r.anillo]||''}${r.distancia_km!=null?' · '+r.distancia_km+' km':''}</span></div>
@@ -192,6 +194,60 @@ function mensajeWA(){
   const c=CRIT||{}; const txt=`Hola${c.cliente?' '+c.cliente:''}, te comparto opciones de ${(c.tipo||'propiedad').toLowerCase()} en ${c.operacion||''}${c.zonas&&c.zonas.length?' en '+c.zonas.join(', '):''}:\n\n`+lista.map((r,i)=>`${i+1}. ${r.titulo||'Propiedad'} — ${fmt(r.precio)}${c.operacion==='renta'?'/mes':''}${r.rec?', '+r.rec+' rec':''}${r.m2c?', '+Math.round(r.m2c)+' m²':''}${r.colonia?' · '+r.colonia:''}${r.url?'\n'+r.url:''}`).join('\n\n')+`\n\n¿Cuál te gustaría visitar? Con gusto agendo. — NIVA Inmobiliaria`;
   navigator.clipboard.writeText(txt).then(()=>alert('Mensaje copiado. Pégalo en WhatsApp.')).catch(()=>window.prompt('Copia el mensaje:',txt));
   window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+}
+// PDF con lo mismo que se ve en pantalla (mismo orden y filtros), foto principal y links a los anuncios
+const pdfTxt=s=>String(s??'').replace(/[–—]/g,'-').replace(/[^\x20-\x7E\xA0-\xFF]/g,'').replace(/\s+/g,' ').trim();
+async function fotoPDF(u){
+  if(!u) return null;
+  const cfg=window.__nivaCfg, propia=u.includes('.supabase.co/storage/')||u.startsWith(cfg.url+'/storage/');
+  // las fotos de portales se piden por hyper-service (niva-img) para poder dibujarlas en el PDF
+  const r=await fetch(propia?u:cfg.url+'/functions/v1/hyper-service?u='+encodeURIComponent(u),propia?{}:{headers:{Authorization:'Bearer '+cfg.anon,apikey:cfg.anon,'x-niva-jwt':(window.__nivaSession||{}).access_token||''}});
+  if(!r.ok) throw r.status;
+  const src=URL.createObjectURL(await r.blob());
+  try{ return await new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const W=480,H=360,c=document.createElement('canvas');c.width=W;c.height=H;const k=Math.max(W/im.width,H/im.height),w=im.width*k,h=im.height*k;c.getContext('2d').drawImage(im,(W-w)/2,(H-h)/2,w,h);res(c.toDataURL('image/jpeg',.8));};im.onerror=()=>rej('img');im.src=src;}); }
+  finally{ URL.revokeObjectURL(src); }
+}
+async function descargarPDF(){
+  const l=VISTA.slice(); if(!l.length){ alert('No hay resultados para descargar.'); return; }
+  if(!window.jspdf){ alert('El generador de PDF no cargó. Recarga la página.'); return; }
+  const b=$('btn-pdf'), orig=b.innerHTML; b.disabled=true;
+  try{
+    const fotos=new Array(l.length).fill(null); let hechas=0, i=0;
+    const tope=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej('timeout'),ms))]);
+    await Promise.all(Array.from({length:6},async()=>{ while(i<l.length){ const k=i++; try{ fotos[k]=await tope(fotoPDF(l[k].datos&&l[k].datos.foto),15000); }catch(_e){} b.innerHTML='<span class="spin"></span> Fotos '+(++hechas)+'/'+l.length; } }));
+    const {jsPDF}=window.jspdf, pdf=new jsPDF({unit:'mm',format:'letter'}), W=215.9, H=279.4, M=12, FW=62, FH=46.5, TX=M+FW+6, TW=W-TX-M;
+    const c=CRIT||{}, renta=c.operacion==='renta', anTxt=['En la colonia pedida','Colonia vecina','Mismo municipio','Más lejos'];
+    let y=M;
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(16); pdf.setTextColor(27,42,74); pdf.text(pdfTxt($('r-tit').textContent),M,y+6);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(100,116,139);
+    const sub=pdf.splitTextToSize(pdfTxt($('r-sub').textContent)+' · NIVA Inmobiliaria · '+new Date().toLocaleDateString('es-MX'),W-2*M); pdf.text(sub,M,y+12); y+=14+sub.length*4;
+    l.forEach((r,k)=>{
+      const d=r.datos||{}, ct=Object.fromEntries(Object.entries(r.contacto||{}).map(([a,v])=>[a,(v==null||/^(null|none|n\/a|no|-)$/i.test(String(v).trim()))?null:v]));
+      const lineas=[];
+      lineas.push(['t',pdfTxt(r.titulo||'Sin título')]);
+      lineas.push(['m',pdfTxt([d.direccion||[r.colonia,r.municipio].filter(Boolean).join(', '),r.m2c&&Math.round(r.m2c)+' m²',r.m2t&&Math.round(r.m2t)+' m² terreno',r.rec&&r.rec+' rec',r.banos&&r.banos+' baños',r.estac&&r.estac+' est'].filter(Boolean).join(' · '))]);
+      lineas.push(['m',pdfTxt([r.fuente,anTxt[r.anillo]||'',r.distancia_km!=null?r.distancia_km+' km':'',r.fecha_pub?'Publicado '+fechaTxt(r.fecha_pub):''].filter(Boolean).join(' · '))]);
+      if(Array.isArray(d.parcial)&&d.parcial.length) lineas.push(['w','Casi: '+pdfTxt(d.parcial.join(' · '))]);
+      if(ct.telefono||ct.nombre||ct.inmobiliaria) lineas.push(['m','Contacto: '+pdfTxt([ct.nombre,ct.inmobiliaria,ct.telefono,ct.email].filter(Boolean).join(' · '))]);
+      lineas.splice(0,lineas.length,...lineas.filter(x=>x[1])); pdf.setFontSize(9); const alto=Math.max(FH, 8+lineas.reduce((s,[t,x])=>s+pdf.splitTextToSize(x,TW).length*4.2,0)+(r.url?6:0)+(Array.isArray(d.tambien_en)&&d.tambien_en.length?5:0));
+      if(y+alto>H-M){ pdf.addPage(); y=M; }
+      if(fotos[k]) pdf.addImage(fotos[k],'JPEG',M,y,FW,FH); else { pdf.setFillColor(226,232,240); pdf.rect(M,y,FW,FH,'F'); pdf.setFontSize(8); pdf.setTextColor(100,116,139); pdf.text('Sin foto',M+FW/2,y+FH/2,{align:'center'}); }
+      if(r.url) pdf.link(M,y,FW,FH,{url:r.url});
+      let ty=y+5;
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(13); pdf.setTextColor(27,42,74);
+      const pr=fmt(r.precio)+(renta?'/mes':''); pdf.text(pr,TX,ty); const pw=pdf.getTextWidth(pr);
+      if(r.m2c){ pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(100,116,139); pdf.text(' · '+fmt(r.precio/r.m2c)+'/m²',TX+pw+1,ty); }
+      ty+=6;
+      lineas.forEach(([t,x])=>{ pdf.setFont('helvetica',t==='t'?'bold':'normal'); pdf.setFontSize(9); pdf.setTextColor(...(t==='w'?[180,83,9]:t==='t'?[30,30,30]:[71,85,105])); const ls=pdf.splitTextToSize(x,TW); pdf.text(ls,TX,ty); ty+=ls.length*4.2; });
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
+      if(Array.isArray(d.tambien_en)&&d.tambien_en.length){ pdf.setTextColor(71,85,105); pdf.text('También en:',TX,ty); let tx=TX+pdf.getTextWidth('También en: ')+1; pdf.setTextColor(37,99,235); d.tambien_en.forEach(o=>{ const n=pdfTxt(o.portal); if(o.url) pdf.textWithLink(n,tx,ty,{url:o.url}); else pdf.text(n,tx,ty); tx+=pdf.getTextWidth(n+'   '); }); ty+=5; }
+      if(r.url){ pdf.setFont('helvetica','bold'); pdf.setTextColor(37,99,235); pdf.textWithLink('Ver anuncio',TX,ty+1,{url:r.url}); pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(148,163,184); const u=pdf.splitTextToSize(r.url,TW-24)[0]; pdf.textWithLink(u,TX+22,ty+1,{url:r.url}); }
+      y+=alto+4; pdf.setDrawColor(226,232,240); pdf.line(M,y-2,W-M,y-2);
+    });
+    const n=pdf.getNumberOfPages(); for(let p=1;p<=n;p++){ pdf.setPage(p); pdf.setFontSize(8); pdf.setTextColor(148,163,184); pdf.text('NIVA Inmobiliaria · página '+p+' de '+n,W/2,H-5,{align:'center'}); }
+    pdf.save(('Busqueda '+(c.cliente||'NIVA')).replace(/[^\w\sáéíóúñÁÉÍÓÚÑ-]/g,'').trim().slice(0,60)+'.pdf');
+  }catch(e){ alert('No se pudo generar el PDF: '+(e.message||e)); }
+  finally{ b.disabled=false; b.innerHTML=orig; }
 }
 async function cargarHist(){
   try{ const {data}=await window.__nivaSb.from('busquedas').select('id,cliente_nombre,criterios,activa,frecuencia_web,ultima_corrida_at,nuevos_sin_ver,created_at,creado_por').order('created_at',{ascending:false}).limit(120);
