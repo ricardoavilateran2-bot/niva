@@ -5,8 +5,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 (async()=>{
   try{
-    const cfg = await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
-    const sb = createClient(cfg.url, cfg.anon);
+    const cfg = await (await fetch('https://niva-api.ricardo-avilateran2.workers.dev/functions/v1/niva-config')).json();
+    const sb = createClient(cfg.url, cfg.anon, {auth:{storageKey:'sb-gjyzdwsfdmdfhcspvxbz-auth-token'}});
     const { data:{ session } } = await sb.auth.getSession();
     if(!session){ window.location.replace('./index.html'); return; }
     window.__nivaSession = session; window.__nivaSb = sb; window.__nivaCfg = cfg;

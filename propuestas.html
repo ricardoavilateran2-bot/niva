@@ -95,8 +95,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const $=s=>document.querySelector(s);
 const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const cfg=await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
-const sb=createClient(cfg.url,cfg.anon);
+const cfg=await (await fetch('https://niva-api.ricardo-avilateran2.workers.dev/functions/v1/niva-config')).json();
+const sb=createClient(cfg.url, cfg.anon, {auth:{storageKey:'sb-gjyzdwsfdmdfhcspvxbz-auth-token'}});
 let {data:{session}}=await sb.auth.getSession();
 if(!session){ location.replace('./index.html'); }
 try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){}
@@ -201,7 +201,7 @@ $('#e-calc').onclick=async()=>{normalizar();const o=P.opciones.find(x=>x.m2&&x.p
   $('#e-mercado').value='En '+z+' las propiedades en '+(op==='sale'?'venta':'renta')+' se publican hoy, en promedio, entre '+fmt(q(.25))+' y '+fmt(q(.75))+' por m²'+(op==='rental'?' al mes':'')+' (referencia de '+v.length+' propiedades).';};
 
 // ── IMÁGENES → JPEG (por proxy cuando vienen de otro sitio) ──
-function srcProxy(u){if(/^blob:|^data:/.test(u)||u.includes('.supabase.co/storage/'))return Promise.resolve(u);
+function srcProxy(u){if(/^blob:|^data:/.test(u)||u.includes('.supabase.co/storage/')||u.startsWith(cfg.url+'/storage/'))return Promise.resolve(u);
   // hyper-service = función "niva-img" (proxy de fotos de portales)
   return fetch(cfg.url+'/functions/v1/hyper-service?u='+encodeURIComponent(u),{headers:{Authorization:'Bearer '+cfg.anon,apikey:cfg.anon,'x-niva-jwt':session.access_token}}).then(r=>r.ok?r.blob():Promise.reject(r.status)).then(b=>URL.createObjectURL(b));}
 async function aJpeg(src,max,asDataUrl){const s=await srcProxy(src);return new Promise((res,rej)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);

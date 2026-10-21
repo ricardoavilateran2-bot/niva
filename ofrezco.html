@@ -55,8 +55,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const $=s=>document.querySelector(s);
 const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const cfg=await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
-const sb=createClient(cfg.url,cfg.anon);
+const cfg=await (await fetch('https://niva-api.ricardo-avilateran2.workers.dev/functions/v1/niva-config')).json();
+const sb=createClient(cfg.url, cfg.anon, {auth:{storageKey:'sb-gjyzdwsfdmdfhcspvxbz-auth-token'}});
 let {data:{session}}=await sb.auth.getSession();
 if(!session){ location.replace('./index.html'); }
 try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){}

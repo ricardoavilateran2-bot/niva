@@ -75,8 +75,8 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const fmt=n=>n?'$'+Math.round(n).toLocaleString('en-US'):'—';
 const bg=u=>"background-image:url('"+String(u||'').replace(/'/g,'%27')+"')";
 const token=new URLSearchParams(location.search).get('t')||'';
-const cfg=await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
-const sb=createClient(cfg.url,cfg.anon);
+const cfg=await (await fetch('https://niva-api.ricardo-avilateran2.workers.dev/functions/v1/niva-config')).json();
+const sb=createClient(cfg.url, cfg.anon, {auth:{storageKey:'sb-gjyzdwsfdmdfhcspvxbz-auth-token'}});
 const {data:P}=await sb.rpc('propuesta_publica',{p_token:token});
 const app=document.getElementById('app');
 if(!P){app.innerHTML='<p class="msg">Esta propuesta no existe o ya no está disponible.</p>';throw 0;}

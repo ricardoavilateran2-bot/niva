@@ -19,7 +19,7 @@ header div{font-size:13px;opacity:.85;margin-top:4px}
 <div id="v"><div id="m">Cargando ficha…</div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-var BASE='https://gjyzdwsfdmdfhcspvxbz.supabase.co/storage/v1/object/public/fichas/';
+var BASE='https://niva-api.ricardo-avilateran2.workers.dev/storage/v1/object/public/fichas/';
 var f=new URLSearchParams(location.search).get('f')||'';
 if(/^https?:/.test(f)) f=f.split('/object/public/fichas/').pop();
 var URLPDF=BASE+f, NOMBRE='Ficha_NIVA_'+(f.split('/').pop().replace(/-\d+\.pdf$/,'').replace(/\.pdf$/,''))+'.pdf', BLOB=null;

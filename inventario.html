@@ -81,8 +81,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const $=s=>document.querySelector(s);
 const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const cfg=await (await fetch('https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config')).json();
-const sb=createClient(cfg.url,cfg.anon);
+const cfg=await (await fetch('https://niva-api.ricardo-avilateran2.workers.dev/functions/v1/niva-config')).json();
+const sb=createClient(cfg.url, cfg.anon, {auth:{storageKey:'sb-gjyzdwsfdmdfhcspvxbz-auth-token'}});
 let {data:{session}}=await sb.auth.getSession();
 if(!session){ location.replace('./index.html'); }
 try{ sb.rpc('marcar_acceso').then(()=>{},()=>{}); }catch(_e){}
@@ -144,7 +144,7 @@ $('#list').onclick=e=>{
 };
 
 /* ===== PDF ===== */
-function srcProxy(u){ if(!u) return Promise.reject('nourl'); if(/^blob:|^data:/.test(u)||u.includes('.supabase.co/storage/')) return Promise.resolve(u);
+function srcProxy(u){ if(!u) return Promise.reject('nourl'); if(/^blob:|^data:/.test(u)||u.includes('.supabase.co/storage/')||u.startsWith(cfg.url+'/storage/')) return Promise.resolve(u);
   return fetch(cfg.url+'/functions/v1/hyper-service?u='+encodeURIComponent(u),{headers:{Authorization:'Bearer '+cfg.anon,apikey:cfg.anon,'x-niva-jwt':session.access_token}}).then(r=>r.ok?r.blob():Promise.reject(r.status)).then(b=>URL.createObjectURL(b)); }
 function miniatura(u){ return Promise.race([srcProxy(u).then(s=>new Promise((res,rej)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const W=240,H=180;const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');const k=Math.max(W/im.width,H/im.height);const w=im.width*k,h=im.height*k;g.drawImage(im,(W-w)/2,(H-h)/2,w,h);res(c.toDataURL('image/jpeg',.78));};im.onerror=()=>rej('img');im.src=s;})),new Promise((_,rej)=>setTimeout(()=>rej('timeout'),12000))]); }
 const pdfTxt=s=>String(s??'').replace(/²/g,'2').replace(/[^\x20-\x7E\xA0-\xFF]/g,'').replace(/\s+/g,' ').trim();
