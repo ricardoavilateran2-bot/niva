@@ -12,7 +12,9 @@
 // Página sin dependencias externas: prueba cada servicio que usa NIVA OS y muestra cuál no responde en esta red.
 const P='https://niva-api.ricardo-avilateran2.workers.dev';
 const pruebas=[
-  ['Página NIVA OS (GitHub)', location.origin+'/index.html?d='+Date.now()],
+  ['Esta página ('+location.hostname+')', location.origin+'/index.html?d='+Date.now()],
+  ['GitHub Pages', 'https://os.nivainmobiliaria.com/manifest.webmanifest?d='+Date.now(), false, true],
+  ['Netlify', 'https://niva-os-app.netlify.app/manifest.webmanifest?d='+Date.now(), false, true],
   ['Puente Cloudflare', P+'/functions/v1/niva-config'],
   ['Puente: inicio de sesión', P+'/auth/v1/health', true],
   ['Supabase directo', 'https://gjyzdwsfdmdfhcspvxbz.supabase.co/functions/v1/niva-config'],
@@ -22,11 +24,11 @@ const pruebas=[
 ];
 const out=[]; const L=document.getElementById('l');
 function poner(n,ok,txt){ const li=document.createElement('li'); li.innerHTML=(ok?'✅ ':'❌ ')+'<b>'+n+'</b> — '+txt; li.className=ok?'ok':'no'; L.appendChild(li); out.push((ok?'OK ':'FALLA ')+n+': '+txt); document.getElementById('r').textContent=out.join('\n'); }
-async function probar([n,u,conAnon]){
+async function probar([n,u,conAnon,opaco]){
   const t=performance.now(), ac=new AbortController(), tm=setTimeout(()=>ac.abort(),15000);
   try{
     let h={}; if(conAnon){ const c=await (await fetch(P+'/functions/v1/niva-config')).json(); h={apikey:c.anon}; }
-    const r=await fetch(u,{signal:ac.signal,headers:h,cache:'no-store'}); poner(n,r.ok,'HTTP '+r.status+' en '+Math.round(performance.now()-t)+' ms');
+    const r=await fetch(u,{signal:ac.signal,headers:h,cache:'no-store',mode:opaco?'no-cors':'cors'}); poner(n,opaco||r.ok,(opaco?'responde':'HTTP '+r.status)+' en '+Math.round(performance.now()-t)+' ms');
   }catch(e){ poner(n,false,(e.name==='AbortError'?'no respondió en 15 s':e.message)+' ('+Math.round(performance.now()-t)+' ms)'); }
   finally{ clearTimeout(tm); }
 }
