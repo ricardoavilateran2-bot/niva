@@ -532,9 +532,14 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .nfl-controles{min-width:0;display:flex;flex-direction:column;gap:12px}
 .nfl-grupo{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:0}
 .nfl-tit{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:8px}
-.nfl-tit-ayuda{display:flex;align-items:center;justify-content:space-between}
-.nfl-ayuda{width:26px;height:26px;border-radius:50%;border:1.5px solid #C9A84C;background:#fff;color:#8a6d2c;font-weight:800;font-size:14px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
-.nfl-ayuda:hover{background:#C9A84C;color:#fff}
+.nfl-fab{position:fixed;right:26px;bottom:26px;z-index:8000;display:flex;align-items:center;gap:10px;padding:10px 20px 10px 10px;border:0;border-radius:999px;cursor:pointer;
+  background:linear-gradient(135deg,#E8C96A,#C9A84C 55%,#A8832F);color:#1B2A4A;font:800 15px/1 Inter,sans-serif;box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 0 rgba(201,168,76,.6);animation:nflPulso 2.2s ease-out infinite;transition:transform .15s}
+.nfl-fab:hover{transform:translateY(-2px) scale(1.03)}
+.nfl-fab .q{width:38px;height:38px;border-radius:50%;background:#1B2A4A;color:#E8C96A;display:grid;place-items:center;font-size:21px;font-weight:900}
+@keyframes nflPulso{0%{box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 0 rgba(201,168,76,.6)}70%{box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 16px rgba(201,168,76,0)}100%{box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 0 rgba(201,168,76,0)}}
+@media (max-width:600px){.nfl-fab{right:16px;bottom:16px;padding:8px 16px 8px 8px;font-size:13px}.nfl-fab .q{width:32px;height:32px;font-size:18px}}
+@media (prefers-reduced-motion:reduce){.nfl-fab{animation:none}}
+@media print{.nfl-fab{display:none}}
 .nfl-modal{position:fixed;inset:0;z-index:9000;background:rgba(10,18,34,.62);display:none;align-items:center;justify-content:center;padding:16px}
 .nfl-modal.on{display:flex}
 .nfl-modal-caja{background:#fff;border-radius:16px;max-width:860px;width:100%;max-height:92vh;overflow:auto;padding:18px 20px;box-shadow:0 30px 70px rgba(0,0,0,.35)}
@@ -778,14 +783,8 @@ img,video,canvas{max-width:100%}
 
 <!-- ── FLYER ── -->
 <div class="tc on" id="tc-flyer">
-  <div class="empty" id="e-flyer"><div class="ei">🏡</div><h3>Listo para generar</h3><p>Llena el formulario y presiona<br><strong>Generar Todo el Contenido</strong></p></div>
-  <div id="r-flyer" style="display:none">
-    <!-- ── MOTOR DE FLYERS: plantillas con los datos y fotos reales de la propiedad ── -->
-    <div class="nfl-panel">
-      <div class="nfl-vista">
-        <div id="nfl-prev-wrap"><div id="nfl-escala"></div></div>
-        <button class="btn-dl" id="btn-dl-flyer" onclick="nflDescargar(this)" style="width:100%;justify-content:center;margin-top:10px">⬇️ Descargar PNG</button>
-        <p class="nfl-nota">Formato 1080×1620 px</p>
+  <!-- Ayuda flotante: solo se ve en la pestaña Flyer -->
+  <button type="button" class="nfl-fab" onclick="nflAyuda(true)" aria-label="Cómo hacer un flyer"><span class="q">?</span><span class="t">¿Cómo hago mi flyer?</span></button>
         <div class="nfl-modal" id="nfl-modal-ayuda" onclick="if(event.target===this)nflAyuda(false)">
           <div class="nfl-modal-caja" role="dialog" aria-modal="true" aria-label="Cómo hacer un flyer">
             <div class="nfl-modal-top"><h3>¿Cómo hago mi flyer?</h3><button type="button" onclick="nflAyuda(false)" aria-label="Cerrar">✕</button></div>
@@ -800,9 +799,17 @@ img,video,canvas{max-width:100%}
             </ol>
           </div>
         </div>
+  <div class="empty" id="e-flyer"><div class="ei">🏡</div><h3>Listo para generar</h3><p>Llena el formulario y presiona<br><strong>Generar Todo el Contenido</strong></p></div>
+  <div id="r-flyer" style="display:none">
+    <!-- ── MOTOR DE FLYERS: plantillas con los datos y fotos reales de la propiedad ── -->
+    <div class="nfl-panel">
+      <div class="nfl-vista">
+        <div id="nfl-prev-wrap"><div id="nfl-escala"></div></div>
+        <button class="btn-dl" id="btn-dl-flyer" onclick="nflDescargar(this)" style="width:100%;justify-content:center;margin-top:10px">⬇️ Descargar PNG</button>
+        <p class="nfl-nota">Formato 1080×1620 px</p>
       </div>
       <div class="nfl-controles">
-        <div class="nfl-grupo"><div class="nfl-tit nfl-tit-ayuda">Plantilla <button type="button" class="nfl-ayuda" onclick="nflAyuda(true)" title="¿Cómo funciona?" aria-label="Cómo hacer un flyer">?</button></div>
+        <div class="nfl-grupo"><div class="nfl-tit">Plantilla</div>
           <div class="nfl-fila" id="nfl-plantillas">
             <button type="button" data-p="lujo" onclick="nflSet('plantilla','lujo')">Lujo</button>
             <button type="button" data-p="clasico" onclick="nflSet('plantilla','clasico')">Clásico</button>
