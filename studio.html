@@ -395,15 +395,16 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 /* ==== MOTOR DE FLYERS NIVA — estilos (1080×1620) ==== */
 .nfl{width:1080px;height:1620px;position:relative;overflow:hidden;font-family:Montserrat,sans-serif;font-variant-numeric:lining-nums;font-feature-settings:'lnum' 1;color:#fff;line-height:normal;text-align:left;text-transform:none;letter-spacing:normal;--acento55:rgba(201,169,106,.55);--oscuro96:rgba(20,36,60,.96);--fondoCompleto:#e0dcd4;--acento:#c9a96a;--acento2:#e8d3a3;--acento3:#b58f4d;--oscuro:#14243c;--negro:#0d0f12;--claro:#f4efe6;--banda:#8c7558;--suave:#ddcfb8;--pie:#e6dccb;--oro:var(--acento);--oro2:var(--acento2);--crema:var(--claro);--marino:var(--oscuro);--cafe:var(--banda)}
 .nfl *{margin:0;padding:0;box-sizing:border-box}
-.nfl img{display:block} /* el realce de color se aplica al recortar la foto en canvas (html2canvas no soporta filter) */
+.nfl img{display:block}
+.nfl .ajusta{width:max-content;white-space:nowrap} /* se achica sola si no cabe (nflAjustarTitulos) */ /* el realce de color se aplica al recortar la foto en canvas (html2canvas no soporta filter) */
 .nfl .ic{width:46px;height:46px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .nfl .serif{font-family:'Cormorant Garamond',serif}
 
 /* ───────── 1. LUJO ───────── */
 .nfl.lujo{background:var(--crema)}
-.nfl.lujo .hero{position:absolute;inset:0 0 auto 0;height:1010px;background:#000}
+.nfl.lujo .hero{position:absolute;inset:0 0 auto 0;height:1186px;background:#000}
 .nfl.lujo .hero img{width:100%;height:100%;object-fit:cover}
-.nfl.lujo .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 48%,rgba(8,9,11,.82) 82%,var(--negro) 100%)}
+.nfl.lujo .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.4) 0%,rgba(0,0,0,0) 20%,rgba(0,0,0,0) 46%,rgba(8,9,11,.6) 78%,var(--negro80) 100%)}
 .nfl.lujo .logo{position:absolute;top:58px;left:64px}
 .nfl.lujo .logo .n{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:92px;letter-spacing:6px;line-height:.9}
 .nfl.lujo .logo .n i,.nfl .marca i,.nfl .logo2 i{font-style:normal;color:var(--oro)}
@@ -411,19 +412,19 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .nfl.lujo .zona{position:absolute;top:70px;right:64px;border-top:1px solid rgba(255,255,255,.7);padding-top:16px;min-width:300px}
 .nfl.lujo .zona .a{font-size:22px;letter-spacing:6px;font-weight:500;white-space:nowrap}
 .nfl.lujo .zona .b{font-size:14px;letter-spacing:4px;font-weight:300;margin-top:10px;line-height:1.6}
-.nfl.lujo .titulo{position:absolute;left:64px;bottom:640px}
+.nfl.lujo .titulo{position:absolute;left:64px;bottom:610px}
 .nfl.lujo .t1,.nfl.lujo .t2{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:132px;line-height:.9;letter-spacing:2px;text-shadow:0 6px 30px rgba(0,0,0,.35)}
 .nfl.lujo .t2{color:var(--oro2)}
 .nfl.lujo .precio{display:inline-block;margin-top:26px;padding:16px 40px;border-radius:14px;background:linear-gradient(135deg,var(--acento2),var(--acento) 55%,var(--acento3));color:#1a140a;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:76px} /* sin box-shadow: html2canvas lo pinta DENTRO de las cajas redondeadas */
 .nfl.lujo .precio .mes{font-size:.45em}
-.nfl.lujo .barra{position:absolute;top:1010px;left:0;right:0;height:160px;background:var(--negro);display:flex;align-items:center;padding:0 54px}
+.nfl.lujo .barra{position:absolute;top:1030px;left:0;right:0;height:150px;background:transparent;display:flex;align-items:center;padding:0 54px}
 .nfl.lujo .dato{display:flex;align-items:center;gap:12px;margin-right:34px;white-space:nowrap;color:var(--oro2)}
 .nfl.lujo .dato .v{font-size:30px;font-weight:500;line-height:1;color:#fff}
 .nfl.lujo .dato .l{font-size:12.5px;letter-spacing:3px;margin-top:6px;color:rgba(255,255,255,.85)}
 .nfl.lujo .claim{margin-left:auto;border-left:1px solid var(--acento55);padding-left:26px;color:var(--oro2);font-size:14px;letter-spacing:3.5px;line-height:1.9;white-space:nowrap}
-.nfl.lujo .collage{position:absolute;top:1170px;left:0;right:0;height:300px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.nfl.lujo .collage{position:absolute;top:1186px;left:0;right:0;height:314px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .nfl.lujo .collage img{width:100%;height:100%;object-fit:cover}
-.nfl.lujo .pie{position:absolute;top:1470px;left:0;right:0;bottom:0;background:var(--crema);color:#1c1c1c;display:flex;align-items:center;justify-content:space-between;padding:0 64px}
+.nfl.lujo .pie{position:absolute;top:1500px;left:0;right:0;bottom:0;background:var(--crema);color:#1c1c1c;display:flex;align-items:center;justify-content:space-between;padding:0 64px}
 .nfl.lujo .pie .frase{font-family:'Cormorant Garamond',serif;font-size:40px;letter-spacing:7px;line-height:1.15;font-weight:500}
 .nfl.lujo .pie .cta{text-align:right}
 .nfl.lujo .pie .k{font-size:14px;letter-spacing:5px;font-weight:500;border-top:1px solid #1c1c1c;padding-top:12px;display:inline-block}
@@ -434,7 +435,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .nfl.clasico{background:#dfe8f2;color:#151515}
 .nfl.clasico .hero{position:absolute;inset:0}
 .nfl.clasico .hero img{width:100%;height:100%;object-fit:cover}
-.nfl.clasico .velo{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,.78) 34%,rgba(255,255,255,0) 58%),linear-gradient(0deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,0) 22%)}
+.nfl.clasico .velo{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.74) 0%,rgba(255,255,255,.62) 34%,rgba(255,255,255,0) 56%),linear-gradient(0deg,rgba(255,255,255,.74) 0%,rgba(255,255,255,0) 20%)}
 .nfl.clasico .cab{position:absolute;top:84px;left:72px;width:640px}
 .nfl.clasico .tipo{font-size:34px;letter-spacing:13px;font-weight:400}
 .nfl.clasico .op{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:200px;line-height:.86;letter-spacing:-2px;margin:6px 0 10px -6px;color:#141414}
@@ -486,9 +487,9 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 
 /* ───────── 4. COMPLETO ───────── */
 .nfl.completo{background:var(--fondoCompleto);color:var(--oscuro)}
-.nfl.completo .hero{position:absolute;inset:0 0 auto 0;height:720px}
+.nfl.completo .hero{position:absolute;inset:0 0 auto 0;height:840px}
 .nfl.completo .hero img{width:100%;height:100%;object-fit:cover}
-.nfl.completo .tarjeta{position:absolute;top:56px;left:0;background:rgba(244,239,230,.94);padding:34px 54px 34px 54px;width:520px}
+.nfl.completo .tarjeta{position:absolute;top:56px;left:0;background:var(--claro75);padding:34px 54px 34px 54px;width:520px}
 .nfl.completo .tarjeta .t1{font-size:58px;font-weight:600;letter-spacing:1px;line-height:1}
 .nfl.completo .tarjeta .t2{font-size:96px;font-weight:800;letter-spacing:-1px;line-height:.95}
 .nfl.completo .tarjeta>i{display:block;height:3px;width:280px;background:var(--oro);margin:18px 0}
@@ -501,7 +502,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .nfl.completo .caja-precio .p.consultar{font-size:46px}
 .nfl.completo .mxn{display:flex;align-items:center;justify-content:center;gap:16px;color:var(--oro);font-size:22px;letter-spacing:4px;margin-top:6px}
 .nfl.completo .mxn i{width:80px;height:1px;background:var(--oro)}
-.nfl.completo .specs{position:absolute;top:720px;left:0;right:0;height:120px;background:var(--claro);display:flex;align-items:center;justify-content:space-around;padding:0 30px}
+.nfl.completo .specs{position:absolute;top:720px;left:0;right:0;height:120px;background:var(--claro75);display:flex;align-items:center;justify-content:space-around;padding:0 30px}
 .nfl.completo .sp{display:flex;align-items:center;gap:14px;border-right:1px solid rgba(20,36,60,.2);padding-right:34px}
 .nfl.completo .sp:last-child{border-right:0;padding-right:0}
 .nfl.completo .sp .ic{width:48px;height:48px}
@@ -516,12 +517,12 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .nfl.completo .ben ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:12px 18px;margin-top:20px}
 .nfl.completo .ben li{display:flex;align-items:center;gap:10px;font-size:18px}
 .nfl.completo .ck{width:24px;height:24px;fill:none;stroke:var(--acento3);stroke-width:3;flex:none}
-.nfl.completo .ams{position:absolute;top:1346px;left:0;right:0;height:154px;background:var(--claro);border-top:1px solid rgba(20,36,60,.15);padding:14px 30px 0}
+.nfl.completo .ams{position:absolute;top:1346px;left:0;right:0;height:178px;background:var(--claro);border-top:1px solid rgba(20,36,60,.15);padding:14px 30px 0}
 .nfl.completo .ams .h{text-align:center;font-size:18px;letter-spacing:6px;font-weight:600}
 .nfl.completo .ams .fila{display:flex;justify-content:space-around;margin-top:12px}
 .nfl.completo .ams .am{text-align:center;font-size:15px;min-width:110px}
 .nfl.completo .ams .am .ic{width:40px;height:40px;margin:0 auto 6px;color:var(--oscuro)}
-.nfl.completo .pie{position:absolute;left:0;right:0;bottom:0;height:120px;background:var(--oscuro);color:#fff;display:flex;align-items:center;padding:0 50px;gap:22px}
+.nfl.completo .pie{position:absolute;left:0;right:0;bottom:0;height:96px;background:var(--oscuro);color:#fff;display:flex;align-items:center;padding:0 50px;gap:22px}
 .nfl.completo .pinpie,.nfl.completo .wapie{width:56px;height:56px;fill:none;stroke:var(--acento2);stroke-width:1.8;flex:none}
 .nfl.completo .pie .txt{flex:1;font-size:20px;line-height:1.35;border-right:1px solid rgba(255,255,255,.25);padding-right:22px}
 .nfl.completo .pie .cta{display:flex;align-items:center;gap:16px;font-size:24px}
@@ -3437,7 +3438,7 @@ async function generateAll() {
       <div class="hero"><img src="${esc(d.fotos[0])}"></div>
       <div class="logo"><div class="n">NIVA<i>.</i></div><div class="s">INMOBILIARIA</div></div>
       <div class="zona"><div class="a">${esc((d.nombre || d.zona).toUpperCase())}</div><div class="b">${[d.nombre ? d.zona : '', d.ciudad].filter(Boolean).map((s) => esc(s.toUpperCase())).join('<br>')}</div></div>
-      <div class="titulo"><div class="t1">${esc(d.tipoMay)}</div><div class="t2">EN ${d.opMay}</div>${precioBloque(d, 'precio')}</div>
+      <div class="titulo"><div class="t1 ajusta">${esc(d.tipoMay)}</div><div class="t2 ajusta">EN ${d.opMay}</div>${precioBloque(d, 'precio')}</div>
       <div class="barra">${datos.map((x) => `<div class="dato">${svg(x[0])}<div><div class="v">${esc(x[1])}</div><div class="l">${esc(x[2].toUpperCase())}</div></div></div>`).join('')}
         ${frases.length ? `<div class="claim">${frases.map((f) => esc(f.toUpperCase())).join('<br>')}</div>` : ''}</div>
       <div class="collage">${[1, 2, 3].map((i) => `<img src="${esc(d.fotos[i] || d.fotos[0])}">`).join('')}</div>
@@ -3452,8 +3453,8 @@ async function generateAll() {
       <div class="hero"><img src="${esc(d.fotos[0])}"></div>
       <div class="velo"></div>
       <div class="cab">
-        <div class="tipo">${esc(d.tipoMay)}</div>
-        <div class="op">${d.opMay}</div>
+        <div class="tipo ajusta">${esc(d.tipoMay)}</div>
+        <div class="op ajusta">${d.opMay}</div>
         <div class="banda">${esc((d.nombre || d.zona).toUpperCase())}</div>
         <div class="lugar">${esc((d.nombre ? d.zona : d.ciudad).toUpperCase())}</div>
         <div class="iconos">${datos.map((x) => `<div class="it">${svg(x[0])}<div class="v">${esc(x[1])}</div><div class="l">${esc(x[2].toUpperCase())}</div></div>`).join('<div class="sep"></div>')}</div>
@@ -3475,8 +3476,8 @@ async function generateAll() {
       <div class="marca"><div class="n">NIVA</div><div class="s">INMOBILIARIA</div></div>
       <div class="cab"><i class="lin"></i>
         <div class="tipo">${esc(d.tipoMay)}</div>
-        <div class="op">${d.opMay}</div>
-        <div class="nom">${esc((d.nombre || d.zona).toUpperCase())}</div>
+        <div class="op ajusta">${d.opMay}</div>
+        <div class="nom ajusta">${esc((d.nombre || d.zona).toUpperCase())}</div>
         <div class="zona">${esc((d.nombre ? d.zona : d.ciudad).toUpperCase())}</div><i class="esq"></i>
       </div>
       <div class="abajo">
@@ -3497,7 +3498,7 @@ async function generateAll() {
     const ben = (d.beneficios.length ? d.beneficios : ams.slice(0, 6).map((a) => a.nombre)).slice(0, 6);
     return `<div class="nfl completo">
       <div class="hero"><img src="${esc(d.fotos[0])}"></div>
-      <div class="tarjeta"><div class="t1">${esc(d.tipoMay)}</div><div class="t2">EN ${d.opMay}</div><i></i>
+      <div class="tarjeta"><div class="t1 ajusta">${esc(d.tipoMay)}</div><div class="t2 ajusta">EN ${d.opMay}</div><i></i>
         <div class="ubi">${svg('pin')}<div><b>${esc((d.nombre || d.zona).toUpperCase())}</b><br>${esc([d.nombre ? d.zona : '', d.ciudad].filter(Boolean).join(', '))}</div></div></div>
       <div class="caja-precio">${precioBloque(d, 'p')}<div class="mxn"><i></i>MXN<i></i></div></div>
       <div class="specs">${specs.slice(0, 4).map((x) => `<div class="sp">${svg(x[0])}<div><div class="v">${esc(x[1])}</div><div class="l">${esc(x[2].toUpperCase())}</div></div></div>`).join('')}</div>
@@ -3532,7 +3533,8 @@ async function generateAll() {
       oscuro: hsl(h, Math.min(s, 45), 15), negro: hsl(h, Math.min(s, 30), 7), claro: hsl(h, Math.min(s, 30), 95), banda: hsl(h, Math.min(s, 40), 40), suave: hsl(h, Math.min(s, 30), 82), pie: hsl(h, Math.min(s, 25), 89) }; }
   function estiloPaleta(p) {
     const [ar, ag, ab] = rgb(p.acento), [or, og, ob] = rgb(p.oscuro), [cr, cg, cb] = rgb(p.claro);
-    const extra = { acento55: `rgba(${ar},${ag},${ab},.55)`, oscuro96: `rgba(${or},${og},${ob},.96)`,
+    const [nr, ng, nb] = rgb(p.negro);
+    const extra = { acento55: `rgba(${ar},${ag},${ab},.55)`, oscuro96: `rgba(${or},${og},${ob},.96)`, claro75: `rgba(${cr},${cg},${cb},.75)`, negro80: `rgba(${nr},${ng},${nb},.8)`,
       fondoCompleto: `rgb(${Math.round(cr * .92)},${Math.round(cg * .92)},${Math.round(cb * .92)})` }; // claro 92% + negro
     return Object.entries(Object.assign({}, p, extra)).filter(([k]) => k !== 'nombre').map(([k, v]) => `--${k}:${v}`).join(';'); }
   function motorFlyerHTML(plantilla, d) {
@@ -3627,7 +3629,18 @@ function nflPintarControles() {
 // Recorta cada foto EXACTO al tamaño de su recuadro (con el realce de color) para que la
 // vista previa y el PNG sean iguales: html2canvas no soporta object-fit ni CSS filter.
 // También pasa los estilos de los íconos SVG a atributos (html2canvas no les aplica la hoja de estilos).
+// Achica los títulos marcados con .ajusta hasta que quepan dentro del flyer (p. ej. "DEPARTAMENTO" en Lujo).
+function nflAjustarTitulos(el) {
+  const caja = el.getBoundingClientRect(); if (!caja.width) return;
+  const k = caja.width / 1080, lim = caja.right - 56 * k;
+  el.querySelectorAll('.ajusta').forEach(n => {
+    const t = n.closest('.tarjeta'), tope = t ? Math.min(lim, t.getBoundingClientRect().right - 40 * k) : lim; // en Completo, dentro de su tarjeta
+    let fs = parseFloat(getComputedStyle(n).fontSize), r = n.getBoundingClientRect(), i = 0;
+    while (r.right > tope && fs > 24 && i++ < 80) { fs -= 2; n.style.fontSize = fs + 'px'; r = n.getBoundingClientRect(); }
+  });
+}
 async function nflPrepararFlyer(el) {
+  nflAjustarTitulos(el);
   el.querySelectorAll('svg').forEach(svg => {
     const cs = getComputedStyle(svg);
     svg.setAttribute('fill', cs.fill); svg.setAttribute('stroke', cs.stroke); svg.setAttribute('stroke-width', parseFloat(cs.strokeWidth) || 1.7);
