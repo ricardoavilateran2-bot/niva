@@ -532,6 +532,18 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .nfl-controles{min-width:0;display:flex;flex-direction:column;gap:12px}
 .nfl-grupo{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:0}
 .nfl-tit{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:8px}
+.nfl-tit-ayuda{display:flex;align-items:center;justify-content:space-between}
+.nfl-ayuda{width:26px;height:26px;border-radius:50%;border:1.5px solid #C9A84C;background:#fff;color:#8a6d2c;font-weight:800;font-size:14px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.nfl-ayuda:hover{background:#C9A84C;color:#fff}
+.nfl-modal{position:fixed;inset:0;z-index:9000;background:rgba(10,18,34,.62);display:none;align-items:center;justify-content:center;padding:16px}
+.nfl-modal.on{display:flex}
+.nfl-modal-caja{background:#fff;border-radius:16px;max-width:860px;width:100%;max-height:92vh;overflow:auto;padding:18px 20px;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+.nfl-modal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.nfl-modal-top h3{font-size:18px;color:#1B2A4A;margin:0}
+.nfl-modal-top button{border:0;background:#eef2f7;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer}
+.nfl-modal video{width:100%;border-radius:10px;background:#0f1e36;display:block}
+.nfl-modal ol{margin:14px 0 4px 18px;padding:0;font-size:14px;line-height:1.55;color:#334155}
+.nfl-modal ol b{color:#1B2A4A}
 .nfl-sub{font-size:10.5px;font-weight:700;color:#64748b;margin:8px 0 4px}
 .nfl-fila{display:flex;flex-wrap:wrap;gap:6px}
 .nfl-fila button{flex:1 1 auto;min-width:0;padding:7px 9px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:#334155;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
@@ -774,9 +786,23 @@ img,video,canvas{max-width:100%}
         <div id="nfl-prev-wrap"><div id="nfl-escala"></div></div>
         <button class="btn-dl" id="btn-dl-flyer" onclick="nflDescargar(this)" style="width:100%;justify-content:center;margin-top:10px">⬇️ Descargar PNG</button>
         <p class="nfl-nota">Formato 1080×1620 px</p>
+        <div class="nfl-modal" id="nfl-modal-ayuda" onclick="if(event.target===this)nflAyuda(false)">
+          <div class="nfl-modal-caja" role="dialog" aria-modal="true" aria-label="Cómo hacer un flyer">
+            <div class="nfl-modal-top"><h3>¿Cómo hago mi flyer?</h3><button type="button" onclick="nflAyuda(false)" aria-label="Cerrar">✕</button></div>
+            <video id="nfl-video-ayuda" controls playsinline preload="none" poster="./ayuda/flyers-portada.jpg" src="./ayuda/flyers.mp4"></video>
+            <ol>
+              <li><b>Elige tu propiedad</b> (una captación reciente) o llena los datos y sube las fotos: el flyer se arma solo.</li>
+              <li><b>Plantilla:</b> Lujo, Clásico, Minimalista o Completo. Cada una te pide solo las fotos que usa.</li>
+              <li><b>Colores:</b> elige una combinación o tu propio color; «Restablecer colores» regresa al original.</li>
+              <li><b>Fotos:</b> toca la foto que quieres en cada espacio (la primera es la portada).</li>
+              <li><b>Textos opcionales:</b> nombre de la torre o privada y frases que vendan.</li>
+              <li><b>Descargar PNG:</b> sale en alta calidad, listo para WhatsApp, Instagram y Facebook.</li>
+            </ol>
+          </div>
+        </div>
       </div>
       <div class="nfl-controles">
-        <div class="nfl-grupo"><div class="nfl-tit">Plantilla</div>
+        <div class="nfl-grupo"><div class="nfl-tit nfl-tit-ayuda">Plantilla <button type="button" class="nfl-ayuda" onclick="nflAyuda(true)" title="¿Cómo funciona?" aria-label="Cómo hacer un flyer">?</button></div>
           <div class="nfl-fila" id="nfl-plantillas">
             <button type="button" data-p="lujo" onclick="nflSet('plantilla','lujo')">Lujo</button>
             <button type="button" data-p="clasico" onclick="nflSet('plantilla','clasico')">Clásico</button>
@@ -3652,6 +3678,14 @@ async function nflPrepararFlyer(el) {
     if (url) img.src = url;
   }));
 }
+
+function nflAyuda(abrir) {
+  const m = document.getElementById('nfl-modal-ayuda'), v = document.getElementById('nfl-video-ayuda');
+  if (!m) return;
+  m.classList.toggle('on', !!abrir);
+  if (!abrir && v) v.pause();
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') nflAyuda(false); });
 
 function nflEscalar() {
   const wrap = document.getElementById('nfl-prev-wrap'), esc = document.getElementById('nfl-escala');
