@@ -3707,6 +3707,8 @@ function nflFabRevisar() {
 document.addEventListener('DOMContentLoaded', () => {
   const pv = document.getElementById('nfl-prev-wrap');
   if (pv && 'IntersectionObserver' in window) new IntersectionObserver((es) => { _nflPrevVisible = es.some((x) => x.isIntersecting); nflFabRevisar(); }, { threshold: 0.1 }).observe(pv);
+  // se revisa seguido: el aviso «Generando tu contenido…» tapa la vista previa unos segundos y al quitarse no avisa
+  setInterval(nflFabRevisar, 800);
 });
 
 function nflEscalar() {
