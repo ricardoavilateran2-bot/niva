@@ -9893,12 +9893,8 @@ function startVideoAnimation(photoList, totalMs, ttsScript) {
       drawSubtitleText(ctx, elapsed, W, H);
     }
 
-    // ── Barra de progreso ──
+    // (Sin barra de progreso: Ricardo no la quiere en el video descargado.)
     ctx.globalAlpha = 1;
-    const progress = Math.min(elapsed / TOTAL, 1);
-    const barX=80, barY=H-40, barW=W-160, barH=6;
-    cRoundRect(ctx, barX, barY, barW, barH, 3, 'rgba(255,255,255,.15)');
-    if (progress > 0) cRoundRect(ctx, barX, barY, barW*progress, barH, 3, GOLD);
 
     // ── Overlay de métricas de rendimiento ──
     if (_perf && _perf.frames > 5) {
