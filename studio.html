@@ -532,12 +532,13 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .nfl-controles{min-width:0;display:flex;flex-direction:column;gap:12px}
 .nfl-grupo{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:0}
 .nfl-tit{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1B2A4A;margin-bottom:8px}
-.nfl-fab{position:fixed;right:26px;bottom:26px;z-index:8000;display:flex;align-items:center;gap:10px;padding:10px 20px 10px 10px;border:0;border-radius:999px;cursor:pointer;
-  background:linear-gradient(135deg,#E8C96A,#C9A84C 55%,#A8832F);color:#1B2A4A;font:800 15px/1 Inter,sans-serif;box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 0 rgba(201,168,76,.6);animation:nflPulso 2.2s ease-out infinite;transition:transform .15s}
+.nfl-fab{position:fixed;right:22px;bottom:22px;z-index:8000;display:none;align-items:center;gap:7px;padding:5px 13px 5px 5px;border:0;border-radius:999px;cursor:pointer;
+  background:linear-gradient(135deg,#E8C96A,#C9A84C 55%,#A8832F);color:#1B2A4A;font:800 12.5px/1 Inter,sans-serif;box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 0 rgba(201,168,76,.6);animation:nflPulso 2.2s ease-out infinite;transition:transform .15s}
+.nfl-fab.on{display:flex} /* solo cuando el flyer ya está armado y a la vista */
 .nfl-fab:hover{transform:translateY(-2px) scale(1.03)}
-.nfl-fab .q{width:38px;height:38px;border-radius:50%;background:#1B2A4A;color:#E8C96A;display:grid;place-items:center;font-size:21px;font-weight:900}
-@keyframes nflPulso{0%{box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 0 rgba(201,168,76,.6)}70%{box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 16px rgba(201,168,76,0)}100%{box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 0 rgba(201,168,76,0)}}
-@media (max-width:600px){.nfl-fab{right:16px;bottom:16px;padding:8px 16px 8px 8px;font-size:13px}.nfl-fab .q{width:32px;height:32px;font-size:18px}}
+.nfl-fab .q{width:26px;height:26px;border-radius:50%;background:#1B2A4A;color:#E8C96A;display:grid;place-items:center;font-size:15px;font-weight:900}
+@keyframes nflPulso{0%{box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 0 rgba(201,168,76,.6)}70%{box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 11px rgba(201,168,76,0)}100%{box-shadow:0 12px 28px rgba(27,42,74,.35),0 0 0 0 rgba(201,168,76,0)}}
+@media (max-width:600px){.nfl-fab{right:14px;bottom:14px}}
 @media (prefers-reduced-motion:reduce){.nfl-fab{animation:none}}
 @media print{.nfl-fab{display:none}}
 .nfl-modal{position:fixed;inset:0;z-index:9000;background:rgba(10,18,34,.62);display:none;align-items:center;justify-content:center;padding:16px}
@@ -1570,6 +1571,7 @@ function toggleFormPanel(open) {
   if (!panel) return;
   const collapse = (typeof open === 'boolean') ? !open : !panel.classList.contains('niva-collapsed');
   panel.classList.toggle('niva-collapsed', collapse);
+  if (typeof nflFabRevisar === 'function') setTimeout(nflFabRevisar, 450);
   if (tab) tab.textContent = collapse ? '📋 Datos' : '✕ Cerrar';
 }
 function _nivaIsMobileLayout() {
@@ -3693,6 +3695,19 @@ function nflAyuda(abrir) {
   if (!abrir && v) v.pause();
 }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') nflAyuda(false); });
+// El botón de ayuda solo aparece cuando el flyer ya está armado y su vista previa está en pantalla
+// (no en el formulario, ni en otras pestañas, ni antes de llenar la propiedad).
+let _nflPrevVisible = false;
+function nflFabRevisar() {
+  const f = document.querySelector('.nfl-fab'), pv = document.getElementById('nfl-prev-wrap'); if (!f || !pv) return;
+  let tapada = false; // en celular el formulario se pone encima de la vista previa
+  if (_nflPrevVisible) { const r = pv.getBoundingClientRect(), x = r.left + r.width / 2, y = Math.min(Math.max(r.top + 40, 0), innerHeight - 1); const top = document.elementFromPoint(x, y); tapada = !!top && !pv.contains(top); }
+  f.classList.toggle('on', _nflPrevVisible && !tapada && !!NIVA_FLYER_lastV);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const pv = document.getElementById('nfl-prev-wrap');
+  if (pv && 'IntersectionObserver' in window) new IntersectionObserver((es) => { _nflPrevVisible = es.some((x) => x.isIntersecting); nflFabRevisar(); }, { threshold: 0.1 }).observe(pv);
+});
 
 function nflEscalar() {
   const wrap = document.getElementById('nfl-prev-wrap'), esc = document.getElementById('nfl-escala');
@@ -3707,6 +3722,7 @@ async function nflRender() {
   esc.innerHTML = motorFlyerHTML(NFL.plantilla || 'lujo', nflDatos());
   nflEscalar();
   await nflPrepararFlyer(esc.firstElementChild);
+  nflFabRevisar();
   return token === _nflToken;
 }
 
