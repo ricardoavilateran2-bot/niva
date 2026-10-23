@@ -110,6 +110,31 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .fic-controles .ficha-dl-label{flex:none;min-width:0}
 .fic-ajustes{width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .fic-estilos{grid-column:1/-1}
+/* ── Panel del flyer: mismo estilo que el de la ficha ── */
+.nfl-controles .nfl-grupo{border:1px solid #e9ecf1;border-radius:14px;padding:12px 14px;box-shadow:0 6px 18px rgba(27,42,74,.05)}
+.nfl-controles .nfl-tit{font-size:10px;letter-spacing:.14em;color:#8a6d2c;margin-bottom:10px}
+#nfl-plantillas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#nfl-plantillas button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border-radius:12px;border:1.5px solid #e3e7ee;background:#fff;transition:all .15s}
+#nfl-plantillas button .ei{font-size:17px;line-height:1;margin-bottom:4px}
+#nfl-plantillas button b{font-size:13px;color:#1B2A4A}
+#nfl-plantillas button small{font-size:10.5px;color:#64748b;font-weight:500;line-height:1.3}
+#nfl-plantillas button:hover{border-color:#C9A84C}
+#nfl-plantillas button.sel{border-color:#C9A84C;background:linear-gradient(180deg,#fffaf0,#fdf3dc);box-shadow:0 0 0 3px rgba(201,168,76,.18)}
+#nfl-paletas{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+#nfl-paletas .nfl-sw{flex-direction:column;gap:6px;padding:6px 0 4px;border:0;background:none;font-size:10.5px;font-weight:600;color:#475569;border-radius:10px}
+#nfl-paletas .nfl-sw i{width:32px;height:32px;border:2px solid #fff;box-shadow:0 0 0 1px #d7dce4,0 2px 6px rgba(0,0,0,.12);transition:transform .15s,box-shadow .15s}
+#nfl-paletas .nfl-sw:hover i{transform:scale(1.08)}
+#nfl-paletas .nfl-sw.sel{background:none;color:#1B2A4A}
+#nfl-paletas .nfl-sw.sel i{box-shadow:0 0 0 2px #C9A84C,0 3px 10px rgba(201,168,76,.45)}
+.nfl-controles .nfl-color{justify-content:space-between;margin-top:10px;font-size:11.5px;color:#475569}
+.nfl-controles .nfl-finos{justify-content:space-between;gap:8px 10px;margin-top:10px;padding-top:10px}
+.nfl-controles .nfl-finos label{font-size:11.5px;font-weight:600;color:#475569;gap:8px}
+.nfl-controles input[type=color]{width:28px!important;height:28px!important;border-radius:50%!important;border:2px solid #fff!important;box-shadow:0 0 0 1px #d7dce4;padding:0;-webkit-appearance:none;appearance:none;overflow:hidden;cursor:pointer}
+.nfl-controles input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.nfl-controles input[type=color]::-webkit-color-swatch{border:0;border-radius:50%}
+.nfl-controles input[type=color]::-moz-color-swatch{border:0;border-radius:50%}
+.nfl-controles .fic-reset{border:0;background:none;color:#8a6d2c;font-weight:700;font-size:11.5px;padding:4px 2px;cursor:pointer}
+.nfl-controles .fic-reset:hover{text-decoration:underline}
 /* ── Panel de la ficha: controles más limpios ── */
 .fic-controles .ficha-dl-bar{background:#fff;border:1px solid #e6e9ef;border-radius:16px;padding:14px;box-shadow:0 8px 24px rgba(27,42,74,.07)}
 .fic-controles .ficha-dl-label{justify-content:space-between;flex-direction:row-reverse;font-size:12.5px;font-weight:600;color:#1B2A4A;padding:2px 2px}
@@ -949,20 +974,20 @@ img,video,canvas{max-width:100%}
       <div class="nfl-controles">
         <div class="nfl-grupo"><div class="nfl-tit">Plantilla</div>
           <div class="nfl-fila" id="nfl-plantillas">
-            <button type="button" data-p="lujo" onclick="nflSet('plantilla','lujo')">Lujo</button>
-            <button type="button" data-p="clasico" onclick="nflSet('plantilla','clasico')">Clásico</button>
-            <button type="button" data-p="minimalista" onclick="nflSet('plantilla','minimalista')">Minimalista</button>
-            <button type="button" data-p="completo" onclick="nflSet('plantilla','completo')">Completo</button>
+            <button type="button" data-p="lujo" onclick="nflSet('plantilla','lujo')"><span class="ei">💎</span><b>Lujo</b><small>Foto grande y collage</small></button>
+            <button type="button" data-p="clasico" onclick="nflSet('plantilla','clasico')"><span class="ei">🏙️</span><b>Clásico</b><small>Claro, ideal para renta</small></button>
+            <button type="button" data-p="minimalista" onclick="nflSet('plantilla','minimalista')"><span class="ei">◻️</span><b>Minimalista</b><small>2 fotos, letra fina</small></button>
+            <button type="button" data-p="completo" onclick="nflSet('plantilla','completo')"><span class="ei">📰</span><b>Completo</b><small>3 fotos y toda la info</small></button>
           </div>
         </div>
         <div class="nfl-grupo"><div class="nfl-tit">Colores</div>
           <div class="nfl-fila" id="nfl-paletas"></div>
-          <label class="nfl-color">🎨 Color personalizado <input type="color" id="nfl-color" value="#c9a96a" oninput="nflSet('color', this.value)"></label>
+          <label class="nfl-color">Color personalizado <input type="color" id="nfl-color" value="#c9a96a" oninput="nflSet('color', this.value)"></label>
           <div class="nfl-finos">
             <label>Letras y detalles <input type="color" id="nfl-c-acento" oninput="nflSetColor('acento', this.value)"></label>
             <label>Recuadros <input type="color" id="nfl-c-recuadro" oninput="nflSetColor('recuadro', this.value)"></label>
             <label>Fondos claros <input type="color" id="nfl-c-claro" oninput="nflSetColor('claro', this.value)"></label>
-            <button type="button" class="nfl-mini" onclick="nflRestablecerColores()">↺ Restablecer colores</button>
+            <button type="button" class="nfl-mini fic-reset" onclick="nflRestablecerColores()">↺ Restablecer</button>
           </div>
         </div>
         <div class="nfl-grupo"><div class="nfl-tit">Fotos</div><div id="nfl-fotos"></div></div>
