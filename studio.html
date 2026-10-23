@@ -104,6 +104,9 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 
 /* Ficha PDF download bar */
 .ficha-dl-bar{display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:12px 16px;background:var(--gold-light);border:1.5px solid var(--gold);border-radius:9px;flex-wrap:wrap}
+.fic-ajustes{width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px}
+#fic-fotos{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+@media (max-width:700px){.fic-ajustes{grid-template-columns:minmax(0,1fr)}#fic-fotos{grid-template-columns:1fr}}
 .ficha-dl-label{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer;flex:1;min-width:180px}
 
 /* AMENIDADES */
@@ -211,12 +214,13 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 #ficha{background:white;border-radius:14px;overflow:hidden;box-shadow:0 4px 28px rgba(0,0,0,.12);max-width:720px;margin:0 auto}
 .ficha-cover{height:420px;background:#0d1c33;position:relative;overflow:hidden;background-size:cover;background-repeat:no-repeat;background-position:center}
 .ficha-cover img{display:none!important}
-.ficha-cover-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(27,42,74,.9) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:24px}
-.ficha-cover-title{color:white;font-size:22px;font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.3)}
-.ficha-cover-sub{color:rgba(255,255,255,.8);font-size:13px;margin-top:3px}
+.ficha-cover-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 38%,var(--fic-velo,rgba(27,42,74,.9)) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:24px}
+.ficha-cover-title{color:white;font-size:25px;font-weight:800;letter-spacing:.2px;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+.ficha-cover-title::after{content:'';display:block;width:56px;height:3px;background:var(--gold);border-radius:2px;margin-top:10px}
+.ficha-cover-sub{color:rgba(255,255,255,.85);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-top:8px}
 .ficha-cover-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:14px;flex-direction:column;gap:8px}
 .ficha-price-strip{background:var(--gold);padding:14px 28px;display:flex;align-items:center;justify-content:space-between}
-.fp-price{font-size:26px;font-weight:900;color:var(--navy)}
+.fp-price{font-size:29px;font-weight:900;color:var(--navy);letter-spacing:-.3px}
 .fp-type{background:var(--navy);color:white;padding:5px 16px;border-radius:20px;font-size:11px;font-weight:700}
 .ficha-body{padding:28px}
 .ficha-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
@@ -226,7 +230,7 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .ficha-spec:last-child{border-bottom:none}
 .fs-key{color:#64748b;font-weight:500}
 .fs-val2{color:var(--navy);font-weight:700}
-.ficha-photos{display:grid;grid-template-columns:1fr 1fr;gap:4px;border-radius:8px;overflow:hidden;margin-top:14px}
+.ficha-photos{display:grid;grid-template-columns:1fr 1fr;gap:6px;border-radius:10px;overflow:hidden;margin-top:14px}
 .ficha-photos img{width:100%;height:110px;object-fit:cover;display:block}
 .ficha-photos img:first-child{grid-column:1/-1;height:170px}
 .ficha-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:14px}
@@ -872,6 +876,17 @@ img,video,canvas{max-width:100%}
         Incluir logo NIVA
       </label>
       <button class="btn-dl" id="btn-dl-ficha" onclick="downloadFichaAsPDF(this)">⬇️ Descargar Ficha como PDF</button>
+      <div class="fic-ajustes">
+        <div class="nfl-grupo"><div class="nfl-tit">Colores</div>
+          <div class="nfl-fila" id="fic-paletas"></div>
+          <div class="nfl-finos">
+            <label>Color principal <input type="color" id="fic-c-acento" oninput="ficSetColor('acento', this.value)"></label>
+            <label>Color oscuro <input type="color" id="fic-c-oscuro" oninput="ficSetColor('oscuro', this.value)"></label>
+            <button type="button" class="nfl-mini" onclick="ficSetPaleta('dorado')">↺ Restablecer colores</button>
+          </div>
+        </div>
+        <div class="nfl-grupo"><div class="nfl-tit">Fotos</div><div id="fic-fotos"></div></div>
+      </div>
       <!-- (2026-10-05) Oculto: las fichas para Captaciones/CRM ahora se generan solas desde EasyBroker -->
       <div style="display:none;gap:8px;align-items:center;flex-wrap:wrap;width:100%;border-top:1px dashed var(--gold);padding-top:10px">
         <select id="fichaProp" style="flex:1;min-width:200px;padding:7px 8px;border:1px solid var(--border);border-radius:7px;font-size:12.5px"><option value="">¿De qué propiedad es esta ficha? (para guardarla)</option></select>
@@ -3787,13 +3802,51 @@ async function nflDescargar(btn) {
 // ══════════════════════════════════════════════
 //  FICHA TÉCNICA
 // ══════════════════════════════════════════════
+// ── Ficha: colores y fotos elegidos por el asesor (como en el flyer) ──
+const FIC = { paleta: 'dorado', colores: {}, fotos: [0, 1, 2, 3, 4, 5] };
+const ficFoto = (slot) => { if (!photos.length) return ''; const i = FIC.fotos[slot] ?? slot; return photos[Math.min(i, photos.length - 1)] || photos[0]; };
+const _ficRgb = (hex) => { const n = parseInt(String(hex).slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+function ficColores() { // { acento, oscuro, claro } vigentes
+  const p = (window.motorFlyerPaletas && motorFlyerPaletas[FIC.paleta]) || { acento: '#C9A84C', oscuro: '#1B2A4A' };
+  const ok = (x) => /^#[0-9a-f]{6}$/i.test(x || '');
+  const acento = ok(FIC.colores.acento) ? FIC.colores.acento : p.acento, oscuro = ok(FIC.colores.oscuro) ? FIC.colores.oscuro : p.oscuro;
+  const [r, g, b] = _ficRgb(acento); const mezcla = (c) => Math.round(c + (255 - c) * .86); // tono claro para etiquetas
+  return { acento, oscuro, claro: `rgb(${mezcla(r)},${mezcla(g)},${mezcla(b)})` };
+}
+function ficAplicar() {
+  const el = document.getElementById('ficha'); if (!el) return;
+  const c = ficColores(), [r, g, b] = _ficRgb(c.oscuro);
+  el.style.setProperty('--gold', c.acento); el.style.setProperty('--navy', c.oscuro); el.style.setProperty('--gold-light', c.claro);
+  el.style.setProperty('--fic-velo', `rgba(${r},${g},${b},.9)`);
+  const a = document.getElementById('fic-c-acento'), o = document.getElementById('fic-c-oscuro'); if (a) a.value = c.acento; if (o) o.value = c.oscuro;
+}
+function ficPintarControles() {
+  const pals = document.getElementById('fic-paletas');
+  if (pals && window.motorFlyerPaletas) pals.innerHTML = Object.entries(motorFlyerPaletas).map(([k, p]) =>
+    `<button type="button" class="nfl-sw${FIC.paleta === k && !FIC.colores.acento && !FIC.colores.oscuro ? ' sel' : ''}" onclick="ficSetPaleta('${k}')" title="${_escVidAttr(p.nombre)}"><i style="background:linear-gradient(135deg,${p.acento} 50%,${p.oscuro} 50%)"></i>${_escVidHtml(p.nombre.split(' ')[0])}</button>`).join('');
+  const box = document.getElementById('fic-fotos');
+  if (box) {
+    if (!photos.length) { box.innerHTML = '<div class="nfl-sub">Sube fotos en el formulario para elegirlas aquí.</div>'; }
+    else box.innerHTML = ['Portada', 'Galería 1', 'Galería 2', 'Galería 3', 'Galería 4', 'Galería 5'].map((lbl, s) => {
+      const sel = Math.min(FIC.fotos[s] ?? s, photos.length - 1);
+      return `<div class="nfl-slot"><div class="nfl-slot-lbl">${lbl}</div><div class="vid-scene-photostrip">${photos.map((u, i) =>
+        `<button type="button" class="vid-scene-photo-btn${i === sel ? ' sel' : ''}" onclick="ficSetFoto(${s}, ${i})" title="Foto ${i + 1}"><img src="${u}" loading="lazy"></button>`).join('')}</div></div>`;
+    }).join('');
+  }
+  ficAplicar();
+}
+function ficSetPaleta(k) { FIC.paleta = k; FIC.colores = {}; ficPintarControles(); }
+function ficSetColor(k, val) { FIC.colores[k] = val; ficAplicar(); ficPintarControles(); }
+function ficSetFoto(slot, i) { FIC.fotos[slot] = i; ficPintarControles(); if (NIVA_FLYER_lastV || photos.length) genFicha(getV()); }
+
 function genFicha(v) {
   showResult('ficha');
+  ficPintarControles();
   // Cover photo — usa background-image para que html2canvas la capture correctamente
   const cover = document.getElementById('fic-cover');
   const nph = document.getElementById('fic-nophoto');
   if (photos.length > 0) {
-    cover.style.backgroundImage = `url(${photos[0]})`;
+    cover.style.backgroundImage = `url(${ficFoto(0)})`;
     cover.style.backgroundSize = 'cover';
     cover.style.backgroundRepeat = 'no-repeat';
     cover.style.backgroundPosition = 'center';
@@ -3826,7 +3879,7 @@ function genFicha(v) {
   // Gallery pequeña en el cuerpo (primeras 5 fotos)
   const gal = document.getElementById('fic-gallery');
   if (photos.length > 0) {
-    gal.innerHTML = photos.slice(1, 6).map(u => `<img src="${_escVidHtml(u)}">`).join('');
+    gal.innerHTML = [1, 2, 3, 4, 5].map(ficFoto).filter(Boolean).map(u => `<img src="${_escVidHtml(u)}">`).join('');
   } else {
     gal.innerHTML = '<div style="grid-column:1/-1;height:170px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:13px;border-radius:4px">Sin fotos</div>';
   }
@@ -12555,7 +12608,7 @@ async function downloadFichaAsPDF(btn) {
     if (photos.length > 0 && coverEl) {
       const cw = Math.max(1, Math.round((coverEl.clientWidth || 720) * 2));
       const ch = Math.max(1, Math.round((coverEl.clientHeight || 420) * 2));
-      const croppedCover = await _photoToJpeg(photos[0], cw, ch);
+      const croppedCover = await _photoToJpeg(ficFoto(0), cw, ch);
       coverEl.style.backgroundImage = `url(${croppedCover})`;
       coverEl.style.backgroundSize = '100% 100%';
     }
@@ -12596,9 +12649,9 @@ async function downloadFichaAsPDF(btn) {
       if (hasDesc) {
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(8.5);
-        pdf.setTextColor(27, 42, 74);
+        pdf.setTextColor(..._ficRgb(ficColores().oscuro));
         pdf.text('DESCRIPCIÓN', 14, curY);
-        pdf.setDrawColor(201, 168, 76); pdf.setLineWidth(0.6);
+        pdf.setDrawColor(..._ficRgb(ficColores().acento)); pdf.setLineWidth(0.6);
         pdf.line(14, curY + 2.5, PW - 14, curY + 2.5);
         curY += 10;
 
@@ -12620,9 +12673,9 @@ async function downloadFichaAsPDF(btn) {
 
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(8.5);
-        pdf.setTextColor(27, 42, 74);
+        pdf.setTextColor(..._ficRgb(ficColores().oscuro));
         pdf.text('GALERÍA COMPLETA DE FOTOS', 14, curY);
-        pdf.setDrawColor(201, 168, 76); pdf.setLineWidth(0.6);
+        pdf.setDrawColor(..._ficRgb(ficColores().acento)); pdf.setLineWidth(0.6);
         pdf.line(14, curY + 2.5, PW - 14, curY + 2.5);
         curY += 10;
 
@@ -12648,9 +12701,9 @@ async function downloadFichaAsPDF(btn) {
               rowStart = 18;
               pdf.setFont('helvetica', 'bold');
               pdf.setFontSize(8.5);
-              pdf.setTextColor(27, 42, 74);
+              pdf.setTextColor(..._ficRgb(ficColores().oscuro));
               pdf.text('GALERÍA DE FOTOS (cont.)', 14, 12);
-              pdf.setDrawColor(201, 168, 76); pdf.setLineWidth(0.6);
+              pdf.setDrawColor(..._ficRgb(ficColores().acento)); pdf.setLineWidth(0.6);
               pdf.line(14, 14.5, PW - 14, 14.5);
             }
           }
