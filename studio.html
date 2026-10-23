@@ -110,6 +110,37 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .fic-controles .ficha-dl-label{flex:none;min-width:0}
 .fic-ajustes{width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .fic-estilos{grid-column:1/-1}
+/* ── Panel de la ficha: controles más limpios ── */
+.fic-controles .ficha-dl-bar{background:#fff;border:1px solid #e6e9ef;border-radius:16px;padding:14px;box-shadow:0 8px 24px rgba(27,42,74,.07)}
+.fic-controles .ficha-dl-label{justify-content:space-between;flex-direction:row-reverse;font-size:12.5px;font-weight:600;color:#1B2A4A;padding:2px 2px}
+.fic-controles .ficha-dl-label input[type=checkbox]{appearance:none;-webkit-appearance:none;width:38px!important;height:22px!important;border-radius:999px;background:#d7dce4;position:relative;cursor:pointer;transition:background .2s;flex:none;margin:0}
+.fic-controles .ficha-dl-label input[type=checkbox]::after{content:'';position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.fic-controles .ficha-dl-label input[type=checkbox]:checked{background:#C9A84C}
+.fic-controles .ficha-dl-label input[type=checkbox]:checked::after{transform:translateX(16px)}
+.fic-controles #btn-dl-ficha{border-radius:12px;padding:13px 16px;font-size:14px;box-shadow:0 8px 18px rgba(22,163,74,.25)}
+.fic-controles .nfl-grupo{border:1px solid #e9ecf1;border-radius:14px;padding:12px 14px;box-shadow:none}
+.fic-controles .nfl-tit{font-size:10px;letter-spacing:.14em;color:#8a6d2c;margin-bottom:10px}
+#fic-estilos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#fic-estilos button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:11px 12px;border-radius:12px;border:1.5px solid #e3e7ee;background:#fff;transition:all .15s}
+#fic-estilos button .ei{font-size:18px;line-height:1;margin-bottom:4px}
+#fic-estilos button b{font-size:13px;color:#1B2A4A}
+#fic-estilos button small{font-size:10.5px;color:#64748b;font-weight:500;line-height:1.3}
+#fic-estilos button:hover{border-color:#C9A84C}
+#fic-estilos button.sel{border-color:#C9A84C;background:linear-gradient(180deg,#fffaf0,#fdf3dc);box-shadow:0 0 0 3px rgba(201,168,76,.18)}
+#fic-paletas{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+#fic-paletas .nfl-sw{flex-direction:column;gap:6px;padding:6px 0 4px;border:0;background:none;font-size:10.5px;font-weight:600;color:#475569;border-radius:10px}
+#fic-paletas .nfl-sw i{width:32px;height:32px;border:2px solid #fff;box-shadow:0 0 0 1px #d7dce4,0 2px 6px rgba(0,0,0,.12);transition:transform .15s,box-shadow .15s}
+#fic-paletas .nfl-sw:hover i{transform:scale(1.08)}
+#fic-paletas .nfl-sw.sel{background:none;color:#1B2A4A}
+#fic-paletas .nfl-sw.sel i{box-shadow:0 0 0 2px #C9A84C,0 3px 10px rgba(201,168,76,.45)}
+.fic-controles .nfl-finos{justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px}
+.fic-controles .nfl-finos label{font-size:11.5px;font-weight:600;color:#475569;gap:8px}
+.fic-controles .nfl-finos input[type=color]{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d7dce4;padding:0;-webkit-appearance:none;appearance:none;overflow:hidden;cursor:pointer}
+.fic-controles .nfl-finos input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.fic-controles .nfl-finos input[type=color]::-webkit-color-swatch{border:0;border-radius:50%}
+.fic-controles .nfl-finos input[type=color]::-moz-color-swatch{border:0;border-radius:50%}
+.fic-controles .fic-reset{border:0;background:none;color:#8a6d2c;font-weight:700;font-size:11.5px;padding:4px 2px;cursor:pointer}
+.fic-controles .fic-reset:hover{text-decoration:underline}
 .ficha-mapa{padding:6px 28px 22px}
 .ficha-mapa img{width:100%;border-radius:8px;display:block}
 .ficha-mapa-nota{font-size:11px;color:#64748b;margin-top:6px}
@@ -1030,8 +1061,8 @@ img,video,canvas{max-width:100%}
       <div class="fic-ajustes">
         <div class="nfl-grupo fic-estilos"><div class="nfl-tit">Estilo de ficha</div>
           <div class="nfl-fila" id="fic-estilos">
-            <button type="button" data-e="estandar" onclick="ficSetEstilo('estandar')">Estándar</button>
-            <button type="button" data-e="premium" onclick="ficSetEstilo('premium')">✨ Premium · propiedades de alto nivel</button>
+            <button type="button" data-e="estandar" onclick="ficSetEstilo('estandar')"><span class="ei">📋</span><b>Estándar</b><small>Clara y directa · 1 hoja</small></button>
+            <button type="button" data-e="premium" onclick="ficSetEstilo('premium')"><span class="ei">✨</span><b>Premium</b><small>Tipo revista · alto nivel</small></button>
           </div>
         </div>
         <div class="nfl-grupo"><div class="nfl-tit">Colores</div>
@@ -1039,7 +1070,7 @@ img,video,canvas{max-width:100%}
           <div class="nfl-finos">
             <label>Color principal <input type="color" id="fic-c-acento" oninput="ficSetColor('acento', this.value)"></label>
             <label>Color oscuro <input type="color" id="fic-c-oscuro" oninput="ficSetColor('oscuro', this.value)"></label>
-            <button type="button" class="nfl-mini" onclick="ficSetPaleta('dorado')">↺ Restablecer colores</button>
+            <button type="button" class="nfl-mini fic-reset" onclick="ficSetPaleta('dorado')">↺ Restablecer</button>
           </div>
         </div>
         <div class="nfl-grupo"><div class="nfl-tit">Fotos</div><div id="fic-fotos"></div>
