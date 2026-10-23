@@ -1140,6 +1140,20 @@ img,video,canvas{max-width:100%}
 <!-- ── HISTORIA ── -->
 <!-- ── INSTAGRAM (Historia + Carrusel + Caption) ── -->
 <div class="tc" id="tc-instagram">
+  <button type="button" class="nfl-fab nfl-fab-ig" onclick="nflAyuda(true,'ig')" aria-label="Cómo usar Instagram"><span class="q">?</span><span class="t">¿Cómo lo subo a Instagram?</span></button>
+  <div class="nfl-modal" id="nfl-modal-ig" onclick="if(event.target===this)nflAyuda(false)">
+    <div class="nfl-modal-caja" role="dialog" aria-modal="true" aria-label="Cómo subirlo a Instagram">
+      <div class="nfl-modal-top"><h3>¿Cómo lo subo a Instagram?</h3><button type="button" onclick="nflAyuda(false)" aria-label="Cerrar">✕</button></div>
+      <video id="nfl-video-ig" controls playsinline preload="none" poster="./ayuda/instagram-portada.jpg?v=1" src="./ayuda/instagram.mp4?v=1"></video>
+      <ol>
+        <li><b>Historia:</b> «Descargar Story PNG» (formato vertical de Instagram).</li>
+        <li><b>Carrusel:</b> «Descargar los 4 slides» (portada, características, amenidades y contacto).</li>
+        <li><b>Texto:</b> «Copiar todo junto» copia el caption y los hashtags.</li>
+        <li><b>En Instagram:</b> nueva publicación → elige los 4 slides en orden → pega el texto → Compartir.</li>
+        <li><b>Historia:</b> + → Historia → elige la imagen → Tu historia.</li>
+      </ol>
+    </div>
+  </div>
   <div class="empty" id="e-instagram"><div class="ei">📸</div><h3>Instagram</h3><p>Genera la historia, el carrusel y<br>el caption listo para publicar en<br>Instagram con un solo clic</p></div>
   <div id="r-instagram" style="display:none">
 
@@ -3902,10 +3916,10 @@ async function nflPrepararFlyer(el) {
 
 function nflAyuda(abrir, cual) {
   if (!abrir) { // cierra cualquiera de las dos ventanas de ayuda y pausa su video
-    ['ayuda', 'datos', 'ficha'].forEach((k) => { const m = document.getElementById('nfl-modal-' + k), v = document.getElementById('nfl-video-' + k); if (m) m.classList.remove('on'); if (v) v.pause(); });
+    ['ayuda', 'datos', 'ficha', 'ig'].forEach((k) => { const m = document.getElementById('nfl-modal-' + k), v = document.getElementById('nfl-video-' + k); if (m) m.classList.remove('on'); if (v) v.pause(); });
     return;
   }
-  const m = document.getElementById(cual === 'datos' ? 'nfl-modal-datos' : cual === 'ficha' ? 'nfl-modal-ficha' : 'nfl-modal-ayuda');
+  const m = document.getElementById(cual === 'datos' ? 'nfl-modal-datos' : cual === 'ficha' ? 'nfl-modal-ficha' : cual === 'ig' ? 'nfl-modal-ig' : 'nfl-modal-ayuda');
   if (m) m.classList.add('on');
 }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') nflAyuda(false); });
@@ -3917,7 +3931,8 @@ function nflFabRevisar() {
   const fd = document.querySelector('.nfl-fab-datos'); if (fd) fd.classList.toggle('on', !NIVA_FLYER_lastV);
   // ayuda de la ficha: cuando la ficha ya está generada y su pestaña está abierta
   const ff = document.querySelector('.nfl-fab-ficha'), rf = document.getElementById('r-ficha'); if (ff) ff.classList.toggle('on', !!rf && rf.style.display !== 'none' && document.getElementById('tc-ficha').classList.contains('on'));
-  const f = document.querySelector('.nfl-fab:not(.nfl-fab-datos):not(.nfl-fab-ficha)'), pv = document.getElementById('nfl-prev-wrap'); if (!f || !pv) return;
+  const fi = document.querySelector('.nfl-fab-ig'), ri = document.getElementById('r-instagram'); if (fi) fi.classList.toggle('on', !!ri && ri.style.display !== 'none' && document.getElementById('tc-instagram').classList.contains('on'));
+  const f = document.querySelector('.nfl-fab:not(.nfl-fab-datos):not(.nfl-fab-ficha):not(.nfl-fab-ig)'), pv = document.getElementById('nfl-prev-wrap'); if (!f || !pv) return;
   let tapada = false; // en celular el formulario se pone encima de la vista previa
   if (_nflPrevVisible) { const r = pv.getBoundingClientRect(), x = r.left + r.width / 2, y = Math.min(Math.max(r.top + 40, 0), innerHeight - 1); const top = document.elementFromPoint(x, y); tapada = !!top && !pv.contains(top); }
   f.classList.toggle('on', _nflPrevVisible && !tapada && !!NIVA_FLYER_lastV);
