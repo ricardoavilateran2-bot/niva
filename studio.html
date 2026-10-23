@@ -785,6 +785,21 @@ img,video,canvas{max-width:100%}
 <!-- ── FLYER ── -->
 <div class="tc on" id="tc-flyer">
   <!-- Ayuda flotante: solo se ve en la pestaña Flyer -->
+  <button type="button" class="nfl-fab nfl-fab-datos" onclick="nflAyuda(true,'datos')" aria-label="Cómo llenar la información"><span class="q">?</span><span class="t">¿Cómo lleno la información?</span></button>
+  <div class="nfl-modal" id="nfl-modal-datos" onclick="if(event.target===this)nflAyuda(false)">
+    <div class="nfl-modal-caja" role="dialog" aria-modal="true" aria-label="Cómo llenar la información">
+      <div class="nfl-modal-top"><h3>¿Cómo lleno la información?</h3><button type="button" onclick="nflAyuda(false)" aria-label="Cerrar">✕</button></div>
+      <video id="nfl-video-datos" controls playsinline preload="none" poster="./ayuda/llenar-datos-portada.jpg" src="./ayuda/llenar-datos.mp4"></video>
+      <ol>
+        <li><b>Lo más rápido:</b> en «Usar una captación reciente» elige la propiedad y todo se llena solo (datos y fotos).</li>
+        <li><b>Si es nueva:</b> llena tipo, operación, colonia, municipio y precio.</li>
+        <li><b>Características:</b> recámaras, baños, estacionamientos y m².</li>
+        <li><b>Amenidades y descripción:</b> marca lo que tiene y escribe en corto lo que la hace especial.</li>
+        <li><b>Fotos:</b> súbelas todas; la primera es la portada.</li>
+        <li><b>Generar Todo el Contenido:</b> se crean flyer, ficha técnica, Instagram, video y textos.</li>
+      </ol>
+    </div>
+  </div>
   <button type="button" class="nfl-fab" onclick="nflAyuda(true)" aria-label="Cómo hacer un flyer"><span class="q">?</span><span class="t">¿Cómo hago mi flyer?</span></button>
         <div class="nfl-modal" id="nfl-modal-ayuda" onclick="if(event.target===this)nflAyuda(false)">
           <div class="nfl-modal-caja" role="dialog" aria-modal="true" aria-label="Cómo hacer un flyer">
@@ -3688,18 +3703,22 @@ async function nflPrepararFlyer(el) {
   }));
 }
 
-function nflAyuda(abrir) {
-  const m = document.getElementById('nfl-modal-ayuda'), v = document.getElementById('nfl-video-ayuda');
-  if (!m) return;
-  m.classList.toggle('on', !!abrir);
-  if (!abrir && v) v.pause();
+function nflAyuda(abrir, cual) {
+  if (!abrir) { // cierra cualquiera de las dos ventanas de ayuda y pausa su video
+    ['ayuda', 'datos'].forEach((k) => { const m = document.getElementById('nfl-modal-' + k), v = document.getElementById('nfl-video-' + k); if (m) m.classList.remove('on'); if (v) v.pause(); });
+    return;
+  }
+  const m = document.getElementById(cual === 'datos' ? 'nfl-modal-datos' : 'nfl-modal-ayuda');
+  if (m) m.classList.add('on');
 }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') nflAyuda(false); });
 // El botón de ayuda solo aparece cuando el flyer ya está armado y su vista previa está en pantalla
 // (no en el formulario, ni en otras pestañas, ni antes de llenar la propiedad).
 let _nflPrevVisible = false;
 function nflFabRevisar() {
-  const f = document.querySelector('.nfl-fab'), pv = document.getElementById('nfl-prev-wrap'); if (!f || !pv) return;
+  // ayuda del formulario: solo mientras todavía no se genera el contenido
+  const fd = document.querySelector('.nfl-fab-datos'); if (fd) fd.classList.toggle('on', !NIVA_FLYER_lastV);
+  const f = document.querySelector('.nfl-fab:not(.nfl-fab-datos)'), pv = document.getElementById('nfl-prev-wrap'); if (!f || !pv) return;
   let tapada = false; // en celular el formulario se pone encima de la vista previa
   if (_nflPrevVisible) { const r = pv.getBoundingClientRect(), x = r.left + r.width / 2, y = Math.min(Math.max(r.top + 40, 0), innerHeight - 1); const top = document.elementFromPoint(x, y); tapada = !!top && !pv.contains(top); }
   f.classList.toggle('on', _nflPrevVisible && !tapada && !!NIVA_FLYER_lastV);
