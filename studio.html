@@ -104,9 +104,16 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 
 /* Ficha PDF download bar */
 .ficha-dl-bar{display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:12px 16px;background:var(--gold-light);border:1.5px solid var(--gold);border-radius:9px;flex-wrap:wrap}
-.fic-ajustes{width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px}
+.fic-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:18px;align-items:start}
+@media (max-width:980px){.fic-panel{grid-template-columns:minmax(0,1fr)}.fic-controles{order:-1}}
+.fic-controles .ficha-dl-bar{flex-direction:column;align-items:stretch;gap:10px;margin:0;position:sticky;top:0}
+.fic-controles .ficha-dl-label{flex:none;min-width:0}
+.fic-ajustes{width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .fic-estilos{grid-column:1/-1}
-#fic-fotos{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+#fic-prem-wrap{width:100%;max-width:720px;margin:0 auto}
+#fic-prem-escala{transform-origin:0 0;width:720px}
+#fic-prem-escala .fpr+.fpr{margin-top:16px}
+#fic-fotos{display:grid;grid-template-columns:1fr;gap:4px}
 @media (max-width:700px){.fic-ajustes{grid-template-columns:minmax(0,1fr)}#fic-fotos{grid-template-columns:1fr}}
 .ficha-dl-label{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer;flex:1;min-width:180px}
 
@@ -249,32 +256,54 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .ficha-footer-nologo{background:var(--navy);padding:16px 28px;display:flex;justify-content:space-between;align-items:center}
 /* Galería completa — página 2 del PDF */
 .ficha-galeria-full{background:#f8fafc;padding:24px;border-top:3px solid var(--gold)}
-.fic-prem-marca{display:none}
-#ficha.premium{background:var(--navy);color:#f4efe6}
-#ficha.premium .ficha-cover{height:540px}
-#ficha.premium .fic-prem-marca{display:block;position:absolute;left:34px;top:30px;z-index:2;color:#fff;font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;letter-spacing:6px}
-#ficha.premium .fic-prem-marca em{color:var(--gold);font-style:normal}
-#ficha.premium .fic-prem-marca span{display:block;font-family:Inter,sans-serif;font-size:9.5px;letter-spacing:.32em;text-transform:uppercase;font-weight:600;margin-top:6px;color:rgba(255,255,255,.8)}
-#ficha.premium .ficha-cover-overlay{background:linear-gradient(to bottom,rgba(0,0,0,.35) 0%,transparent 26%,transparent 46%,var(--navy) 100%);padding:34px}
-#ficha.premium .ficha-cover-title{font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:600;letter-spacing:1px;line-height:1.05;text-shadow:none}
-#ficha.premium .ficha-cover-title::after{width:80px;height:2px;margin-top:14px}
-#ficha.premium .ficha-cover-sub{color:var(--gold);letter-spacing:.3em;font-size:11px;margin-top:12px}
-#ficha.premium .ficha-price-strip{background:transparent;border-top:1px solid var(--gold);border-bottom:1px solid var(--gold);margin:0 34px;padding:18px 0}
-#ficha.premium .fp-price{font-family:'Cormorant Infant','Cormorant Garamond',serif;font-size:46px;font-weight:600;color:var(--gold);letter-spacing:0}
-#ficha.premium #fic-plabel{color:rgba(244,239,230,.7)!important;letter-spacing:.22em!important}
-#ficha.premium .fp-type{background:transparent;border:1px solid var(--gold);color:var(--gold);letter-spacing:.12em;text-transform:uppercase;font-size:10px}
-#ficha.premium .ficha-body{padding:30px 34px}
-#ficha.premium .ficha-sec-ttl{color:var(--gold);border-bottom:1px solid var(--gold);letter-spacing:.28em;font-weight:700}
-#ficha.premium .ficha-spec{border-bottom:1px solid rgba(255,255,255,.12)}
-#ficha.premium .fs-key{color:rgba(244,239,230,.7)}
-#ficha.premium .fs-val2{color:#fff;font-weight:600}
-#ficha.premium .ftag{background:transparent;border:1px solid var(--gold);color:#f4efe6;font-weight:500}
-#ficha.premium .ficha-photos{gap:8px;border-radius:4px}
-#ficha.premium .ficha-desc-ttl{color:var(--gold);border-bottom:1px solid var(--gold);letter-spacing:.28em}
-#ficha.premium .ficha-desc-text{color:rgba(244,239,230,.85)}
-#ficha.premium .ficha-galeria-full{background:transparent;border-top:1px solid var(--gold)}
-#ficha.premium .ficha-footer,#ficha.premium .ficha-footer-noasesor,#ficha.premium .ficha-footer-nologo{background:rgba(0,0,0,.28);border-top:1px solid var(--gold)}
-#ficha.premium .ficha-flogo{font-family:'Cormorant Garamond',serif;font-weight:600;letter-spacing:5px;font-size:20px}
+/* ── Ficha PREMIUM: presentación de 2 páginas tipo revista (720×1018 = A4) ── */
+.fpr{position:relative;width:720px;height:1018px;overflow:hidden;font-family:Montserrat,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.18)}
+.fpr img{display:block}
+.fpr1{background:var(--o);color:#f6f1e7}
+.fpr1 .hero{position:absolute;left:0;top:0;width:720px;height:640px}
+.fpr1 .hero img,.fpr .tira img,.fpr2 .gal img{width:100%;height:100%;object-fit:cover}
+.fpr1 .velo{position:absolute;left:0;top:0;width:720px;height:640px;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 44%,var(--o) 100%)}
+.fpr .logo{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:34px;letter-spacing:7px;line-height:1}
+.fpr .logo em{font-style:normal;color:var(--a)}
+.fpr .logo small{display:block;font-family:Montserrat,sans-serif;font-size:8.5px;letter-spacing:.42em;font-weight:500;margin-top:6px;text-transform:uppercase}
+.fpr1 .top{position:absolute;left:40px;right:40px;top:34px;display:flex;justify-content:space-between;align-items:flex-start;color:#fff}
+.fpr1 .badge{border:1px solid rgba(255,255,255,.85);padding:8px 16px;font-size:10px;letter-spacing:.32em;font-weight:600}
+.fpr1 .cab{position:absolute;left:40px;right:40px;top:470px}
+.fpr1 .cab .k{font-size:10.5px;letter-spacing:.38em;color:var(--a);font-weight:600}
+.fpr1 .cab .t{font-family:'Cormorant Garamond',serif;font-size:62px;font-weight:600;line-height:1;margin-top:10px;color:#fff}
+.fpr1 .cab .s{font-size:12px;letter-spacing:.2em;margin-top:12px;color:rgba(246,241,231,.85);text-transform:uppercase}
+.fpr1 .precio{position:absolute;left:40px;right:40px;top:668px;display:flex;align-items:baseline;gap:14px;border-top:1px solid var(--a);padding-top:16px}
+.fpr1 .precio .p{font-family:'Cormorant Infant','Cormorant Garamond',serif;font-size:56px;font-weight:600;color:var(--a);line-height:1}
+.fpr1 .precio .m{font-size:11px;letter-spacing:.34em;color:rgba(246,241,231,.8)}
+.fpr1 .stats{position:absolute;left:40px;right:40px;top:770px;display:flex;justify-content:space-between}
+.fpr1 .st{display:flex;align-items:center;gap:12px}
+.fpr .ic{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.fpr1 .st .ic{color:var(--a)}
+.fpr1 .st .v{font-family:'Cormorant Infant','Cormorant Garamond',serif;font-size:30px;font-weight:600;line-height:1;color:#fff}
+.fpr1 .st .l{font-size:8.5px;letter-spacing:.24em;margin-top:5px;color:rgba(246,241,231,.75);text-transform:uppercase}
+.fpr1 .tira{position:absolute;left:40px;right:40px;top:836px;height:120px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:120px;gap:8px;overflow:hidden}
+.fpr1 .pie{position:absolute;left:40px;right:40px;bottom:22px;display:flex;justify-content:space-between;font-size:10px;letter-spacing:.18em;color:rgba(246,241,231,.75);text-transform:uppercase}
+.fpr1 .pie b{color:var(--a);font-weight:600}
+.fpr2{background:#f7f3ec;color:#1d1d1f}
+.fpr2 .cab2{position:absolute;left:44px;right:44px;top:36px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--a);padding-bottom:14px;color:var(--o)}
+.fpr2 .cab2 .x{font-size:9.5px;letter-spacing:.34em;font-weight:600;color:var(--a)}
+.fpr2 .sec{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:600;color:var(--o);line-height:1}
+.fpr2 .sec small{display:block;font-family:Montserrat,sans-serif;font-size:9px;letter-spacing:.36em;color:var(--a);font-weight:600;margin-bottom:8px}
+.fpr2 .b1{position:absolute;left:44px;right:44px;top:128px}
+.fpr2 .desc{font-size:11.5px;line-height:1.75;color:#3b3b3f;margin-top:14px;font-weight:400}
+.fpr2 .gal{position:absolute;left:44px;right:44px;top:336px;height:300px;display:grid;grid-template-columns:1.25fr 1fr;grid-template-rows:146px 146px;gap:8px}
+.fpr2 .gal .g1{grid-row:1/3}
+.fpr2 .cols{position:absolute;left:44px;right:44px;top:668px;display:grid;grid-template-columns:1fr 1fr;gap:34px}
+.fpr2 .lst{margin-top:12px;font-size:11px;color:#3b3b3f}
+.fpr2 .lst div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.08)}
+.fpr2 .lst b{font-weight:600;color:#1d1d1f}
+.fpr2 .ams{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;font-size:11px;color:#3b3b3f}
+.fpr2 .ams span::before{content:'◆';color:var(--a);font-size:8px;margin-right:7px;vertical-align:1px}
+.fpr2 .contacto{position:absolute;left:0;right:0;bottom:0;height:84px;background:var(--o);color:#f6f1e7;display:flex;align-items:center;justify-content:space-between;padding:0 44px}
+.fpr2 .contacto .k{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600}
+.fpr2 .contacto .k small{display:block;font-family:Montserrat,sans-serif;font-size:8.5px;letter-spacing:.34em;color:var(--a);margin-bottom:4px;font-weight:600}
+.fpr2 .contacto .d{text-align:right;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.fpr2 .contacto .d b{display:block;font-family:'Cormorant Infant','Cormorant Garamond',serif;font-size:22px;letter-spacing:1px;color:var(--a);font-weight:600;text-transform:none}
 .ficha-galeria-full .ficha-sec-ttl{margin-bottom:14px}
 .ficha-gal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ficha-gal-item{position:relative;aspect-ratio:1.39/1;border-radius:6px;overflow:hidden;background:#0d1c33;background-size:cover;background-position:center;background-repeat:no-repeat}
@@ -893,45 +922,12 @@ img,video,canvas{max-width:100%}
 <div class="tc" id="tc-ficha">
   <div class="empty" id="e-ficha"><div class="ei">📋</div><h3>Ficha Técnica</h3><p>Genera el contenido primero para<br>ver la ficha técnica de la propiedad</p></div>
   <div id="r-ficha" style="display:none">
-    <div class="ficha-dl-bar no-print">
-      <label class="ficha-dl-label">
-        <input type="checkbox" id="fichaAsesorCheck" checked style="accent-color:var(--navy);width:15px;height:15px">
-        Incluir datos del asesor
-      </label>
-      <label class="ficha-dl-label">
-        <input type="checkbox" id="fichaLogoCheck" checked style="accent-color:var(--navy);width:15px;height:15px">
-        Incluir logo NIVA
-      </label>
-      <button class="btn-dl" id="btn-dl-ficha" onclick="downloadFichaAsPDF(this)">⬇️ Descargar Ficha como PDF</button>
-      <div class="fic-ajustes">
-        <div class="nfl-grupo fic-estilos"><div class="nfl-tit">Estilo de ficha</div>
-          <div class="nfl-fila" id="fic-estilos">
-            <button type="button" data-e="estandar" onclick="ficSetEstilo('estandar')">Estándar</button>
-            <button type="button" data-e="premium" onclick="ficSetEstilo('premium')">✨ Premium · propiedades de alto nivel</button>
-          </div>
-        </div>
-        <div class="nfl-grupo"><div class="nfl-tit">Colores</div>
-          <div class="nfl-fila" id="fic-paletas"></div>
-          <div class="nfl-finos">
-            <label>Color principal <input type="color" id="fic-c-acento" oninput="ficSetColor('acento', this.value)"></label>
-            <label>Color oscuro <input type="color" id="fic-c-oscuro" oninput="ficSetColor('oscuro', this.value)"></label>
-            <button type="button" class="nfl-mini" onclick="ficSetPaleta('dorado')">↺ Restablecer colores</button>
-          </div>
-        </div>
-        <div class="nfl-grupo"><div class="nfl-tit">Fotos</div><div id="fic-fotos"></div></div>
-      </div>
-      <!-- (2026-10-05) Oculto: las fichas para Captaciones/CRM ahora se generan solas desde EasyBroker -->
-      <div style="display:none;gap:8px;align-items:center;flex-wrap:wrap;width:100%;border-top:1px dashed var(--gold);padding-top:10px">
-        <select id="fichaProp" style="flex:1;min-width:200px;padding:7px 8px;border:1px solid var(--border);border-radius:7px;font-size:12.5px"><option value="">¿De qué propiedad es esta ficha? (para guardarla)</option></select>
-        <button class="btn-dl" id="btn-save-ficha" onclick="guardarFichaNiva(this)">💾 Guardar en NIVA OS</button>
-        <span id="fichaSaveMsg" style="font-size:12px;color:var(--navy);width:100%"></span>
-      </div>
-    </div>
+  <div class="fic-panel">
+  <div class="fic-prev">
     <div id="ficha">
       <div class="ficha-cover" id="fic-cover">
         <img id="fic-photo" src="" style="display:none">
         <div id="fic-nophoto" class="ficha-cover-ph"><div style="font-size:42px">📷</div><span>Foto de la Propiedad</span></div>
-        <div class="fic-prem-marca">N<em>I</em>VA<span>Presentación exclusiva</span></div>
         <div class="ficha-cover-overlay">
           <div class="ficha-cover-title" id="fic-title">Título</div>
           <div class="ficha-cover-sub" id="fic-sub">Colonia · Ciudad</div>
@@ -986,6 +982,45 @@ img,video,canvas{max-width:100%}
         </div>
       </div>
     </div>
+    <div id="fic-prem-wrap" style="display:none"><div id="fic-prem-escala"></div></div>
+  </div>
+  <div class="fic-controles">
+    <div class="ficha-dl-bar no-print">
+      <label class="ficha-dl-label">
+        <input type="checkbox" id="fichaAsesorCheck" checked style="accent-color:var(--navy);width:15px;height:15px">
+        Incluir datos del asesor
+      </label>
+      <label class="ficha-dl-label">
+        <input type="checkbox" id="fichaLogoCheck" checked style="accent-color:var(--navy);width:15px;height:15px">
+        Incluir logo NIVA
+      </label>
+      <button class="btn-dl" id="btn-dl-ficha" onclick="downloadFichaAsPDF(this)" style="justify-content:center">⬇️ Descargar Ficha como PDF</button>
+      <div class="fic-ajustes">
+        <div class="nfl-grupo fic-estilos"><div class="nfl-tit">Estilo de ficha</div>
+          <div class="nfl-fila" id="fic-estilos">
+            <button type="button" data-e="estandar" onclick="ficSetEstilo('estandar')">Estándar</button>
+            <button type="button" data-e="premium" onclick="ficSetEstilo('premium')">✨ Premium · propiedades de alto nivel</button>
+          </div>
+        </div>
+        <div class="nfl-grupo"><div class="nfl-tit">Colores</div>
+          <div class="nfl-fila" id="fic-paletas"></div>
+          <div class="nfl-finos">
+            <label>Color principal <input type="color" id="fic-c-acento" oninput="ficSetColor('acento', this.value)"></label>
+            <label>Color oscuro <input type="color" id="fic-c-oscuro" oninput="ficSetColor('oscuro', this.value)"></label>
+            <button type="button" class="nfl-mini" onclick="ficSetPaleta('dorado')">↺ Restablecer colores</button>
+          </div>
+        </div>
+        <div class="nfl-grupo"><div class="nfl-tit">Fotos</div><div id="fic-fotos"></div></div>
+      </div>
+      <!-- (2026-10-05) Oculto: las fichas para Captaciones/CRM ahora se generan solas desde EasyBroker -->
+      <div style="display:none;gap:8px;align-items:center;flex-wrap:wrap;width:100%;border-top:1px dashed var(--gold);padding-top:10px">
+        <select id="fichaProp" style="flex:1;min-width:200px;padding:7px 8px;border:1px solid var(--border);border-radius:7px;font-size:12.5px"><option value="">¿De qué propiedad es esta ficha? (para guardarla)</option></select>
+        <button class="btn-dl" id="btn-save-ficha" onclick="guardarFichaNiva(this)">💾 Guardar en NIVA OS</button>
+        <span id="fichaSaveMsg" style="font-size:12px;color:var(--navy);width:100%"></span>
+      </div>
+    </div>
+  </div>
+  </div>
   </div>
 </div>
 
@@ -3852,8 +3887,10 @@ function ficAplicar() {
   const c = ficColores(), [r, g, b] = _ficRgb(c.oscuro);
   el.style.setProperty('--gold', c.acento); el.style.setProperty('--navy', c.oscuro); el.style.setProperty('--gold-light', c.claro);
   el.style.setProperty('--fic-velo', `rgba(${r},${g},${b},.9)`);
-  el.classList.toggle('premium', FIC.estilo === 'premium');
   document.querySelectorAll('#fic-estilos button').forEach((x) => x.classList.toggle('sel', x.dataset.e === FIC.estilo));
+  const prem = FIC.estilo === 'premium', pw = document.getElementById('fic-prem-wrap');
+  el.style.display = prem ? 'none' : ''; if (pw) pw.style.display = prem ? '' : 'none';
+  if (prem) ficRenderPremium();
   const a = document.getElementById('fic-c-acento'), o = document.getElementById('fic-c-oscuro'); if (a) a.value = c.acento; if (o) o.value = c.oscuro;
 }
 function ficPintarControles() {
@@ -3872,6 +3909,89 @@ function ficPintarControles() {
   ficAplicar();
 }
 function ficSetEstilo(e) { FIC.estilo = e; ficAplicar(); }
+// ── FICHA PREMIUM: 2 páginas tipo revista, armadas con los datos, fotos y colores elegidos ──
+const FPR_IC = {
+  rec: '<path d="M4 34V14M4 28h40v6M44 28v-6a6 6 0 0 0-6-6H22v12"/><circle cx="12" cy="22" r="4"/>',
+  ban: '<path d="M6 24h36v5a9 9 0 0 1-9 9H15a9 9 0 0 1-9-9z"/><path d="M11 24V11a4 4 0 0 1 8 0M14 38l-2 4M34 38l2 4"/>',
+  m2: '<rect x="8" y="8" width="32" height="32" rx="2"/><path d="M8 18h6M34 30h6M18 8v6M30 34v6"/>',
+  auto: '<path d="M7 30l3-10a5 5 0 0 1 5-3h18a5 5 0 0 1 5 3l3 10v8H7z"/><circle cx="15" cy="31" r="2.5"/><circle cx="33" cy="31" r="2.5"/>',
+};
+function ficPremiumHTML(v, conAsesor) {
+  const c = ficColores(), e = _escVidHtml, f = (i) => e(ficFoto(i) || '');
+  const ic = (k) => `<svg class="ic" viewBox="0 0 48 48">${FPR_IC[k]}</svg>`;
+  const op = String(v.op || '').toUpperCase(), renta = /renta/i.test(v.op || '');
+  const stats = [];
+  if (v.rec && v.rec !== '0') stats.push(['rec', v.rec, 'Recámaras']);
+  if (v.ban) stats.push(['ban', v.ban, 'Baños']);
+  if (v.m2c) stats.push(['m2', v.m2c + ' m²', 'Construcción']); else if (v.m2t) stats.push(['m2', v.m2t + ' m²', 'Terreno']);
+  if (v.estac && v.estac !== '0') stats.push(['auto', v.estac, 'Estacionamientos']);
+  const specs = [['Tipo', v.tipo], ['Operación', v.op], v.rec !== '0' && ['Recámaras', v.rec], ['Baños', v.ban], v.m2c && ['Construcción', v.m2c + ' m²'], v.m2t && ['Terreno', v.m2t + ' m²'], v.estac !== '0' && ['Estacionamientos', v.estac]].filter(Boolean).slice(0, 6);
+  let desc = String(v.desc || '').replace(/\s+/g, ' ').trim();
+  if (desc.length > 560) { desc = desc.slice(0, 560); desc = desc.slice(0, Math.max(desc.lastIndexOf('. ') + 1, 420)) + (desc.endsWith('.') ? '' : '…'); }
+  const ams = (v.ams || []).slice(0, 10);
+  const asesor = conAsesor && v.asesor ? `${e(v.asesor)} · <b>${e(v.tel || '')}</b>` : '<b>NIVA Inmobiliaria</b>';
+  const vars = `--a:${c.acento};--o:${c.oscuro}`;
+  return `<div class="fpr fpr1" style="${vars}">
+    <div class="hero"><img src="${f(0)}"></div><div class="velo"></div>
+    <div class="top"><div class="logo">N<em>I</em>VA<small>Inmobiliaria</small></div><div class="badge">EN ${e(op)}</div></div>
+    <div class="cab"><div class="k">${e(String(v.tipo || '').toUpperCase())} · PRESENTACIÓN EXCLUSIVA</div><div class="t">${e(v.col || v.city || '')}</div><div class="s">${e([v.city, 'Nuevo León'].filter(Boolean).join(' · '))}</div></div>
+    <div class="precio"><div class="p">${e(fmtP(v.price))}</div><div class="m">MXN${renta ? ' / MES' : ''}</div></div>
+    <div class="stats">${stats.slice(0, 4).map((x) => `<div class="st">${ic(x[0])}<div><div class="v">${e(String(x[1]))}</div><div class="l">${e(x[2])}</div></div></div>`).join('')}</div>
+    <div class="tira"><img src="${f(1)}"><img src="${f(2)}"><img src="${f(3)}"></div>
+    <div class="pie"><span>${asesor}</span><span>os.nivainmobiliaria.com</span></div>
+  </div>
+  <div class="fpr fpr2" style="${vars}">
+    <div class="cab2"><div class="logo">N<em>I</em>VA<small>Inmobiliaria</small></div><div class="x">PRESENTACIÓN EXCLUSIVA</div></div>
+    <div class="b1"><div class="sec"><small>LA PROPIEDAD</small>${e(v.tipo || '')} en ${e(v.col || '')}</div><div class="desc">${e(desc || 'Una propiedad excepcional, lista para conocerse en persona.')}</div></div>
+    <div class="gal"><img class="g1" src="${f(4)}"><img src="${f(5)}"><img src="${f(1)}"></div>
+    <div class="cols">
+      <div><div class="sec" style="font-size:24px"><small>DETALLES</small>Características</div><div class="lst">${specs.map((x) => `<div><span>${e(x[0])}</span><b>${e(String(x[1]))}</b></div>`).join('')}</div></div>
+      <div><div class="sec" style="font-size:24px"><small>ESTILO DE VIDA</small>Amenidades</div><div class="ams">${ams.length ? ams.map((a) => `<span>${e(a)}</span>`).join('') : '<span>Consulta los detalles con tu asesor</span>'}</div></div>
+    </div>
+    <div class="contacto"><div class="k"><small>AGENDA UNA VISITA PRIVADA</small>Conócela en persona</div><div class="d">${conAsesor && v.asesor ? e(v.asesor) + '<b>' + e(v.tel || '') + '</b>' : 'NIVA Inmobiliaria<b>Monterrey, N.L.</b>'}</div></div>
+  </div>`;
+}
+let _ficPremToken = 0;
+async function ficRenderPremium() {
+  const wrap = document.getElementById('fic-prem-wrap'), esc = document.getElementById('fic-prem-escala');
+  if (!wrap || !esc || !photos.length && !NIVA_FLYER_lastV) return;
+  const t = ++_ficPremToken;
+  esc.innerHTML = ficPremiumHTML(getV(), document.getElementById('fichaAsesorCheck')?.checked !== false);
+  const k = Math.min(1, (wrap.clientWidth || 720) / 720);
+  esc.style.transform = 'scale(' + k + ')'; wrap.style.height = (esc.scrollHeight * k) + 'px';
+  for (const pg of esc.querySelectorAll('.fpr')) { if (t !== _ficPremToken) return; await nflPrepararFlyer(pg); }
+}
+window.addEventListener('resize', () => { if (FIC.estilo === 'premium') ficRenderPremium(); });
+async function ficPdfPremium(btn) {
+  const orig = btn.innerHTML; btn.innerHTML = '⏳ Generando PDF Premium…'; btn.classList.add('btn-dl-loading');
+  const host = document.createElement('div');
+  host.id = 'fic-prem-export';
+  host.style.cssText = 'position:fixed;left:0;top:0;width:720px;opacity:0;pointer-events:none;z-index:-1';
+  try {
+    await nflFuentes();
+    host.innerHTML = ficPremiumHTML(getV(), document.getElementById('fichaAsesorCheck').checked);
+    document.body.appendChild(host);
+    const { jsPDF } = window.jspdf; const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pags = [...host.querySelectorAll('.fpr')];
+    for (let i = 0; i < pags.length; i++) {
+      await nflPrepararFlyer(pags[i]);
+      const cv = await html2canvas(pags[i], { scale: 2, width: 720, height: 1018, useCORS: true, backgroundColor: null, logging: false,
+        onclone: (doc) => { const h = doc.getElementById('fic-prem-export'); if (h) h.style.opacity = '1'; },
+        ignoreElements: (n) => n.tagName !== 'BODY' && document.body.contains(n) && n !== host && !host.contains(n) && !n.contains(host) });
+      if (i) pdf.addPage();
+      pdf.addImage(cv.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297);
+    }
+    const name = 'ficha-premium-niva.pdf', blob = pdf.output('blob'), url = URL.createObjectURL(blob);
+    window.__fichaBlob = blob;
+    if (!window.__fichaSoloGuardar) await _nivaShareOrDownload(new File([blob], name, { type: 'application/pdf' }), url, name);
+    setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 8000);
+    btn.innerHTML = '✅ ¡PDF listo!'; setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-dl-loading'); }, 2500);
+  } catch (e) {
+    console.error('[NIVA][PDF premium]', e); btn.innerHTML = orig; btn.classList.remove('btn-dl-loading');
+    alert('Error al generar el PDF: ' + (e && e.message || e));
+  } finally { host.remove(); }
+}
+
 // PDF: en Premium las páginas 2+ llevan el fondo oscuro y letras claras, como la página 1
 function ficNuevaPagina(pdf, PW, PH) { pdf.addPage(); if (FIC.estilo === 'premium') { pdf.setFillColor(..._ficRgb(ficColores().oscuro)); pdf.rect(0, 0, PW, PH, 'F'); } }
 function ficPdfColor(k) { const c = ficColores(); if (FIC.estilo === 'premium') return k === 'titulo' ? _ficRgb(c.acento) : [232, 226, 214]; return k === 'titulo' ? _ficRgb(c.oscuro) : [71, 85, 105]; }
@@ -12569,6 +12689,7 @@ function genTextos(v) {
 //  DESCARGAR FICHA COMO PDF
 // ══════════════════════════════════════════════
 async function downloadFichaAsPDF(btn) {
+  if (FIC.estilo === 'premium') return ficPdfPremium(btn);
   // Esperar a que las fuentes de marca (Playfair Display / Inter) terminen de cargar
   // antes de capturar con html2canvas — si no, en conexiones lentas o con un clic
   // rápido justo después de generar, la captura puede salir con la fuente de
