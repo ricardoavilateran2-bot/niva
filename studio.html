@@ -1007,6 +1007,20 @@ img,video,canvas{max-width:100%}
 
 <!-- ── FICHA TÉCNICA ── -->
 <div class="tc" id="tc-ficha">
+  <button type="button" class="nfl-fab nfl-fab-ficha" onclick="nflAyuda(true,'ficha')" aria-label="Cómo usar la ficha técnica"><span class="q">?</span><span class="t">¿Cómo uso la ficha técnica?</span></button>
+  <div class="nfl-modal" id="nfl-modal-ficha" onclick="if(event.target===this)nflAyuda(false)">
+    <div class="nfl-modal-caja" role="dialog" aria-modal="true" aria-label="Cómo usar la ficha técnica">
+      <div class="nfl-modal-top"><h3>¿Cómo uso la ficha técnica?</h3><button type="button" onclick="nflAyuda(false)" aria-label="Cerrar">✕</button></div>
+      <video id="nfl-video-ficha" controls playsinline preload="none" poster="./ayuda/ficha-portada.jpg?v=1" src="./ayuda/ficha.mp4?v=1"></video>
+      <ol>
+        <li><b>Estilo de ficha:</b> Estándar (clara, 1 hoja) o Premium (tipo revista, para propiedades de alto nivel).</li>
+        <li><b>Colores:</b> elige una combinación o tus propios colores; «Restablecer» regresa al dorado.</li>
+        <li><b>Fotos:</b> escoge la portada y la galería. En Premium, acomoda cada foto en Interior, Amenidades o Exterior: salen todas.</li>
+        <li><b>Ubicación (opcional):</b> actívala, toca el mapa y elige punto exacto o zona aproximada.</li>
+        <li><b>Descargar Ficha como PDF:</b> lista para mandarla a tu cliente.</li>
+      </ol>
+    </div>
+  </div>
   <div class="empty" id="e-ficha"><div class="ei">📋</div><h3>Ficha Técnica</h3><p>Genera el contenido primero para<br>ver la ficha técnica de la propiedad</p></div>
   <div id="r-ficha" style="display:none">
   <div class="fic-panel">
@@ -3888,10 +3902,10 @@ async function nflPrepararFlyer(el) {
 
 function nflAyuda(abrir, cual) {
   if (!abrir) { // cierra cualquiera de las dos ventanas de ayuda y pausa su video
-    ['ayuda', 'datos'].forEach((k) => { const m = document.getElementById('nfl-modal-' + k), v = document.getElementById('nfl-video-' + k); if (m) m.classList.remove('on'); if (v) v.pause(); });
+    ['ayuda', 'datos', 'ficha'].forEach((k) => { const m = document.getElementById('nfl-modal-' + k), v = document.getElementById('nfl-video-' + k); if (m) m.classList.remove('on'); if (v) v.pause(); });
     return;
   }
-  const m = document.getElementById(cual === 'datos' ? 'nfl-modal-datos' : 'nfl-modal-ayuda');
+  const m = document.getElementById(cual === 'datos' ? 'nfl-modal-datos' : cual === 'ficha' ? 'nfl-modal-ficha' : 'nfl-modal-ayuda');
   if (m) m.classList.add('on');
 }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') nflAyuda(false); });
@@ -3901,7 +3915,9 @@ let _nflPrevVisible = false;
 function nflFabRevisar() {
   // ayuda del formulario: solo mientras todavía no se genera el contenido
   const fd = document.querySelector('.nfl-fab-datos'); if (fd) fd.classList.toggle('on', !NIVA_FLYER_lastV);
-  const f = document.querySelector('.nfl-fab:not(.nfl-fab-datos)'), pv = document.getElementById('nfl-prev-wrap'); if (!f || !pv) return;
+  // ayuda de la ficha: cuando la ficha ya está generada y su pestaña está abierta
+  const ff = document.querySelector('.nfl-fab-ficha'), rf = document.getElementById('r-ficha'); if (ff) ff.classList.toggle('on', !!rf && rf.style.display !== 'none' && document.getElementById('tc-ficha').classList.contains('on'));
+  const f = document.querySelector('.nfl-fab:not(.nfl-fab-datos):not(.nfl-fab-ficha)'), pv = document.getElementById('nfl-prev-wrap'); if (!f || !pv) return;
   let tapada = false; // en celular el formulario se pone encima de la vista previa
   if (_nflPrevVisible) { const r = pv.getBoundingClientRect(), x = r.left + r.width / 2, y = Math.min(Math.max(r.top + 40, 0), innerHeight - 1); const top = document.elementFromPoint(x, y); tapada = !!top && !pv.contains(top); }
   f.classList.toggle('on', _nflPrevVisible && !tapada && !!NIVA_FLYER_lastV);
