@@ -110,6 +110,13 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .fic-controles .ficha-dl-label{flex:none;min-width:0}
 .fic-ajustes{width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .fic-estilos{grid-column:1/-1}
+.ficha-mapa{padding:6px 28px 22px}
+.ficha-mapa img{width:100%;border-radius:8px;display:block}
+.ficha-mapa-nota{font-size:11px;color:#64748b;margin-top:6px}
+.fsec-row{display:flex;align-items:center;gap:8px;margin-top:6px}
+.fsec-row img{width:52px;height:38px;object-fit:cover;border-radius:5px;flex:none}
+.fsec-row .nfl-fila{flex:1}
+.fsec-row .nfl-fila button{padding:5px 6px;font-size:10.5px}
 #fic-prem-wrap{width:100%;max-width:720px;margin:0 auto}
 #fic-prem-escala{transform-origin:0 0;width:720px}
 #fic-prem-escala .fpr+.fpr{margin-top:16px}
@@ -256,54 +263,78 @@ textarea.fc{min-height:72px;resize:vertical;line-height:1.6}
 .ficha-footer-nologo{background:var(--navy);padding:16px 28px;display:flex;justify-content:space-between;align-items:center}
 /* Galería completa — página 2 del PDF */
 .ficha-galeria-full{background:#f8fafc;padding:24px;border-top:3px solid var(--gold)}
-/* ── Ficha PREMIUM: presentación de 2 páginas tipo revista (720×1018 = A4) ── */
+/* ── Ficha PREMIUM: presentación de varias páginas tipo revista (720×1018 = A4) ── */
 .fpr{position:relative;width:720px;height:1018px;overflow:hidden;font-family:Montserrat,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.18)}
-.fpr img{display:block}
-.fpr1{background:var(--o);color:#f6f1e7}
-.fpr1 .hero{position:absolute;left:0;top:0;width:720px;height:640px}
-.fpr1 .hero img,.fpr .tira img,.fpr2 .gal img{width:100%;height:100%;object-fit:cover}
-.fpr1 .velo{position:absolute;left:0;top:0;width:720px;height:640px;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 44%,var(--o) 100%)}
-.fpr .logo{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:34px;letter-spacing:7px;line-height:1}
-.fpr .logo em{font-style:normal;color:var(--a)}
-.fpr .logo small{display:block;font-family:Montserrat,sans-serif;font-size:8.5px;letter-spacing:.42em;font-weight:500;margin-top:6px;text-transform:uppercase}
-.fpr1 .top{position:absolute;left:40px;right:40px;top:34px;display:flex;justify-content:space-between;align-items:flex-start;color:#fff}
-.fpr1 .badge{border:1px solid rgba(255,255,255,.85);padding:8px 16px;font-size:10px;letter-spacing:.32em;font-weight:600}
-.fpr1 .cab{position:absolute;left:40px;right:40px;top:470px}
-.fpr1 .cab .k{font-size:10.5px;letter-spacing:.38em;color:var(--a);font-weight:600}
-.fpr1 .cab .t{font-family:'Cormorant Garamond',serif;font-size:62px;font-weight:600;line-height:1;margin-top:10px;color:#fff}
-.fpr1 .cab .s{font-size:12px;letter-spacing:.2em;margin-top:12px;color:rgba(246,241,231,.85);text-transform:uppercase}
-.fpr1 .precio{position:absolute;left:40px;right:40px;top:668px;display:flex;align-items:baseline;gap:14px;border-top:1px solid var(--a);padding-top:16px}
-.fpr1 .precio .p{font-family:'Cormorant Infant','Cormorant Garamond',serif;font-size:56px;font-weight:600;color:var(--a);line-height:1}
-.fpr1 .precio .m{font-size:11px;letter-spacing:.34em;color:rgba(246,241,231,.8)}
-.fpr1 .stats{position:absolute;left:40px;right:40px;top:770px;display:flex;justify-content:space-between}
-.fpr1 .st{display:flex;align-items:center;gap:12px}
+.fpr img{display:block;width:100%;height:100%;object-fit:cover}
 .fpr .ic{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.fpr1 .st .ic{color:var(--a)}
-.fpr1 .st .v{font-family:'Cormorant Infant','Cormorant Garamond',serif;font-size:30px;font-weight:600;line-height:1;color:#fff}
-.fpr1 .st .l{font-size:8.5px;letter-spacing:.24em;margin-top:5px;color:rgba(246,241,231,.75);text-transform:uppercase}
-.fpr1 .tira{position:absolute;left:40px;right:40px;top:836px;height:120px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:120px;gap:8px;overflow:hidden}
-.fpr1 .pie{position:absolute;left:40px;right:40px;bottom:22px;display:flex;justify-content:space-between;font-size:10px;letter-spacing:.18em;color:rgba(246,241,231,.75);text-transform:uppercase}
-.fpr1 .pie b{color:var(--a);font-weight:600}
-.fpr2{background:#f7f3ec;color:#1d1d1f}
-.fpr2 .cab2{position:absolute;left:44px;right:44px;top:36px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--a);padding-bottom:14px;color:var(--o)}
-.fpr2 .cab2 .x{font-size:9.5px;letter-spacing:.34em;font-weight:600;color:var(--a)}
-.fpr2 .sec{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:600;color:var(--o);line-height:1}
-.fpr2 .sec small{display:block;font-family:Montserrat,sans-serif;font-size:9px;letter-spacing:.36em;color:var(--a);font-weight:600;margin-bottom:8px}
-.fpr2 .b1{position:absolute;left:44px;right:44px;top:128px}
-.fpr2 .desc{font-size:11.5px;line-height:1.75;color:#3b3b3f;margin-top:14px;font-weight:400}
-.fpr2 .gal{position:absolute;left:44px;right:44px;top:336px;height:300px;display:grid;grid-template-columns:1.25fr 1fr;grid-template-rows:146px 146px;gap:8px}
-.fpr2 .gal .g1{grid-row:1/3}
-.fpr2 .cols{position:absolute;left:44px;right:44px;top:668px;display:grid;grid-template-columns:1fr 1fr;gap:34px}
-.fpr2 .lst{margin-top:12px;font-size:11px;color:#3b3b3f}
-.fpr2 .lst div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.08)}
-.fpr2 .lst b{font-weight:600;color:#1d1d1f}
-.fpr2 .ams{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;font-size:11px;color:#3b3b3f}
-.fpr2 .ams span::before{content:'◆';color:var(--a);font-size:8px;margin-right:7px;vertical-align:1px}
-.fpr2 .contacto{position:absolute;left:0;right:0;bottom:0;height:84px;background:var(--o);color:#f6f1e7;display:flex;align-items:center;justify-content:space-between;padding:0 44px}
-.fpr2 .contacto .k{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600}
-.fpr2 .contacto .k small{display:block;font-family:Montserrat,sans-serif;font-size:8.5px;letter-spacing:.34em;color:var(--a);margin-bottom:4px;font-weight:600}
-.fpr2 .contacto .d{text-align:right;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
-.fpr2 .contacto .d b{display:block;font-family:'Cormorant Infant','Cormorant Garamond',serif;font-size:22px;letter-spacing:1px;color:var(--a);font-weight:600;text-transform:none}
+.fpr .logo{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:30px;letter-spacing:7px;line-height:1}
+.fpr .logo em{font-style:normal;color:var(--a)}
+.fpr .logo small{display:block;font-family:Montserrat,sans-serif;font-size:8px;letter-spacing:.42em;font-weight:500;margin-top:6px;text-transform:uppercase}
+.fpr .marco{position:absolute;inset:16px;border:1px solid var(--a55);pointer-events:none;z-index:3}
+.fpr .num{position:absolute;right:40px;bottom:30px;font-size:9px;letter-spacing:.3em;z-index:4}
+.fpr .kick{font-size:9.5px;letter-spacing:.4em;font-weight:600;color:var(--a);text-transform:uppercase}
+.fpr .ttl{font-family:'Cormorant Garamond',serif;font-weight:600;line-height:1.02}
+/* portada */
+.fpr-cover{background:var(--o);color:#f6f1e7}
+.fpr-cover .hero{position:absolute;left:0;top:0;width:720px;height:720px}
+.fpr-cover .velo{position:absolute;left:0;top:0;width:720px;height:720px;background:linear-gradient(180deg,rgba(0,0,0,.5) 0%,rgba(0,0,0,0) 24%,rgba(0,0,0,0) 46%,var(--o) 100%)}
+.fpr-cover .top{position:absolute;left:44px;right:44px;top:44px;display:flex;justify-content:space-between;align-items:flex-start;color:#fff;z-index:4}
+.fpr-cover .badge{border:1px solid rgba(255,255,255,.85);padding:8px 16px;font-size:10px;letter-spacing:.34em;font-weight:600}
+.fpr-cover .cab{position:absolute;left:44px;right:44px;top:520px}
+.fpr-cover .cab .ttl{font-size:72px;color:#fff;margin-top:12px}
+.fpr-cover .cab .s{font-size:12px;letter-spacing:.24em;margin-top:14px;color:rgba(246,241,231,.85);text-transform:uppercase}
+.fpr-cover .precio{position:absolute;left:44px;right:44px;top:756px;display:flex;align-items:baseline;justify-content:space-between;border-top:1px solid var(--a);border-bottom:1px solid var(--a55);padding:18px 0 16px}
+.fpr-cover .precio .p{font-family:'Cormorant Infant','Cormorant Garamond',serif;font-size:58px;font-weight:600;color:var(--a);line-height:1}
+.fpr-cover .precio .m{font-size:10.5px;letter-spacing:.34em;color:rgba(246,241,231,.8)}
+.fpr-cover .stats{position:absolute;left:44px;right:44px;top:878px;display:flex;justify-content:space-between}
+.fpr-cover .st{display:flex;align-items:center;gap:12px}
+.fpr-cover .st .ic{color:var(--a)}
+.fpr-cover .st .v{font-family:'Cormorant Infant','Cormorant Garamond',serif;font-size:30px;font-weight:600;line-height:1;color:#fff}
+.fpr-cover .st .l{font-size:8.5px;letter-spacing:.24em;margin-top:5px;color:rgba(246,241,231,.75);text-transform:uppercase}
+.fpr-cover .num{color:rgba(246,241,231,.6)}
+/* páginas claras */
+.fpr-claro{background:#f7f3ec;color:#1d1d1f}
+.fpr .cab2{position:absolute;left:44px;right:44px;top:42px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--a);padding-bottom:14px;color:var(--o);z-index:4}
+.fpr-claro .num{color:#8a8a8f}
+.fpr .cuerpo{position:absolute;left:44px;right:44px;top:122px;bottom:64px;display:flex;flex-direction:column;gap:20px}
+.fpr-claro .ttl{color:var(--o)}
+.fpr .cita{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:21px;line-height:1.35;color:var(--o);border-left:2px solid var(--a);padding-left:16px}
+.fpr .desc{font-size:11.5px;line-height:1.75;color:#3b3b3f}
+.fpr .cols{display:grid;grid-template-columns:1fr 1fr;gap:34px}
+.fpr .lst{margin-top:10px;font-size:11px;color:#3b3b3f}
+.fpr .lst div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.08)}
+.fpr .lst b{font-weight:600;color:#1d1d1f}
+.fpr .ams{margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;font-size:11px;color:#3b3b3f}
+.fpr .ams span::before{content:'◆';color:var(--a);font-size:8px;margin-right:7px;vertical-align:1px}
+.fpr .mapa img{height:auto;border-radius:3px}
+.fpr .mapa .n{font-size:10px;letter-spacing:.12em;color:#6b6b70;margin-top:6px;text-transform:uppercase}
+/* galerías por sección (oscuras: las fotos lucen más) */
+.fpr-gal{background:var(--o);color:#f6f1e7}
+.fpr-gal .cab2{color:#f6f1e7}
+.fpr-gal .num{color:rgba(246,241,231,.6)}
+.fpr-gal .titsec{position:absolute;left:44px;right:44px;top:120px;display:flex;justify-content:space-between;align-items:flex-end}
+.fpr-gal .titsec .ttl{font-size:46px;color:#fff;margin-top:8px}
+.fpr-gal .titsec .c{font-size:10px;letter-spacing:.3em;color:rgba(246,241,231,.7)}
+.fpr-gal .g{position:absolute;left:44px;right:44px;top:222px;display:grid;gap:8px}
+.fpr-gal .g.n1{grid-template-columns:1fr;grid-template-rows:720px}
+.fpr-gal .g.n2{grid-template-columns:1fr;grid-template-rows:356px 356px}
+.fpr-gal .g.n3{grid-template-columns:1fr 1fr;grid-template-rows:400px 312px}.fpr-gal .g.n3 .f0{grid-column:1/3}
+.fpr-gal .g.n4{grid-template-columns:1fr 1fr;grid-template-rows:356px 356px}
+.fpr-gal .g.n5{grid-template-columns:1fr 1fr;grid-template-rows:330px 187px 187px}.fpr-gal .g.n5 .f0{grid-column:1/3}
+.fpr-gal .g.n6{grid-template-columns:1fr 1fr;grid-template-rows:234px 234px 234px}
+/* cierre */
+.fpr-fin{background:var(--o);color:#f6f1e7}
+.fpr-fin .bg{position:absolute;inset:0;opacity:.22}
+.fpr-fin .velo2{position:absolute;inset:0;background:linear-gradient(180deg,var(--o) 0%,rgba(0,0,0,0) 40%,var(--o) 100%)}
+.fpr-fin .centro{position:absolute;left:60px;right:60px;top:300px;text-align:center}
+.fpr-fin .centro .logo{font-size:64px;letter-spacing:16px}
+.fpr-fin .centro .logo small{font-size:11px;letter-spacing:.6em;margin-top:12px}
+.fpr-fin .linea{width:90px;height:1px;background:var(--a);margin:44px auto}
+.fpr-fin .ttl{font-size:46px;color:#fff}
+.fpr-fin .sub{font-size:11px;letter-spacing:.3em;color:var(--a);margin-top:16px;text-transform:uppercase}
+.fpr-fin .ases{margin-top:56px;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:rgba(246,241,231,.85)}
+.fpr-fin .tel{font-family:'Cormorant Infant','Cormorant Garamond',serif;font-size:40px;color:var(--a);margin-top:10px;letter-spacing:2px}
+.fpr-fin .web{font-size:10px;letter-spacing:.3em;margin-top:22px;color:rgba(246,241,231,.6)}
 .ficha-galeria-full .ficha-sec-ttl{margin-bottom:14px}
 .ficha-gal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ficha-gal-item{position:relative;aspect-ratio:1.39/1;border-radius:6px;overflow:hidden;background:#0d1c33;background-size:cover;background-position:center;background-repeat:no-repeat}
@@ -953,6 +984,7 @@ img,video,canvas{max-width:100%}
           </div>
         </div>
       </div>
+      <div class="ficha-mapa" id="fic-mapa-sec" style="display:none"><div class="ficha-desc-ttl">Ubicación</div><img id="fic-mapa-img" alt="Mapa de ubicación"><div class="ficha-mapa-nota" id="fic-mapa-nota"></div></div>
       <div class="ficha-desc-full" id="fic-desc-sec">
         <div class="ficha-desc-ttl">Descripción</div>
         <div class="ficha-desc-text" id="fic-desc"></div>
@@ -1010,7 +1042,18 @@ img,video,canvas{max-width:100%}
             <button type="button" class="nfl-mini" onclick="ficSetPaleta('dorado')">↺ Restablecer colores</button>
           </div>
         </div>
-        <div class="nfl-grupo"><div class="nfl-tit">Fotos</div><div id="fic-fotos"></div></div>
+        <div class="nfl-grupo"><div class="nfl-tit">Fotos</div><div id="fic-fotos"></div>
+          <div id="fic-secciones" style="display:none"><div class="nfl-sub" style="margin-top:10px">Secciones de la presentación Premium · todas las fotos salen, en la sección que elijas</div><div id="fic-sec-lista"></div></div>
+        </div>
+        <div class="nfl-grupo"><div class="nfl-tit">Ubicación</div>
+          <label class="ficha-dl-label" style="flex:none"><input type="checkbox" id="fic-ubic-on" onchange="ficUbicacionToggle(this.checked)" style="accent-color:var(--navy);width:15px;height:15px"> 📍 Agregar ubicación en la ficha</label>
+          <div id="fic-ubic-box" style="display:none;margin-top:8px">
+            <div class="nfl-fila" id="fic-ubic-modo"><button type="button" data-m="punto" onclick="ficSetUbic('modo','punto')">📍 Punto exacto</button><button type="button" data-m="zona" onclick="ficSetUbic('modo','zona')">⭕ Zona aproximada</button></div>
+            <label class="nfl-color" style="margin-top:6px">Tamaño de la zona <select id="fic-ubic-km" onchange="ficSetUbic('km', +this.value)" style="padding:4px 6px;border:1px solid var(--border);border-radius:6px"><option value="1">1 km</option><option value="2">2 km</option><option value="3">3 km</option><option value="5">5 km</option></select></label>
+            <div id="fic-mapa" style="height:260px;border-radius:8px;margin-top:8px;border:1px solid var(--border)"></div>
+            <div id="fic-ubic-hint" class="nfl-sub" style="margin-top:6px">Toca el mapa donde está la propiedad.</div>
+          </div>
+        </div>
       </div>
       <!-- (2026-10-05) Oculto: las fichas para Captaciones/CRM ahora se generan solas desde EasyBroker -->
       <div style="display:none;gap:8px;align-items:center;flex-wrap:wrap;width:100%;border-top:1px dashed var(--gold);padding-top:10px">
@@ -3906,9 +3949,13 @@ function ficPintarControles() {
         `<button type="button" class="vid-scene-photo-btn${i === sel ? ' sel' : ''}" onclick="ficSetFoto(${s}, ${i})" title="Foto ${i + 1}"><img src="${u}" loading="lazy"></button>`).join('')}</div></div>`;
     }).join('');
   }
+  const sl = document.getElementById('fic-sec-lista'), sw = document.getElementById('fic-secciones');
+  if (sw) sw.style.display = FIC.estilo === 'premium' && photos.length ? '' : 'none';
+  if (sl && photos.length) sl.innerHTML = photos.map((u, i) => { const k = (FIC.sec || {})[i] || 'depto';
+    return `<div class="fsec-row"><img src="${u}" loading="lazy"><div class="nfl-fila">${[['depto', 'Interior'], ['amen', 'Amenidades'], ['ext', 'Exterior']].map(([kk, t]) => `<button type="button" class="${k === kk ? 'sel' : ''}" onclick="ficSetSec(${i},'${kk}')">${t}</button>`).join('')}</div></div>`; }).join('');
   ficAplicar();
 }
-function ficSetEstilo(e) { FIC.estilo = e; ficAplicar(); }
+function ficSetEstilo(e) { FIC.estilo = e; ficPintarControles(); }
 // ── FICHA PREMIUM: 2 páginas tipo revista, armadas con los datos, fotos y colores elegidos ──
 const FPR_IC = {
   rec: '<path d="M4 34V14M4 28h40v6M44 28v-6a6 6 0 0 0-6-6H22v12"/><circle cx="12" cy="22" r="4"/>',
@@ -3917,40 +3964,158 @@ const FPR_IC = {
   auto: '<path d="M7 30l3-10a5 5 0 0 1 5-3h18a5 5 0 0 1 5 3l3 10v8H7z"/><circle cx="15" cy="31" r="2.5"/><circle cx="33" cy="31" r="2.5"/>',
 };
 function ficPremiumHTML(v, conAsesor) {
-  const c = ficColores(), e = _escVidHtml, f = (i) => e(ficFoto(i) || '');
+  const c = ficColores(), e = _escVidHtml, fu = (u) => e(u || '');
   const ic = (k) => `<svg class="ic" viewBox="0 0 48 48">${FPR_IC[k]}</svg>`;
+  const [ar, ag, ab] = _ficRgb(c.acento);
+  const vars = `--a:${c.acento};--o:${c.oscuro};--a55:rgba(${ar},${ag},${ab},.55)`;
   const op = String(v.op || '').toUpperCase(), renta = /renta/i.test(v.op || '');
+  const tipoLow = String(v.tipo || 'Propiedad');
   const stats = [];
   if (v.rec && v.rec !== '0') stats.push(['rec', v.rec, 'Recámaras']);
   if (v.ban) stats.push(['ban', v.ban, 'Baños']);
   if (v.m2c) stats.push(['m2', v.m2c + ' m²', 'Construcción']); else if (v.m2t) stats.push(['m2', v.m2t + ' m²', 'Terreno']);
   if (v.estac && v.estac !== '0') stats.push(['auto', v.estac, 'Estacionamientos']);
-  const specs = [['Tipo', v.tipo], ['Operación', v.op], v.rec !== '0' && ['Recámaras', v.rec], ['Baños', v.ban], v.m2c && ['Construcción', v.m2c + ' m²'], v.m2t && ['Terreno', v.m2t + ' m²'], v.estac !== '0' && ['Estacionamientos', v.estac]].filter(Boolean).slice(0, 6);
+  const specs = [['Tipo', v.tipo], ['Operación', v.op], v.rec !== '0' && ['Recámaras', v.rec], ['Baños', v.ban], v.m2c && ['Construcción', v.m2c + ' m²'], v.m2t && ['Terreno', v.m2t + ' m²'], v.estac !== '0' && ['Estacionamientos', v.estac]].filter(Boolean);
   let desc = String(v.desc || '').replace(/\s+/g, ' ').trim();
-  if (desc.length > 560) { desc = desc.slice(0, 560); desc = desc.slice(0, Math.max(desc.lastIndexOf('. ') + 1, 420)) + (desc.endsWith('.') ? '' : '…'); }
-  const ams = (v.ams || []).slice(0, 10);
-  const asesor = conAsesor && v.asesor ? `${e(v.asesor)} · <b>${e(v.tel || '')}</b>` : '<b>NIVA Inmobiliaria</b>';
-  const vars = `--a:${c.acento};--o:${c.oscuro}`;
-  return `<div class="fpr fpr1" style="${vars}">
-    <div class="hero"><img src="${f(0)}"></div><div class="velo"></div>
+  const m = desc.match(/^(.{40,220}?[.!?])\s/); const cita = m ? m[1] : ''; if (cita) desc = desc.slice(cita.length).trim();
+  if (desc.length > 900) { desc = desc.slice(0, 900); desc = desc.slice(0, Math.max(desc.lastIndexOf('. ') + 1, 700)) + (desc.endsWith('.') ? '' : '…'); }
+  const ams = (v.ams || []).slice(0, 12);
+  const pags = [];
+  const cab2 = (x) => `<div class="cab2"><div class="logo">N<em>I</em>VA<small>Inmobiliaria</small></div><div class="kick">${x}</div></div>`;
+  // 1 · portada
+  pags.push(`<div class="fpr fpr-cover" style="${vars}"><div class="hero"><img src="${fu(ficFoto(0))}"></div><div class="velo"></div><div class="marco"></div>
     <div class="top"><div class="logo">N<em>I</em>VA<small>Inmobiliaria</small></div><div class="badge">EN ${e(op)}</div></div>
-    <div class="cab"><div class="k">${e(String(v.tipo || '').toUpperCase())} · PRESENTACIÓN EXCLUSIVA</div><div class="t">${e(v.col || v.city || '')}</div><div class="s">${e([v.city, 'Nuevo León'].filter(Boolean).join(' · '))}</div></div>
-    <div class="precio"><div class="p">${e(fmtP(v.price))}</div><div class="m">MXN${renta ? ' / MES' : ''}</div></div>
+    <div class="cab"><div class="kick">${e(tipoLow.toUpperCase())} · Presentación exclusiva</div><div class="ttl">${e(v.col || v.city || '')}</div><div class="s">${e([v.city, 'Nuevo León'].filter(Boolean).join(' · '))}</div></div>
+    <div class="precio"><div class="p">${e(fmtP(v.price))}</div><div class="m">MXN${renta ? ' · RENTA MENSUAL' : ' · PRECIO DE VENTA'}</div></div>
     <div class="stats">${stats.slice(0, 4).map((x) => `<div class="st">${ic(x[0])}<div><div class="v">${e(String(x[1]))}</div><div class="l">${e(x[2])}</div></div></div>`).join('')}</div>
-    <div class="tira"><img src="${f(1)}"><img src="${f(2)}"><img src="${f(3)}"></div>
-    <div class="pie"><span>${asesor}</span><span>os.nivainmobiliaria.com</span></div>
-  </div>
-  <div class="fpr fpr2" style="${vars}">
-    <div class="cab2"><div class="logo">N<em>I</em>VA<small>Inmobiliaria</small></div><div class="x">PRESENTACIÓN EXCLUSIVA</div></div>
-    <div class="b1"><div class="sec"><small>LA PROPIEDAD</small>${e(v.tipo || '')} en ${e(v.col || '')}</div><div class="desc">${e(desc || 'Una propiedad excepcional, lista para conocerse en persona.')}</div></div>
-    <div class="gal"><img class="g1" src="${f(4)}"><img src="${f(5)}"><img src="${f(1)}"></div>
+    <div class="num">@N</div></div>`);
+  // 2 · la propiedad (texto, detalles y ubicación; todo en columna, nada encima de nada)
+  pags.push(`<div class="fpr fpr-claro" style="${vars}">${cab2('01 · La propiedad')}<div class="cuerpo">
+    <div class="ttl" style="font-size:40px">${e(tipoLow)} en ${e(v.col || '')}</div>
+    ${cita ? `<div class="cita">${e(cita)}</div>` : ''}
+    ${desc ? `<div class="desc">${e(desc)}</div>` : ''}
     <div class="cols">
-      <div><div class="sec" style="font-size:24px"><small>DETALLES</small>Características</div><div class="lst">${specs.map((x) => `<div><span>${e(x[0])}</span><b>${e(String(x[1]))}</b></div>`).join('')}</div></div>
-      <div><div class="sec" style="font-size:24px"><small>ESTILO DE VIDA</small>Amenidades</div><div class="ams">${ams.length ? ams.map((a) => `<span>${e(a)}</span>`).join('') : '<span>Consulta los detalles con tu asesor</span>'}</div></div>
+      <div><div class="kick">Detalles</div><div class="ttl" style="font-size:24px;margin-top:6px">Características</div><div class="lst">${specs.map((x) => `<div><span>${e(x[0])}</span><b>${e(String(x[1]))}</b></div>`).join('')}</div></div>
+      <div><div class="kick">Estilo de vida</div><div class="ttl" style="font-size:24px;margin-top:6px">Amenidades</div><div class="ams">${ams.length ? ams.map((a) => `<span>${e(a)}</span>`).join('') : '<span>Consulta los detalles con tu asesor</span>'}</div></div>
     </div>
-    <div class="contacto"><div class="k"><small>AGENDA UNA VISITA PRIVADA</small>Conócela en persona</div><div class="d">${conAsesor && v.asesor ? e(v.asesor) + '<b>' + e(v.tel || '') + '</b>' : 'NIVA Inmobiliaria<b>Monterrey, N.L.</b>'}</div></div>
-  </div>`;
+    ${ficUbicLista() ? `<div class="mapa"><div class="kick" style="margin-bottom:8px">Ubicación</div><img data-mapa="1" src="" style="height:250px"><div class="n">${e(ficUbicNota())}</div></div>` : ''}
+  </div><div class="num">@N</div></div>`);
+  // 3+ · galerías por sección: todas las fotos, 6 por página como máximo
+  const SEC = [['depto', /casa/i.test(tipoLow) ? 'La casa' : 'El interior'], ['amen', 'Amenidades'], ['ext', 'Exterior y entorno']];
+  let n = 2;
+  SEC.forEach(([k, nombre]) => {
+    const fotos = photos.filter((_, i) => ((FIC.sec || {})[i] || 'depto') === k);
+    for (let i = 0; i < fotos.length; i += 6) {
+      const lote = fotos.slice(i, i + 6); n++;
+      pags.push(`<div class="fpr fpr-gal" style="${vars}">${cab2(String(n - 1).padStart(2, '0') + ' · Galería')}<div class="marco"></div>
+        <div class="titsec"><div><div class="kick">${i ? 'Continúa' : 'Galería'}</div><div class="ttl">${e(nombre)}</div></div><div class="c">${fotos.length} FOTO${fotos.length === 1 ? '' : 'S'}</div></div>
+        <div class="g n${lote.length}">${lote.map((u, j) => `<img class="f${j}" src="${fu(u)}">`).join('')}</div><div class="num">@N</div></div>`);
+    }
+  });
+  // cierre
+  pags.push(`<div class="fpr fpr-fin" style="${vars}"><div class="bg"><img src="${fu(ficFoto(0))}"></div><div class="velo2"></div><div class="marco"></div>
+    <div class="centro"><div class="logo">N<em>I</em>VA<small>Inmobiliaria</small></div><div class="linea"></div>
+    <div class="ttl">Agenda una visita privada</div><div class="sub">Conócela en persona</div>
+    ${conAsesor && v.asesor ? `<div class="ases">${e(v.asesor)}</div><div class="tel">${e(v.tel || '')}</div>` : '<div class="ases">NIVA Inmobiliaria · Monterrey, N.L.</div>'}
+    <div class="web">os.nivainmobiliaria.com</div></div><div class="num">@N</div></div>`);
+  const total = pags.length;
+  return pags.map((h, i) => h.replace('@N', String(i + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0'))).join('');
 }
+async function ficPrepararPremium(cont) { // mapa estático + recorte exacto de fotos (html2canvas no soporta object-fit)
+  const mapa = await ficMapaImg(632, 250);
+  cont.querySelectorAll('img[data-mapa]').forEach((im) => { if (mapa) im.src = mapa; else im.closest('.mapa').remove(); });
+  for (const pg of cont.querySelectorAll('.fpr')) await nflPrepararFlyer(pg);
+}
+
+// ── UBICACIÓN (ambas fichas): punto exacto o zona aproximada sobre mapa de Nuevo León ──
+FIC.sec = FIC.sec || {}; // foto → sección (Premium): 'depto' | 'amen' | 'ext'
+FIC.ubic = FIC.ubic || { on: false, set: false, lat: 25.6714, lng: -100.3097, modo: 'zona', km: 3 };
+let _ficMapa = null, _ficMapaCapa = null, _ficMapaCache = {};
+function ficCargarLeaflet() {
+  if (window.L) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(css);
+    const js = document.createElement('script'); js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; js.onload = res; js.onerror = rej; document.head.appendChild(js);
+  });
+}
+// Mapa gris claro de Esri (sin clave, permite capturarlo para el PDF): base + nombres de calles y colonias
+const FIC_TILES = ['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}'];
+async function ficUbicacionToggle(on) {
+  FIC.ubic.on = !!on;
+  const box = document.getElementById('fic-ubic-box'); if (box) box.style.display = on ? '' : 'none';
+  if (on) {
+    try { await ficCargarLeaflet(); } catch (e) { alert('No se pudo cargar el mapa. Revisa tu conexión.'); return; }
+    if (!_ficMapa) {
+      _ficMapa = L.map('fic-mapa', { zoomControl: true, attributionControl: true }).setView([FIC.ubic.lat, FIC.ubic.lng], 11);
+      FIC_TILES.forEach((t, i) => L.tileLayer(t, { maxZoom: 16, attribution: i ? '' : 'Mapa © Esri' }).addTo(_ficMapa));
+      _ficMapa.on('click', (e) => { FIC.ubic.lat = e.latlng.lat; FIC.ubic.lng = e.latlng.lng; FIC.ubic.set = true; ficMapaDibujar(); ficMapaCambio(); });
+    }
+    setTimeout(() => _ficMapa.invalidateSize(), 60);
+    ficMapaDibujar();
+  }
+  ficPintarUbic(); ficMapaCambio();
+}
+function ficSetUbic(k, val) { FIC.ubic[k] = val; ficPintarUbic(); ficMapaDibujar(); ficMapaCambio(); }
+function ficPintarUbic() {
+  document.querySelectorAll('#fic-ubic-modo button').forEach((b) => b.classList.toggle('sel', b.dataset.m === FIC.ubic.modo));
+  const km = document.getElementById('fic-ubic-km'); if (km) { km.value = String(FIC.ubic.km); km.disabled = FIC.ubic.modo !== 'zona'; }
+  const h = document.getElementById('fic-ubic-hint'); if (h) h.textContent = FIC.ubic.set ? (FIC.ubic.modo === 'zona' ? 'Zona marcada ✓ · toca otro lugar para moverla' : 'Punto marcado ✓ · toca otro lugar para moverlo') : 'Toca el mapa donde está la propiedad.';
+}
+function ficMapaDibujar() {
+  if (!_ficMapa || !window.L) return;
+  if (_ficMapaCapa) { _ficMapa.removeLayer(_ficMapaCapa); _ficMapaCapa = null; }
+  if (!FIC.ubic.set) return;
+  const c = ficColores().acento, ll = [FIC.ubic.lat, FIC.ubic.lng];
+  _ficMapaCapa = FIC.ubic.modo === 'zona' ? L.circle(ll, { radius: FIC.ubic.km * 1000, color: c, weight: 3, fillColor: c, fillOpacity: .2 }) : L.circleMarker(ll, { radius: 9, color: '#fff', weight: 3, fillColor: c, fillOpacity: 1 });
+  _ficMapaCapa.addTo(_ficMapa);
+}
+let _ficMapaT = null;
+function ficMapaCambio() { clearTimeout(_ficMapaT); _ficMapaT = setTimeout(() => { if (NIVA_FLYER_lastV || photos.length) genFicha(getV()); }, 250); }
+const ficUbicLista = () => FIC.ubic.on && FIC.ubic.set;
+function ficUbicNota() { return FIC.ubic.modo === 'zona' ? `Ubicación aproximada · zona de ${FIC.ubic.km} km a la redonda` : 'Ubicación de la propiedad'; }
+// Mapa estático (canvas) para la ficha y el PDF: html2canvas no sabe capturar Leaflet.
+async function ficMapaImg(w, h) {
+  if (!ficUbicLista()) return '';
+  const u = FIC.ubic, ac = ficColores().acento, key = [u.lat.toFixed(5), u.lng.toFixed(5), u.modo, u.km, w, h, ac].join('|');
+  if (_ficMapaCache[key]) return _ficMapaCache[key];
+  const W = w * 2, H = h * 2, lat = u.lat * Math.PI / 180;
+  const mpp0 = 156543.03392 * Math.cos(lat); // metros por pixel en zoom 0
+  let z = u.modo === 'zona' ? Math.floor(Math.log2(mpp0 / ((u.km * 2000) / (H * 0.62)))) : 16;
+  z = Math.max(8, Math.min(16, z));
+  const N = 256 * Math.pow(2, z), cx = (u.lng + 180) / 360 * N, cy = (1 - Math.log(Math.tan(lat) + 1 / Math.cos(lat)) / Math.PI) / 2 * N;
+  const x0 = cx - W / 2, y0 = cy - H / 2, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const g = cv.getContext('2d'); g.fillStyle = '#eef0f2'; g.fillRect(0, 0, W, H);
+  for (const capa of FIC_TILES) { // primero la base, luego los nombres encima
+    const tareas = [];
+    for (let tx = Math.floor(x0 / 256); tx <= Math.floor((x0 + W) / 256); tx++) for (let ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + H) / 256); ty++) {
+      tareas.push(new Promise((res) => { const im = new Image(); im.crossOrigin = 'anonymous'; const t = setTimeout(() => res(null), 8000);
+        im.onload = () => { clearTimeout(t); res([im, tx, ty]); }; im.onerror = () => { clearTimeout(t); res(null); };
+        im.src = capa.replace('{z}', z).replace('{x}', ((tx % (N / 256)) + N / 256) % (N / 256)).replace('{y}', ty); }));
+    }
+    (await Promise.all(tareas)).forEach((r) => { if (r) g.drawImage(r[0], r[1] * 256 - x0, r[2] * 256 - y0); });
+  }
+  const [r, gg, b] = _ficRgb(ac);
+  if (u.modo === 'zona') {
+    const rad = (u.km * 1000) / (mpp0 / Math.pow(2, z));
+    g.beginPath(); g.arc(W / 2, H / 2, rad, 0, Math.PI * 2); g.fillStyle = `rgba(${r},${gg},${b},.2)`; g.fill(); g.lineWidth = 6; g.strokeStyle = ac; g.stroke();
+  } else {
+    g.save(); g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 14; g.beginPath(); g.arc(W / 2, H / 2, 20, 0, Math.PI * 2); g.fillStyle = ac; g.fill(); g.restore();
+    g.beginPath(); g.arc(W / 2, H / 2, 20, 0, Math.PI * 2); g.lineWidth = 7; g.strokeStyle = '#fff'; g.stroke();
+  }
+  g.font = '20px Inter, sans-serif'; const txt = 'Mapa © Esri', tw = g.measureText(txt).width;
+  g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(W - tw - 20, H - 32, tw + 20, 32); g.fillStyle = '#555'; g.fillText(txt, W - tw - 10, H - 10);
+  let url = ''; try { url = cv.toDataURL('image/jpeg', 0.9); } catch (e) { url = ''; }
+  return (_ficMapaCache[key] = url);
+}
+async function ficMapaEstandar() { // sección "Ubicación" de la ficha estándar
+  const sec = document.getElementById('fic-mapa-sec'), img = document.getElementById('fic-mapa-img'), nota = document.getElementById('fic-mapa-nota');
+  if (!sec) return;
+  if (!ficUbicLista()) { sec.style.display = 'none'; return; }
+  const url = await ficMapaImg(632, 250); if (!url) { sec.style.display = 'none'; return; }
+  img.src = url; nota.textContent = ficUbicNota(); sec.style.display = '';
+}
+function ficSetSec(i, k) { FIC.sec[i] = k; ficPintarControles(); if (FIC.estilo === 'premium') ficRenderPremium(); }
+
 let _ficPremToken = 0;
 async function ficRenderPremium() {
   const wrap = document.getElementById('fic-prem-wrap'), esc = document.getElementById('fic-prem-escala');
@@ -3959,7 +4124,7 @@ async function ficRenderPremium() {
   esc.innerHTML = ficPremiumHTML(getV(), document.getElementById('fichaAsesorCheck')?.checked !== false);
   const k = Math.min(1, (wrap.clientWidth || 720) / 720);
   esc.style.transform = 'scale(' + k + ')'; wrap.style.height = (esc.scrollHeight * k) + 'px';
-  for (const pg of esc.querySelectorAll('.fpr')) { if (t !== _ficPremToken) return; await nflPrepararFlyer(pg); }
+  if (t === _ficPremToken) await ficPrepararPremium(esc);
 }
 window.addEventListener('resize', () => { if (FIC.estilo === 'premium') ficRenderPremium(); });
 async function ficPdfPremium(btn) {
@@ -3972,9 +4137,10 @@ async function ficPdfPremium(btn) {
     host.innerHTML = ficPremiumHTML(getV(), document.getElementById('fichaAsesorCheck').checked);
     document.body.appendChild(host);
     const { jsPDF } = window.jspdf; const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    await ficPrepararPremium(host);
     const pags = [...host.querySelectorAll('.fpr')];
     for (let i = 0; i < pags.length; i++) {
-      await nflPrepararFlyer(pags[i]);
+      btn.innerHTML = '⏳ Generando PDF Premium… (' + (i + 1) + ' de ' + pags.length + ')';
       const cv = await html2canvas(pags[i], { scale: 2, width: 720, height: 1018, useCORS: true, backgroundColor: null, logging: false,
         onclone: (doc) => { const h = doc.getElementById('fic-prem-export'); if (h) h.style.opacity = '1'; },
         ignoreElements: (n) => n.tagName !== 'BODY' && document.body.contains(n) && n !== host && !host.contains(n) && !n.contains(host) });
@@ -4002,6 +4168,7 @@ function ficSetFoto(slot, i) { FIC.fotos[slot] = i; ficPintarControles(); if (NI
 function genFicha(v) {
   showResult('ficha');
   ficPintarControles();
+  ficMapaEstandar();
   // Cover photo — usa background-image para que html2canvas la capture correctamente
   const cover = document.getElementById('fic-cover');
   const nph = document.getElementById('fic-nophoto');
@@ -12744,6 +12911,7 @@ async function downloadFichaAsPDF(btn) {
 
   const restore = () => {
     restoreFooters();
+    { const m = document.getElementById('fic-mapa-sec'); if (m && ficUbicLista()) m.style.display = ''; }
     descSec.style.display = descOrig;
     galSec.style.display  = galOrig;
     fichaElForWidth.style.width = prevFichaWidth;
@@ -12759,6 +12927,7 @@ async function downloadFichaAsPDF(btn) {
     // ══ PÁGINA 1 — ficha sin descripción ni galería de fotos ══
     descSec.style.display = 'none';
     galSec.style.display  = 'none';
+    { const m = document.getElementById('fic-mapa-sec'); if (m) m.style.display = 'none'; }
 
     // Recorta de antemano la foto de portada a las dimensiones exactas del recuadro —
     // html2canvas no soporta bien "background-size:cover" (problema conocido de esa
@@ -12802,7 +12971,8 @@ async function downloadFichaAsPDF(btn) {
     const descText = document.getElementById('fic-desc').textContent.trim();
     const hasDesc  = descOrig !== 'none' && descText.length > 0;
 
-    if (hasDesc || photos.length > 0) {
+    const mapaURL = await ficMapaImg(632, 250);
+    if (hasDesc || photos.length > 0 || mapaURL) {
       ficNuevaPagina(pdf, PW, PH);
       let curY = 18; // pequeño margen superior al inicio de página 2
 
@@ -12824,10 +12994,24 @@ async function downloadFichaAsPDF(btn) {
         curY += lines.length * 5.2 + 14;
       }
 
+      // ── Ubicación (mapa) ──
+      if (mapaURL) {
+        if (!hasDesc) curY = 18;
+        const mh = (PW - 28) * 250 / 632;
+        if (curY + mh + 20 > PH - 20) { ficNuevaPagina(pdf, PW, PH); curY = 18; }
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8.5); pdf.setTextColor(...ficPdfColor('titulo'));
+        pdf.text('UBICACIÓN', 14, curY);
+        pdf.setDrawColor(..._ficRgb(ficColores().acento)); pdf.setLineWidth(0.6); pdf.line(14, curY + 2.5, PW - 14, curY + 2.5);
+        curY += 7;
+        pdf.addImage(mapaURL, 'JPEG', 14, curY, PW - 28, mh); curY += mh + 5;
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(...ficPdfColor('texto'));
+        pdf.text(ficUbicNota(), 14, curY); curY += 12;
+      }
+
       // ── Galería de fotos — imágenes a alta calidad sin pasar por html2canvas ──
       if (photos.length > 0) {
         // Si no hay descripción la galería empieza directamente con margen top
-        if (!hasDesc) curY = 18;
+        if (!hasDesc && !mapaURL) curY = 18;
 
         // Checar si la galería cabe en esta página o necesita nueva
         if (curY + 20 > PH - 20) { ficNuevaPagina(pdf, PW, PH); curY = 18; }
